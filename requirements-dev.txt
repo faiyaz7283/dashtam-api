@@ -1,0 +1,16 @@
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+httpx  # Also needed for testing
+
+# Code quality
+black
+ruff
+mypy
+
+# Type stubs
+types-requests
+types-passlib
+types-python-dateutil
+types-pytz

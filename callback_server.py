@@ -8,15 +8,11 @@ forwards the authorization code along with the state parameter (provider_id)
 to the main FastAPI application.
 """
 import ssl
-import asyncio
 import requests
-from urllib.parse import urlparse, parse_qs, urlencode
+from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
-import time
 import urllib3
 import os
-import json
 
 # Disable SSL warnings for internal container communication
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -105,7 +101,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
                     error_detail
                 )
                 
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             self._send_error_response(
                 "Connection Error",
                 f"Could not connect to the Dashtam API at {callback_url}. "
@@ -371,7 +367,7 @@ def run_callback_server():
     context.load_cert_chain(cert_file, key_file)
     httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
     
-    print(f"✅ Server ready and waiting for OAuth callbacks...")
+    print("✅ Server ready and waiting for OAuth callbacks...")
     print("\nPress Ctrl+C to stop the server\n")
     
     try:

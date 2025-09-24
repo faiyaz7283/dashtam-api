@@ -25,13 +25,6 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.config import settings
-from src.models import (  # Import to register with SQLModel metadata
-    User,
-    Provider,
-    ProviderConnection,
-    ProviderToken,
-    ProviderAuditLog,
-)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

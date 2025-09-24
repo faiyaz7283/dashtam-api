@@ -1,0 +1,60 @@
+{
+  "name": "Dashtam Dev",
+  "dockerComposeFile": [
+    "./docker-compose.yml"
+  ],
+  "service": "app",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "runServices": [
+    "postgres",
+    "redis",
+    "app",
+    "callback"
+  ],
+  "overrideCommand": false,
+  "remoteUser": "root",
+  "containerEnv": {
+    "ENVIRONMENT": "development"
+  },
+  "forwardPorts": [
+    8000,
+    8182
+  ],
+  "portsAttributes": {
+    "8000": {
+      "label": "API",
+      "onAutoForward": "notify"
+    },
+    "8182": {
+      "label": "OAuth Callback",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-azuretools.vscode-docker",
+        "github.vscode-github-actions"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/app/.venv/bin/python",
+        "python.analysis.typeCheckingMode": "basic",
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "ruff.organizeImports": true,
+        "ruff.lint.args": [
+          "--select",
+          "E,F,I",
+          "--line-length",
+          "100"
+        ]
+      }
+    }
+  }
+}

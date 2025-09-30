@@ -13,6 +13,7 @@ from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib3
 import os
+import json
 
 # Disable SSL warnings for internal container communication
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -93,7 +94,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
                 # Error from FastAPI
                 try:
                     error_detail = response.json().get('detail', response.text)
-                except:
+                except json.JSONDecodeError:
                     error_detail = response.text
                 
                 self._send_error_response(

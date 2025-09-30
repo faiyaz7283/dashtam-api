@@ -9,9 +9,9 @@ The encryption key is derived from the application's SECRET_KEY or can be
 configured separately for production environments.
 """
 
-import os
 import base64
 import logging
+import os
 from typing import Optional
 
 from cryptography.fernet import Fernet

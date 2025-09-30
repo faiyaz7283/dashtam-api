@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     Attributes:
         APP_NAME: Application name used in API responses and logging.
         APP_VERSION: Current version of the application.
+        ENVIRONMENT: Application environment (development/staging/production).
         DEBUG: Enable debug mode with verbose logging and auto-reload.
         API_V1_PREFIX: URL prefix for API version 1 endpoints.
         HOST: Host interface to bind the server to.
@@ -66,6 +67,7 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Dashtam"
     APP_VERSION: str = "0.1.0"
+    ENVIRONMENT: str = Field(default="production")
     DEBUG: bool = Field(default=False)
     API_V1_PREFIX: str = "/api/v1"
 
@@ -76,6 +78,9 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = Field(default="change-me-in-production-use-secrets-manager")
+    ENCRYPTION_KEY: str = Field(
+        default="change-me-in-production-use-secrets-manager-for-encryption"
+    )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
@@ -113,6 +118,34 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
     )
+
+    @field_validator("DEBUG", mode="after")
+    @classmethod
+    def set_debug_from_environment(cls, v: bool, values) -> bool:
+        """Auto-set DEBUG mode based on ENVIRONMENT if not explicitly set.
+
+        In development and staging environments, DEBUG should be True by default
+        to enable features like API documentation and detailed error messages.
+
+        Args:
+            v: Current DEBUG value
+            values: All field values including ENVIRONMENT
+
+        Returns:
+            Updated DEBUG value based on environment
+        """
+        # If DEBUG is explicitly set to True, keep it
+        if v is True:
+            return v
+
+        # Get environment from the field values
+        environment = getattr(values, "ENVIRONMENT", "production")
+
+        # Auto-enable DEBUG for development and staging
+        if environment.lower() in ["development", "dev", "staging", "stage"]:
+            return True
+
+        return v
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

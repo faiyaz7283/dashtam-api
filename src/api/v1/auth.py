@@ -59,9 +59,8 @@ async def get_authorization_url(
     """
     # Get provider
     from sqlmodel import select
-    result = await session.execute(
-        select(Provider).where(Provider.id == provider_id)
-    )
+
+    result = await session.execute(select(Provider).where(Provider.id == provider_id))
     provider = result.scalar_one_or_none()
 
     if not provider:
@@ -146,9 +145,8 @@ async def handle_oauth_callback(
 
     # Get provider
     from sqlmodel import select
-    result = await session.execute(
-        select(Provider).where(Provider.id == provider_id)
-    )
+
+    result = await session.execute(select(Provider).where(Provider.id == provider_id))
     provider = result.scalar_one_or_none()
 
     if not provider:
@@ -229,9 +227,8 @@ async def refresh_provider_tokens(
     """
     # Get provider
     from sqlmodel import select
-    result = await session.execute(
-        select(Provider).where(Provider.id == provider_id)
-    )
+
+    result = await session.execute(select(Provider).where(Provider.id == provider_id))
     provider = result.scalar_one_or_none()
 
     if not provider:
@@ -277,9 +274,8 @@ async def get_token_status(
     """
     # Get provider
     from sqlmodel import select
-    result = await session.execute(
-        select(Provider).where(Provider.id == provider_id)
-    )
+
+    result = await session.execute(select(Provider).where(Provider.id == provider_id))
     provider = result.scalar_one_or_none()
 
     if not provider:
@@ -327,9 +323,8 @@ async def disconnect_provider(
     """
     # Get provider
     from sqlmodel import select
-    result = await session.execute(
-        select(Provider).where(Provider.id == provider_id)
-    )
+
+    result = await session.execute(select(Provider).where(Provider.id == provider_id))
     provider = result.scalar_one_or_none()
 
     if not provider:

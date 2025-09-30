@@ -13,17 +13,17 @@ ensuring tokens are always valid and properly encrypted.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.provider import (
     Provider,
-    ProviderConnection,
-    ProviderToken,
     ProviderAuditLog,
+    ProviderConnection,
     ProviderStatus,
+    ProviderToken,
 )
 from src.providers import ProviderRegistry
 from src.services.encryption import get_encryption_service
@@ -77,13 +77,15 @@ class TokenService:
             ValueError: If provider or connection not found.
         """
         # Get provider and connection
-        from sqlmodel import select
         from sqlalchemy.orm import selectinload
-        
+        from sqlmodel import select
+
         # Load provider with connection and token relationships
         result = await self.session.execute(
             select(Provider)
-            .options(selectinload(Provider.connection).selectinload(ProviderConnection.token))
+            .options(
+                selectinload(Provider.connection).selectinload(ProviderConnection.token)
+            )
             .where(Provider.id == provider_id)
         )
         provider = result.scalar_one_or_none()
@@ -187,12 +189,14 @@ class TokenService:
             Exception: If token refresh fails.
         """
         # Get provider with connection and token
-        from sqlmodel import select
         from sqlalchemy.orm import selectinload
-        
+        from sqlmodel import select
+
         result = await self.session.execute(
             select(Provider)
-            .options(selectinload(Provider.connection).selectinload(ProviderConnection.token))
+            .options(
+                selectinload(Provider.connection).selectinload(ProviderConnection.token)
+            )
             .where(Provider.id == provider_id)
         )
         provider = result.scalar_one_or_none()
@@ -235,12 +239,14 @@ class TokenService:
             Exception: If refresh fails.
         """
         # Get provider and token
-        from sqlmodel import select
         from sqlalchemy.orm import selectinload
-        
+        from sqlmodel import select
+
         result = await self.session.execute(
             select(Provider)
-            .options(selectinload(Provider.connection).selectinload(ProviderConnection.token))
+            .options(
+                selectinload(Provider.connection).selectinload(ProviderConnection.token)
+            )
             .where(Provider.id == provider_id)
         )
         provider = result.scalar_one_or_none()
@@ -362,12 +368,14 @@ class TokenService:
             request_info: Optional request metadata.
         """
         # Get provider
-        from sqlmodel import select
         from sqlalchemy.orm import selectinload
-        
+        from sqlmodel import select
+
         result = await self.session.execute(
             select(Provider)
-            .options(selectinload(Provider.connection).selectinload(ProviderConnection.token))
+            .options(
+                selectinload(Provider.connection).selectinload(ProviderConnection.token)
+            )
             .where(Provider.id == provider_id)
         )
         provider = result.scalar_one_or_none()
@@ -413,12 +421,14 @@ class TokenService:
         Returns:
             Dictionary with token metadata, or None if no tokens.
         """
-        from sqlmodel import select
         from sqlalchemy.orm import selectinload
-        
+        from sqlmodel import select
+
         result = await self.session.execute(
             select(Provider)
-            .options(selectinload(Provider.connection).selectinload(ProviderConnection.token))
+            .options(
+                selectinload(Provider.connection).selectinload(ProviderConnection.token)
+            )
             .where(Provider.id == provider_id)
         )
         provider = result.scalar_one_or_none()

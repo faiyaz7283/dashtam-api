@@ -73,7 +73,9 @@ app.add_middleware(
 # Include Docker service names for internal communication
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"] if settings.DEBUG else ["localhost", "127.0.0.1", "app", "backend", "0.0.0.0"],
+    allowed_hosts=["*"]
+    if settings.DEBUG
+    else ["localhost", "127.0.0.1", "app", "backend", "0.0.0.0"],
 )
 
 # Include API routers
@@ -93,7 +95,6 @@ async def root():
             "endpoints": {
                 "providers": f"{settings.API_V1_PREFIX}/providers",
                 "auth": f"{settings.API_V1_PREFIX}/auth",
-                "accounts": f"{settings.API_V1_PREFIX}/accounts",
                 "health": f"{settings.API_V1_PREFIX}/health",
             },
         },

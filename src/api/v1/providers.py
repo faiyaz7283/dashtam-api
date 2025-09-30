@@ -174,6 +174,7 @@ async def list_user_providers(
 ):
     """Get all provider instances for the current user."""
     from sqlalchemy.orm import selectinload
+
     result = await session.execute(
         select(Provider)
         .options(selectinload(Provider.connection))
@@ -215,6 +216,7 @@ async def get_provider(
     """Get details of a specific provider instance."""
     from sqlmodel import select
     from sqlalchemy.orm import selectinload
+
     result = await session.execute(
         select(Provider)
         .options(selectinload(Provider.connection))
@@ -260,9 +262,8 @@ async def delete_provider(
 ):
     """Delete a provider instance and all associated data."""
     from sqlmodel import select
-    result = await session.execute(
-        select(Provider).where(Provider.id == provider_id)
-    )
+
+    result = await session.execute(select(Provider).where(Provider.id == provider_id))
     provider = result.scalar_one_or_none()
 
     if not provider:

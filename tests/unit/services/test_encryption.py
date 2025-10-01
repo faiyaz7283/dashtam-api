@@ -166,7 +166,7 @@ class TestEncryptionServicePerformance:
     def test_encryption_performance(self, test_settings):
         """Test that encryption operations complete within reasonable time."""
         import time
-        
+
         service = EncryptionService()
         data = "performance_test_token_data"
 

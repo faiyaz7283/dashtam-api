@@ -7,7 +7,6 @@ with various configurations following Dashtam patterns.
 from typing import Dict, Any
 
 
-
 def create_user_data(**overrides: Any) -> Dict[str, Any]:
     """Create user data dictionary with defaults and overrides.
 

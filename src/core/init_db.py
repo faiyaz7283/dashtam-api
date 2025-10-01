@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-# Add project root to path for src imports  
+# Add project root to path for src imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -30,7 +30,12 @@ from src.core.config import settings  # noqa: E402
 # Import all models to register them with SQLModel.metadata
 # These imports MUST happen before create_tables() is called
 from src.models.user import User  # noqa: E402, F401
-from src.models.provider import Provider, ProviderConnection, ProviderToken, ProviderAuditLog  # noqa: E402, F401
+from src.models.provider import (
+    Provider,
+    ProviderConnection,
+    ProviderToken,
+    ProviderAuditLog,
+)  # noqa: E402, F401
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

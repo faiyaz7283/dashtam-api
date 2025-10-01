@@ -163,8 +163,10 @@ class Settings(BaseSettings):
         """
         if not self.CORS_ORIGINS or self.CORS_ORIGINS == "":
             return ["https://localhost:3000"]  # Default
-        
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+        return [
+            origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()
+        ]
 
     @field_validator("DATABASE_URL")
     @classmethod

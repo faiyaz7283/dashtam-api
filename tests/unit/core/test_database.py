@@ -13,7 +13,7 @@ from src.core.database import (
     get_session_maker,
     get_session,
     init_db,
-    close_db
+    close_db,
 )
 from src.core.config import settings
 from tests.test_config import test_settings
@@ -368,8 +368,8 @@ class TestDatabaseConnectionValidation:
     async def test_database_connection_failure(self):
         """Test database connection failure handling."""
         from sqlalchemy import text
-        
-        with patch('src.core.database.get_session') as mock_get_session:
+
+        with patch("src.core.database.get_session") as mock_get_session:
             mock_session = AsyncMock(spec=AsyncSession)
             mock_session.execute.side_effect = Exception("Connection failed")
             mock_get_session.return_value.__aenter__.return_value = mock_session

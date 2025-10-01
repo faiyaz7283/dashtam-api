@@ -30,12 +30,12 @@ from tests.test_config import get_test_settings, TestSettings  # noqa: E402
 
 # Import all models so SQLModel.metadata knows about them
 from src.models.user import User  # noqa: E402, F401
-from src.models.provider import (
+from src.models.provider import (  # noqa: E402, F401
     Provider,
     ProviderConnection,
     ProviderToken,
     ProviderAuditLog,
-)  # noqa: E402, F401
+)
 
 # Configure logging for test environment
 logging.basicConfig(

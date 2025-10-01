@@ -229,11 +229,3 @@ class TestEncryptionServiceSecurity:
         # Different keys would require separate instances which
         # the singleton pattern doesn't support
         pytest.skip("Singleton pattern doesn't support different keys in same process")
-
-        data = "cross_key_test_data"
-
-        encrypted_with_key1 = service1.encrypt(data)
-
-        # service2 should not be able to decrypt data encrypted with key1
-        with pytest.raises((ValueError, Exception)):
-            service2.decrypt(encrypted_with_key1)

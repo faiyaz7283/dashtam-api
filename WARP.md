@@ -18,6 +18,12 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
 - ✅ API documentation endpoints working (/docs, /redoc)
 - ✅ All advertised API endpoints functional and tested
 - ✅ Docker following UV 0.8.22 best practices
+- ✅ **PHASE 1 INFRASTRUCTURE COMPLETE** - Parallel Environments
+  - ✅ Separate dev and test Docker Compose configurations
+  - ✅ Isolated networks and container naming (no conflicts)
+  - ✅ Environment-specific ports and volumes
+  - ✅ Health checks for all services (postgres, redis)
+  - ✅ Make-based workflow for all environments
 - ✅ **PHASE 1 TEST INFRASTRUCTURE COMPLETE** (3,553+ lines of test code)
   - ✅ Unit tests for all core services (encryption, database, config)
   - ✅ Integration tests for database operations and relationships
@@ -25,9 +31,16 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Docker-based test environment with hybrid initialization
   - ✅ Make-based test workflow (test-verify, test-unit, test-integration)
   - ✅ Code quality automation (linting, formatting)
+- ✅ **PHASE 2 CI/CD COMPLETE**
+  - ✅ GitHub Actions workflow configured and operational
+  - ✅ Automated linting and code formatting checks
+  - ✅ CI-specific Docker Compose configuration (optimized)
+  - ✅ Branch protection enabled on development branch
+  - ✅ Codecov integration ready for coverage reporting
+  - ✅ Docker Compose v2 migration complete
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
-- 🚧 Phase 2 test implementation (API endpoints, provider tests) pending
+- ⚠️ Test failures need fixing (91 failing, 56 passing - async fixture issues)
 
 ## Architecture Rules
 
@@ -147,17 +160,41 @@ This ensures:
 - Production-identical development environment
 
 ### Docker Service Names
-Always use these exact service names:
-- `dashtam-app` - Main FastAPI application
-- `dashtam-callback` - OAuth callback server
-- `dashtam-postgres` - PostgreSQL database
-- `dashtam-redis` - Redis cache
+Environment-specific container names with suffixes:
+
+**Development:**
+- `dashtam-dev-app` - Main FastAPI application
+- `dashtam-dev-callback` - OAuth callback server
+- `dashtam-dev-postgres` - PostgreSQL database
+- `dashtam-dev-redis` - Redis cache
+
+**Test:**
+- `dashtam-test-app` - Test application
+- `dashtam-test-callback` - Test callback server
+- `dashtam-test-postgres` - Test PostgreSQL database
+- `dashtam-test-redis` - Test Redis cache
+
+**CI/CD:**
+- `dashtam-ci-app` - CI application
+- `dashtam-ci-postgres` - CI PostgreSQL database
+- `dashtam-ci-redis` - CI Redis cache
 
 ### Network Configuration
-- Internal Docker network name: `dashtam-network`
+**Development:**
+- Network: `dashtam-dev-network`
+- Ports: 8000 (app), 8182 (callback), 5432 (postgres), 6379 (redis)
+
+**Test:**
+- Network: `dashtam-test-network`
+- Ports: 8001 (app), 8183 (callback), 5433 (postgres), 6380 (redis)
+
+**CI:**
+- Network: `dashtam-ci-network`
+- No external ports (internal only for security)
+
+**Internal Communication:**
 - Backend internal hostname: `app` (NOT `backend` or `localhost`)
-- Callback server port: `8182`
-- Main API port: `8000`
+- All environments use same internal container ports
 
 ### Environment Variables
 Critical environment variables that must be set:
@@ -204,21 +241,50 @@ The OAuth flow must follow this exact sequence:
 - **Current coverage**: Unit tests for encryption, database, config services ✅
 - **Docker integration**: All tests run in isolated containers ✅
 - **Safety features**: Environment validation, test database isolation ✅
+- **CI/CD Integration**: Automated testing via GitHub Actions ✅
+- **Code Quality**: Automated linting (ruff) and formatting checks ✅
+- **Current status**: 56 passing tests, 91 failing (fixture/async issues to fix)
 
 ### Local Development Commands
 Always use the Makefile for common operations:
-- `make up` - Start all services
-- `make down` - Stop all services
-- `make logs` - View logs
-- `make status` - Check service status
+
+**Development Environment:**
+- `make dev-up` - Start development services
+- `make dev-down` - Stop development services
+- `make dev-logs` - View development logs
+- `make dev-status` - Check development service status
+- `make dev-shell` - Open shell in dev app container
+- `make dev-restart` - Restart development environment
+- `make dev-rebuild` - Rebuild dev images from scratch (no cache)
+
+**Test Environment:**
+- `make test-up` - Start test services
+- `make test-down` - Stop test services
+- `make test-status` - Check test service status
+- `make test-rebuild` - Rebuild test images from scratch
+- `make test-restart` - Restart test environment
+
+**Running Tests:**
 - `make test-verify` - Quick core functionality verification
-- `make lint` - Run code linting
-- `make format` - Format code
 - `make test-unit` - Run unit tests
 - `make test-integration` - Run integration tests
 - `make test` - Run all tests with coverage
-- `make test-setup` - Set up test environment
+
+**Code Quality:**
+- `make lint` - Run code linting (ruff check)
+- `make format` - Format code (ruff format)
+
+**CI/CD:**
+- `make ci-test` - Run CI tests locally
+- `make ci-build` - Build CI images
+- `make ci-down` - Clean up CI environment
+
+**Utilities:**
+- `make status-all` - Check status of all environments
+- `make certs` - Generate SSL certificates
+- `make keys` - Generate encryption keys
 - `make clean` - Clean everything
+- `make setup` - Complete initial setup
 
 ### SSL Certificates
 - Development uses self-signed certificates
@@ -352,15 +418,22 @@ Use conventional commits format:
 4. ✅ Docker containerization with UV best practices
 5. ✅ API documentation setup (/docs, /redoc)
 6. ✅ Comprehensive test coverage plan designed
+7. ✅ Parallel dev/test/CI environments (no conflicts)
+8. ✅ Docker Compose v2 migration complete
+9. ✅ GitHub Actions CI/CD pipeline operational
+10. ✅ Automated code quality checks (linting, formatting)
+11. ✅ Branch protection with status checks
+12. ✅ Health checks for all services
 
 **Pending:**
-1. Implement test coverage (plan ready in TEST_COVERAGE_PLAN.md)
-2. Implement Alembic for database migrations
-3. Set up CI/CD pipeline
+1. Fix test failures (91 failing - async fixture issues)
+2. Implement full test coverage (plan ready in TEST_COVERAGE_PLAN.md)
+3. Implement Alembic for database migrations
 4. Implement API versioning strategy
 5. Add request/response caching
 6. Implement retry logic with exponential backoff
 7. Add metrics and monitoring (Prometheus/Grafana)
+8. SSL support for test environment (optional, for OAuth integration tests)
 
 ## Development Environment Setup
 

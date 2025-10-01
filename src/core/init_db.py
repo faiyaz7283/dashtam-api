@@ -30,12 +30,12 @@ from src.core.config import settings  # noqa: E402
 # Import all models to register them with SQLModel.metadata
 # These imports MUST happen before create_tables() is called
 from src.models.user import User  # noqa: E402, F401
-from src.models.provider import (
+from src.models.provider import (  # noqa: E402, F401
     Provider,
     ProviderConnection,
     ProviderToken,
     ProviderAuditLog,
-)  # noqa: E402, F401
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

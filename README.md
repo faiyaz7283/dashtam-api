@@ -40,11 +40,12 @@ make setup
 This will:
 - Generate self-signed SSL certificates for HTTPS
 - Create secure encryption keys for token storage
-- Create a `.env` file with secure defaults
+- Create `.env.dev` file with secure defaults
+- Create `.env.test` file for testing
 
 ### 3. Configure OAuth Credentials
 
-Edit the `.env` file and add your OAuth credentials:
+Edit the `.env.dev` file and add your OAuth credentials:
 
 ```env
 # Charles Schwab OAuth (get from https://developer.schwab.com/)
@@ -53,19 +54,17 @@ SCHWAB_API_SECRET=your_client_secret_here
 SCHWAB_REDIRECT_URI=https://127.0.0.1:8182
 ```
 
-### 4. Build and Start Services
+### 4. Start Development Environment
 
 ```bash
-# Build Docker images
-make build
-
-# Start all services
-make up
+# Start development services
+make dev-up
 ```
 
-The platform will be available at:
+The development environment will be available at:
 - **Main API**: https://localhost:8000
 - **OAuth Callback Server**: https://127.0.0.1:8182
+- **API Docs**: https://localhost:8000/docs
 
 ## 📦 Project Structure
 
@@ -106,52 +105,117 @@ Dashtam/
 
 ## 🔧 Development
 
+### Parallel Environments
+
+The project supports three isolated environments that can run in parallel:
+
+1. **Development** (`dev-*` commands) - For active development with hot reload
+2. **Test** (`test-*` commands) - For running automated tests
+3. **CI** (`ci-*` commands) - For continuous integration
+
 ### Available Commands
 
 ```bash
-# Docker Management
-make up         # Start all services
-make down       # Stop all services
-make restart    # Restart all services
-make build      # Rebuild Docker images
-make logs       # View application logs
-make status     # Check service status
-make clean      # Clean up everything (containers, volumes, images)
+# Development Environment
+make dev-up         # Start development services
+make dev-down       # Stop development services
+make dev-logs       # View development logs
+make dev-status     # Check development service status
+make dev-shell      # Open shell in dev app container
+make dev-restart    # Restart development environment
+make dev-rebuild    # Rebuild dev images from scratch
 
-# Development Tools
-make dev        # Start in development mode with hot reload
-make shell      # Open shell in app container
-make db-shell   # Open PostgreSQL shell
-make redis-cli  # Open Redis CLI
+# Test Environment
+make test-up        # Start test services
+make test-down      # Stop test services
+make test-status    # Check test service status
+make test-rebuild   # Rebuild test images from scratch
+make test-restart   # Restart test environment
+
+# Running Tests
+make test-verify    # Quick core functionality verification
+make test-unit      # Run unit tests
+make test-integration # Run integration tests
+make test           # Run all tests with coverage
+
+# Code Quality (runs in dev environment)
+make lint           # Run code linting (ruff check)
+make format         # Format code (ruff format)
+
+# CI/CD (run tests as they run in GitHub Actions)
+make ci-test        # Run CI tests locally
+make ci-build       # Build CI images
+make ci-down        # Clean up CI environment
 
 # Setup & Configuration
-make certs      # Generate SSL certificates
-make keys       # Generate application keys
-make setup      # Run initial setup (certs + keys)
+make certs          # Generate SSL certificates
+make keys           # Generate application keys
+make setup          # Run initial setup (certs + keys + env files)
 
-# Code Quality
-make test       # Run tests
-make lint       # Run linters
-make format     # Format code
+# Utilities
+make status-all     # Check status of all environments
+make clean          # Clean up everything (all environments)
 
-# Database
-make migrate    # Run database migrations
-make migration  # Create new migration
+# Database (dev environment)
+make migrate        # Run database migrations
+make migration      # Create new migration
 
-# Provider Authentication
-make auth-schwab # Start Schwab OAuth flow
+# Provider Authentication (dev environment)
+make auth-schwab    # Start Schwab OAuth flow
 ```
 
 ### Running Tests
 
+Tests run in an isolated test environment:
+
 ```bash
+# Start test environment
+make test-up
+
+# Run all tests
 make test
+
+# Run specific test types
+make test-unit           # Unit tests only
+make test-integration    # Integration tests only
+make test-verify         # Quick verification
+
+# Stop test environment
+make test-down
 ```
 
-### Code Formatting
+### Code Quality
 
 ```bash
+# Format code
 make format
+
+# Check linting
+make lint
+
+# Run both in CI mode locally
+make ci-test
+```
+
+### Development Workflow
+
+```bash
+# 1. Start development environment
+make dev-up
+
+# 2. Make changes to code (hot reload is enabled)
+
+# 3. Run tests in parallel (different ports)
+make test-up
+make test
+
+# 4. Check code quality
+make lint
+make format
+
+# 5. Clean up when done
+make dev-down
+make test-down
 ```
 
 ## 🏗️ Architecture
@@ -181,6 +245,41 @@ The platform uses the following main tables:
 - `provider_tokens`: Encrypted OAuth tokens
 - `provider_audit_logs`: Audit trail of all operations
 
+## 🚀 CI/CD
+
+### GitHub Actions
+
+The project uses GitHub Actions for continuous integration:
+
+- **Automated Testing**: Runs on every push to `development` branch
+- **Code Quality Checks**: Linting and formatting enforcement
+- **Branch Protection**: Development branch requires passing checks before merge
+- **Coverage Reporting**: Integrated with Codecov (when tests pass)
+
+### Workflow Status
+
+- ✅ **Code Quality**: Automated linting (ruff) and formatting checks
+- ⚠️ **Tests**: 56 passing, 91 failing (async fixture issues being addressed)
+
+### Local CI Testing
+
+Test your changes exactly as they'll run in CI:
+
+```bash
+# Run full CI test suite locally
+make ci-test
+
+# Check status
+make ci-down
+```
+
+### Branch Protection
+
+The `development` branch is protected with:
+- Required status checks (Code Quality must pass)
+- Pull request reviews recommended
+- Branch must be up to date before merging
+
 ## 🔐 Security
 
 - **HTTPS Only**: All services use SSL/TLS
@@ -188,6 +287,7 @@ The platform uses the following main tables:
 - **Secure Keys**: Cryptographically secure key generation
 - **Token Rotation**: Automatic token refresh with rotation support
 - **Audit Trail**: All provider operations are logged
+- **Environment Isolation**: Separate dev, test, and CI environments
 
 ## 🌐 API Documentation
 

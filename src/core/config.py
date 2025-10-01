@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     DB_ECHO: bool = Field(default=False)
 
     # CORS
-    CORS_ORIGINS: List[str] = Field(default=["https://localhost:3000"])
+    CORS_ORIGINS: str = Field(default="https://localhost:3000")
 
     # SSL/TLS Configuration (HTTPS everywhere)
     SSL_CERT_FILE: str = Field(default="certs/cert.pem")
@@ -147,28 +147,24 @@ class Settings(BaseSettings):
 
         return v
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
-        """Parse CORS origins from comma-separated string or list.
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Parse CORS origins from comma-separated string to list.
 
-        This validator allows CORS_ORIGINS to be specified either as a
-        comma-separated string in the .env file or as a proper list when
-        set programmatically.
-
-        Args:
-            v: Either a comma-separated string or a list of origin URLs.
+        This property converts the CORS_ORIGINS string (comma-separated)
+        into a list of origin URLs for use in FastAPI CORS middleware.
 
         Returns:
             List of validated CORS origin URLs.
 
         Example:
-            Input: "https://localhost:3000,https://app.dashtam.com"
+            Input (CORS_ORIGINS): "https://localhost:3000,https://app.dashtam.com"
             Output: ["https://localhost:3000", "https://app.dashtam.com"]
         """
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+        if not self.CORS_ORIGINS or self.CORS_ORIGINS == "":
+            return ["https://localhost:3000"]  # Default
+        
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
     @field_validator("DATABASE_URL")
     @classmethod

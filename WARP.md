@@ -18,10 +18,16 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
 - ✅ API documentation endpoints working (/docs, /redoc)
 - ✅ All advertised API endpoints functional and tested
 - ✅ Docker following UV 0.8.22 best practices
-- ✅ Comprehensive test coverage plan designed and ready for implementation
+- ✅ **PHASE 1 TEST INFRASTRUCTURE COMPLETE** (3,553+ lines of test code)
+  - ✅ Unit tests for all core services (encryption, database, config)
+  - ✅ Integration tests for database operations and relationships
+  - ✅ Comprehensive test fixtures and mocks
+  - ✅ Docker-based test environment with hybrid initialization
+  - ✅ Make-based test workflow (test-verify, test-unit, test-integration)
+  - ✅ Code quality automation (linting, formatting)
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
-- 🚧 Test implementation pending (see TEST_COVERAGE_PLAN.md)
+- 🚧 Phase 2 test implementation (API endpoints, provider tests) pending
 
 ## Architecture Rules
 
@@ -126,6 +132,20 @@ src/
 
 ## Docker and Development Rules
 
+### Docker-Only Development Policy
+**CRITICAL RULE**: All development, testing, and execution must be done through Docker containers.
+- **NEVER run Python directly on host machine** for project-related tasks
+- **NEVER install project dependencies on host machine**
+- **All testing must be done in Docker containers** using `make test` or `docker-compose exec`
+- **Database operations must use containerized database**
+- **Package management must use containerized UV**
+
+This ensures:
+- Complete environment isolation
+- Consistent development experience across machines
+- No dependency conflicts with host system
+- Production-identical development environment
+
 ### Docker Service Names
 Always use these exact service names:
 - `dashtam-app` - Main FastAPI application
@@ -177,18 +197,27 @@ The OAuth flow must follow this exact sequence:
 ## Testing and Development Rules
 
 ### Test Coverage
-- **Comprehensive test coverage plan** available in `TEST_COVERAGE_PLAN.md`
-- **Target coverage**: 85%+ overall, 95%+ for critical components
+- **PHASE 1 COMPLETE**: Core test infrastructure implemented (3,553+ lines)
 - **Test pyramid approach**: 70% unit, 20% integration, 10% e2e tests
-- **Ready for implementation**: All test infrastructure designed
+- **Target coverage**: 85%+ overall, 95%+ for critical components
+- **Working test workflow**: Make-based commands for all test operations
+- **Current coverage**: Unit tests for encryption, database, config services ✅
+- **Docker integration**: All tests run in isolated containers ✅
+- **Safety features**: Environment validation, test database isolation ✅
 
 ### Local Development Commands
 Always use the Makefile for common operations:
 - `make up` - Start all services
 - `make down` - Stop all services
 - `make logs` - View logs
-- `make test` - Run tests (implementation pending)
+- `make status` - Check service status
+- `make test-verify` - Quick core functionality verification
+- `make lint` - Run code linting
 - `make format` - Format code
+- `make test-unit` - Run unit tests
+- `make test-integration` - Run integration tests
+- `make test` - Run all tests with coverage
+- `make test-setup` - Set up test environment
 - `make clean` - Clean everything
 
 ### SSL Certificates

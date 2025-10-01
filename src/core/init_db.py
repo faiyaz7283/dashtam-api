@@ -15,16 +15,22 @@ import logging
 import sys
 from pathlib import Path
 
-# Add project root to path BEFORE imports
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.core.config import settings
+# Add project root to path for src imports  
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+# Import from src after path setup
+from src.core.config import settings  # noqa: E402
+
+# Import all models to register them with SQLModel.metadata
+# These imports MUST happen before create_tables() is called
+from src.models.user import User  # noqa: E402, F401
+from src.models.provider import Provider, ProviderConnection, ProviderToken, ProviderAuditLog  # noqa: E402, F401
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -120,24 +126,26 @@ async def seed_initial_data(engine: AsyncEngine) -> None:
     # Example: Create a test user in development
     if settings.DEBUG:
         async with AsyncSession(engine) as session:
-            # Check if we already have users
-            result = await session.execute(text("SELECT COUNT(*) FROM users"))
-            user_count = result.scalar()
+            # Check if we already have users (only after tables are created)
+            try:
+                result = await session.execute(text("SELECT COUNT(*) FROM users"))
+                user_count = result.scalar()
 
-            if user_count == 0:
-                logger.info("🌱 No users found, skipping seed data")
-                # Uncomment to create a test user:
-                # from src.models import User
-                # test_user = User(
-                #     email="test@example.com",
-                #     name="Test User",
-                #     is_verified=True
-                # )
-                # session.add(test_user)
-                # await session.commit()
-                # logger.info("✅ Created test user")
-            else:
-                logger.info(f"ℹ️  Found {user_count} existing users")
+                if user_count == 0:
+                    logger.info("🌱 No users found, skipping seed data")
+                    # Uncomment to create a test user:
+                    # test_user = User(
+                    #     email="test@example.com",
+                    #     name="Test User",
+                    #     is_verified=True
+                    # )
+                    # session.add(test_user)
+                    # await session.commit()
+                    # logger.info("✅ Created test user")
+                else:
+                    logger.info(f"ℹ️  Found {user_count} existing users")
+            except Exception as e:
+                logger.info(f"ℹ️  Skipping seed data (tables may not exist yet): {e}")
 
 
 async def init_db() -> None:

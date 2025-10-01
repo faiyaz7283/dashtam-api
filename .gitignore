@@ -1,7 +1,11 @@
-# Environment files
+# Environment files (all variants except examples)
 .env
+.env/
+.env.*
+!.env.*.example
 .env.local
 .env.*.local
+.env.backup
 
 # Certificates (self-signed, can be regenerated)
 certs/*.pem

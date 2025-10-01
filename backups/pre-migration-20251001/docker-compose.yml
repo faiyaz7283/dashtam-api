@@ -1,0 +1,101 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17.6-alpine3.22
+    container_name: dashtam-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dashtam}
+      POSTGRES_USER: ${POSTGRES_USER:-dashtam_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_change_me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashtam_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashtam-network
+
+  # Redis Cache
+  redis:
+    image: redis:8.2.1-alpine3.22
+    container_name: dashtam-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashtam-network
+
+  # Main Application (Development)
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: dashtam-app
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dashtam_user}:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/${POSTGRES_DB:-dashtam}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-encryption-key-change-in-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      API_BASE_URL: ${API_BASE_URL:-https://localhost:8000}
+      CALLBACK_BASE_URL: ${CALLBACK_BASE_URL:-https://127.0.0.1:8182}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - ./src:/app/src:rw
+      - ./tests:/app/tests:rw
+      - ./alembic:/app/alembic:rw
+      - ./certs:/app/certs:ro
+      - ./.env:/app/.env:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dashtam-network
+    restart: unless-stopped
+
+  # OAuth Callback Server
+  callback:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: callback
+    container_name: dashtam-callback
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-https://app:8000}
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+    ports:
+      - "8182:8182"
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      - app
+    networks:
+      - dashtam-network
+    restart: unless-stopped
+
+
+networks:
+  dashtam-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

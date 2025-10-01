@@ -71,7 +71,7 @@ help:
 # Start development environment
 dev-up:
 	@echo "🚀 Starting DEVELOPMENT environment..."
-	@docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d
+	@docker compose -f docker-compose.dev.yml --env-file .env.dev up -d
 	@echo "✅ Development services started!"
 	@echo ""
 	@echo "📡 Main App:  https://localhost:8000"
@@ -86,13 +86,13 @@ dev-up:
 # Stop development environment
 dev-down:
 	@echo "🛑 Stopping DEVELOPMENT environment..."
-	@docker-compose -f docker-compose.dev.yml down
+	@docker compose -f docker-compose.dev.yml down
 	@echo "✅ Development environment stopped"
 
 # Build development images
 dev-build:
 	@echo "🏗️  Building DEVELOPMENT images..."
-	@docker-compose -f docker-compose.dev.yml --env-file .env.dev build
+	@docker compose -f docker-compose.dev.yml --env-file .env.dev build
 	@echo "✅ Development images built"
 
 # Rebuild development images from scratch (no cache)
@@ -101,20 +101,20 @@ dev-rebuild:
 	@echo "  → Removing problematic .env directory (if exists)..."
 	@if [ -d ".env" ]; then rm -rf .env && echo "    ✓ Removed .env directory"; fi
 	@echo "  → Stopping containers..."
-	@docker-compose -f docker-compose.dev.yml down 2>/dev/null || true
+	@docker compose -f docker-compose.dev.yml down 2>/dev/null || true
 	@echo "  → Removing old images..."
 	@docker rmi dashtam-dev-app dashtam-dev-callback dashtam-app dashtam-callback 2>/dev/null || true
 	@echo "  → Building with --no-cache..."
-	@docker-compose -f docker-compose.dev.yml --env-file .env.dev build --no-cache
+	@docker compose -f docker-compose.dev.yml --env-file .env.dev build --no-cache
 	@echo "✅ Development images rebuilt from scratch"
 
 # Show development logs (follow mode)
 dev-logs:
-	@docker-compose -f docker-compose.dev.yml logs -f
+	@docker compose -f docker-compose.dev.yml logs -f
 
 # Show specific dev service logs
 dev-logs-%:
-	@docker-compose -f docker-compose.dev.yml logs -f $*
+	@docker compose -f docker-compose.dev.yml logs -f $*
 
 # Restart development environment
 dev-restart: dev-down dev-up
@@ -122,19 +122,19 @@ dev-restart: dev-down dev-up
 # Show development service status
 dev-status:
 	@echo "📊 Development Environment Status:"
-	@docker-compose -f docker-compose.dev.yml ps
+	@docker compose -f docker-compose.dev.yml ps
 
 # Open shell in dev app container
 dev-shell:
-	@docker-compose -f docker-compose.dev.yml exec app /bin/bash
+	@docker compose -f docker-compose.dev.yml exec app /bin/bash
 
 # Open PostgreSQL shell (dev)
 dev-db-shell:
-	@docker-compose -f docker-compose.dev.yml exec postgres psql -U dashtam_user -d dashtam
+	@docker compose -f docker-compose.dev.yml exec postgres psql -U dashtam_user -d dashtam
 
 # Open Redis CLI (dev)
 dev-redis-cli:
-	@docker-compose -f docker-compose.dev.yml exec redis redis-cli
+	@docker compose -f docker-compose.dev.yml exec redis redis-cli
 
 # ============================================================================
 # TEST ENVIRONMENT COMMANDS
@@ -143,7 +143,7 @@ dev-redis-cli:
 # Start test environment
 test-up:
 	@echo "🧪 Starting TEST environment..."
-	@docker-compose -f docker-compose.test.yml --env-file .env.test up -d
+	@docker compose -f docker-compose.test.yml --env-file .env.test up -d
 	@echo "⏳ Waiting for services to be healthy..."
 	@sleep 5
 	@echo "✅ Test services started!"
@@ -154,7 +154,7 @@ test-up:
 	@echo "🔴 Redis:      localhost:6380"
 	@echo ""
 	@echo "🚀 Initializing test database..."
-	@docker-compose -f docker-compose.test.yml exec -T app uv run python src/core/init_test_db.py
+	@docker compose -f docker-compose.test.yml exec -T app uv run python src/core/init_test_db.py
 	@echo "✅ Test environment ready!"
 	@echo ""
 	@echo "🧪 Run tests: make test"
@@ -163,7 +163,7 @@ test-up:
 # Stop test environment
 test-down:
 	@echo "🛑 Stopping TEST environment..."
-	@docker-compose -f docker-compose.test.yml down
+	@docker compose -f docker-compose.test.yml down
 	@echo "✅ Test environment stopped"
 
 # Restart test environment
@@ -172,12 +172,12 @@ test-restart: test-down test-up
 # Show test service status
 test-status:
 	@echo "📊 Test Environment Status:"
-	@docker-compose -f docker-compose.test.yml ps
+	@docker compose -f docker-compose.test.yml ps
 
 # Build test images
 test-build:
 	@echo "🏗️  Building TEST images..."
-	@docker-compose -f docker-compose.test.yml --env-file .env.test build
+	@docker compose -f docker-compose.test.yml --env-file .env.test build
 	@echo "✅ Test images built"
 
 # Rebuild test images from scratch (no cache)
@@ -186,32 +186,32 @@ test-rebuild:
 	@echo "  → Removing problematic .env directory (if exists)..."
 	@if [ -d ".env" ]; then rm -rf .env && echo "    ✓ Removed .env directory"; fi
 	@echo "  → Stopping containers..."
-	@docker-compose -f docker-compose.test.yml down 2>/dev/null || true
+	@docker compose -f docker-compose.test.yml down 2>/dev/null || true
 	@echo "  → Removing old images..."
 	@docker rmi dashtam-test-app dashtam-test-callback dashtam-app dashtam-callback 2>/dev/null || true
 	@echo "  → Building with --no-cache..."
-	@docker-compose -f docker-compose.test.yml --env-file .env.test build --no-cache
+	@docker compose -f docker-compose.test.yml --env-file .env.test build --no-cache
 	@echo "✅ Test images rebuilt from scratch"
 
 # Show test logs (follow mode)
 test-logs:
-	@docker-compose -f docker-compose.test.yml logs -f
+	@docker compose -f docker-compose.test.yml logs -f
 
 # Show specific test service logs
 test-logs-%:
-	@docker-compose -f docker-compose.test.yml logs -f $*
+	@docker compose -f docker-compose.test.yml logs -f $*
 
 # Open shell in test app container
 test-shell:
-	@docker-compose -f docker-compose.test.yml exec app /bin/bash
+	@docker compose -f docker-compose.test.yml exec app /bin/bash
 
 # Open PostgreSQL shell (test)
 test-db-shell:
-	@docker-compose -f docker-compose.test.yml exec postgres psql -U dashtam_test_user -d dashtam_test
+	@docker compose -f docker-compose.test.yml exec postgres psql -U dashtam_test_user -d dashtam_test
 
 # Open Redis CLI (test)
 test-redis-cli:
-	@docker-compose -f docker-compose.test.yml exec redis redis-cli
+	@docker compose -f docker-compose.test.yml exec redis redis-cli
 
 # ============================================================================
 # SETUP & UTILITIES
@@ -249,9 +249,9 @@ setup: certs keys
 clean:
 	@echo "🧹 Cleaning up ALL environments..."
 	@echo "  → Stopping and removing dev containers..."
-	@docker-compose -f docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
+	@docker compose -f docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
 	@echo "  → Stopping and removing test containers..."
-	@docker-compose -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
+	@docker compose -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
 	@echo "  → Removing Docker images..."
 	@docker rmi dashtam-dev-app dashtam-dev-callback 2>/dev/null || true
 	@docker rmi dashtam-test-app dashtam-test-callback 2>/dev/null || true
@@ -269,39 +269,39 @@ clean:
 # Run all tests with coverage (auto-starts test env if needed)
 test:
 	@echo "🧪 Running all tests with coverage..."
-	@docker-compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker-compose -f docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing
+	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing
 
 # Run unit tests only
 test-unit:
 	@echo "🧪 Running unit tests..."
-	@docker-compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker-compose -f docker-compose.test.yml exec -T app uv run pytest tests/unit/ -v
+	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f docker-compose.test.yml exec -T app uv run pytest tests/unit/ -v
 
 # Run integration tests only
 test-integration:
 	@echo "🧪 Running integration tests..."
-	@docker-compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker-compose -f docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v
+	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v
 
 # Run tests with HTML coverage report
 test-coverage:
 	@echo "📊 Running tests with HTML coverage..."
-	@docker-compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker-compose -f docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=html --cov-report=term-missing
+	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=html --cov-report=term-missing
 	@echo "📋 Coverage report generated in htmlcov/index.html"
 
 # Run specific test file
 test-file:
 	@echo "🧪 Running specific test file..."
-	@docker-compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
 	@read -p "Enter test file path (e.g., tests/unit/test_encryption.py): " file; \
-	docker-compose -f docker-compose.test.yml exec -T app uv run pytest "$$file" -v
+	docker compose -f docker-compose.test.yml exec -T app uv run pytest "$$file" -v
 
 # Clean test environment (removes containers and ephemeral data)
 test-clean:
 	@echo "🧺 Cleaning test environment..."
-	@docker-compose -f docker-compose.test.yml down -v
+	@docker compose -f docker-compose.test.yml down -v
 	@echo "✅ Test environment cleaned!"
 
 # ============================================================================
@@ -311,13 +311,13 @@ test-clean:
 # Run linters (uses dev environment)
 lint:
 	@echo "🔍 Running linters..."
-	@docker-compose -f docker-compose.dev.yml exec app uv run ruff check src/ tests/
+	@docker compose -f docker-compose.dev.yml exec app uv run ruff check src/ tests/
 
 # Format code (uses dev environment)
 format:
 	@echo "✨ Formatting code..."
-	@docker-compose -f docker-compose.dev.yml exec app uv run ruff format src/ tests/
-	@docker-compose -f docker-compose.dev.yml exec app uv run ruff check --fix src/ tests/
+	@docker compose -f docker-compose.dev.yml exec app uv run ruff format src/ tests/
+	@docker compose -f docker-compose.dev.yml exec app uv run ruff check --fix src/ tests/
 
 # ============================================================================
 # DATABASE COMMANDS
@@ -326,13 +326,13 @@ format:
 # Database migrations (uses dev environment)
 migrate:
 	@echo "📊 Running database migrations..."
-	@docker-compose -f docker-compose.dev.yml exec app uv run alembic upgrade head
+	@docker compose -f docker-compose.dev.yml exec app uv run alembic upgrade head
 
 # Create new migration (uses dev environment)
 migration:
 	@echo "📝 Creating new migration..."
 	@read -p "Enter migration message: " msg; \
-	docker-compose -f docker-compose.dev.yml exec app uv run alembic revision --autogenerate -m "$$msg"
+	docker compose -f docker-compose.dev.yml exec app uv run alembic revision --autogenerate -m "$$msg"
 
 # ============================================================================
 # PROVIDER AUTH & UTILITIES
@@ -351,7 +351,7 @@ auth-schwab:
 check:
 	@echo "🔍 Checking Docker setup..."
 	@docker --version
-	@docker-compose --version
+	@docker compose --version
 	@echo ""
 	@echo "✅ Docker setup looks good!"
 
@@ -363,19 +363,19 @@ check:
 ci-test:
 	@echo "🤖 Running CI test suite..."
 	@if [ ! -f .env.ci ]; then cp .env.ci.example .env.ci; fi
-	@docker-compose -f docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from app
+	@docker compose -f docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from app
 	@echo "✅ CI tests completed"
 
 # Build CI images
 ci-build:
 	@echo "🏗️  Building CI images..."
-	@docker-compose -f docker-compose.ci.yml build
+	@docker compose -f docker-compose.ci.yml build
 	@echo "✅ CI images built"
 
 # Clean CI environment
 ci-clean:
 	@echo "🧹 Cleaning CI environment..."
-	@docker-compose -f docker-compose.ci.yml down -v --remove-orphans
+	@docker compose -f docker-compose.ci.yml down -v --remove-orphans
 	@docker rmi dashtam-ci-app 2>/dev/null || true
 	@echo "✅ CI environment cleaned"
 
@@ -391,8 +391,8 @@ ps:
 # Global status for all environments
 status-all:
 	@echo "================ Development ================"
-	@docker-compose -f docker-compose.dev.yml ps || true
+	@docker compose -f docker-compose.dev.yml ps || true
 	@echo "\n==================== Test ==================="
-	@docker-compose -f docker-compose.test.yml ps || true
+	@docker compose -f docker-compose.test.yml ps || true
 	@echo "\n================ Docker (all) ==============="
 	@docker ps -a --filter "name=dashtam" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"

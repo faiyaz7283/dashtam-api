@@ -23,7 +23,7 @@ jobs:
 
       - name: Build and run tests
         run: |
-          docker-compose -f docker-compose.ci.yml up \
+          docker compose -f docker-compose.ci.yml up \
             --build \
             --abort-on-container-exit \
             --exit-code-from app
@@ -56,7 +56,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker-compose -f docker-compose.ci.yml down -v
+        run: docker compose -f docker-compose.ci.yml down -v
 
   lint:
     name: Code Quality

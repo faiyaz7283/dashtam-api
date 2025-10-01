@@ -10,7 +10,7 @@
 # - Auto-runs tests and exits with proper status code
 #
 # Usage:
-#   docker-compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
+#   docker compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
 name: dashtam-ci
 
 services:

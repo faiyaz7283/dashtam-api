@@ -163,7 +163,8 @@ class TokenService:
         )
         self.session.add(audit_log)
 
-        await self.session.commit()
+        # Flush to persist changes in current transaction
+        await self.session.flush()
         logger.info(f"Stored tokens for provider {provider.alias} (ID: {provider_id})")
 
         return token
@@ -312,7 +313,8 @@ class TokenService:
             )
             self.session.add(audit_log)
 
-            await self.session.commit()
+            # Flush to persist changes in current transaction
+            await self.session.flush()
             logger.info(
                 f"Refreshed token for {provider.alias} (refresh #{token.refresh_count})"
             )
@@ -342,7 +344,8 @@ class TokenService:
             )
             self.session.add(audit_log)
 
-            await self.session.commit()
+            # Flush to persist error state in current transaction
+            await self.session.flush()
 
             logger.error(
                 f"Failed to refresh token for {provider.alias}: {error_message}"
@@ -407,7 +410,8 @@ class TokenService:
             )
             self.session.add(audit_log)
 
-            await self.session.commit()
+            # Flush to persist changes in current transaction
+            await self.session.flush()
             logger.info(f"Revoked tokens for provider {provider.alias}")
 
     async def get_token_info(self, provider_id: UUID) -> Optional[Dict[str, Any]]:

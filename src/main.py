@@ -70,12 +70,12 @@ app.add_middleware(
 )
 
 # Add trusted host middleware for security
-# Include Docker service names for internal communication
+# Include Docker service names for internal communication and test client
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["*"]
     if settings.DEBUG
-    else ["localhost", "127.0.0.1", "app", "backend", "0.0.0.0"],
+    else ["localhost", "127.0.0.1", "app", "backend", "0.0.0.0", "testserver"],
 )
 
 # Include API routers

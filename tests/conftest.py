@@ -115,7 +115,7 @@ def db_session(db: Session) -> Generator[Session, None, None]:
         db.rollback()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def client(db: Session) -> Generator[TestClient, None, None]:
     """FastAPI TestClient for making HTTP requests to the application.
 

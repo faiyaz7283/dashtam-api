@@ -114,10 +114,8 @@ services:
         echo '🚀 Dashtam CI/CD Test Environment'
         echo '=============================================='
         echo ''
-        echo '📊 Initializing test database...'
-        uv run python src/core/init_test_db.py || exit 1
-        echo ''
         echo '🧪 Running test suite...'
+        echo ''
         uv run pytest tests/ \
           -v \
           --cov=src \

@@ -21,9 +21,8 @@ import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
-from sqlalchemy import event
 from sqlmodel import SQLModel
 
 from tests.test_config import TestSettings, get_test_settings

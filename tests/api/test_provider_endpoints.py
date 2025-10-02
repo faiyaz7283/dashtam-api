@@ -5,7 +5,6 @@ verifying the full request/response cycle including validation,
 authentication, and database operations.
 """
 
-import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 

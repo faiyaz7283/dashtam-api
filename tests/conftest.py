@@ -12,7 +12,6 @@ Key Principles:
 """
 
 from collections.abc import Generator
-from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient

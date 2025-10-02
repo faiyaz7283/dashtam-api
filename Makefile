@@ -532,42 +532,8 @@ git-pr:
 	echo "" && \
 	echo "Creating PR: $$current_branch → $$base" && \
 	echo "" && \
-	gh pr create --base "$$base" --head "$$current_branch" --title "$$title" --body "$$(cat <<-'PRBODY'
-## Description
-Please describe your changes here.
-
-## Type of Change
-- [ ] New feature (feat)
-- [ ] Bug fix (fix)
-- [ ] Breaking change
-- [ ] Documentation update
-- [ ] Refactoring
-- [ ] Test additions/updates
-
-## Testing
-- [ ] Unit tests pass (`make test-unit`)
-- [ ] Integration tests pass (`make test-integration`)
-- [ ] All tests pass (`make test`)
-- [ ] Linting passes (`make lint`)
-- [ ] Manual testing completed
-
-## Checklist
-- [ ] Code follows project style guidelines
-- [ ] Self-review completed
-- [ ] Comments added for complex logic
-- [ ] Documentation updated
-- [ ] No new warnings generated
-- [ ] Tests added/updated
-- [ ] All tests passing
-- [ ] Conventional commit messages used
-
-## Related Issues
-Closes #
-
-## Additional Notes
-[Add any additional notes or context here]
-PRBODY
-	)" && \
+	pr_body="Description:\nPlease describe your changes here.\n\nType of Change:\n- [ ] New feature\n- [ ] Bug fix\n- [ ] Breaking change\n- [ ] Documentation\n\nTesting:\n- [ ] Unit tests pass\n- [ ] Integration tests pass\n- [ ] All tests pass\n- [ ] Linting passes\n\nChecklist:\n- [ ] Code follows style guidelines\n- [ ] Self-review completed\n- [ ] Tests added/updated\n- [ ] All tests passing\n\nRelated Issues:\nCloses \#\n\nAdditional Notes:\n[Add notes here]"; \
+	gh pr create --base "$$base" --head "$$current_branch" --title "$$title" --body "$$pr_body" && \
 	echo "" && \
 	echo "✅ Pull Request created successfully!" && \
 	echo "" && \

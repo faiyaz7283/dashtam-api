@@ -292,7 +292,9 @@ async def delete_provider(
         # Commit transaction at API layer
         await session.commit()
 
-        logger.info(f"Deleted provider '{provider.alias}' for user {current_user.email}")
+        logger.info(
+            f"Deleted provider '{provider.alias}' for user {current_user.email}"
+        )
 
         return {"message": f"Provider '{provider.alias}' deleted successfully"}
     except Exception as e:

@@ -27,7 +27,7 @@ from src.models.provider import Provider, ProviderConnection, ProviderStatus
 @pytest.fixture(scope="session")
 def event_loop():
     """Create a session-scoped event loop.
-    
+
     This ensures all async fixtures and tests share the same event loop,
     which is critical for asyncpg connections that are bound to a specific loop.
     """
@@ -51,7 +51,7 @@ def test_settings() -> TestSettings:
 @pytest.fixture(scope="session")
 def test_engine(test_settings: TestSettings):
     """Create test database engine using settings from .env.test.
-    
+
     Note: Session-scoped for efficiency, but connections are made per-test
     to avoid event loop conflicts.
 
@@ -84,7 +84,7 @@ async def setup_test_database(test_engine, test_settings, event_loop):
 
     This fixture integrates with our init_test_db.py script to ensure consistent
     database setup patterns across manual runs and automated testing.
-    
+
     Note: Now async and session-scoped, sharing the same event loop as tests
     to prevent "attached to different loop" errors with asyncpg.
     """
@@ -128,7 +128,7 @@ async def db_session(
 
     Each test gets a fresh session with automatic rollback for isolation.
     This follows the same async session patterns as the main application.
-    
+
     Note: We use a simpler pattern without manual transaction management to
     avoid conflicts with commit() calls in test fixtures. The session's
     context manager handles cleanup automatically.

@@ -19,20 +19,27 @@ from sqlmodel import Session, SQLModel, create_engine, delete
 
 from src.core.config import settings
 from src.main import app
-from src.models.provider import Provider, ProviderConnection, ProviderToken, ProviderAuditLog
+from src.models.provider import (
+    Provider,
+    ProviderConnection,
+    ProviderToken,
+    ProviderAuditLog,
+)
 from src.models.user import User
 
 # Use test PostgreSQL database (production parity)
 # Database is managed by docker-compose.test.yml
 # In test environment, DATABASE_URL points to test database
 # Convert from asyncpg to psycopg (v3) for synchronous testing
-TEST_DATABASE_URL = settings.DATABASE_URL.replace('postgresql+asyncpg://', 'postgresql+psycopg://')
+TEST_DATABASE_URL = settings.DATABASE_URL.replace(
+    "postgresql+asyncpg://", "postgresql+psycopg://"
+)
 
 # Create engine for test database
 # Note: Using sync engine for sync tests (no async complexity)
 engine = create_engine(
     TEST_DATABASE_URL,
-    echo=settings.DB_ECHO if hasattr(settings, 'DB_ECHO') else False,
+    echo=settings.DB_ECHO if hasattr(settings, "DB_ECHO") else False,
     pool_pre_ping=True,  # Verify connections before using
 )
 
@@ -40,15 +47,15 @@ engine = create_engine(
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
     """Set up test database schema once per test session.
-    
+
     Creates all tables at start, drops them at end.
     This runs automatically for all test sessions.
     """
     # Create all tables
     SQLModel.metadata.create_all(engine)
-    
+
     yield
-    
+
     # Cleanup: Drop all tables after test session
     SQLModel.metadata.drop_all(engine)
 
@@ -56,7 +63,7 @@ def setup_test_database():
 @pytest.fixture(scope="session")
 def db() -> Generator[Session, None, None]:
     """Session-scoped database session.
-    
+
     Provides a database connection that persists across all tests in the session.
     Individual tests use db_session for isolation.
     """
@@ -67,22 +74,22 @@ def db() -> Generator[Session, None, None]:
 @pytest.fixture(scope="function")
 def db_session(db: Session) -> Generator[Session, None, None]:
     """Function-scoped database session for test isolation.
-    
+
     Each test gets access to the session. Tests should create their own
     data using fixtures or within the test. Cleanup happens automatically
     via relationship cascades or can be done explicitly.
-    
+
     Note: This is synchronous Session, not AsyncSession. Perfect for testing
     since TestClient handles the async/sync bridge internally.
     """
     yield db
-    
+
     # Rollback any pending transaction (in case of errors)
     try:
         db.rollback()
     except Exception:
         pass
-    
+
     # Optional: Explicit cleanup after each test
     # Deletes are cascaded based on model relationships
     try:
@@ -99,10 +106,10 @@ def db_session(db: Session) -> Generator[Session, None, None]:
 @pytest.fixture(scope="module")
 def client() -> Generator[TestClient, None, None]:
     """FastAPI TestClient for making HTTP requests to the application.
-    
+
     TestClient automatically handles the async/sync bridge, allowing
     synchronous test code to work with async FastAPI endpoints.
-    
+
     Module-scoped for efficiency (creating client is expensive).
     """
     with TestClient(app) as c:
@@ -113,21 +120,20 @@ def client() -> Generator[TestClient, None, None]:
 # Test Data Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a test user.
-    
+
     Returns a user instance that's persisted in the database.
     Cleaned up automatically after test via db_session cleanup.
     """
     from sqlmodel import select
-    
+
     # Try to get existing test user first
-    result = db_session.execute(
-        select(User).where(User.email == "test@example.com")
-    )
+    result = db_session.execute(select(User).where(User.email == "test@example.com"))
     user = result.scalar_one_or_none()
-    
+
     if not user:
         user = User(
             email="test@example.com",
@@ -138,7 +144,7 @@ def test_user(db_session: Session) -> User:
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-    
+
     return user
 
 
@@ -160,7 +166,7 @@ def test_user_2(db_session: Session) -> User:
 @pytest.fixture
 def test_provider(db_session: Session, test_user: User) -> Provider:
     """Create a test provider instance.
-    
+
     Returns a provider associated with test_user.
     """
     provider = Provider(
@@ -179,11 +185,11 @@ def test_provider_with_connection(
     db_session: Session, test_provider: Provider
 ) -> Provider:
     """Create a provider with an active connection.
-    
+
     Useful for testing scenarios where provider is already connected.
     """
     from src.models.provider import ProviderStatus
-    
+
     connection = ProviderConnection(
         provider_id=test_provider.id,
         status=ProviderStatus.ACTIVE,
@@ -200,10 +206,11 @@ def test_provider_with_connection(
 # Authentication Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def superuser_token_headers(client: TestClient) -> dict[str, str]:
     """Get authentication headers for superuser.
-    
+
     TODO: Implement actual authentication flow once auth endpoints exist.
     For now, returns empty dict or mock headers.
     """
@@ -214,7 +221,7 @@ def superuser_token_headers(client: TestClient) -> dict[str, str]:
 @pytest.fixture
 def normal_user_token_headers(client: TestClient, test_user: User) -> dict[str, str]:
     """Get authentication headers for normal user.
-    
+
     TODO: Implement actual authentication flow once auth endpoints exist.
     """
     # Placeholder - implement once auth is built
@@ -225,14 +232,15 @@ def normal_user_token_headers(client: TestClient, test_user: User) -> dict[str, 
 # Mock Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def mock_encryption_service():
     """Mock encryption service for testing without real encryption.
-    
+
     Returns a mock that provides predictable encrypt/decrypt behavior.
     """
     from unittest.mock import MagicMock
-    
+
     service = MagicMock()
     service.encrypt.side_effect = lambda data: f"encrypted_{data}"
     service.decrypt.side_effect = (
@@ -246,7 +254,7 @@ def mock_encryption_service():
 @pytest.fixture
 def mock_schwab_api_responses():
     """Mock responses for Charles Schwab API calls.
-    
+
     Returns dict of mock API responses for OAuth flow testing.
     """
     return {
@@ -273,6 +281,7 @@ def mock_schwab_api_responses():
 # Pytest Configuration
 # ============================================================================
 
+
 def pytest_configure(config):
     """Configure pytest with custom markers and settings."""
     # Register custom markers
@@ -284,7 +293,7 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(config, items):
     """Automatically mark tests based on their location.
-    
+
     Tests in unit/ directory → marked as unit
     Tests in integration/ directory → marked as integration
     Tests in api/ directory → marked as api
@@ -292,7 +301,7 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         # Get test file path
         test_path = str(item.fspath)
-        
+
         # Auto-mark based on directory
         if "/unit/" in test_path:
             item.add_marker(pytest.mark.unit)

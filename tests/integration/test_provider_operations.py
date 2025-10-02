@@ -17,9 +17,7 @@ class TestProviderCRUD:
     def test_create_provider(self, db_session: Session, test_user: User):
         """Test creating a provider instance."""
         provider = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="My Schwab Account"
+            user_id=test_user.id, provider_key="schwab", alias="My Schwab Account"
         )
         db_session.add(provider)
         db_session.commit()
@@ -36,16 +34,13 @@ class TestProviderCRUD:
     ):
         """Test creating a provider with a connection."""
         provider = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="Test Schwab"
+            user_id=test_user.id, provider_key="schwab", alias="Test Schwab"
         )
         db_session.add(provider)
         db_session.flush()
 
         connection = ProviderConnection(
-            provider_id=provider.id,
-            status=ProviderStatus.PENDING
+            provider_id=provider.id, status=ProviderStatus.PENDING
         )
         db_session.add(connection)
         db_session.commit()
@@ -60,16 +55,8 @@ class TestProviderCRUD:
         """Test listing all providers for a user."""
         # Create multiple providers
         providers = [
-            Provider(
-                user_id=test_user.id,
-                provider_key="schwab",
-                alias="Schwab 1"
-            ),
-            Provider(
-                user_id=test_user.id,
-                provider_key="schwab",
-                alias="Schwab 2"
-            ),
+            Provider(user_id=test_user.id, provider_key="schwab", alias="Schwab 1"),
+            Provider(user_id=test_user.id, provider_key="schwab", alias="Schwab 2"),
         ]
         for provider in providers:
             db_session.add(provider)
@@ -89,9 +76,7 @@ class TestProviderCRUD:
     def test_update_provider_alias(self, db_session: Session, test_user: User):
         """Test updating a provider's alias."""
         provider = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="Old Name"
+            user_id=test_user.id, provider_key="schwab", alias="Old Name"
         )
         db_session.add(provider)
         db_session.commit()
@@ -106,11 +91,7 @@ class TestProviderCRUD:
 
     def test_delete_provider_cascades(self, db_session: Session, test_user: User):
         """Test that deleting a provider cascades to connection."""
-        provider = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="Test"
-        )
+        provider = Provider(user_id=test_user.id, provider_key="schwab", alias="Test")
         db_session.add(provider)
         db_session.flush()
 
@@ -126,9 +107,7 @@ class TestProviderCRUD:
         db_session.commit()
 
         # Verify provider is deleted
-        result = db_session.execute(
-            select(Provider).where(Provider.id == provider_id)
-        )
+        result = db_session.execute(select(Provider).where(Provider.id == provider_id))
         assert result.scalar_one_or_none() is None
 
         # Verify connection is also deleted (cascade)
@@ -143,11 +122,7 @@ class TestProviderConnectionOperations:
 
     def test_connection_status_lifecycle(self, db_session: Session, test_user: User):
         """Test connection status changes through lifecycle."""
-        provider = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="Test"
-        )
+        provider = Provider(user_id=test_user.id, provider_key="schwab", alias="Test")
         db_session.add(provider)
         db_session.flush()
 
@@ -167,21 +142,14 @@ class TestProviderConnectionOperations:
         assert connection.status == ProviderStatus.ACTIVE
         assert connection.connected_at is not None
 
-    def test_connection_status_changes(
-        self, db_session: Session, test_user: User
-    ):
+    def test_connection_status_changes(self, db_session: Session, test_user: User):
         """Test changing connection status."""
-        provider = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="Test"
-        )
+        provider = Provider(user_id=test_user.id, provider_key="schwab", alias="Test")
         db_session.add(provider)
         db_session.flush()
 
         connection = ProviderConnection(
-            provider_id=provider.id,
-            status=ProviderStatus.PENDING
+            provider_id=provider.id, status=ProviderStatus.PENDING
         )
         db_session.add(connection)
         db_session.commit()
@@ -197,21 +165,14 @@ class TestProviderConnectionOperations:
 
         assert connection.status == ProviderStatus.ACTIVE
 
-    def test_connection_error_tracking(
-        self, db_session: Session, test_user: User
-    ):
+    def test_connection_error_tracking(self, db_session: Session, test_user: User):
         """Test tracking connection errors."""
-        provider = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="Test"
-        )
+        provider = Provider(user_id=test_user.id, provider_key="schwab", alias="Test")
         db_session.add(provider)
         db_session.flush()
 
         connection = ProviderConnection(
-            provider_id=provider.id,
-            status=ProviderStatus.ACTIVE
+            provider_id=provider.id, status=ProviderStatus.ACTIVE
         )
         db_session.add(connection)
         db_session.commit()
@@ -232,7 +193,9 @@ class TestProviderConnectionOperations:
 class TestProviderUserRelationship:
     """Test suite for provider-user relationships."""
 
-    def test_user_can_have_multiple_providers(self, db_session: Session, test_user: User):
+    def test_user_can_have_multiple_providers(
+        self, db_session: Session, test_user: User
+    ):
         """Test that a user can have multiple provider instances."""
         providers = [
             Provider(user_id=test_user.id, provider_key="schwab", alias=f"Schwab {i}")
@@ -252,17 +215,14 @@ class TestProviderUserRelationship:
 
     def test_provider_belongs_to_user(self, db_session: Session, test_user: User):
         """Test that provider correctly references its user."""
-        provider = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="Test"
-        )
+        provider = Provider(user_id=test_user.id, provider_key="schwab", alias="Test")
         db_session.add(provider)
         db_session.commit()
         db_session.refresh(provider)
 
         # Load provider with user relationship
         from sqlalchemy.orm import selectinload
+
         result = db_session.execute(
             select(Provider)
             .options(selectinload(Provider.user))
@@ -277,26 +237,22 @@ class TestProviderUserRelationship:
     def test_unique_alias_per_user_enforced(self, db_session: Session, test_user: User):
         """Test that unique alias constraint is enforced at database level."""
         from sqlalchemy.exc import IntegrityError
-        
+
         provider1 = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="My Account"
+            user_id=test_user.id, provider_key="schwab", alias="My Account"
         )
         db_session.add(provider1)
         db_session.commit()
 
         # Try to create another with same alias - should fail with IntegrityError
         provider2 = Provider(
-            user_id=test_user.id,
-            provider_key="schwab",
-            alias="My Account"
+            user_id=test_user.id, provider_key="schwab", alias="My Account"
         )
         db_session.add(provider2)
-        
+
         # This should raise an IntegrityError due to unique constraint
         with pytest.raises(IntegrityError, match="unique_user_provider_alias"):
             db_session.commit()
-        
+
         # Rollback the failed transaction
         db_session.rollback()

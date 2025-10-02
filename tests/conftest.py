@@ -26,6 +26,7 @@ from src.models.provider import (
     ProviderAuditLog,
 )
 from src.models.user import User
+from tests.test_config import TestSettings, get_test_settings
 
 # Use test PostgreSQL database (production parity)
 # Database is managed by docker-compose.test.yml
@@ -42,6 +43,17 @@ engine = create_engine(
     echo=settings.DB_ECHO if hasattr(settings, "DB_ECHO") else False,
     pool_pre_ping=True,  # Verify connections before using
 )
+
+
+@pytest.fixture(scope="session")
+def test_settings() -> TestSettings:
+    """Provide test-specific settings loaded from .env file.
+
+    Returns:
+        TestSettings instance with all configuration loaded from environment
+        variables, following the same patterns as main app.
+    """
+    return get_test_settings()
 
 
 @pytest.fixture(scope="session", autouse=True)

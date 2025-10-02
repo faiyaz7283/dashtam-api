@@ -133,6 +133,7 @@ def client(db: Session) -> Generator[TestClient, None, None]:
     # Create wrapper class to handle async-to-sync conversion
     class AsyncToSyncWrapper:
         """Wrapper to make sync Session work with async endpoints."""
+
         def __init__(self, sync_session: Session):
             self.session = sync_session
 

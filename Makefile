@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format migrate migration certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
+.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format migrate migration certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-pr git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
 
 # Default target - show help
 help:
@@ -70,6 +70,7 @@ help:
 	@echo "  make git-feature         - Create new feature branch"
 	@echo "  make git-fix             - Create new fix branch"
 	@echo "  make git-finish          - Finish current branch (push & create PR)"
+	@echo "  make git-pr              - Create pull request with template"
 	@echo "  make git-release-start   - Start new release"
 	@echo "  make git-release-finish  - Finish release"
 	@echo "  make git-hotfix-start    - Start emergency hotfix"
@@ -497,8 +498,84 @@ git-finish:
 	echo "📝 Create Pull Request:" && \
 	echo "   https://github.com/faiyaz7283/Dashtam/compare/development...$$current_branch" && \
 	echo "" && \
-	echo "Or use GitHub CLI:" && \
-	echo "   gh pr create --base development --head $$current_branch"
+	echo "Or use: make git-pr"
+
+# Create pull request with template
+git-pr:
+	@echo "📝 Creating Pull Request..."
+	@echo ""
+	@current_branch=$$(git branch --show-current); \
+	if [ "$$current_branch" = "development" ] || [ "$$current_branch" = "main" ]; then \
+		echo "❌ Cannot create PR from protected branch $$current_branch"; \
+		exit 1; \
+	fi; \
+	echo "Current branch: $$current_branch" && \
+	echo "" && \
+	read -p "PR Title (or press Enter for default): " title; \
+	if [ -z "$$title" ]; then \
+		if echo "$$current_branch" | grep -q "^feature/"; then \
+			default_title="feat: $${current_branch#feature/}"; \
+		elif echo "$$current_branch" | grep -q "^fix/"; then \
+			default_title="fix: $${current_branch#fix/}"; \
+		else \
+			default_title="$${current_branch}"; \
+		fi; \
+		title="$$default_title"; \
+	fi; \
+	echo "" && \
+	echo "PR Title: $$title" && \
+	echo "" && \
+	read -p "Base branch (default: development): " base; \
+	if [ -z "$$base" ]; then \
+		base="development"; \
+	fi; \
+	echo "" && \
+	echo "Creating PR: $$current_branch → $$base" && \
+	echo "" && \
+	gh pr create --base "$$base" --head "$$current_branch" --title "$$title" --body "$$(cat <<-'PRBODY'
+## Description
+Please describe your changes here.
+
+## Type of Change
+- [ ] New feature (feat)
+- [ ] Bug fix (fix)
+- [ ] Breaking change
+- [ ] Documentation update
+- [ ] Refactoring
+- [ ] Test additions/updates
+
+## Testing
+- [ ] Unit tests pass (`make test-unit`)
+- [ ] Integration tests pass (`make test-integration`)
+- [ ] All tests pass (`make test`)
+- [ ] Linting passes (`make lint`)
+- [ ] Manual testing completed
+
+## Checklist
+- [ ] Code follows project style guidelines
+- [ ] Self-review completed
+- [ ] Comments added for complex logic
+- [ ] Documentation updated
+- [ ] No new warnings generated
+- [ ] Tests added/updated
+- [ ] All tests passing
+- [ ] Conventional commit messages used
+
+## Related Issues
+Closes #
+
+## Additional Notes
+[Add any additional notes or context here]
+PRBODY
+	)" && \
+	echo "" && \
+	echo "✅ Pull Request created successfully!" && \
+	echo "" && \
+	echo "Remember to:" && \
+	echo "  1. Edit the PR description with details" && \
+	echo "  2. Wait for CI checks to pass" && \
+	echo "  3. Request reviews" && \
+	echo "  4. Address any feedback"
 
 # Start new release
 git-release-start:

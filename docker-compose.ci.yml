@@ -111,10 +111,10 @@ services:
       sh -c "
         set -e
         echo '=============================================='
-        echo '🚀 Dashtam CI/CD Test Environment'
+        echo 'Dashtam CI/CD Test Environment'
         echo '=============================================='
         echo ''
-        echo '🧪 Running test suite...'
+        echo 'Running test suite...'
         echo ''
         uv run pytest tests/ \
           -v \
@@ -125,9 +125,8 @@ services:
           --maxfail=5 || exit 1
         echo ''
         echo '=============================================='
-        echo '✅ All tests passed!'
+        echo 'All tests passed!'
         echo '=============================================='
-        exit 0
       "
 
   # OAuth Callback Server (CI) - Required for OAuth tests

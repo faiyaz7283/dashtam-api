@@ -150,10 +150,12 @@ services:
     networks:
       - dashtam-ci-network
     # Keep running for OAuth callback handling during tests
+    # Note: In test environment, we just keep the container alive
+    # The actual callback handling is done through the app's routing
     command: >
       sh -c "
         echo 'CI callback server ready for OAuth tests.' &&
-        python src/callback_server.py
+        tail -f /dev/null
       "
 
 networks:

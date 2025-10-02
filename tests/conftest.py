@@ -116,16 +116,94 @@ def db_session(db: Session) -> Generator[Session, None, None]:
 
 
 @pytest.fixture(scope="module")
-def client() -> Generator[TestClient, None, None]:
+def client(db: Session) -> Generator[TestClient, None, None]:
     """FastAPI TestClient for making HTTP requests to the application.
 
     TestClient automatically handles the async/sync bridge, allowing
     synchronous test code to work with async FastAPI endpoints.
 
+    This fixture overrides FastAPI's async dependencies with synchronous
+    test-compatible versions to ensure consistent testing across all environments.
+
     Module-scoped for efficiency (creating client is expensive).
     """
+    from src.core.database import get_session
+    from src.api.v1.auth import get_current_user
+
+    # Create wrapper class to handle async-to-sync conversion
+    class AsyncToSyncWrapper:
+        """Wrapper to make sync Session work with async endpoints."""
+        def __init__(self, sync_session: Session):
+            self.session = sync_session
+
+        async def execute(self, *args, **kwargs):
+            """Wrap sync execute to be awaitable."""
+            return self.session.execute(*args, **kwargs)
+
+        async def commit(self):
+            """Wrap sync commit to be awaitable."""
+            return self.session.commit()
+
+        async def rollback(self):
+            """Wrap sync rollback to be awaitable."""
+            return self.session.rollback()
+
+        async def refresh(self, *args, **kwargs):
+            """Wrap sync refresh to be awaitable."""
+            return self.session.refresh(*args, **kwargs)
+
+        def add(self, *args, **kwargs):
+            """Direct pass-through for add (not awaited)."""
+            return self.session.add(*args, **kwargs)
+
+        async def delete(self, *args, **kwargs):
+            """Wrap sync delete to be awaitable."""
+            return self.session.delete(*args, **kwargs)
+
+        async def close(self):
+            """Wrap close to be awaitable."""
+            pass  # Session lifecycle managed by fixture
+
+    # Override async database session with wrapped sync session
+    async def override_get_session():
+        """Provide wrapped synchronous session for async endpoints."""
+        wrapper = AsyncToSyncWrapper(db)
+        try:
+            yield wrapper
+        finally:
+            pass
+
+    # Override async user authentication with sync mock user
+    async def override_get_current_user():
+        """Provide mock user for tests without authentication."""
+        from sqlmodel import select
+
+        # Get or create test user synchronously
+        result = db.execute(select(User).where(User.email == "test@example.com"))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            user = User(
+                email="test@example.com",
+                name="Test User",
+                is_verified=True,
+                is_active=True,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        return user
+
+    # Apply dependency overrides
+    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
     with TestClient(app) as c:
         yield c
+
+    # Clean up overrides after test module
+    app.dependency_overrides.clear()
 
 
 # ============================================================================

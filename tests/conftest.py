@@ -11,6 +11,7 @@ from typing import AsyncGenerator, Generator
 from unittest.mock import AsyncMock
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -26,7 +27,8 @@ from src.models.provider import Provider, ProviderConnection, ProviderStatus
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
     yield loop
     loop.close()
 
@@ -43,13 +45,13 @@ def test_settings() -> TestSettings:
 
 
 @pytest.fixture(scope="session")
-async def test_engine(test_settings: TestSettings):
+def test_engine(test_settings: TestSettings):
     """Create test database engine using settings from .env.test.
 
     Args:
         test_settings: Test configuration loaded from .env.test
 
-    Yields:
+    Returns:
         AsyncEngine configured for testing with proper connection pooling
     """
     # Ensure we're using test database
@@ -62,22 +64,22 @@ async def test_engine(test_settings: TestSettings):
         future=True,
         pool_pre_ping=True,
         # Use smaller pool for testing
-        pool_size=2,
-        max_overflow=5,
+        pool_size=5,
+        max_overflow=10,
     )
 
-    yield engine
-    await engine.dispose()
+    return engine
 
 
 @pytest.fixture(scope="session")
-async def setup_test_database(test_engine, test_settings):
+def setup_test_database(test_engine, test_settings):
     """Set up test database with tables using our initialization script approach.
 
     This fixture integrates with our init_test_db.py script to ensure consistent
     database setup patterns across manual runs and automated testing.
     """
     # Import here to avoid circular imports
+    import asyncio
     from src.core.init_test_db import (
         check_test_database_connection,
         create_test_tables,
@@ -88,27 +90,34 @@ async def setup_test_database(test_engine, test_settings):
     # Safety check - ensure we're working with test database
     assert test_settings.is_test_environment, "Safety check: must be test environment"
 
-    # Use the same initialization logic as our script for consistency
-    if not await check_test_database_connection(test_engine, test_settings):
-        pytest.fail("Test database connection failed during fixture setup")
+    async def setup():
+        # Use the same initialization logic as our script for consistency
+        if not await check_test_database_connection(test_engine, test_settings):
+            pytest.fail("Test database connection failed during fixture setup")
 
-    # Apply test database optimizations
-    await prepare_test_database_constraints(test_engine)
+        # Apply test database optimizations
+        await prepare_test_database_constraints(test_engine)
 
-    # Create tables using our standardized approach
-    await create_test_tables(test_engine, test_settings)
+        # Create tables using our standardized approach
+        await create_test_tables(test_engine, test_settings)
 
-    # Verify setup
-    await verify_test_tables(test_engine)
+        # Verify setup
+        await verify_test_tables(test_engine)
+
+    asyncio.run(setup())
 
     yield
 
     # Cleanup after all tests - drop all tables for clean slate
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
+    async def cleanup():
+        async with test_engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.drop_all)
+        await test_engine.dispose()
+
+    asyncio.run(cleanup())
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def db_session(
     test_engine, setup_test_database, test_settings
 ) -> AsyncGenerator[AsyncSession, None]:
@@ -172,7 +181,7 @@ def override_get_session(db_session: AsyncSession, test_settings: TestSettings):
         app.dependency_overrides.pop(get_session, None)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client(
     override_get_session, test_settings: TestSettings
 ) -> AsyncGenerator[AsyncClient, None]:
@@ -212,7 +221,7 @@ def sync_client(
 
 
 # Test data fixtures following Dashtam patterns
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession) -> User:
     """Create a test user following Dashtam user model patterns.
 
@@ -229,7 +238,7 @@ async def test_user(db_session: AsyncSession) -> User:
     return user
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_provider(db_session: AsyncSession, test_user: User) -> Provider:
     """Create a test provider instance following Dashtam provider patterns.
 
@@ -249,7 +258,7 @@ async def test_provider(db_session: AsyncSession, test_user: User) -> Provider:
     return provider
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_provider_with_connection(
     db_session: AsyncSession, test_provider: Provider
 ) -> Provider:

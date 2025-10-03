@@ -146,17 +146,17 @@ BREAKING CHANGE: Auth endpoint moved to /api/v1/auth
 
 ### Git Flow
 ```bash
-make git-status          # Show Git status
-make git-sync            # Sync with development
-make git-feature         # Create feature branch
-make git-fix             # Create fix branch
-make git-finish          # Finish & push branch
-make git-release-start   # Start release
+make git-status                        # Show Git status
+make git-sync                          # Sync with development
+make git-feature                       # Create feature branch
+make git-fix                           # Create fix branch
+make git-finish                        # Finish & push branch
+make git-release-start                 # Start release
 make git-release-finish VERSION=X.Y.Z
-make git-hotfix-start    # Start hotfix
+make git-hotfix-start                  # Start hotfix
 make git-hotfix-finish VERSION=X.Y.Z
-make git-cleanup         # Clean merged branches
-make git-branch-protection  # Setup branch protection
+make git-cleanup                       # Clean merged branches
+make git-branch-protection            # Setup branch protection
 ```
 
 ### Testing & Quality

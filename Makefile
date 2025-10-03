@@ -30,8 +30,6 @@ help:
 	@echo "  make test-db-shell  - PostgreSQL shell (test)"
 	@echo "  make test-redis-cli - Redis CLI (test)"
 	@echo ""
-	@echo "🔐 Provider Auth (uses dev environment):"
-	@echo "  make auth-schwab    - Start Schwab OAuth flow"
 	@echo "🔬 Testing Commands:"
 	@echo "  make test           - Run all tests with coverage"
 	@echo "  make test-unit      - Run unit tests only"

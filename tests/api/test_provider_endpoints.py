@@ -245,11 +245,11 @@ class TestProviderValidation:
         response = client.post(
             "/api/v1/providers/create", json={"provider_key": "schwab"}
         )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         # Missing provider_key
         response = client.post("/api/v1/providers/create", json={"alias": "Test"})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_provider_invalid_json(self, client: TestClient):
         """Test creating provider with invalid JSON."""
@@ -258,13 +258,13 @@ class TestProviderValidation:
             data="not valid json",
             headers={"Content-Type": "application/json"},
         )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_get_provider_invalid_uuid(self, client: TestClient):
         """Test getting provider with invalid UUID format."""
         response = client.get("/api/v1/providers/not-a-uuid")
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_provider_empty_alias(self, client: TestClient):
         """Test creating provider with empty alias."""

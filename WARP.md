@@ -26,14 +26,22 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Make-based workflow for all environments
 - ✅ **PHASE 1 TEST INFRASTRUCTURE COMPLETE**
   - ✅ Synchronous testing strategy implemented (FastAPI TestClient pattern)
-  - ✅ Unit tests for core services (encryption, 9 tests)
-  - ✅ Integration tests for database operations and relationships (11 tests)
-  - ✅ API endpoint tests for providers (19 tests)
+  - ✅ Unit tests for core services (encryption, database, token service)
+  - ✅ Integration tests for database operations and relationships
+  - ✅ API endpoint tests for providers and auth endpoints
   - ✅ Comprehensive test fixtures and mocks
   - ✅ Docker-based test environment with isolated PostgreSQL
   - ✅ Make-based test workflow (test-verify, test-unit, test-integration)
   - ✅ Code quality automation (linting, formatting)
-  - ✅ **39 tests passing, 51% code coverage**
+- ✅ **PHASE 3 TEST COVERAGE EXPANSION COMPLETE**
+  - ✅ Pydantic v2 migration fully completed (0 deprecation warnings)
+  - ✅ Python 3.13 datetime compatibility (timezone-aware datetimes)
+  - ✅ Comprehensive database unit tests (17 tests, 100% coverage)
+  - ✅ OAuth authentication endpoint tests (20 tests)
+  - ✅ Token service unit tests (15 tests)
+  - ✅ Token service integration tests (10 tests)
+  - ✅ Enhanced encryption service tests (17 tests)
+  - ✅ **110 tests passing, 67% code coverage**
 - ✅ **PHASE 2 CI/CD COMPLETE**
   - ✅ GitHub Actions workflow configured and operational
   - ✅ Automated linting and code formatting checks
@@ -43,9 +51,11 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Coverage reporting to Codecov on all CI runs
   - ✅ Docker Compose v2 migration complete
   - ✅ All tests passing in CI pipeline
+- ✅ **Core infrastructure at 67% test coverage**
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
-- 📋 Test coverage expansion (Phase 2+) - targeting 85% overall coverage
+- 📋 Schwab provider test coverage expansion (currently 30%, target 70%+)
+- 📋 Overall coverage target: 85% (currently 67%)
 
 ## Architecture Rules
 

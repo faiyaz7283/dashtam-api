@@ -592,8 +592,9 @@ docs/
 4. ✅ Link between related documents
 5. ✅ Update `docs/README.md` index when adding new sections
 6. ✅ Archive completed research/migration docs to `docs/research/archived/`
-7. ❌ NEVER create .md files in root directory
-8. ❌ NEVER scatter documentation across random directories
+7. ❌ NEVER scatter documentation across random directories
+8. ❌ NEVER create temporary summary files (SESSION_SUMMARY.md, ACCOMPLISHMENTS.md, etc.)
+9. ✅ Display session summaries in terminal output instead of creating files
 
 ### Code Documentation
 - Every module must have a module-level docstring

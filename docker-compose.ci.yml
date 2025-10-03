@@ -98,6 +98,7 @@ services:
       - ./src:/app/src:ro
       - ./tests:/app/tests:ro
       - ./alembic:/app/alembic:ro
+      - ./alembic.ini:/app/alembic.ini:ro
       - ./.env.ci:/app/.env:ro
     depends_on:
       postgres:
@@ -106,13 +107,16 @@ services:
         condition: service_healthy
     networks:
       - dashtam-ci-network
-    # Run tests and exit with proper status code
+    # Run migrations, then tests, and exit with proper status code
     command: >
       sh -c "
         set -e && 
         echo '=============================================='  && 
         echo 'Dashtam CI/CD Test Environment' && 
         echo '=============================================='  && 
+        echo '' && 
+        echo 'Running Alembic migrations...' && 
+        uv run alembic upgrade head && 
         echo '' && 
         echo 'Running test suite...' && 
         echo '' && 

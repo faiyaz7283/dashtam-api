@@ -61,9 +61,10 @@ class TestTokenStorageIntegration:
         assert token.id is not None
         assert token.access_token_encrypted != "test_access_token_123"
         assert token.refresh_token_encrypted != "test_refresh_token_456"
-        # Compare without timezone info (database stores without tz)
+        # Database now stores timezone-aware datetimes (TIMESTAMPTZ)
+        # Both token.expires_at and expires_at are timezone-aware
         assert (
-            abs((token.expires_at - expires_at.replace(tzinfo=None)).total_seconds())
+            abs((token.expires_at - expires_at).total_seconds())
             < 1
         )
 
@@ -106,18 +107,17 @@ class TestTokenStorageIntegration:
         # Verify token is stored correctly
         assert token.access_token_encrypted is not None
         assert token.refresh_token_encrypted is None
-        # Compare without timezone info
+        # Database now stores timezone-aware datetimes (TIMESTAMPTZ)
         assert (
-            abs((token.expires_at - expires_at.replace(tzinfo=None)).total_seconds())
+            abs((token.expires_at - expires_at).total_seconds())
             < 1
         )
 
     def test_token_expiry_detection(self, db_session: Session, test_user: User):
         """Test that token expiry can be correctly identified.
 
-        TODO: This test uses naive datetimes. See Architecture Improvement Guide:
-        docs/development/architecture/improvement-guide.md - Issue #1 (P0)
-        Database must use TIMESTAMP WITH TIME ZONE for financial compliance.
+        Database now uses TIMESTAMP WITH TIME ZONE for financial compliance.
+        All datetime comparisons use timezone-aware datetimes.
         """
         # Create provider and connection
         provider = Provider(
@@ -132,26 +132,23 @@ class TestTokenStorageIntegration:
 
         encryption_service = EncryptionService()
 
-        # TODO (P0): Store timezone-aware datetime when DB columns are migrated
-        # Create expired token using naive datetime (current limitation)
-        expired_at_naive = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
-            hours=1
-        )
+        # Create expired token using timezone-aware datetime
+        expired_at = datetime.now(timezone.utc) - timedelta(hours=1)
         expired_token = ProviderToken(
             connection_id=connection.id,
             access_token_encrypted=encryption_service.encrypt("expired_token"),
-            expires_at=expired_at_naive,
+            expires_at=expired_at,
         )
         db_session.add(expired_token)
         db_session.commit()
         db_session.refresh(expired_token)
 
-        # Verify expiry detection works with naive datetimes
+        # Verify expiry detection works with timezone-aware datetimes
         assert expired_token.needs_refresh is True
         assert expired_token.is_expired is True
         # Verify the stored datetime is in the past
-        now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
-        assert expired_token.expires_at < now_naive
+        now_aware = datetime.now(timezone.utc)
+        assert expired_token.expires_at < now_aware
 
     def test_token_update_mechanism(self, db_session: Session, test_user: User):
         """Test updating token values using the update_tokens method."""
@@ -196,8 +193,9 @@ class TestTokenStorageIntegration:
         assert (
             encryption_service.decrypt(token.refresh_token_encrypted) == "new_refresh"
         )
-        # Compare timezone-naive datetimes
-        assert token.expires_at > old_expires.replace(tzinfo=None)
+        # Database now stores timezone-aware datetimes (TIMESTAMPTZ)
+        # Both token.expires_at and old_expires are timezone-aware
+        assert token.expires_at > old_expires
         assert token.refresh_count == 1
 
     def test_token_relationship_with_connection(

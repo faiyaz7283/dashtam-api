@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format migrate migration certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-pr git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
+.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format migrate migrate-down migrate-create migrate-history migrate-current migrate-show certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-pr git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
 
 # Default target - show help
 help:
@@ -47,9 +47,13 @@ help:
 	@echo "  make lint           - Run linters"
 	@echo "  make format         - Format code"
 	@echo ""
-	@echo "📦 Database (uses dev environment):"
-	@echo "  make migrate        - Run database migrations"
-	@echo "  make migration      - Create new migration"
+	@echo "📦 Database Migrations (uses dev environment):"
+	@echo "  make migrate          - Apply all pending migrations (upgrade to head)"
+	@echo "  make migrate-create   - Create new migration (autogenerate)"
+	@echo "  make migrate-down     - Rollback last migration"
+	@echo "  make migrate-history  - Show migration history"
+	@echo "  make migrate-current  - Show current migration version"
+	@echo "  make migrate-show     - Show details of a specific migration"
 	@echo ""
 	@echo "🔧 Setup & Global Utilities:"
 	@echo "  make setup          - Initial setup (certs, keys)"
@@ -156,7 +160,7 @@ dev-redis-cli:
 test-up:
 	@echo "🧪 Starting TEST environment..."
 	@docker compose -f docker-compose.test.yml --env-file .env.test up -d
-	@echo "⏳ Waiting for services to be healthy..."
+	@echo "⏳ Waiting for services to be healthy and migrations to run..."
 	@sleep 5
 	@echo "✅ Test services started!"
 	@echo ""
@@ -165,8 +169,7 @@ test-up:
 	@echo "🐘 PostgreSQL: localhost:5433"
 	@echo "🔴 Redis:      localhost:6380"
 	@echo ""
-	@echo "🚀 Initializing test database..."
-	@docker compose -f docker-compose.test.yml exec -T app uv run python src/core/init_test_db.py
+	@echo "📊 Database initialized via Alembic migrations"
 	@echo "✅ Test environment ready!"
 	@echo ""
 	@echo "🧪 Run tests: make test"
@@ -338,19 +341,52 @@ format:
 	@docker compose -f docker-compose.dev.yml exec app uv run ruff check --fix src/ tests/
 
 # ============================================================================
-# DATABASE COMMANDS
+# DATABASE MIGRATION COMMANDS (Alembic)
 # ============================================================================
 
-# Database migrations (uses dev environment)
+# Apply all pending migrations (uses dev environment)
 migrate:
-	@echo "📊 Running database migrations..."
+	@echo "📊 Applying database migrations..."
 	@docker compose -f docker-compose.dev.yml exec app uv run alembic upgrade head
+	@echo "✅ Migrations applied successfully"
 
-# Create new migration (uses dev environment)
-migration:
+# Create new migration with autogenerate (uses dev environment)
+migrate-create:
 	@echo "📝 Creating new migration..."
 	@read -p "Enter migration message: " msg; \
 	docker compose -f docker-compose.dev.yml exec app uv run alembic revision --autogenerate -m "$$msg"
+	@echo "✅ Migration created. Review the generated file before applying!"
+
+# Rollback last migration (uses dev environment)
+migrate-down:
+	@echo "⚠️  Rolling back last migration..."
+	@read -p "Are you sure you want to rollback? (yes/no): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		docker compose -f docker-compose.dev.yml exec app uv run alembic downgrade -1; \
+		echo "✅ Migration rolled back"; \
+	else \
+		echo "❌ Rollback cancelled"; \
+	fi
+
+# Show migration history (uses dev environment)
+migrate-history:
+	@echo "📜 Migration History:"
+	@docker compose -f docker-compose.dev.yml exec app uv run alembic history --verbose
+
+# Show current migration version (uses dev environment)
+migrate-current:
+	@echo "🔍 Current Migration:"
+	@docker compose -f docker-compose.dev.yml exec app uv run alembic current --verbose
+
+# Show details of a specific migration (uses dev environment)
+migrate-show:
+	@echo "📋 Show Migration Details:"
+	@read -p "Enter migration revision (or 'head' for latest): " rev; \
+	docker compose -f docker-compose.dev.yml exec app uv run alembic show "$$rev"
+
+# Legacy alias for backwards compatibility
+migration: migrate-create
+	@echo "💡 Tip: Use 'make migrate-create' instead (migration is deprecated)"
 
 # ============================================================================
 # PROVIDER AUTH & UTILITIES

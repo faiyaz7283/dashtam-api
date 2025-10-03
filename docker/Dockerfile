@@ -46,8 +46,8 @@ COPY . .
 # Ensure virtual environment is created
 RUN uv sync
 
-# Development command - initialize DB then start with reload
-CMD ["sh", "-c", "uv run python src/core/init_db.py && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --ssl-certfile certs/cert.pem --ssl-keyfile certs/key.pem"]
+# Development command - run migrations then start with reload
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --ssl-certfile certs/cert.pem --ssl-keyfile certs/key.pem"]
 
 # ============================================
 # Builder stage - prepares production deps
@@ -104,8 +104,8 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f https://localhost:8000/health --insecure || exit 1
 
-# Production command - initialize DB then start (no reload)
-CMD ["sh", "-c", "python src/core/init_db.py && uvicorn src.main:app --host 0.0.0.0 --port 8000 --ssl-certfile certs/cert.pem --ssl-keyfile certs/key.pem"]
+# Production command - run migrations then start (no reload)
+CMD ["sh", "-c", "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000 --ssl-certfile certs/cert.pem --ssl-keyfile certs/key.pem"]
 
 # ============================================
 # Callback server stage

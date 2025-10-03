@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from src.core.config import settings
-from src.core.database import init_db, close_db
+from src.core.database import close_db
 from src.api.v1 import api_router
 
 # Configure logging
@@ -32,10 +32,12 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
 
-    # Initialize database tables (development only)
-    if settings.DEBUG:
-        await init_db()
-        logger.info("Database tables initialized")
+    # Database schema is now managed by Alembic migrations
+    # Temporarily disabled to generate initial migration
+    # if settings.DEBUG:
+    #     await init_db()
+    #     logger.info("Database tables initialized")
+    logger.info("Database managed by Alembic (run 'make migrate' to apply migrations)")
 
     # Log available providers
     from src.providers import ProviderRegistry

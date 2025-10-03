@@ -79,6 +79,7 @@ services:
       - ./src:/app/src:rw
       - ./tests:/app/tests:rw
       - ./alembic:/app/alembic:rw
+      - ./alembic.ini:/app/alembic.ini:rw
       - ./certs:/app/certs:ro
       - ./.env.test:/app/.env:ro
     depends_on:
@@ -89,9 +90,11 @@ services:
     networks:
       - dashtam-test-network
     # Keep container running for on-demand test execution
-    # We use this instead of sleep infinity for cleaner lifecycle
+    # Run migrations first, then keep container alive
     command: >
       sh -c "
+        echo 'Initializing test database with Alembic migrations...' &&
+        uv run alembic upgrade head &&
         echo 'Test environment ready. Database and Redis are available.' &&
         echo 'Run tests with: docker compose -f docker-compose.test.yml exec app pytest' &&
         tail -f /dev/null

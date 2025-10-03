@@ -60,6 +60,7 @@ services:
       - ./src:/app/src:rw
       - ./tests:/app/tests:rw
       - ./alembic:/app/alembic:rw
+      - ./alembic.ini:/app/alembic.ini:rw
       - ./certs:/app/certs:ro
       - ./.env.dev:/app/.env:ro
     depends_on:

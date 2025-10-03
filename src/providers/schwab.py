@@ -10,7 +10,7 @@ trading history, converting them to Dashtam's standardized brokerage transaction
 import os
 import base64
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from decimal import Decimal
 from uuid import UUID
@@ -284,7 +284,7 @@ class SchwabProvider(BaseProvider):
 
         # Default date range if not specified
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
         if not start_date:
             start_date = end_date - timedelta(days=30)
 

@@ -17,11 +17,12 @@ Example:
     >>>     name: str
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
+from pydantic import ConfigDict
 
 
 class DashtamBase(SQLModel, table=False):
@@ -57,7 +58,7 @@ class DashtamBase(SQLModel, table=False):
 
     # Timestamps
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Timestamp when the record was created",
     )
 
@@ -87,7 +88,7 @@ class DashtamBase(SQLModel, table=False):
             >>> user.soft_delete()
             >>> await session.commit()
         """
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = datetime.now(timezone.utc)
         self.is_active = False
 
     def restore(self) -> None:
@@ -116,15 +117,11 @@ class DashtamBase(SQLModel, table=False):
         """
         return self.deleted_at is not None
 
-    class Config:
-        """Pydantic configuration for the model."""
-
-        # Allow reading from ORM objects (SQLAlchemy)
-        from_attributes = True
-        # Use enum values instead of names
-        use_enum_values = True
-        # Validate field assignments
-        validate_assignment = True
+    model_config = ConfigDict(
+        from_attributes=True,  # Allow reading from ORM objects (SQLAlchemy)
+        use_enum_values=True,  # Use enum values instead of names
+        validate_assignment=True,  # Validate field assignments
+    )
 
 
 class TimestampBase(SQLModel, table=False):
@@ -151,15 +148,15 @@ class TimestampBase(SQLModel, table=False):
     """
 
     created_at: datetime = Field(
-        default_factory=datetime.utcnow, description="When the record was created"
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When the record was created",
     )
 
     updated_at: Optional[datetime] = Field(
         default=None, description="When the record was last modified"
     )
 
-    class Config:
-        """Pydantic configuration."""
-
-        from_attributes = True
-        validate_assignment = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        validate_assignment=True,
+    )

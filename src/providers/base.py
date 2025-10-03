@@ -28,7 +28,7 @@ from enum import Enum
 from uuid import UUID
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -135,20 +135,21 @@ class BaseTransaction(BaseModel):
         default_factory=dict, description="Additional processed data"
     )
 
-    class Config:
-        """Pydantic configuration."""
+    model_config = ConfigDict(
+        # Pydantic v2 handles Decimal and datetime serialization automatically
+        # Decimal is serialized as string by default to preserve precision
+        # datetime is serialized as ISO format by default
+    )
 
-        json_encoders = {
-            Decimal: str,  # Serialize Decimal as string to preserve precision
-            datetime: lambda v: v.isoformat(),
-        }
-
-    @validator("amount", pre=True)
-    def convert_to_decimal(cls, v):
+    @field_validator("amount", mode="before")
+    @classmethod
+    def convert_to_decimal(cls, v: Any) -> Decimal:
         """Ensure amount is always a Decimal for precision."""
         if isinstance(v, (int, float)):
             return Decimal(str(v))
-        return v
+        if isinstance(v, Decimal):
+            return v
+        return Decimal(str(v))
 
 
 # ============================================================================

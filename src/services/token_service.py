@@ -12,7 +12,7 @@ ensuring tokens are always valid and properly encrypted.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 from uuid import UUID
 
@@ -114,7 +114,7 @@ class TokenService:
         # Calculate expiration
         expires_at = None
         if tokens.get("expires_in"):
-            expires_at = datetime.utcnow() + timedelta(
+            expires_at = datetime.now(timezone.utc) + timedelta(
                 seconds=int(tokens["expires_in"])
             )
 
@@ -126,7 +126,7 @@ class TokenService:
             existing_token.expires_at = expires_at
             existing_token.id_token = tokens.get("id_token")
             existing_token.scope = tokens.get("scope")
-            existing_token.updated_at = datetime.utcnow()
+            existing_token.updated_at = datetime.now(timezone.utc)
             token = existing_token
             action = "token_updated"
         else:

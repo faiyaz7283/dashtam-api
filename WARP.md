@@ -24,23 +24,28 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Environment-specific ports and volumes
   - ✅ Health checks for all services (postgres, redis)
   - ✅ Make-based workflow for all environments
-- ✅ **PHASE 1 TEST INFRASTRUCTURE COMPLETE** (3,553+ lines of test code)
-  - ✅ Unit tests for all core services (encryption, database, config)
-  - ✅ Integration tests for database operations and relationships
+- ✅ **PHASE 1 TEST INFRASTRUCTURE COMPLETE**
+  - ✅ Synchronous testing strategy implemented (FastAPI TestClient pattern)
+  - ✅ Unit tests for core services (encryption, 9 tests)
+  - ✅ Integration tests for database operations and relationships (11 tests)
+  - ✅ API endpoint tests for providers (19 tests)
   - ✅ Comprehensive test fixtures and mocks
-  - ✅ Docker-based test environment with hybrid initialization
+  - ✅ Docker-based test environment with isolated PostgreSQL
   - ✅ Make-based test workflow (test-verify, test-unit, test-integration)
   - ✅ Code quality automation (linting, formatting)
+  - ✅ **39 tests passing, 51% code coverage**
 - ✅ **PHASE 2 CI/CD COMPLETE**
   - ✅ GitHub Actions workflow configured and operational
   - ✅ Automated linting and code formatting checks
   - ✅ CI-specific Docker Compose configuration (optimized)
   - ✅ Branch protection enabled on development branch
-  - ✅ Codecov integration ready for coverage reporting
+  - ✅ Codecov integration configured with codecov.yml
+  - ✅ Coverage reporting to Codecov on all CI runs
   - ✅ Docker Compose v2 migration complete
+  - ✅ All tests passing in CI pipeline
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
-- ⚠️ Test failures need fixing (91 failing, 56 passing - async fixture issues)
+- 📋 Test coverage expansion (Phase 2+) - targeting 85% overall coverage
 
 ## Architecture Rules
 
@@ -234,16 +239,20 @@ The OAuth flow must follow this exact sequence:
 ## Testing and Development Rules
 
 ### Test Coverage
-- **PHASE 1 COMPLETE**: Core test infrastructure implemented (3,553+ lines)
+- **PHASE 1 COMPLETE**: Synchronous test infrastructure fully operational
+- **Test strategy**: FastAPI TestClient with synchronous SQLModel sessions
 - **Test pyramid approach**: 70% unit, 20% integration, 10% e2e tests
 - **Target coverage**: 85%+ overall, 95%+ for critical components
 - **Working test workflow**: Make-based commands for all test operations
-- **Current coverage**: Unit tests for encryption, database, config services ✅
+- **Current coverage**: 51% overall (39 tests passing) ✅
+  - Unit tests: 9 tests (encryption service)
+  - Integration tests: 11 tests (database operations, relationships)
+  - API tests: 19 tests (provider endpoints)
 - **Docker integration**: All tests run in isolated containers ✅
 - **Safety features**: Environment validation, test database isolation ✅
 - **CI/CD Integration**: Automated testing via GitHub Actions ✅
 - **Code Quality**: Automated linting (ruff) and formatting checks ✅
-- **Current status**: 56 passing tests, 91 failing (fixture/async issues to fix)
+- **Current status**: All 39 tests passing in both local and CI environments ✅
 
 ### Local Development Commands
 Always use the Makefile for common operations:
@@ -644,23 +653,28 @@ docs/
 3. ✅ Implemented proper environment configuration
 4. ✅ Docker containerization with UV best practices
 5. ✅ API documentation setup (/docs, /redoc)
-6. ✅ Comprehensive test coverage plan designed
+6. ✅ Comprehensive test infrastructure (synchronous testing strategy)
 7. ✅ Parallel dev/test/CI environments (no conflicts)
 8. ✅ Docker Compose v2 migration complete
 9. ✅ GitHub Actions CI/CD pipeline operational
 10. ✅ Automated code quality checks (linting, formatting)
 11. ✅ Branch protection with status checks
 12. ✅ Health checks for all services
+13. ✅ Codecov integration with automated coverage reporting
+14. ✅ All tests passing (39 tests, 51% coverage)
 
 **Pending:**
-1. Fix test failures (91 failing - async fixture issues)
-2. Implement full test coverage (plan ready in TEST_COVERAGE_PLAN.md)
-3. Implement Alembic for database migrations
-4. Implement API versioning strategy
-5. Add request/response caching
-6. Implement retry logic with exponential backoff
-7. Add metrics and monitoring (Prometheus/Grafana)
-8. SSL support for test environment (optional, for OAuth integration tests)
+1. Expand test coverage to 85%+ (Phase 2+ of TEST_COVERAGE_PLAN.md)
+   - Token service tests
+   - Auth endpoint tests
+   - Provider integration tests (Schwab)
+   - Error handling and edge cases
+2. Implement Alembic for database migrations
+3. Implement API versioning strategy
+4. Add request/response caching
+5. Implement retry logic with exponential backoff
+6. Add metrics and monitoring (Prometheus/Grafana)
+7. SSL support for test environment (optional, for OAuth integration tests)
 
 ## Development Environment Setup
 

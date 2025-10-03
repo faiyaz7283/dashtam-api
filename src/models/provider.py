@@ -17,7 +17,7 @@ from uuid import UUID
 from enum import Enum
 
 from sqlmodel import Field, Relationship, Column, JSON
-from sqlalchemy import Text, UniqueConstraint
+from sqlalchemy import Text, UniqueConstraint, DateTime
 from pydantic import field_validator
 
 from src.models.base import DashtamBase
@@ -161,16 +161,23 @@ class ProviderConnection(DashtamBase, table=True):
     )
 
     connected_at: Optional[datetime] = Field(
-        default=None, description="When connection was first established"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        description="When connection was first established",
     )
 
     # Sync tracking
     last_sync_at: Optional[datetime] = Field(
-        default=None, description="Last successful data sync"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        description="Last successful data sync",
     )
 
     next_sync_at: Optional[datetime] = Field(
-        default=None, index=True, description="Next scheduled sync"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        index=True,
+        description="Next scheduled sync",
     )
 
     sync_frequency_minutes: int = Field(default=60, description="Minutes between syncs")
@@ -200,6 +207,17 @@ class ProviderConnection(DashtamBase, table=True):
     audit_logs: List["ProviderAuditLog"] = Relationship(
         back_populates="connection", cascade_delete=True
     )
+
+    # Validators to ensure timezone awareness
+    @field_validator("connected_at", "last_sync_at", "next_sync_at", mode="before")
+    @classmethod
+    def ensure_timezone_aware(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Ensure datetime fields are timezone-aware (UTC)."""
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v.astimezone(timezone.utc)
 
     def mark_connected(self) -> None:
         """Mark the connection as successfully connected."""
@@ -308,14 +326,19 @@ class ProviderToken(DashtamBase, table=True):
     token_type: str = Field(default="Bearer", description="Type of token")
 
     expires_at: Optional[datetime] = Field(
-        default=None, index=True, description="Access token expiration"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        index=True,
+        description="Access token expiration",
     )
 
     scope: Optional[str] = Field(default=None, description="OAuth scopes granted")
 
     # Refresh tracking
     last_refreshed_at: Optional[datetime] = Field(
-        default=None, description="Last refresh timestamp"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        description="Last refresh timestamp",
     )
 
     refresh_count: int = Field(default=0, description="Number of refreshes")
@@ -323,39 +346,38 @@ class ProviderToken(DashtamBase, table=True):
     # Relationships
     connection: ProviderConnection = Relationship(back_populates="token")
 
+    # Validators to ensure timezone awareness
+    @field_validator("expires_at", "last_refreshed_at", mode="before")
+    @classmethod
+    def ensure_timezone_aware(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Ensure datetime fields are timezone-aware (UTC)."""
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v.astimezone(timezone.utc)
+
     @property
     def is_expired(self) -> bool:
         """Check if the access token is expired.
 
-        Note: Database stores naive datetimes (TIMESTAMP without timezone).
-        We assume they are UTC and make them aware for comparison.
+        Returns:
+            True if the token has expired, False otherwise.
         """
         if not self.expires_at:
             return False
-        # Make naive datetime aware (assume UTC) for comparison
-        expires_at_aware = (
-            self.expires_at.replace(tzinfo=timezone.utc)
-            if self.expires_at.tzinfo is None
-            else self.expires_at
-        )
-        return datetime.now(timezone.utc) >= expires_at_aware
+        return datetime.now(timezone.utc) >= self.expires_at
 
     @property
     def is_expiring_soon(self) -> bool:
         """Check if token expires within 5 minutes.
 
-        Note: Database stores naive datetimes (TIMESTAMP without timezone).
-        We assume they are UTC and make them aware for comparison.
+        Returns:
+            True if the token expires within 5 minutes, False otherwise.
         """
         if not self.expires_at:
             return False
-        # Make naive datetime aware (assume UTC) for comparison
-        expires_at_aware = (
-            self.expires_at.replace(tzinfo=timezone.utc)
-            if self.expires_at.tzinfo is None
-            else self.expires_at
-        )
-        return datetime.now(timezone.utc) >= (expires_at_aware - timedelta(minutes=5))
+        return datetime.now(timezone.utc) >= (self.expires_at - timedelta(minutes=5))
 
     @property
     def needs_refresh(self) -> bool:

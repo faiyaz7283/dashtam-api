@@ -11,14 +11,14 @@ The key design principles:
 - Provider keys must match registered providers in the registry
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from uuid import UUID
 from enum import Enum
 
 from sqlmodel import Field, Relationship, Column, JSON
 from sqlalchemy import Text, UniqueConstraint
-from pydantic import validator
+from pydantic import field_validator
 
 from src.models.base import DashtamBase
 from src.models.user import User
@@ -85,8 +85,9 @@ class Provider(DashtamBase, table=True):
         sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
     )
 
-    @validator("provider_key")
-    def validate_provider_key(cls, v):
+    @field_validator("provider_key")
+    @classmethod
+    def validate_provider_key(cls, v: str) -> str:
         """Validate that provider_key exists in the registry.
 
         This validation happens at the application level.
@@ -203,14 +204,14 @@ class ProviderConnection(DashtamBase, table=True):
     def mark_connected(self) -> None:
         """Mark the connection as successfully connected."""
         self.status = ProviderStatus.ACTIVE
-        self.connected_at = datetime.utcnow()
+        self.connected_at = datetime.now(timezone.utc)
         self.error_count = 0
         self.error_message = None
         self.schedule_next_sync()
 
     def schedule_next_sync(self) -> None:
         """Schedule the next sync based on frequency."""
-        self.next_sync_at = datetime.utcnow() + timedelta(
+        self.next_sync_at = datetime.now(timezone.utc) + timedelta(
             minutes=self.sync_frequency_minutes
         )
 
@@ -220,7 +221,7 @@ class ProviderConnection(DashtamBase, table=True):
         Args:
             accounts: Optional list of account IDs that were synced.
         """
-        self.last_sync_at = datetime.utcnow()
+        self.last_sync_at = datetime.now(timezone.utc)
         self.error_count = 0
         self.error_message = None
         self.status = ProviderStatus.ACTIVE
@@ -249,7 +250,9 @@ class ProviderConnection(DashtamBase, table=True):
             self.sync_frequency_minutes * (2**self.error_count),
             1440,  # Max 24 hours
         )
-        self.next_sync_at = datetime.utcnow() + timedelta(minutes=backoff_minutes)
+        self.next_sync_at = datetime.now(timezone.utc) + timedelta(
+            minutes=backoff_minutes
+        )
 
 
 class ProviderToken(DashtamBase, table=True):
@@ -322,17 +325,37 @@ class ProviderToken(DashtamBase, table=True):
 
     @property
     def is_expired(self) -> bool:
-        """Check if the access token is expired."""
+        """Check if the access token is expired.
+
+        Note: Database stores naive datetimes (TIMESTAMP without timezone).
+        We assume they are UTC and make them aware for comparison.
+        """
         if not self.expires_at:
             return False
-        return datetime.utcnow() >= self.expires_at
+        # Make naive datetime aware (assume UTC) for comparison
+        expires_at_aware = (
+            self.expires_at.replace(tzinfo=timezone.utc)
+            if self.expires_at.tzinfo is None
+            else self.expires_at
+        )
+        return datetime.now(timezone.utc) >= expires_at_aware
 
     @property
     def is_expiring_soon(self) -> bool:
-        """Check if token expires within 5 minutes."""
+        """Check if token expires within 5 minutes.
+
+        Note: Database stores naive datetimes (TIMESTAMP without timezone).
+        We assume they are UTC and make them aware for comparison.
+        """
         if not self.expires_at:
             return False
-        return datetime.utcnow() >= (self.expires_at - timedelta(minutes=5))
+        # Make naive datetime aware (assume UTC) for comparison
+        expires_at_aware = (
+            self.expires_at.replace(tzinfo=timezone.utc)
+            if self.expires_at.tzinfo is None
+            else self.expires_at
+        )
+        return datetime.now(timezone.utc) >= (expires_at_aware - timedelta(minutes=5))
 
     @property
     def needs_refresh(self) -> bool:
@@ -363,12 +386,12 @@ class ProviderToken(DashtamBase, table=True):
             self.refresh_token_encrypted = refresh_token_encrypted
 
         if expires_in:
-            self.expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+            self.expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
 
         if id_token:
             self.id_token = id_token
 
-        self.last_refreshed_at = datetime.utcnow()
+        self.last_refreshed_at = datetime.now(timezone.utc)
         self.refresh_count += 1
 
 

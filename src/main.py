@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from src.core.config import settings
-from src.core.database import init_db, close_db
+from src.core.database import close_db
 from src.api.v1 import api_router
 
 # Configure logging

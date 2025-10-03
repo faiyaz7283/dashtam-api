@@ -63,10 +63,7 @@ class TestTokenStorageIntegration:
         assert token.refresh_token_encrypted != "test_refresh_token_456"
         # Database now stores timezone-aware datetimes (TIMESTAMPTZ)
         # Both token.expires_at and expires_at are timezone-aware
-        assert (
-            abs((token.expires_at - expires_at).total_seconds())
-            < 1
-        )
+        assert abs((token.expires_at - expires_at).total_seconds()) < 1
 
         # Verify decryption works
         decrypted_access = encryption_service.decrypt(token.access_token_encrypted)
@@ -108,10 +105,7 @@ class TestTokenStorageIntegration:
         assert token.access_token_encrypted is not None
         assert token.refresh_token_encrypted is None
         # Database now stores timezone-aware datetimes (TIMESTAMPTZ)
-        assert (
-            abs((token.expires_at - expires_at).total_seconds())
-            < 1
-        )
+        assert abs((token.expires_at - expires_at).total_seconds()) < 1
 
     def test_token_expiry_detection(self, db_session: Session, test_user: User):
         """Test that token expiry can be correctly identified.

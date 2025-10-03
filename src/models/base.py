@@ -22,7 +22,8 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
-from pydantic import ConfigDict
+from sqlalchemy import DateTime
+from pydantic import ConfigDict, field_validator
 
 
 class DashtamBase(SQLModel, table=False):
@@ -56,19 +57,25 @@ class DashtamBase(SQLModel, table=False):
         description="Unique identifier for the record",
     )
 
-    # Timestamps
+    # Timestamps - Using TIMESTAMPTZ in PostgreSQL for timezone-aware storage
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
+        sa_type=DateTime(timezone=True),
+        nullable=False,
         description="Timestamp when the record was created",
     )
 
     updated_at: Optional[datetime] = Field(
-        default=None, description="Timestamp when the record was last updated"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        description="Timestamp when the record was last updated",
     )
 
     # Soft delete support
     deleted_at: Optional[datetime] = Field(
-        default=None, description="Timestamp when the record was soft deleted"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        description="Timestamp when the record was soft deleted",
     )
 
     # Active flag for enabling/disabling records
@@ -117,6 +124,29 @@ class DashtamBase(SQLModel, table=False):
         """
         return self.deleted_at is not None
 
+    # Validators to ensure timezone awareness
+    @field_validator("created_at", "updated_at", "deleted_at", mode="before")
+    @classmethod
+    def ensure_timezone_aware(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Ensure datetime fields are timezone-aware (UTC).
+
+        Args:
+            v: Datetime value to validate.
+
+        Returns:
+            Timezone-aware datetime in UTC.
+
+        Raises:
+            ValueError: If datetime cannot be made timezone-aware.
+        """
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            # Assume naive datetimes are UTC and make them aware
+            return v.replace(tzinfo=timezone.utc)
+        # Convert to UTC if in different timezone
+        return v.astimezone(timezone.utc)
+
     model_config = ConfigDict(
         from_attributes=True,  # Allow reading from ORM objects (SQLAlchemy)
         use_enum_values=True,  # Use enum values instead of names
@@ -149,12 +179,27 @@ class TimestampBase(SQLModel, table=False):
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
+        sa_type=DateTime(timezone=True),
+        nullable=False,
         description="When the record was created",
     )
 
     updated_at: Optional[datetime] = Field(
-        default=None, description="When the record was last modified"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        description="When the record was last modified",
     )
+
+    # Validators to ensure timezone awareness
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def ensure_timezone_aware(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Ensure datetime fields are timezone-aware (UTC)."""
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v.astimezone(timezone.utc)
 
     model_config = ConfigDict(
         from_attributes=True,

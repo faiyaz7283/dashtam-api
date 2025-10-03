@@ -4,11 +4,12 @@ This module defines the User model which represents application users
 who can connect multiple financial providers.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, Column
-from sqlalchemy import String
+from sqlalchemy import String, DateTime
+from pydantic import field_validator
 
 from src.models.base import DashtamBase
 
@@ -43,13 +44,26 @@ class User(DashtamBase, table=True):
     is_verified: bool = Field(default=False, description="Whether email is verified")
 
     last_login: Optional[datetime] = Field(
-        default=None, description="Last login timestamp"
+        default=None,
+        sa_type=DateTime(timezone=True),
+        description="Last login timestamp",
     )
 
     # Relationships
     providers: List["Provider"] = Relationship(
         back_populates="user", cascade_delete=True
     )
+
+    # Validators to ensure timezone awareness
+    @field_validator("last_login", mode="before")
+    @classmethod
+    def ensure_timezone_aware(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Ensure datetime fields are timezone-aware (UTC)."""
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v.astimezone(timezone.utc)
 
     @property
     def active_providers_count(self) -> int:

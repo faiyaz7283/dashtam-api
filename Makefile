@@ -226,13 +226,16 @@ test-redis-cli:
 	@docker compose -f docker-compose.test.yml exec redis redis-cli
 
 # ============================================================================
-# Makefile for Dashtam - Financial Dashboard Aggregator
+# SETUP & CONFIGURATION
 # ============================================================================
 
+# Default target - show help
 .DEFAULT_GOAL := help
 
 # Include workflow commands (CI debugging and common sequences)
 -include Makefile.workflows
+
+# Generate SSL certificates
 certs:
 	@echo "🔐 Generating SSL certificates..."
 	@bash scripts/generate-certs.sh

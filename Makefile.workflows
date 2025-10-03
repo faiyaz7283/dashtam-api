@@ -22,8 +22,8 @@ git-commit:
 git-push:
 	@git push origin $$(git branch --show-current)
 
-git-status:
-	@git status --short
+# Note: git-status is in main Makefile (more detailed version)
+# Use 'make git-status' for full status with context
 
 # GitHub CI Operations
 gh-list:
@@ -55,9 +55,8 @@ gh-logs-id:
 ci-down:
 	@docker-compose -f docker-compose.ci.yml down -v
 
-ci-build:
-	@docker-compose -f docker-compose.ci.yml build
-
+# Note: Primary ci-build is in main Makefile
+# This provides a clean build variant
 ci-build-clean:
 	@docker-compose -f docker-compose.ci.yml build --no-cache
 

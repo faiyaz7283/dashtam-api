@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format migrate migration certs keys setup clean auth-schwab check ps status-all
+.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format migrate migration certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-pr git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
 
 # Default target - show help
 help:
@@ -30,8 +30,6 @@ help:
 	@echo "  make test-db-shell  - PostgreSQL shell (test)"
 	@echo "  make test-redis-cli - Redis CLI (test)"
 	@echo ""
-	@echo "🔐 Provider Auth (uses dev environment):"
-	@echo "  make auth-schwab    - Start Schwab OAuth flow"
 	@echo "🔬 Testing Commands:"
 	@echo "  make test           - Run all tests with coverage"
 	@echo "  make test-unit      - Run unit tests only"
@@ -63,6 +61,20 @@ help:
 	@echo ""
 	@echo "🔐 Provider Auth:"
 	@echo "  make auth-schwab - Start Schwab OAuth flow"
+	@echo ""
+	@echo "🌳 Git Flow Commands:"
+	@echo "  make git-status          - Show current Git status"
+	@echo "  make git-sync            - Sync with remote development branch"
+	@echo "  make git-feature         - Create new feature branch"
+	@echo "  make git-fix             - Create new fix branch"
+	@echo "  make git-finish          - Finish current branch (push & create PR)"
+	@echo "  make git-pr              - Create pull request with template"
+	@echo "  make git-release-start   - Start new release"
+	@echo "  make git-release-finish  - Finish release"
+	@echo "  make git-hotfix-start    - Start emergency hotfix"
+	@echo "  make git-hotfix-finish   - Finish hotfix"
+	@echo "  make git-cleanup         - Clean up merged branches"
+	@echo "  make git-branch-protection - Set up branch protection"
 
 # ============================================================================
 # DEVELOPMENT ENVIRONMENT COMMANDS
@@ -214,8 +226,14 @@ test-redis-cli:
 	@docker compose -f docker-compose.test.yml exec redis redis-cli
 
 # ============================================================================
-# SETUP & UTILITIES
+# SETUP & CONFIGURATION
 # ============================================================================
+
+# Default target - show help
+.DEFAULT_GOAL := help
+
+# Include workflow commands (CI debugging and common sequences)
+-include Makefile.workflows
 
 # Generate SSL certificates
 certs:
@@ -396,3 +414,296 @@ status-all:
 	@docker compose -f docker-compose.test.yml ps || true
 	@echo "\n================ Docker (all) ==============="
 	@docker ps -a --filter "name=dashtam" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# ============================================================================
+# GIT FLOW COMMANDS
+# ============================================================================
+
+# Show current Git status with helpful context
+git-status:
+	@echo "🌳 Git Status:"
+	@echo ""
+	@echo "Current branch:"
+	@git branch --show-current
+	@echo ""
+	@echo "Branch status:"
+	@git status -sb
+	@echo ""
+	@echo "Recent commits:"
+	@git log --oneline --graph --decorate -5
+	@echo ""
+	@echo "Uncommitted changes:"
+	@git status -s
+
+# Sync with remote development branch
+git-sync:
+	@echo "🔄 Syncing with remote development branch..."
+	@git fetch origin
+	@current_branch=$$(git branch --show-current); \
+	if [ "$$current_branch" = "development" ]; then \
+		git pull origin development; \
+		echo "✅ Development branch synced"; \
+	else \
+		git rebase origin/development; \
+		echo "✅ Rebased $$current_branch on development"; \
+	fi
+
+# Create new feature branch
+git-feature:
+	@echo "🚀 Creating new feature branch..."
+	@read -p "Enter feature name (e.g., account-api): " feature; \
+	git checkout development && \
+	git pull origin development && \
+	git checkout -b feature/$$feature && \
+	echo "" && \
+	echo "✅ Created and switched to feature/$$feature" && \
+	echo "" && \
+	echo "Next steps:" && \
+	echo "  1. Make your changes" && \
+	echo "  2. Commit: git commit -m 'feat: description'" && \
+	echo "  3. Run: make git-finish"
+
+# Create new fix branch
+git-fix:
+	@echo "🐛 Creating new fix branch..."
+	@read -p "Enter fix description (e.g., token-refresh-error): " fix; \
+	git checkout development && \
+	git pull origin development && \
+	git checkout -b fix/$$fix && \
+	echo "" && \
+	echo "✅ Created and switched to fix/$$fix" && \
+	echo "" && \
+	echo "Next steps:" && \
+	echo "  1. Fix the bug" && \
+	echo "  2. Add tests" && \
+	echo "  3. Commit: git commit -m 'fix: description'" && \
+	echo "  4. Run: make git-finish"
+
+# Finish current branch (push and show PR creation info)
+git-finish:
+	@echo "🏁 Finishing current branch..."
+	@current_branch=$$(git branch --show-current); \
+	if [ "$$current_branch" = "development" ] || [ "$$current_branch" = "main" ]; then \
+		echo "❌ Cannot finish protected branch $$current_branch"; \
+		exit 1; \
+	fi; \
+	echo "" && \
+	echo "Running tests before push..." && \
+	make test && \
+	make lint && \
+	echo "" && \
+	echo "✅ All tests passed!" && \
+	echo "" && \
+	echo "Pushing $$current_branch to remote..." && \
+	git push -u origin $$current_branch && \
+	echo "" && \
+	echo "✅ Branch pushed successfully!" && \
+	echo "" && \
+	echo "📝 Create Pull Request:" && \
+	echo "   https://github.com/faiyaz7283/Dashtam/compare/development...$$current_branch" && \
+	echo "" && \
+	echo "Or use: make git-pr"
+
+# Create pull request with template
+git-pr:
+	@echo "📝 Creating Pull Request..."
+	@echo ""
+	@current_branch=$$(git branch --show-current); \
+	if [ "$$current_branch" = "development" ] || [ "$$current_branch" = "main" ]; then \
+		echo "❌ Cannot create PR from protected branch $$current_branch"; \
+		exit 1; \
+	fi; \
+	echo "Current branch: $$current_branch" && \
+	echo "" && \
+	read -p "PR Title (or press Enter for default): " title; \
+	if [ -z "$$title" ]; then \
+		if echo "$$current_branch" | grep -q "^feature/"; then \
+			default_title="feat: $${current_branch#feature/}"; \
+		elif echo "$$current_branch" | grep -q "^fix/"; then \
+			default_title="fix: $${current_branch#fix/}"; \
+		else \
+			default_title="$${current_branch}"; \
+		fi; \
+		title="$$default_title"; \
+	fi; \
+	echo "" && \
+	echo "PR Title: $$title" && \
+	echo "" && \
+	read -p "Base branch (default: development): " base; \
+	if [ -z "$$base" ]; then \
+		base="development"; \
+	fi; \
+	echo "" && \
+	echo "Creating PR: $$current_branch → $$base" && \
+	echo "" && \
+	pr_body="Description:\nPlease describe your changes here.\n\nType of Change:\n- [ ] New feature\n- [ ] Bug fix\n- [ ] Breaking change\n- [ ] Documentation\n\nTesting:\n- [ ] Unit tests pass\n- [ ] Integration tests pass\n- [ ] All tests pass\n- [ ] Linting passes\n\nChecklist:\n- [ ] Code follows style guidelines\n- [ ] Self-review completed\n- [ ] Tests added/updated\n- [ ] All tests passing\n\nRelated Issues:\nCloses \#\n\nAdditional Notes:\n[Add notes here]"; \
+	gh pr create --base "$$base" --head "$$current_branch" --title "$$title" --body "$$pr_body" && \
+	echo "" && \
+	echo "✅ Pull Request created successfully!" && \
+	echo "" && \
+	echo "Remember to:" && \
+	echo "  1. Edit the PR description with details" && \
+	echo "  2. Wait for CI checks to pass" && \
+	echo "  3. Request reviews" && \
+	echo "  4. Address any feedback"
+
+# Start new release
+git-release-start:
+	@echo "🎉 Starting new release..."
+	@read -p "Enter version (e.g., 1.2.0): " version; \
+	git checkout development && \
+	git pull origin development && \
+	git checkout -b release/v$$version && \
+	echo "" && \
+	echo "✅ Created release/v$$version" && \
+	echo "" && \
+	echo "Next steps:" && \
+	echo "  1. Update version in pyproject.toml" && \
+	echo "  2. Update CHANGELOG.md" && \
+	echo "  3. Commit: git commit -m 'chore: bump version to $$version'" && \
+	echo "  4. Run final tests: make test" && \
+	echo "  5. Push: git push -u origin release/v$$version" && \
+	echo "  6. Create PR to main" && \
+	echo "  7. After merge, run: make git-release-finish VERSION=$$version"
+
+# Finish release (tag and merge back)
+git-release-finish:
+	@echo "🎊 Finishing release..."
+	@if [ -z "$(VERSION)" ]; then \
+		echo "❌ Error: VERSION is required"; \
+		echo "Usage: make git-release-finish VERSION=1.2.0"; \
+		exit 1; \
+	fi
+	@echo "Checking out main..." && \
+	git checkout main && \
+	git pull origin main && \
+	echo "" && \
+	echo "Creating tag v$(VERSION)..." && \
+	git tag -a v$(VERSION) -m "Release version $(VERSION)" && \
+	git push origin v$(VERSION) && \
+	echo "" && \
+	echo "Merging back to development..." && \
+	git checkout development && \
+	git pull origin development && \
+	git merge --no-ff main && \
+	git push origin development && \
+	echo "" && \
+	echo "Cleaning up release branch..." && \
+	git branch -d release/v$(VERSION) && \
+	git push origin --delete release/v$(VERSION) && \
+	echo "" && \
+	echo "✅ Release v$(VERSION) complete!" && \
+	echo "" && \
+	echo "🚀 Deploy to production now!"
+
+# Start emergency hotfix
+git-hotfix-start:
+	@echo "🚨 Starting emergency hotfix..."
+	@read -p "Enter patch version (e.g., 1.1.1): " version; \
+	git checkout main && \
+	git pull origin main && \
+	git checkout -b hotfix/v$$version && \
+	echo "" && \
+	echo "✅ Created hotfix/v$$version" && \
+	echo "" && \
+	echo "⚠️  HOTFIX MODE - Fix critical issue ONLY" && \
+	echo "" && \
+	echo "Next steps:" && \
+	echo "  1. Fix the critical issue" && \
+	echo "  2. Add tests" && \
+	echo "  3. Commit: git commit -m 'fix(critical): description'" && \
+	echo "  4. Update version and CHANGELOG" && \
+	echo "  5. Run tests: make test" && \
+	echo "  6. Push: git push -u origin hotfix/v$$version" && \
+	echo "  7. Create URGENT PR to main" && \
+	echo "  8. After merge, run: make git-hotfix-finish VERSION=$$version"
+
+# Finish hotfix (tag and merge to development)
+git-hotfix-finish:
+	@echo "🔥 Finishing hotfix..."
+	@if [ -z "$(VERSION)" ]; then \
+		echo "❌ Error: VERSION is required"; \
+		echo "Usage: make git-hotfix-finish VERSION=1.1.1"; \
+		exit 1; \
+	fi
+	@echo "Checking out main..." && \
+	git checkout main && \
+	git pull origin main && \
+	echo "" && \
+	echo "Creating tag v$(VERSION)..." && \
+	git tag -a v$(VERSION) -m "Hotfix v$(VERSION)" && \
+	git push origin v$(VERSION) && \
+	echo "" && \
+	echo "Merging to development..." && \
+	git checkout development && \
+	git pull origin development && \
+	git merge --no-ff main && \
+	git push origin development && \
+	echo "" && \
+	echo "Cleaning up hotfix branch..." && \
+	git branch -d hotfix/v$(VERSION) && \
+	git push origin --delete hotfix/v$(VERSION) && \
+	echo "" && \
+	echo "✅ Hotfix v$(VERSION) complete!" && \
+	echo "" && \
+	echo "🚀 Deploy to production IMMEDIATELY!"
+
+# Clean up merged branches
+git-cleanup:
+	@echo "🧹 Cleaning up merged branches..."
+	@echo "" && \
+	echo "Fetching from remote..." && \
+	git fetch --prune && \
+	echo "" && \
+	echo "Merged branches (will be deleted):" && \
+	git branch --merged development | grep -v "\*\|main\|development" | grep -E "feature/|fix/" || echo "  (none)" && \
+	echo "" && \
+	read -p "Delete these branches? (y/N): " confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		git branch --merged development | grep -v "\*\|main\|development" | grep -E "feature/|fix/" | xargs -r git branch -d; \
+		echo "✅ Local branches cleaned"; \
+	else \
+		echo "❌ Cancelled"; \
+	fi
+
+# Set up branch protection (requires gh CLI)
+git-branch-protection:
+	@echo "🔒 Setting up branch protection..."
+	@echo "" && \
+	echo "This requires GitHub CLI (gh) to be installed and authenticated." && \
+	echo "" && \
+	read -p "Continue? (y/N): " confirm; \
+	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+		echo "❌ Cancelled"; \
+		exit 0; \
+	fi && \
+	echo "" && \
+	echo "Protecting main branch..." && \
+	gh api repos/faiyaz7283/Dashtam/branches/main/protection \
+		--method PUT \
+		--field required_status_checks[strict]=true \
+		--field 'required_status_checks[contexts][]=Test Suite / Run Tests' \
+		--field 'required_status_checks[contexts][]=Code Quality / lint' \
+		--field required_pull_request_reviews[required_approving_review_count]=1 \
+		--field required_pull_request_reviews[dismiss_stale_reviews]=true \
+		--field enforce_admins=true \
+		--field restrictions=null && \
+	echo "✅ Main branch protected" && \
+	echo "" && \
+	echo "Protecting development branch..." && \
+	gh api repos/faiyaz7283/Dashtam/branches/development/protection \
+		--method PUT \
+		--field required_status_checks[strict]=true \
+		--field 'required_status_checks[contexts][]=Test Suite / Run Tests' \
+		--field 'required_status_checks[contexts][]=Code Quality / lint' \
+		--field required_pull_request_reviews[required_approving_review_count]=1 \
+		--field required_pull_request_reviews[dismiss_stale_reviews]=true \
+		--field enforce_admins=false \
+		--field restrictions=null && \
+	echo "✅ Development branch protected" && \
+	echo "" && \
+	echo "✅ Branch protection configured!" && \
+	echo "" && \
+	echo "Protected branches:" && \
+	echo "  • main - Tests + 1 approval required (admins enforced)" && \
+	echo "  • development - Tests + 1 approval required"

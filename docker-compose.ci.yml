@@ -81,7 +81,10 @@ services:
       SECRET_KEY: ${SECRET_KEY:-ci-test-secret-key-never-use-in-production}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-ci-test-encryption-key-32chars}
       ENVIRONMENT: testing
-      LOG_LEVEL: ${LOG_LEVEL:-WARNING}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}  # Changed to INFO for better debugging
+      # URLs for internal communication
+      API_BASE_URL: http://app:8000  # Added - internal Docker network URL
+      CALLBACK_BASE_URL: http://callback:8182  # Added - callback service URL
       # CI-specific settings
       TESTING: "true"
       CI: "true"
@@ -106,27 +109,44 @@ services:
     # Run tests and exit with proper status code
     command: >
       sh -c "
-        set -e
-        echo '=============================================='
-        echo '🚀 Dashtam CI/CD Test Environment'
-        echo '=============================================='
-        echo ''
-        echo '📊 Initializing test database...'
-        uv run python src/core/init_test_db.py || exit 1
-        echo ''
-        echo '🧪 Running test suite...'
-        uv run pytest tests/ \
-          -v \
-          --cov=src \
-          --cov-report=xml \
-          --cov-report=term-missing \
-          --junit-xml=test-results.xml \
-          --maxfail=5 || exit 1
-        echo ''
-        echo '=============================================='
-        echo '✅ All tests passed!'
-        echo '=============================================='
-        exit 0
+        set -e && 
+        echo '=============================================='  && 
+        echo 'Dashtam CI/CD Test Environment' && 
+        echo '=============================================='  && 
+        echo '' && 
+        echo 'Running test suite...' && 
+        echo '' && 
+        uv run pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing --junit-xml=test-results.xml --maxfail=5 || exit 1 && 
+        echo '' && 
+        echo '=============================================='  && 
+        echo 'All tests passed!' && 
+        echo '=============================================='  
+      "
+
+  # OAuth Callback Server (CI) - Required for OAuth tests
+  callback:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: callback
+    container_name: dashtam-ci-callback
+    environment:
+      API_BASE_URL: http://app:8000
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # No port mapping - internal communication only in CI
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      - app
+    networks:
+      - dashtam-ci-network
+    # Keep running for OAuth callback handling during tests
+    # Note: In test environment, we just keep the container alive
+    # The actual callback handling is done through the app's routing
+    command: >
+      sh -c "
+        echo 'CI callback server ready for OAuth tests.' &&
+        tail -f /dev/null
       "
 
 networks:

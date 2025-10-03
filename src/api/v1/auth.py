@@ -40,8 +40,13 @@ async def get_current_user(session: AsyncSession = Depends(get_session)) -> User
     if not user:
         user = User(email="test@example.com", name="Test User", is_verified=True)
         session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        try:
+            # Commit transaction at API layer
+            await session.commit()
+            await session.refresh(user)
+        except Exception:
+            await session.rollback()
+            raise
 
     return user
 
@@ -194,8 +199,11 @@ async def handle_oauth_callback(
             user_id=current_user.id,
             request_info=request_info,
         )
+        # Commit transaction at API layer
+        await session.commit()
     except Exception as e:
         logger.error(f"Failed to store tokens: {e}")
+        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to store tokens: {str(e)}",
@@ -249,8 +257,11 @@ async def refresh_provider_tokens(
         await token_service.refresh_token(
             provider_id=provider.id, user_id=current_user.id
         )
+        # Commit transaction at API layer
+        await session.commit()
     except Exception as e:
         logger.error(f"Failed to refresh tokens: {e}")
+        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to refresh tokens: {str(e)}",
@@ -353,8 +364,11 @@ async def disconnect_provider(
         await token_service.revoke_tokens(
             provider_id=provider.id, user_id=current_user.id, request_info=request_info
         )
+        # Commit transaction at API layer
+        await session.commit()
     except Exception as e:
         logger.error(f"Failed to revoke tokens: {e}")
+        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to disconnect provider: {str(e)}",

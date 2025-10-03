@@ -147,12 +147,21 @@ async def create_provider_instance(
     connection = ProviderConnection(provider_id=provider.id)
     session.add(connection)
 
-    await session.commit()
-    await session.refresh(provider)
+    try:
+        # Commit transaction at API layer
+        await session.commit()
+        await session.refresh(provider)
 
-    logger.info(
-        f"Created provider instance '{request.alias}' for user {current_user.email}"
-    )
+        logger.info(
+            f"Created provider instance '{request.alias}' for user {current_user.email}"
+        )
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Failed to create provider instance: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create provider instance: {str(e)}",
+        )
 
     return ProviderResponse(
         id=provider.id,
@@ -278,9 +287,20 @@ async def delete_provider(
         )
 
     # Delete provider (cascades to connection, token, audit logs)
-    await session.delete(provider)
-    await session.commit()
+    try:
+        await session.delete(provider)
+        # Commit transaction at API layer
+        await session.commit()
 
-    logger.info(f"Deleted provider '{provider.alias}' for user {current_user.email}")
+        logger.info(
+            f"Deleted provider '{provider.alias}' for user {current_user.email}"
+        )
 
-    return {"message": f"Provider '{provider.alias}' deleted successfully"}
+        return {"message": f"Provider '{provider.alias}' deleted successfully"}
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Failed to delete provider: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete provider: {str(e)}",
+        )

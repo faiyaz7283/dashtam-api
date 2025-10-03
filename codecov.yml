@@ -1,0 +1,115 @@
+# Codecov Configuration
+# https://docs.codecov.com/docs/codecov-yaml
+
+# Coverage configuration
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"  # Yellow at 70%, green at 100%
+  
+  status:
+    # Project-level coverage checks
+    project:
+      default:
+        target: 85%  # Minimum acceptable coverage
+        threshold: 2%  # Allow 2% drop before failing
+        base: auto
+        if_ci_failed: error
+        informational: false
+    
+    # Patch-level coverage checks (for new code in PRs)
+    patch:
+      default:
+        target: 90%  # New code should have high coverage
+        threshold: 5%
+        base: auto
+        if_ci_failed: error
+        informational: false
+    
+    # Individual file-level changes
+    changes:
+      default:
+        base: auto
+        if_ci_failed: error
+
+# Comment configuration for pull requests
+comment:
+  layout: "header, diff, components, tree"
+  behavior: default  # Update existing comment
+  require_changes: false  # Always comment
+  require_base: false
+  require_head: true
+  branches:
+    - development
+    - main
+
+# Ignore patterns
+ignore:
+  - "tests/**/*"
+  - "docs/**/*"
+  - "scripts/**/*"
+  - "alembic/versions/**/*"
+  - "**/__init__.py"
+  - "**/conftest.py"
+
+# Component-based coverage (optional but useful)
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: 85%
+      - type: patch
+        target: 90%
+  
+  individual_components:
+    - component_id: api
+      name: API Layer
+      paths:
+        - src/api/**
+    
+    - component_id: providers
+      name: Providers
+      paths:
+        - src/providers/**
+    
+    - component_id: services
+      name: Services
+      paths:
+        - src/services/**
+    
+    - component_id: models
+      name: Database Models
+      paths:
+        - src/models/**
+    
+    - component_id: core
+      name: Core Infrastructure
+      paths:
+        - src/core/**
+
+# GitHub integration settings
+github_checks:
+  annotations: true
+
+# Codecov CLI settings
+cli:
+  runners:
+    retry_count: 3
+    retry_delay: 2
+
+# Flag management for different test types
+flags:
+  unit:
+    paths:
+      - src/
+    carryforward: true
+  
+  integration:
+    paths:
+      - src/
+    carryforward: true
+  
+  api:
+    paths:
+      - src/api/
+    carryforward: true

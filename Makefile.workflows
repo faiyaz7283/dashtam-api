@@ -1,0 +1,266 @@
+# ============================================================================
+# Workflow-Aware Make Commands
+# Based on actual usage patterns from CI debugging session
+# 
+# Commands are organized both as:
+# 1. Individual atomic commands
+# 2. Workflow chains that combine commonly sequential commands
+# ============================================================================
+
+# ============================================================================
+# ATOMIC COMMANDS (Building Blocks)
+# ============================================================================
+
+# Git Operations
+git-add:
+	@git add -A
+
+git-commit:
+	@read -p "Enter commit message: " msg; \
+	git commit -m "$$msg"
+
+git-push:
+	@git push origin $$(git branch --show-current)
+
+# Note: git-status is in main Makefile (more detailed version)
+# Use 'make git-status' for full status with context
+
+# GitHub CI Operations
+gh-list:
+	@gh run list --limit 5
+
+gh-list-latest:
+	@gh run list --limit 1
+
+gh-get-latest-id:
+	@gh run list --limit 1 --json databaseId -q '.[0].databaseId'
+
+gh-watch-id:
+	@read -p "Enter run ID (or press enter for latest): " id; \
+	if [ -z "$$id" ]; then \
+		gh run watch $$(gh run list --limit 1 --json databaseId -q '.[0].databaseId'); \
+	else \
+		gh run watch $$id; \
+	fi
+
+gh-logs-id:
+	@read -p "Enter run ID (or press enter for latest): " id; \
+	if [ -z "$$id" ]; then \
+		gh run view $$(gh run list --limit 1 --json databaseId -q '.[0].databaseId') --log; \
+	else \
+		gh run view $$id --log; \
+	fi
+
+# CI Docker Operations
+ci-down:
+	@docker-compose -f docker-compose.ci.yml down -v
+
+# Note: Primary ci-build is in main Makefile
+# This provides a clean build variant
+ci-build-clean:
+	@docker-compose -f docker-compose.ci.yml build --no-cache
+
+ci-up:
+	@docker-compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
+
+ci-up-build:
+	@docker-compose -f docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from app
+
+# Test Status Checks
+test-summary:
+	@make test 2>&1 | grep -E "passed|failed" | tail -3
+
+test-exit-code:
+	@echo "Exit code: $$?"
+
+# ============================================================================
+# WORKFLOW CHAINS (Common Sequences)
+# ============================================================================
+
+# -----------------------------
+# Workflow 1: Fix → Commit → Push → Watch CI
+# This is the most common workflow (used 15+ times)
+# -----------------------------
+fix-and-watch: git-add
+	@echo "📝 Committing fix..."
+	@read -p "Enter commit message: " msg; \
+	git commit -m "$$msg" && \
+	echo "📤 Pushing to remote..." && \
+	git push origin $$(git branch --show-current) && \
+	echo "⏳ Waiting for CI to start..." && \
+	sleep 10 && \
+	echo "👀 Watching CI run..." && \
+	gh run watch $$(gh run list --limit 1 --json databaseId -q '.[0].databaseId')
+
+# Shorter version without the watch
+fix-and-push: git-add
+	@read -p "Enter commit message: " msg; \
+	git commit -m "$$msg" && \
+	git push origin $$(git branch --show-current) && \
+	echo "✅ Pushed! Run 'make gh-watch' to monitor CI"
+
+# -----------------------------
+# Workflow 2: CI Test Locally → Check Exit Code
+# Used when debugging CI failures locally (10+ times)
+# -----------------------------
+ci-test-local: ci-down ci-build-clean
+	@echo "🧪 Running CI tests locally..."
+	@docker-compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app; \
+	EXIT_CODE=$$?; \
+	echo ""; \
+	if [ $$EXIT_CODE -eq 0 ]; then \
+		echo "✅ CI tests passed locally (exit code: 0)"; \
+	else \
+		echo "❌ CI tests failed locally (exit code: $$EXIT_CODE)"; \
+	fi; \
+	exit $$EXIT_CODE
+
+# Quick version (no rebuild)
+ci-test-quick: ci-down
+	@echo "🧪 Running CI tests (no rebuild)..."
+	@docker-compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
+
+# -----------------------------
+# Workflow 3: Test Locally → Test CI → Compare
+# Used when verifying fixes work in both environments (5+ times)
+# -----------------------------
+test-both:
+	@echo "🧪 Testing in BOTH environments..."
+	@echo "\n=== Local Test Environment ===" 
+	@make test 2>&1 | grep -E "passed|failed" | tail -3
+	@echo "\n=== CI Environment ===" 
+	@make ci-test-quick 2>&1 | grep -E "passed|failed" | tail -3
+	@echo "\n=== Comparison Complete ==="
+
+# -----------------------------
+# Workflow 4: Check CI Status → View Logs if Failed
+# Used after push to understand failures (8+ times)
+# -----------------------------
+ci-check:
+	@echo "🔍 Checking latest CI run..."
+	@STATUS=$$(gh run list --limit 1 --json conclusion -q '.[0].conclusion'); \
+	ID=$$(gh run list --limit 1 --json databaseId -q '.[0].databaseId'); \
+	echo "Latest run: #$$ID - Status: $$STATUS"; \
+	if [ "$$STATUS" = "failure" ]; then \
+		echo "❌ CI failed! Fetching error logs..."; \
+		gh run view $$ID --log-failed | head -50; \
+	elif [ "$$STATUS" = "success" ]; then \
+		echo "✅ CI passed!"; \
+	else \
+		echo "⏳ CI still running. Use 'make gh-watch' to monitor."; \
+	fi
+
+# -----------------------------
+# Workflow 5: Format → Test → Commit → Push
+# Complete pre-push workflow (3+ times)
+# -----------------------------
+ready-to-push: format
+	@echo "🧪 Running tests..."
+	@if make test > /dev/null 2>&1; then \
+		echo "✅ Tests passed"; \
+		echo "📝 Preparing commit..."; \
+		git add -A; \
+		read -p "Enter commit message: " msg; \
+		git commit -m "$$msg" && \
+		git push origin $$(git branch --show-current) && \
+		echo "✅ Pushed successfully!"; \
+	else \
+		echo "❌ Tests failed! Fix issues before pushing."; \
+		make test 2>&1 | grep -E "FAILED" | head -10; \
+		exit 1; \
+	fi
+
+# -----------------------------
+# Workflow 6: Debug CI Container
+# Used when investigating CI-specific issues (6+ times)
+# -----------------------------
+ci-debug-setup: ci-down
+	@echo "🔧 Setting up CI for debugging..."
+	@# Modify docker-compose.ci.yml temporarily to keep container running
+	@docker-compose -f docker-compose.ci.yml up -d
+	@echo "✅ CI container running. Available commands:"
+	@echo "  make ci-shell     - Open shell in container"
+	@echo "  make ci-api-test  - Test API endpoints"
+	@echo "  make ci-pytest    - Run specific tests"
+	@echo "  make ci-env       - Check environment"
+
+ci-shell:
+	@docker exec -it dashtam-ci-app /bin/bash
+
+ci-api-test:
+	@read -p "Enter endpoint path (e.g., /api/v1/providers/available): " endpoint; \
+	docker exec dashtam-ci-app python -c "from fastapi.testclient import TestClient; from src.main import app; client = TestClient(app); response = client.get('$$endpoint'); print(f'Status: {response.status_code}\nBody: {response.text[:200]}')"
+
+ci-pytest:
+	@read -p "Enter pytest args: " args; \
+	docker exec dashtam-ci-app uv run pytest $$args
+
+ci-env:
+	@docker exec dashtam-ci-app env | grep -E "DEBUG|TEST|ENV" | sort
+
+# ============================================================================
+# SMART COMMANDS (Context-Aware)
+# ============================================================================
+
+# Automatically continue appropriate workflow based on git status
+next:
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "📝 You have uncommitted changes"; \
+		echo "  Run: make fix-and-watch"; \
+	elif [ "$$(git status --branch --porcelain | grep ahead)" ]; then \
+		echo "📤 You have unpushed commits"; \
+		echo "  Run: make git-push"; \
+	else \
+		LATEST_STATUS=$$(gh run list --limit 1 --json conclusion -q '.[0].conclusion' 2>/dev/null || echo "none"); \
+		if [ "$$LATEST_STATUS" = "failure" ]; then \
+			echo "❌ Latest CI run failed"; \
+			echo "  Run: make ci-check (view logs)"; \
+			echo "  Run: make ci-test-local (reproduce locally)"; \
+		elif [ "$$LATEST_STATUS" = "in_progress" ]; then \
+			echo "⏳ CI is running"; \
+			echo "  Run: make gh-watch"; \
+		else \
+			echo "✅ All clear! You can:"; \
+			echo "  Run: make test (run tests)"; \
+			echo "  Run: make ci-test-local (test CI locally)"; \
+		fi; \
+	fi
+
+# ============================================================================
+# HELP & DOCUMENTATION
+# ============================================================================
+
+help-workflows:
+	@echo "🔄 Workflow Commands (Common Sequences):"
+	@echo ""
+	@echo "  Main Workflows:"
+	@echo "    fix-and-watch    - Add, commit, push, and watch CI"
+	@echo "    fix-and-push     - Add, commit, and push (no watch)"
+	@echo "    ci-test-local    - Full CI test with rebuild locally"
+	@echo "    ci-test-quick    - Quick CI test (no rebuild)"
+	@echo "    test-both        - Compare local vs CI test results"
+	@echo "    ready-to-push    - Format, test, commit, push"
+	@echo ""
+	@echo "  Debugging Workflows:"
+	@echo "    ci-check         - Check CI status and show errors if failed"
+	@echo "    ci-debug-setup   - Setup CI container for debugging"
+	@echo "    next             - Suggest next action based on current state"
+	@echo ""
+	@echo "  Individual Commands:"
+	@echo "    git-*            - Git operations"
+	@echo "    gh-*             - GitHub CI operations"
+	@echo "    ci-*             - CI Docker operations"
+	@echo "    test-*           - Test operations"
+
+# Default target shows current status and suggests next action
+status: git-status
+	@echo ""
+	@make next
+
+.PHONY: git-add git-commit git-push git-status \
+        gh-list gh-list-latest gh-get-latest-id gh-watch-id gh-logs-id \
+        ci-down ci-build ci-build-clean ci-up ci-up-build \
+        test-summary test-exit-code \
+        fix-and-watch fix-and-push ci-test-local ci-test-quick test-both \
+        ci-check ready-to-push ci-debug-setup ci-shell ci-api-test ci-pytest ci-env \
+        next help-workflows status

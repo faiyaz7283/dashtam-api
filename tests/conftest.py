@@ -1,315 +1,352 @@
 """Global pytest configuration and fixtures for Dashtam tests.
 
-This module provides test configuration, fixtures, and utilities used across
-all test modules in the Dashtam project. It follows the same configuration
-patterns as the main application while providing test-specific overrides.
+This module implements the FastAPI official testing pattern using synchronous
+tests with TestClient and Session. This avoids async/greenlet complexity while
+providing complete test coverage.
+
+Key Principles:
+- Synchronous tests (regular def test_*(), NOT async def)
+- FastAPI's TestClient handles async/sync bridge internally
+- Real PostgreSQL database for production parity
+- Session-scoped setup with function-scoped sessions for isolation
 """
 
-import asyncio
-import os
-from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock
+from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlmodel import SQLModel
+from sqlmodel import Session, SQLModel, create_engine, delete
 
-from tests.test_config import TestSettings, get_test_settings
-from src.core.database import get_session
+from src.core.config import settings
 from src.main import app
+from src.models.provider import (
+    Provider,
+    ProviderConnection,
+    ProviderToken,
+    ProviderAuditLog,
+)
 from src.models.user import User
-from src.models.provider import Provider, ProviderConnection, ProviderStatus
+from tests.test_config import TestSettings, get_test_settings
 
+# Use test PostgreSQL database (production parity)
+# Database is managed by docker-compose.test.yml
+# In test environment, DATABASE_URL points to test database
+# Convert from asyncpg to psycopg (v3) for synchronous testing
+TEST_DATABASE_URL = settings.DATABASE_URL.replace(
+    "postgresql+asyncpg://", "postgresql+psycopg://"
+)
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# Create engine for test database
+# Note: Using sync engine for sync tests (no async complexity)
+engine = create_engine(
+    TEST_DATABASE_URL,
+    echo=settings.DB_ECHO if hasattr(settings, "DB_ECHO") else False,
+    pool_pre_ping=True,  # Verify connections before using
+)
 
 
 @pytest.fixture(scope="session")
 def test_settings() -> TestSettings:
-    """Provide test-specific settings loaded from .env.test file.
+    """Provide test-specific settings loaded from .env file.
 
     Returns:
         TestSettings instance with all configuration loaded from environment
-        variables and .env.test file, following the same patterns as main app.
+        variables, following the same patterns as main app.
     """
     return get_test_settings()
 
 
-@pytest.fixture(scope="session")
-async def test_engine(test_settings: TestSettings):
-    """Create test database engine using settings from .env.test.
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """Set up test database schema once per test session.
 
-    Args:
-        test_settings: Test configuration loaded from .env.test
-
-    Yields:
-        AsyncEngine configured for testing with proper connection pooling
+    Creates all tables at start, drops them at end.
+    This runs automatically for all test sessions.
     """
-    # Ensure we're using test database
-    assert test_settings.is_test_environment, "Must be in test environment"
-    assert "dashtam_test" in test_settings.DATABASE_URL, "Must use test database"
-
-    engine = create_async_engine(
-        test_settings.test_database_url,
-        echo=test_settings.DB_ECHO,
-        future=True,
-        pool_pre_ping=True,
-        # Use smaller pool for testing
-        pool_size=2,
-        max_overflow=5,
-    )
-
-    yield engine
-    await engine.dispose()
-
-
-@pytest.fixture(scope="session")
-async def setup_test_database(test_engine, test_settings):
-    """Set up test database with tables using our initialization script approach.
-
-    This fixture integrates with our init_test_db.py script to ensure consistent
-    database setup patterns across manual runs and automated testing.
-    """
-    # Import here to avoid circular imports
-    from src.core.init_test_db import (
-        check_test_database_connection,
-        create_test_tables,
-        verify_test_tables,
-        prepare_test_database_constraints,
-    )
-
-    # Safety check - ensure we're working with test database
-    assert test_settings.is_test_environment, "Safety check: must be test environment"
-
-    # Use the same initialization logic as our script for consistency
-    if not await check_test_database_connection(test_engine, test_settings):
-        pytest.fail("Test database connection failed during fixture setup")
-
-    # Apply test database optimizations
-    await prepare_test_database_constraints(test_engine)
-
-    # Create tables using our standardized approach
-    await create_test_tables(test_engine, test_settings)
-
-    # Verify setup
-    await verify_test_tables(test_engine)
+    # Create all tables
+    SQLModel.metadata.create_all(engine)
 
     yield
 
-    # Cleanup after all tests - drop all tables for clean slate
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
+    # Cleanup: Drop all tables after test session
+    SQLModel.metadata.drop_all(engine)
 
 
-@pytest.fixture
-async def db_session(
-    test_engine, setup_test_database, test_settings
-) -> AsyncGenerator[AsyncSession, None]:
-    """Provide a database session for testing with transaction rollback.
+@pytest.fixture(scope="session")
+def db() -> Generator[Session, None, None]:
+    """Session-scoped database session.
 
-    Each test gets a fresh session with automatic rollback for isolation.
-    This follows the same async session patterns as the main application.
-
-    Args:
-        test_engine: Test database engine
-        setup_test_database: Ensures database is set up
-        test_settings: Test configuration
-
-    Yields:
-        AsyncSession for database operations in tests
+    Provides a database connection that persists across all tests in the session.
+    Individual tests use db_session for isolation.
     """
-    # Create session maker following the same pattern as main app
-    async_session_maker = async_sessionmaker(
-        test_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autocommit=False,
-        autoflush=False,
-    )
+    with Session(engine) as session:
+        yield session
 
-    async with async_session_maker() as session:
-        # Start a transaction for test isolation
-        transaction = await session.begin()
 
+@pytest.fixture(scope="function")
+def db_session(db: Session) -> Generator[Session, None, None]:
+    """Function-scoped database session for test isolation.
+
+    Each test gets access to the session. Tests should create their own
+    data using fixtures or within the test. Cleanup happens automatically
+    via relationship cascades or can be done explicitly.
+
+    Note: This is synchronous Session, not AsyncSession. Perfect for testing
+    since TestClient handles the async/sync bridge internally.
+    """
+    yield db
+
+    # Rollback any pending transaction (in case of errors)
+    try:
+        db.rollback()
+    except Exception:
+        pass
+
+    # Optional: Explicit cleanup after each test
+    # Deletes are cascaded based on model relationships
+    try:
+        db.execute(delete(ProviderAuditLog))
+        db.execute(delete(ProviderToken))
+        db.execute(delete(ProviderConnection))
+        db.execute(delete(Provider))
+        db.execute(delete(User))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
+@pytest.fixture(scope="session")
+def client(db: Session) -> Generator[TestClient, None, None]:
+    """FastAPI TestClient for making HTTP requests to the application.
+
+    TestClient automatically handles the async/sync bridge, allowing
+    synchronous test code to work with async FastAPI endpoints.
+
+    This fixture overrides FastAPI's async dependencies with synchronous
+    test-compatible versions to ensure consistent testing across all environments.
+
+    Module-scoped for efficiency (creating client is expensive).
+    """
+    from src.core.database import get_session
+    from src.api.v1.auth import get_current_user
+
+    # Create wrapper class to handle async-to-sync conversion
+    class AsyncToSyncWrapper:
+        """Wrapper to make sync Session work with async endpoints."""
+
+        def __init__(self, sync_session: Session):
+            self.session = sync_session
+
+        async def execute(self, *args, **kwargs):
+            """Wrap sync execute to be awaitable."""
+            return self.session.execute(*args, **kwargs)
+
+        async def commit(self):
+            """Wrap sync commit to be awaitable."""
+            return self.session.commit()
+
+        async def rollback(self):
+            """Wrap sync rollback to be awaitable."""
+            return self.session.rollback()
+
+        async def refresh(self, *args, **kwargs):
+            """Wrap sync refresh to be awaitable."""
+            return self.session.refresh(*args, **kwargs)
+
+        def add(self, *args, **kwargs):
+            """Direct pass-through for add (not awaited)."""
+            return self.session.add(*args, **kwargs)
+
+        async def delete(self, *args, **kwargs):
+            """Wrap sync delete to be awaitable."""
+            return self.session.delete(*args, **kwargs)
+
+        async def close(self):
+            """Wrap close to be awaitable."""
+            pass  # Session lifecycle managed by fixture
+
+    # Override async database session with wrapped sync session
+    async def override_get_session():
+        """Provide wrapped synchronous session for async endpoints."""
+        wrapper = AsyncToSyncWrapper(db)
         try:
-            yield session
+            yield wrapper
         finally:
-            # Always rollback to ensure test isolation
-            await transaction.rollback()
-            await session.close()
+            pass
+
+    # Override async user authentication with sync mock user
+    async def override_get_current_user():
+        """Provide mock user for tests without authentication."""
+        from sqlmodel import select
+
+        # Get or create test user synchronously
+        result = db.execute(select(User).where(User.email == "test@example.com"))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            user = User(
+                email="test@example.com",
+                name="Test User",
+                is_verified=True,
+                is_active=True,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        return user
+
+    # Apply dependency overrides
+    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
+    with TestClient(app) as c:
+        yield c
+
+    # Clean up overrides after test module
+    app.dependency_overrides.clear()
+
+
+# ============================================================================
+# Test Data Fixtures
+# ============================================================================
 
 
 @pytest.fixture
-def override_get_session(db_session: AsyncSession, test_settings: TestSettings):
-    """Override the get_session dependency for testing.
+def test_user(db_session: Session) -> User:
+    """Create a test user.
 
-    This fixture replaces the main app's database dependency with our
-    test session, following the same dependency injection patterns.
+    Returns a user instance that's persisted in the database.
+    Cleaned up automatically after test via db_session cleanup.
     """
+    from sqlmodel import select
 
-    async def _override_get_session():
-        yield db_session
+    # Try to get existing test user first
+    result = db_session.execute(select(User).where(User.email == "test@example.com"))
+    user = result.scalar_one_or_none()
 
-    # Store original dependency
-    original_dependency = app.dependency_overrides.get(get_session)
+    if not user:
+        user = User(
+            email="test@example.com",
+            name="Test User",
+            is_verified=True,
+            is_active=True,
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
 
-    # Override with test session
-    app.dependency_overrides[get_session] = _override_get_session
-
-    yield
-
-    # Restore original dependency or clear override
-    if original_dependency:
-        app.dependency_overrides[get_session] = original_dependency
-    else:
-        app.dependency_overrides.pop(get_session, None)
-
-
-@pytest.fixture
-async def async_client(
-    override_get_session, test_settings: TestSettings
-) -> AsyncGenerator[AsyncClient, None]:
-    """Provide an async HTTP client for API testing.
-
-    This client is configured to work with the test application instance
-    and uses the test database session.
-
-    Args:
-        override_get_session: Ensures test database session is used
-        test_settings: Test configuration
-
-    Yields:
-        AsyncClient for making HTTP requests to test app
-    """
-    async with AsyncClient(
-        app=app, base_url=f"http://test:{test_settings.PORT}"
-    ) as client:
-        yield client
-
-
-@pytest.fixture
-def sync_client(
-    override_get_session, test_settings: TestSettings
-) -> Generator[TestClient, None, None]:
-    """Provide a synchronous HTTP client for API testing.
-
-    Args:
-        override_get_session: Ensures test database session is used
-        test_settings: Test configuration
-
-    Yields:
-        TestClient for making synchronous HTTP requests
-    """
-    with TestClient(app) as client:
-        yield client
-
-
-# Test data fixtures following Dashtam patterns
-@pytest.fixture
-async def test_user(db_session: AsyncSession) -> User:
-    """Create a test user following Dashtam user model patterns.
-
-    Args:
-        db_session: Test database session
-
-    Returns:
-        User instance saved to test database
-    """
-    user = User(email="test@example.com", name="Test User", is_verified=True)
-    db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
     return user
 
 
 @pytest.fixture
-async def test_provider(db_session: AsyncSession, test_user: User) -> Provider:
-    """Create a test provider instance following Dashtam provider patterns.
+def test_user_2(db_session: Session) -> User:
+    """Create a second test user for multi-user scenarios."""
+    user = User(
+        email="test2@example.com",
+        name="Test User 2",
+        is_verified=True,
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
 
-    Args:
-        db_session: Test database session
-        test_user: Test user who owns this provider
 
-    Returns:
-        Provider instance saved to test database
+@pytest.fixture
+def test_provider(db_session: Session, test_user: User) -> Provider:
+    """Create a test provider instance.
+
+    Returns a provider associated with test_user.
     """
     provider = Provider(
-        user_id=test_user.id, provider_key="schwab", alias="Test Schwab Account"
+        user_id=test_user.id,
+        provider_key="schwab",
+        alias="Test Schwab Account",
     )
     db_session.add(provider)
-    await db_session.commit()
-    await db_session.refresh(provider)
+    db_session.commit()
+    db_session.refresh(provider)
     return provider
 
 
 @pytest.fixture
-async def test_provider_with_connection(
-    db_session: AsyncSession, test_provider: Provider
+def test_provider_with_connection(
+    db_session: Session, test_provider: Provider
 ) -> Provider:
-    """Create a test provider with active connection.
+    """Create a provider with an active connection.
 
-    Args:
-        db_session: Test database session
-        test_provider: Base provider instance
-
-    Returns:
-        Provider with active connection relationship loaded
+    Useful for testing scenarios where provider is already connected.
     """
+    from src.models.provider import ProviderStatus
+
     connection = ProviderConnection(
         provider_id=test_provider.id,
         status=ProviderStatus.ACTIVE,
         accounts_count=2,
-        accounts_list=["test_account_1", "test_account_2"],
+        accounts_list=["account_1", "account_2"],
     )
     db_session.add(connection)
-    await db_session.commit()
-
-    # Refresh to load the relationship
-    await db_session.refresh(test_provider)
+    db_session.commit()
+    db_session.refresh(test_provider)
     return test_provider
 
 
+# ============================================================================
+# Authentication Fixtures
+# ============================================================================
+
+
 @pytest.fixture
-def mock_encryption_service(test_settings: TestSettings):
-    """Provide a mock encryption service for testing.
+def superuser_token_headers(client: TestClient) -> dict[str, str]:
+    """Get authentication headers for superuser.
 
-    Uses fast, deterministic encryption suitable for testing.
-
-    Args:
-        test_settings: Test configuration
-
-    Returns:
-        Mock encryption service with predictable behavior
+    TODO: Implement actual authentication flow once auth endpoints exist.
+    For now, returns empty dict or mock headers.
     """
-    service = AsyncMock()
+    # Placeholder - implement once auth is built
+    return {"Authorization": "Bearer mock_superuser_token"}
 
-    # Provide deterministic encryption for testing
+
+@pytest.fixture
+def normal_user_token_headers(client: TestClient, test_user: User) -> dict[str, str]:
+    """Get authentication headers for normal user.
+
+    TODO: Implement actual authentication flow once auth endpoints exist.
+    """
+    # Placeholder - implement once auth is built
+    return {"Authorization": f"Bearer mock_user_token_{test_user.id}"}
+
+
+# ============================================================================
+# Mock Fixtures
+# ============================================================================
+
+
+@pytest.fixture
+def mock_encryption_service():
+    """Mock encryption service for testing without real encryption.
+
+    Returns a mock that provides predictable encrypt/decrypt behavior.
+    """
+    from unittest.mock import MagicMock
+
+    service = MagicMock()
     service.encrypt.side_effect = lambda data: f"encrypted_{data}"
     service.decrypt.side_effect = (
         lambda data: data.replace("encrypted_", "")
-        if data.startswith("encrypted_")
+        if isinstance(data, str) and data.startswith("encrypted_")
         else data
     )
-
     return service
 
 
 @pytest.fixture
-def mock_schwab_api_responses(test_settings: TestSettings):
-    """Provide mock responses for Schwab API calls.
+def mock_schwab_api_responses():
+    """Mock responses for Charles Schwab API calls.
 
-    Args:
-        test_settings: Test configuration
-
-    Returns:
-        Dictionary of mock API responses for testing
+    Returns dict of mock API responses for OAuth flow testing.
     """
     return {
         "token_response": {
@@ -320,10 +357,9 @@ def mock_schwab_api_responses(test_settings: TestSettings):
             "scope": "api",
         },
         "auth_url": (
-            f"{test_settings.SCHWAB_API_BASE_URL}/oauth/authorize"
-            f"?response_type=code&client_id={test_settings.SCHWAB_API_KEY}"
-            f"&redirect_uri={test_settings.SCHWAB_REDIRECT_URI}"
-            f"&scope=api&state=test_state"
+            "https://api.schwabapi.com/v1/oauth/authorize"
+            "?response_type=code&client_id=test_client"
+            "&redirect_uri=https://127.0.0.1:8182"
         ),
         "user_info": {
             "user_id": "test_schwab_user_123",
@@ -332,71 +368,35 @@ def mock_schwab_api_responses(test_settings: TestSettings):
     }
 
 
-@pytest.fixture
-def sample_test_data(test_settings: TestSettings):
-    """Provide sample test data following Dashtam data patterns.
-
-    Args:
-        test_settings: Test configuration
-
-    Returns:
-        Dictionary of sample data for various test scenarios
-    """
-    return {
-        "user_data": {
-            "email": "testuser@example.com",
-            "name": "Test User",
-            "is_verified": True,
-        },
-        "provider_data": {
-            "provider_key": "schwab",
-            "alias": "Personal Brokerage Account",
-        },
-        "token_data": {
-            "access_token": "sample_access_token_testing_123",
-            "refresh_token": "sample_refresh_token_testing_456",
-            "expires_in": 3600,
-            "id_token": "sample_id_token_testing_789",
-            "scope": "api",
-            "token_type": "Bearer",
-        },
-    }
+# ============================================================================
+# Pytest Configuration
+# ============================================================================
 
 
-# Pytest configuration
 def pytest_configure(config):
-    """Configure pytest with custom markers and settings.
-
-    This follows pytest best practices and sets up test environment.
-    """
-    config.addinivalue_line("markers", "unit: mark test as a unit test")
-    config.addinivalue_line("markers", "integration: mark test as an integration test")
-    config.addinivalue_line("markers", "e2e: mark test as an end-to-end test")
-    config.addinivalue_line("markers", "slow: mark test as slow running")
-    config.addinivalue_line("markers", "database: mark test as requiring database")
-
-    # Set test environment variables
-    os.environ["TESTING"] = "1"
-    os.environ["ENVIRONMENT"] = "testing"
+    """Configure pytest with custom markers and settings."""
+    # Register custom markers
+    config.addinivalue_line("markers", "unit: Unit tests (fast, no database)")
+    config.addinivalue_line("markers", "integration: Integration tests (with database)")
+    config.addinivalue_line("markers", "api: API/E2E tests")
+    config.addinivalue_line("markers", "slow: Slow-running tests")
 
 
 def pytest_collection_modifyitems(config, items):
     """Automatically mark tests based on their location.
 
-    This provides automatic test categorization based on directory structure.
+    Tests in unit/ directory → marked as unit
+    Tests in integration/ directory → marked as integration
+    Tests in api/ directory → marked as api
     """
     for item in items:
-        # Auto-mark tests based on directory structure
-        item_path = str(item.fspath)
+        # Get test file path
+        test_path = str(item.fspath)
 
-        if "unit" in item_path:
+        # Auto-mark based on directory
+        if "/unit/" in test_path:
             item.add_marker(pytest.mark.unit)
-        elif "integration" in item_path:
+        elif "/integration/" in test_path:
             item.add_marker(pytest.mark.integration)
-            item.add_marker(
-                pytest.mark.database
-            )  # Integration tests typically need database
-        elif "e2e" in item_path:
-            item.add_marker(pytest.mark.e2e)
-            item.add_marker(pytest.mark.slow)  # E2E tests are typically slower
-            item.add_marker(pytest.mark.database)  # E2E tests need database
+        elif "/api/" in test_path:
+            item.add_marker(pytest.mark.api)

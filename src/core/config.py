@@ -65,6 +65,14 @@ class Settings(BaseSettings):
         PLAID_CLIENT_ID: Plaid API client ID (future).
         PLAID_SECRET: Plaid API secret key (future).
         PLAID_ENVIRONMENT: Plaid environment (sandbox/development/production).
+        BCRYPT_ROUNDS: Number of bcrypt hashing rounds (10-14 recommended).
+        AWS_REGION: AWS region for SES email service.
+        AWS_ACCESS_KEY_ID: AWS access key for SES.
+        AWS_SECRET_ACCESS_KEY: AWS secret key for SES.
+        SES_FROM_EMAIL: Email address used as sender.
+        SES_FROM_NAME: Display name for email sender.
+        EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: Email verification token TTL.
+        PASSWORD_RESET_TOKEN_EXPIRE_HOURS: Password reset token TTL.
     """
 
     # Application
@@ -87,6 +95,28 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    BCRYPT_ROUNDS: int = Field(
+        default=12,
+        description="Number of bcrypt rounds for password hashing (10-14 recommended)",
+    )
+
+    # Email Configuration (AWS SES)
+    AWS_REGION: str = Field(default="us-east-1")
+    AWS_ACCESS_KEY_ID: Optional[str] = Field(default=None)
+    AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None)
+    SES_FROM_EMAIL: str = Field(
+        default="noreply@dashtam.com",
+        description="Email address used as sender for all outbound emails",
+    )
+    SES_FROM_NAME: str = Field(
+        default="Dashtam", description="Display name for the email sender"
+    )
+    EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = Field(
+        default=24, description="Email verification token expiration time in hours"
+    )
+    PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = Field(
+        default=1, description="Password reset token expiration time in hours"
+    )
 
     # Database
     DATABASE_URL: str = Field(

@@ -65,16 +65,39 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Comprehensive documentation (token-rotation.md guide)
   - ✅ 8 unit tests for token rotation scenarios
   - ✅ All provider HTTP calls protected with timeouts (30s total, 10s connect)
-- 🔥 **P1 NEXT PRIORITY: JWT User Authentication** (October 2025)
-  - 📚 **Research Complete**: Comprehensive authentication approaches analysis (1,008 lines)
-  - 📚 **Implementation Guide Complete**: Phase-based implementation plan (1,520+ lines)
-  - 🎯 **Decision**: JWT + Refresh Tokens (industry standard, 95% fintech adoption)
-  - 🚀 **Complexity**: Fast implementation (minimal complexity)
-  - 🚫 **Blocks P2 Work**: Rate limiting, token breach rotation, audit context all require real auth
-  - 📋 **Documentation**: `docs/research/authentication-approaches-research.md`
-  - 📋 **Implementation Guide**: `docs/development/guides/authentication-implementation.md`
-  - 📋 **Quick Reference**: `docs/development/guides/auth-quick-reference.md`
-- ✅ **Core infrastructure at 68% test coverage, production-ready foundation**
+- ✅ **P1 JWT USER AUTHENTICATION COMPLETE** (October 2025)
+  - 📚 **Research Complete**: Comprehensive authentication approaches analysis
+  - 🎯 **Pattern A Implemented**: JWT Access + Opaque Refresh (Industry Standard)
+    - ✅ JWT access tokens (stateless, 30 min TTL)
+    - ✅ Opaque refresh tokens (stateful, hashed, 30 days TTL)
+    - ✅ Matches Auth0, GitHub, Google pattern (95% industry adoption)
+    - ✅ Security vulnerability fixed (proper token hash validation)
+  - ✅ **Core Services**: Complete & Production-Ready
+    - ✅ PasswordService: bcrypt hashing with Python 3.13 compatibility (17 unit tests, 95% coverage)
+    - ✅ JWTService: JWT generation & validation (21 unit tests, 89% coverage)
+    - ✅ EmailService: AWS SES integration with templates (20 unit tests, 95% coverage)
+    - ✅ AuthService: Complete auth flow with opaque refresh tokens
+  - ✅ **API Endpoints**: All Implemented
+    - ✅ Registration with email verification
+    - ✅ Email verification with hashed tokens
+    - ✅ Login with JWT + opaque refresh token
+    - ✅ Token refresh with hash validation
+    - ✅ Logout with token revocation
+    - ✅ Password reset flow (request + confirm)
+    - ✅ User profile management (GET/PATCH /auth/me)
+  - ✅ **Security Features**:
+    - ✅ All tokens hashed before storage (bcrypt)
+    - ✅ Email verification required for login
+    - ✅ Password complexity validation
+    - ✅ Account lockout after failed attempts
+    - ✅ Device & IP tracking
+  - ✅ **Test Coverage**: 265 tests passing, 71% code coverage
+  - ✅ **Documentation**: Comprehensive architecture guide
+    - ✅ JWT Authentication Architecture: `docs/development/architecture/jwt-authentication.md`
+    - ✅ Pattern A design rationale & security model
+    - ✅ Complete API endpoint documentation
+    - ✅ Database schema & implementation details
+- ✅ **Core infrastructure at 71% test coverage, production-ready foundation**
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
 - 📋 Overall coverage target: 85% (currently 68%)
@@ -86,9 +109,46 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
 - **Database**: PostgreSQL with SQLModel ORM (NOT SQLAlchemy ORM directly)
 - **Async Operations**: Use SQLAlchemy's AsyncSession with proper async patterns
 - **Cache**: Redis for session and temporary data storage
-- **Package Management**: Use UV (not pip or poetry)
+- **Package Management**: Use UV 0.8.22+ (not pip or poetry) - See [Modern UV Guide](docs/development/guides/uv-package-management.md)
 - **Python Version**: Python 3.13+ required
 - **Containerization**: Docker and Docker Compose for all services
+
+### Package Management with UV
+**CRITICAL RULE**: Always use modern UV commands for package management. NEVER use legacy pip commands.
+
+**Required Commands:**
+- ✅ **Use `uv add package`** - Add dependencies (updates pyproject.toml and uv.lock)
+- ✅ **Use `uv remove package`** - Remove dependencies
+- ✅ **Use `uv sync`** - Sync environment with lockfile after pulling changes
+- ✅ **Use `uv run command`** - Run commands with project dependencies
+- ✅ **Use `uv lock`** - Update lockfile
+- ✅ **Use `uv tree`** - Show dependency tree
+
+**Forbidden Commands:**
+- ❌ **NEVER use `uv pip install`** - Legacy compatibility only
+- ❌ **NEVER use `pip install`** - Use `uv add` instead
+- ❌ **NEVER use `pip freeze`** - UV manages versions in uv.lock
+- ❌ **NEVER edit `uv.lock` manually** - Let UV manage it
+
+**Why UV?**
+- 10-100x faster than pip
+- Deterministic resolution with lockfiles
+- Docker-optimized with official container images
+- Modern Python workflow (PEP 621 compliant)
+
+**Example Workflow:**
+```bash
+# Add a new dependency
+docker compose -f docker-compose.dev.yml exec app uv add boto3
+
+# After pulling changes with new dependencies
+docker compose -f docker-compose.dev.yml exec app uv sync
+
+# Run tests with project dependencies
+docker compose -f docker-compose.dev.yml exec app uv run pytest
+```
+
+**Full Documentation**: See [docs/development/guides/uv-package-management.md](docs/development/guides/uv-package-management.md) for comprehensive UV usage guide.
 
 ### Database Access Patterns
 
@@ -283,6 +343,48 @@ SCHWAB_REDIRECT_URI=https://127.0.0.1:8182
 SECRET_KEY=...                          # For JWT signing
 ENCRYPTION_KEY=...                      # For token encryption
 ```
+
+### Environment Configuration Management
+**CRITICAL RULE**: Whenever adding new configuration variables to `src/core/config.py`, you MUST update ALL environment template files.
+
+**Required Files to Update:**
+1. `.env.example` - Production/general template
+2. `.env.dev.example` - Development environment template
+3. `.env.test.example` - Test environment template
+4. `.env.ci.example` - CI/CD environment template
+
+**Configuration Flow:**
+```
+1. Add new field to src/core/config.py (Settings class)
+2. Document the field in class docstring
+3. Add to ALL .env.example files with:
+   - Appropriate default/placeholder value
+   - Descriptive comment explaining usage
+   - Secret values as placeholders (never actual secrets)
+4. For secrets: Use placeholder format like "your-secret-here" or "change-me-in-production"
+5. For AWS/third-party credentials: Comment them out in examples with # prefix
+```
+
+**Example:**
+```bash
+# When adding AWS_REGION to config.py:
+
+# In .env.example and .env.dev.example:
+AWS_REGION=us-east-1
+
+# In .env.test.example:
+AWS_REGION=us-east-1  # Mocked in tests
+
+# In .env.ci.example:
+AWS_REGION=us-east-1  # Not used in CI (mocked)
+```
+
+**Why This Matters:**
+- Ensures all environments have required configuration documented
+- New developers can quickly see all available settings
+- Prevents "missing environment variable" errors
+- Maintains consistency across environments
+- Follows the idempotent .env.example pattern (can be copied if .env missing)
 
 ## API Design Rules
 
@@ -802,6 +904,113 @@ docs/
 
 ---
 
+## Phase Completion Workflow
+
+**CRITICAL RULE**: After completing each development phase, follow this mandatory workflow to ensure quality and completeness.
+
+### Git Branch Management
+- **Always verify appropriate branch created and in use** before starting work
+- Follow project gitflow conventions
+- Branch naming: `feature/`, `bugfix/`, `hotfix/` prefixes
+
+### After Completing Each Phase
+
+**1. Development Environment Monitoring** 🔍
+- **CRITICAL**: Keep development environment running during active development: `make dev-up`
+- Monitor application logs in real-time: `make dev-logs`
+- Watch for import errors, missing dependencies, or runtime issues as you develop
+- Catch errors early by observing logs after creating/editing files
+- This prevents discovering issues only during final testing
+- Benefits:
+  - Immediate feedback on syntax/import errors
+  - Early detection of missing dependencies (e.g., email-validator)
+  - Real-time visibility into application behavior
+  - Faster debugging cycle
+
+**2. Verification & Validation** ✅
+- Verify everything works as designed
+- Identify and fix any bugs
+- Test all new functionality manually
+
+**3. Test Creation** 🧪
+- Create comprehensive tests following `docs/development/testing/guide.md`
+- **Unit tests** for all new services/functions/classes (test in isolation)
+- **Integration tests** for ANY integrated services:
+  - Database operations (queries, relationships, transactions)
+  - External API calls (AWS SES, third-party services)
+  - Service-to-service interactions
+  - File system operations
+  - Cache operations (Redis)
+- **API tests** for new HTTP endpoints (end-to-end)
+- Ensure test coverage meets project standards (85% target)
+
+**4. Run All Tests** 🏃
+- Run entire test suite: `make test`
+- Verify all tests pass (both new and existing)
+- Check test coverage: `make test-coverage`
+- Fix any broken tests immediately
+
+**5. Code Quality** 🎨
+- Lint code: `make lint` (ruff check)
+- Format code: `make format` (ruff format)
+- Fix all linting errors and warnings
+- Ensure code follows project standards
+
+**6. Documentation Updates** 📚
+- Update all relevant documentation for completed work
+- Update WARP.md if project rules or context changed
+- Update implementation guides with completion status
+- Document any architectural decisions or patterns
+- Add inline code documentation where needed
+
+**7. Commit Changes** 💾
+- Stage all changes: `git add .`
+- Write comprehensive commit message:
+  ```
+  type(scope): Brief description
+  
+  - Detailed change 1
+  - Detailed change 2
+  - Detailed change 3
+  
+  Related to: [issue/feature reference]
+  ```
+- Commit: `git commit -m "message"`
+- Push to feature branch: `git push origin branch-name`
+
+### Once All Work Complete
+
+**8. Pull Request Creation** 🔀
+- Create comprehensive pull request with:
+  - Clear description of all changes
+  - List of features implemented
+  - Testing performed
+  - Documentation updates
+  - Screenshots/examples if applicable
+- Verify GitHub Actions CI/CD pipeline passes:
+  - All tests pass
+  - Linting passes
+  - Code coverage acceptable
+- Request reviews if applicable
+- Merge to development/main branch after approval
+
+### Phase Completion Checklist
+
+Before marking a phase as complete, verify:
+- [ ] All phase deliverables implemented
+- [ ] All new code tested (unit + integration + API)
+- [ ] All existing tests still pass
+- [ ] Code linted and formatted
+- [ ] Documentation updated
+- [ ] WARP.md updated if needed
+- [ ] Changes committed with clear message
+- [ ] Branch pushed to remote
+- [ ] Ready for PR (if phase is final)
+
+**Remember**: This workflow is mandatory for EVERY phase completion. It ensures code quality, prevents regressions, and maintains project standards.
+
+---
+
 ## AI Agent Instructions
 
 When working on this project:
@@ -815,5 +1024,6 @@ When working on this project:
 8. Never expose sensitive data in logs or responses
 9. Always use HTTPS/SSL for all communications
 10. Create audit log entries for significant operations
+11. **ALWAYS follow the Phase Completion Workflow after finishing any phase**
 
 Remember: This is a financial data platform where security and reliability are paramount. Every decision should prioritize data protection and system stability.

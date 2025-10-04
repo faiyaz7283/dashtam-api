@@ -22,8 +22,12 @@ passlib[bcrypt]
 # Configuration
 python-dotenv
 pydantic-settings
+email-validator
 
 # Utilities
 python-multipart
 python-dateutil
 pytz
+
+# AWS Services
+boto3

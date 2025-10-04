@@ -67,9 +67,9 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ All provider HTTP calls protected with timeouts (30s total, 10s connect)
 - 🔥 **P1 NEXT PRIORITY: JWT User Authentication** (October 2025)
   - 📚 **Research Complete**: Comprehensive authentication approaches analysis (1,008 lines)
-  - 📚 **Implementation Guide Complete**: Day-by-day plan with production code (1,520+ lines)
+  - 📚 **Implementation Guide Complete**: Phase-based implementation plan (1,520+ lines)
   - 🎯 **Decision**: JWT + Refresh Tokens (industry standard, 95% fintech adoption)
-  - ⏱️ **Timeline**: 4-5 days implementation
+  - 🚀 **Complexity**: Fast implementation (minimal complexity)
   - 🚫 **Blocks P2 Work**: Rate limiting, token breach rotation, audit context all require real auth
   - 📋 **Documentation**: `docs/research/authentication-approaches-research.md`
   - 📋 **Implementation Guide**: `docs/development/guides/authentication-implementation.md`
@@ -160,6 +160,46 @@ from src.core.database import get_session
 - **Docker files**: Use PascalCase with extensions (e.g., `Dockerfile`)
 - **Config files**: Use lowercase with appropriate extensions (e.g., `docker-compose.yml`)
 - **Documentation**: Use UPPERCASE for special files (e.g., `README.md`, `WARP.md`)
+
+### Implementation Planning and Documentation
+**CRITICAL RULE**: Never use rigid day-based timelines ("Day 1", "Day 2", etc.) in implementation guides, documentation, or task lists.
+
+**Why**: Development work is flexible and variable. Some days allow intensive focus with many tasks completed in hours; other days have limited availability. Rigid day-based schedules don't reflect this reality and create false expectations.
+
+**Instead, use**:
+- ✅ **Phase-based organization**: "Phase 1: Database Schema", "Phase 2: Core Services"
+- ✅ **Workflow-based grouping**: "Database Schema & Models", "API Endpoints", "Testing"
+- ✅ **Logical dependencies**: "After migrations complete...", "Once services are implemented..."
+- ✅ **Flexible task lists**: Tasks grouped by logical components without time constraints
+
+**Examples**:
+```
+❌ BAD:
+- Day 1: Create database migrations
+- Day 2: Implement services
+- Day 3: Build API endpoints
+
+✅ GOOD:
+- Phase 1: Database Schema & Models
+  - Create database migrations
+  - Update models
+  - Verify schema
+- Phase 2: Core Services
+  - Implement PasswordService
+  - Implement JWTService
+  - Implement AuthService
+- Phase 3: API Endpoints
+  - Build registration endpoint
+  - Build login endpoint
+  - Update authentication dependencies
+```
+
+This applies to:
+- Implementation guides
+- Quick reference docs
+- Todo lists and task tracking
+- Project planning documents
+- Progress updates
 
 ## Project Structure Rules
 

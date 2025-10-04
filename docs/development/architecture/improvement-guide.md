@@ -376,12 +376,12 @@ src/api/v1/providers.py    - Basic ownership check but no real auth
 6. **Product**: Cannot test with real users until auth exists
 7. **Compliance**: SOC 2 / PCI-DSS require strong user authentication
 
-**Implementation Timeline: 4-5 days**
-- Day 1: Database migrations + models (User, RefreshToken, etc.)
-- Day 2: AuthService implementation (password, tokens, validation)
-- Day 3: API endpoints (signup, login, refresh, logout)
-- Day 4: Email verification + password reset flows
-- Day 5: Test migration (update all tests, fix failing fixtures)
+**Implementation Phases**:
+- Phase 1: Database Schema & Models (migrations, User, RefreshToken, etc.)
+- Phase 2: Core Services (AuthService, password hashing, token management)
+- Phase 3: API Endpoints (signup, login, refresh, logout, verification, reset)
+- Phase 4: Testing (unit tests, integration tests, security tests)
+- Phase 5: Integration (update all tests, fix failing fixtures, documentation)
 
 **Documentation**:
 - 📚 Complete research: `docs/research/authentication-approaches-research.md`
@@ -394,7 +394,7 @@ src/api/v1/providers.py    - Basic ownership check but no real auth
 - **Phase 3 (Q2 2026)**: Passkeys (WebAuthn) → Passwordless future
 - **Phase 4 (Q3 2026)**: MFA (TOTP, SMS) → Enterprise security
 
-**Estimated Effort**: 4-5 days  
+**Estimated Complexity**: Fast (minimal complexity)  
 **Estimated Impact**: 🔴 **CRITICAL** - Unblocks all P2 work, enables real users  
 **Status**: 🟡 **READY** - Research complete, implementation guide written  
 **Decision**: ✅ **APPROVED** - Prioritized as P1 (2025-10-04)
@@ -420,7 +420,7 @@ src/api/v1/providers.py    - Basic ownership check but no real auth
    - Security incident response
    - Provider-initiated token revocation
 
-**Estimated Effort**: 3-4 days
+**Estimated Complexity**: Moderate
 
 
 ## Medium Priority Issues
@@ -442,7 +442,7 @@ src/api/v1/providers.py    - Basic ownership check but no real auth
 - Add request fingerprinting (IP + User-Agent hash)
 - Implement log correlation with OpenTelemetry
 
-**Estimated Effort**: 2-3 days
+**Estimated Complexity**: Low-Moderate
 
 ---
 
@@ -462,7 +462,7 @@ src/api/v1/providers.py    - Basic ownership check but no real auth
 - Per-provider rate limits for external API calls
 - Graceful degradation with proper HTTP 429 responses
 
-**Estimated Effort**: 3-4 days
+**Estimated Complexity**: Moderate
 
 ---
 
@@ -483,7 +483,7 @@ src/api/v1/providers.py    - Basic ownership check but no real auth
 4. Use different encryption keys per environment
 5. Secret access auditing and versioning
 
-**Estimated Effort**: 4-5 days
+**Estimated Complexity**: Moderate-High
 
 ---
 
@@ -593,7 +593,7 @@ When you discover a design flaw or improvement opportunity:
 - 🔥 **P1 PRIORITIZED**: JWT User Authentication system (blocks P2 work)
 - 📚 **Documentation**: Created comprehensive auth research + implementation guide
 - 📊 **Status**: P0/P1 items complete. Auth promoted to P1 priority.
-- 🎯 **Next**: Implement JWT authentication (4-5 days), then P2 items
+- 🎯 **Next**: Implement JWT authentication (fast, minimal complexity), then P2 items
 
 ### 2025-10-03
 - ✅ **P0 RESOLVED**: Implemented timezone-aware datetimes (PR #5)

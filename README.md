@@ -51,36 +51,41 @@ A secure, modern financial data aggregation platform that connects to multiple f
 
 ## 🗺️ Roadmap
 
-### Phase 1: User Authentication (Next - 4-5 days) 🔥
+### Phase 1: User Authentication (Next) 🔥
 - JWT + refresh token authentication
 - Email verification
 - Password reset flow
 - 11 new API endpoints
 - 65+ tests
+- **Complexity**: Fast (minimal complexity)
 
-### Phase 2: Enhanced Security (2-3 weeks)
+### Phase 2: Enhanced Security
 - Rate limiting (Redis-based)
 - Token breach rotation
 - Audit log enhancements
 - Secret management
+- **Complexity**: Moderate
 
-### Phase 3: Financial Data API (1-2 months)
+### Phase 3: Financial Data API
 - Account aggregation endpoints
 - Transaction history
 - Balance tracking
 - Real-time updates
+- **Complexity**: Moderate-High
 
-### Phase 4: Provider Expansion (2-3 months)
+### Phase 4: Provider Expansion
 - Plaid integration (broad bank support)
 - Chase direct integration
 - Bank of America integration
 - Additional brokerage providers
+- **Complexity**: High
 
-### Phase 5: Advanced Authentication (3-6 months)
+### Phase 5: Advanced Authentication
 - Social authentication (Google, Apple)
 - Passkeys / WebAuthn (passwordless)
 - Multi-factor authentication (TOTP, SMS)
 - Biometric support
+- **Complexity**: Moderate (per feature)
 
 ## 📋 Prerequisites
 

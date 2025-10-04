@@ -1,8 +1,7 @@
 # JWT Authentication: Quick Reference
 
 **Status**: ✅ Research Complete → 🟡 Ready for Implementation  
-**Priority**: 🔥 P1 (CRITICAL - Blocks P2)  
-**Estimated Time**: 4-5 days
+**Priority**: 🔥 P1 (CRITICAL - Blocks P2)
 
 ---
 
@@ -76,34 +75,44 @@ POST   /api/v1/auth/change-password     # Change password
 
 ---
 
-## 📅 Day-by-Day Plan
+## 📋 Implementation Phases
 
-### Day 1: Database & Models
+### Phase 1: Database Schema & Models
 - Create 4 Alembic migrations
 - Update User model, create RefreshToken, EmailVerificationToken, PasswordResetToken
 - Run migrations, verify schema
 
-### Day 2: AuthService
-- Implement auth_service.py (password, JWT, refresh tokens)
-- User registration, authentication with lockout
-- Write ~20 unit tests
+### Phase 2: Core Services
+- Implement password hashing and validation (PasswordService)
+- Implement JWT token creation and verification (JWTService)
+- Implement refresh token rotation (RefreshTokenService)
+- Implement auth orchestration (AuthService)
+- Create email service abstraction
+- Add configuration settings
 
-### Day 3: Auth API Endpoints
-- Signup, login, refresh, logout endpoints
+### Phase 3: API Endpoints
+- Registration, login, refresh, logout endpoints
+- Email verification endpoints
+- Password reset endpoints
+- User management endpoints (me, sessions, logout-all)
 - Update get_current_user() dependency (JWT validation)
-- Write ~15 integration tests
 
-### Day 4: Verification & Reset
-- Email verification flow (verify, resend)
-- Password reset flow (forgot, reset)
-- User management endpoints (me, update, change-password)
-- Write ~10 integration tests
-
-### Day 5: Test Migration
-- Update all tests to use authenticated client
+### Phase 4: Testing
+- Write unit tests for all services (~30 tests)
+- Write integration tests for auth flows (~25 tests)
+- Write security tests (brute force, rate limiting) (~10 tests)
+- Update existing tests to use authenticated client
 - Fix 91 failing fixture tests
 - Create auth test helpers
-- Verify all 150+ tests passing
+
+### Phase 5: Integration & Documentation
+- Add rate limiting middleware
+- Update provider endpoints to require email verification
+- Create email templates
+- Update API documentation
+- Update environment configuration examples
+- Manual end-to-end testing
+- Update project documentation
 
 ---
 
@@ -145,17 +154,14 @@ git checkout -b feature/jwt-authentication
 
 ### 3. Start Implementation
 ```bash
-# Day 1: Create migrations
-cd alembic/versions
-# Follow implementation guide section 2 (Database Design)
-
-# Day 2-5: Follow day-by-day plan
-# See implementation guide section 8
+# Follow implementation phases in order
+# See detailed implementation guide for step-by-step instructions
+cat docs/development/guides/authentication-implementation.md
 ```
 
 ### 4. Submit PR
 ```bash
-# After Day 5
+# After implementation complete
 git add .
 git commit -m "feat(auth): implement JWT authentication with refresh tokens"
 git push -u origin feature/jwt-authentication
@@ -212,13 +218,12 @@ def test_endpoint(authenticated_client):  # Uses fixture
 - [x] Update improvement guide
 
 ### Implementation Phase (To Do)
-- [ ] Day 1: Database migrations + models
-- [ ] Day 2: AuthService implementation
-- [ ] Day 3: Auth API endpoints
-- [ ] Day 4: Verification + reset flows
-- [ ] Day 5: Test migration + fixtures
-- [ ] Day 6: PR review + final testing
-- [ ] Day 7: Merge to development
+- [ ] Phase 1: Database migrations + models
+- [ ] Phase 2: Core services (Password, JWT, Refresh, Auth, Email)
+- [ ] Phase 3: Auth API endpoints
+- [ ] Phase 4: Testing (unit, integration, security)
+- [ ] Phase 5: Integration + documentation
+- [ ] Final: PR review + merge to development
 
 ### Post-Implementation
 - [ ] All tests passing (150+)
@@ -249,7 +254,7 @@ def test_endpoint(authenticated_client):  # Uses fixture
 
 ---
 
-**Next Action**: Review full documentation → Create feature branch → Start Day 1
+**Next Action**: Review full documentation → Create feature branch → Start implementation
 
 **Questions?** All details in the comprehensive guides above.
 

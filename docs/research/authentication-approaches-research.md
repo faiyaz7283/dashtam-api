@@ -522,7 +522,7 @@ Adds complexity without significant benefits for your use case. Refresh token ro
 ### Recommended Architecture: Multi-Phase Approach
 
 #### Phase 1: JWT Foundation (Now - Week 1-2)
-**Implementation: 4-5 days**
+**Implementation**: Fast (minimal complexity)
 
 **Core Features:**
 - Email/password registration
@@ -609,7 +609,8 @@ POST   /api/v1/auth/change-password     # Change password (requires current)
 ---
 
 #### Phase 2: Social Authentication (3-6 Months)
-**Implementation: 5-7 days**
+**Implementation**: Moderate complexity
+complexity
 
 **Add Providers:**
 - Google Sign-In (most common)
@@ -655,7 +656,8 @@ GET    /api/v1/auth/oauth/accounts                # List linked accounts
 ---
 
 #### Phase 3: Passkeys (Passwordless) (6-12 Months)
-**Implementation: 6-8 days**
+**Implementation**: Complex (federated identity)
+mplexity
 
 **Add Features:**
 - Passkey registration (WebAuthn)
@@ -699,7 +701,7 @@ DELETE /api/v1/auth/passkey/credentials/{id}   # Delete passkey
 ---
 
 #### Phase 4: MFA (Multi-Factor Authentication) (12-18 Months)
-**Implementation: 5-7 days**
+**Implementation**: Moderate complexity
 
 **Add Options:**
 - TOTP (Google Authenticator, Authy)
@@ -724,14 +726,14 @@ Now                Month 3           Month 6           Month 12
  v                   v                 v                  v
 JWT                Social            Passkeys           MFA
 Email/Password     Google/Apple      Biometric          TOTP/SMS
-(4-5 days)         (5-7 days)        (6-8 days)         (5-7 days)
+(Fast)             (Moderate)        (Complex)          (Moderate)
 ```
 
 ### Priority Justification
 
 **Why JWT First?**
 1. Unblocks all other P2 features (rate limiting, token breach)
-2. Fastest implementation (4-5 days)
+2. Fastest implementation (minimal complexity)
 3. Industry standard (95% fintech adoption)
 4. Required for API authentication
 5. Foundation for all other auth methods
@@ -981,7 +983,7 @@ uv add py-webauthn  # WebAuthn/FIDO2 implementation
 **Rationale:**
 1. ✅ Unblocks all P2 priorities (rate limiting, token breach rotation)
 2. ✅ Industry standard (95% of fintech uses JWT)
-3. ✅ Fastest implementation (4-5 days)
+3. ✅ Fast implementation (minimal complexity)
 4. ✅ Best foundation for future enhancements
 5. ✅ Enables testing with real users
 6. ✅ SOC 2 / PCI-DSS compliant baseline
@@ -997,7 +999,7 @@ uv add py-webauthn  # WebAuthn/FIDO2 implementation
 1. Review this research document
 2. Confirm JWT approach
 3. Create detailed implementation guide
-4. Begin Phase 1 implementation (4-5 days)
+4. Begin Phase 1 implementation
 5. Update improvement guide with auth as P1
 
 ---

@@ -2,7 +2,6 @@
 
 **Document Purpose**: Complete implementation guide for JWT-based authentication in Dashtam, including architecture decisions, code patterns, database design, API endpoints, testing strategy, and migration from mock authentication.
 
-**Implementation Time**: 4-5 days  
 **Status**: Ready for Implementation  
 **Priority**: P1 (Blocks P2 features)
 
@@ -16,7 +15,7 @@
 5. [Security Patterns](#security-patterns)
 6. [Testing Strategy](#testing-strategy)
 7. [Migration from Mock Auth](#migration-from-mock-auth)
-8. [Day-by-Day Implementation Plan](#day-by-day-implementation-plan)
+8. [Implementation Phases](#implementation-phases)
 
 ---
 

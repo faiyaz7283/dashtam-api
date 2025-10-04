@@ -26,6 +26,7 @@ from src.providers.base import (
     TransactionType,
 )
 from src.providers.registry import register_provider
+from src.core.config import settings
 
 # Load environment variables
 load_dotenv()
@@ -123,7 +124,7 @@ class SchwabProvider(BaseProvider):
         if "code" not in auth_data:
             raise ValueError("Authorization code required for Schwab authentication")
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=settings.get_http_timeout()) as client:
             response = await client.post(
                 f"{self.base_url}/v1/oauth/token",
                 headers=self._get_auth_headers(),
@@ -160,7 +161,7 @@ class SchwabProvider(BaseProvider):
         Raises:
             Exception: If refresh fails or token is invalid.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=settings.get_http_timeout()) as client:
             response = await client.post(
                 f"{self.base_url}/v1/oauth/token",
                 headers=self._get_auth_headers(),
@@ -199,7 +200,7 @@ class SchwabProvider(BaseProvider):
         # Get user's access token from database
         access_token = await self._get_user_access_token(provider_id, user_id, session)
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=settings.get_http_timeout()) as client:
             response = await client.get(
                 f"{self.base_url}/trader/v1/accounts",
                 headers=self._get_api_headers(access_token),
@@ -288,7 +289,7 @@ class SchwabProvider(BaseProvider):
         if not start_date:
             start_date = end_date - timedelta(days=30)
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=settings.get_http_timeout()) as client:
             response = await client.get(
                 f"{self.base_url}/trader/v1/accounts/{account_id}/transactions",
                 headers=self._get_api_headers(access_token),

@@ -16,11 +16,14 @@ Example:
     'postgresql+asyncpg://postgres:postgres@localhost:5432/dashtam'
 """
 
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
 from functools import lru_cache
 from pathlib import Path
+
+if TYPE_CHECKING:
+    import httpx
 
 
 class Settings(BaseSettings):
@@ -115,6 +118,20 @@ class Settings(BaseSettings):
     PLAID_SECRET: Optional[str] = Field(default=None)
     PLAID_ENVIRONMENT: str = Field(default="sandbox")
 
+    # HTTP Client Configuration
+    HTTP_TIMEOUT_TOTAL: float = Field(
+        default=30.0, description="Total timeout for HTTP requests in seconds"
+    )
+    HTTP_TIMEOUT_CONNECT: float = Field(
+        default=10.0, description="Connection timeout for HTTP requests in seconds"
+    )
+    HTTP_TIMEOUT_READ: float = Field(
+        default=30.0, description="Read timeout for HTTP requests in seconds"
+    )
+    HTTP_TIMEOUT_POOL: float = Field(
+        default=5.0, description="Pool acquisition timeout for HTTP requests in seconds"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
     )
@@ -167,6 +184,36 @@ class Settings(BaseSettings):
         return [
             origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()
         ]
+
+    def get_http_timeout(self) -> "httpx.Timeout":
+        """Create httpx.Timeout object from configuration.
+
+        Returns configured timeout settings for all HTTP/HTTPS client operations.
+        This prevents hanging requests and resource exhaustion.
+
+        Timeout Breakdown:
+            - connect: Time allowed to establish a connection
+            - read: Time allowed to read response data
+            - pool: Time allowed to acquire a connection from the pool
+            - timeout: Total time allowed for the entire request
+
+        Returns:
+            httpx.Timeout object with configured timeouts.
+
+        Example:
+            >>> from src.core.config import settings
+            >>> import httpx
+            >>> async with httpx.AsyncClient(timeout=settings.get_http_timeout()) as client:
+            ...     response = await client.get(url)
+        """
+        import httpx
+
+        return httpx.Timeout(
+            timeout=self.HTTP_TIMEOUT_TOTAL,
+            connect=self.HTTP_TIMEOUT_CONNECT,
+            read=self.HTTP_TIMEOUT_READ,
+            pool=self.HTTP_TIMEOUT_POOL,
+        )
 
     @field_validator("DATABASE_URL")
     @classmethod

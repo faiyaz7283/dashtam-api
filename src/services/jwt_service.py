@@ -102,30 +102,27 @@ class JWTService:
         return jwt.encode(claims, self.secret_key, algorithm=self.algorithm)
 
     def create_refresh_token(self, user_id: UUID, jti: UUID) -> str:
-        """Create a new refresh token.
+        """Create a new refresh token (DEPRECATED).
 
-        Refresh tokens are long-lived (default: 30 days) and used
-        to obtain new access tokens without requiring re-authentication.
-        They contain minimal information and are stored in the database.
+        **DEPRECATED**: This method is deprecated. The application now uses
+        opaque (random) refresh tokens instead of JWT refresh tokens.
+        This follows industry standard Pattern A (JWT access + opaque refresh).
 
-        The jti (JWT ID) claim is used to uniquely identify this refresh
-        token in the database, allowing for revocation.
+        Refresh tokens should be generated using secrets.token_urlsafe()
+        and stored as hashed values in the database. See AuthService._create_refresh_token().
+
+        This method is kept for backwards compatibility with existing tests only.
 
         Args:
             user_id: Unique user identifier
-            jti: Unique token identifier (stored in database)
+            jti: Unique token identifier
 
         Returns:
-            Encoded JWT refresh token string
+            Encoded JWT refresh token string (for testing only)
 
-        Example:
-            >>> service = JWTService()
-            >>> from uuid import uuid4
-            >>> user_id = uuid4()
-            >>> token_id = uuid4()
-            >>> token = service.create_refresh_token(user_id, token_id)
-            >>> len(token) > 0
-            True
+        Note:
+            DO NOT use this for production authentication flows.
+            Use AuthService._create_refresh_token() instead.
         """
         now = datetime.utcnow()
         expire = now + timedelta(days=self.refresh_token_expire_days)

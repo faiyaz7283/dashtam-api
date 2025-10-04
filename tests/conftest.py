@@ -128,7 +128,6 @@ def client(db: Session) -> Generator[TestClient, None, None]:
     Module-scoped for efficiency (creating client is expensive).
     """
     from src.core.database import get_session
-    from src.api.v1.auth import get_current_user
 
     # Create wrapper class to handle async-to-sync conversion
     class AsyncToSyncWrapper:
@@ -153,6 +152,10 @@ def client(db: Session) -> Generator[TestClient, None, None]:
             """Wrap sync refresh to be awaitable."""
             return self.session.refresh(*args, **kwargs)
 
+        async def flush(self, *args, **kwargs):
+            """Wrap sync flush to be awaitable."""
+            return self.session.flush(*args, **kwargs)
+
         def add(self, *args, **kwargs):
             """Direct pass-through for add (not awaited)."""
             return self.session.add(*args, **kwargs)
@@ -174,31 +177,9 @@ def client(db: Session) -> Generator[TestClient, None, None]:
         finally:
             pass
 
-    # Override async user authentication with sync mock user
-    async def override_get_current_user():
-        """Provide mock user for tests without authentication."""
-        from sqlmodel import select
-
-        # Get or create test user synchronously
-        result = db.execute(select(User).where(User.email == "test@example.com"))
-        user = result.scalar_one_or_none()
-
-        if not user:
-            user = User(
-                email="test@example.com",
-                name="Test User",
-                is_verified=True,
-                is_active=True,
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-
-        return user
-
     # Apply dependency overrides
     app.dependency_overrides[get_session] = override_get_session
-    app.dependency_overrides[get_current_user] = override_get_current_user
+    # Note: get_current_user is NOT overridden here - JWT auth tests use real auth
 
     with TestClient(app) as c:
         yield c
@@ -229,7 +210,7 @@ def test_user(db_session: Session) -> User:
         user = User(
             email="test@example.com",
             name="Test User",
-            is_verified=True,
+            email_verified=True,
             is_active=True,
         )
         db_session.add(user)
@@ -245,7 +226,7 @@ def test_user_2(db_session: Session) -> User:
     user = User(
         email="test2@example.com",
         name="Test User 2",
-        is_verified=True,
+        email_verified=True,
         is_active=True,
     )
     db_session.add(user)
@@ -296,6 +277,85 @@ def test_provider_with_connection(
 # ============================================================================
 # Authentication Fixtures
 # ============================================================================
+
+
+@pytest.fixture
+def verified_user(db_session: Session) -> User:
+    """Create a verified user with password for JWT authentication tests."""
+    from src.services.password_service import PasswordService
+
+    password_service = PasswordService()
+    user = User(
+        email="verified@example.com",
+        name="Verified User",
+        password_hash=password_service.hash_password("TestPassword123!"),
+        email_verified=True,
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def inactive_user(db_session: Session) -> User:
+    """Create an inactive user for testing inactive account scenarios."""
+    from src.services.password_service import PasswordService
+
+    password_service = PasswordService()
+    user = User(
+        email="inactive@example.com",
+        name="Inactive User",
+        password_hash=password_service.hash_password("TestPassword123!"),
+        email_verified=True,
+        is_active=False,  # Inactive
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def auth_tokens(db_session: Session, verified_user: User) -> dict:
+    """Create JWT access and refresh tokens for authenticated tests.
+
+    Returns dictionary with access_token, refresh_token, and user.
+    """
+    from src.services.jwt_service import JWTService
+    from src.services.password_service import PasswordService
+    from src.models.auth import RefreshToken
+    from datetime import datetime, timedelta, timezone
+    import secrets
+
+    jwt_service = JWTService()
+    password_service = PasswordService()
+
+    # Create access token
+    access_token = jwt_service.create_access_token(
+        user_id=verified_user.id, email=verified_user.email
+    )
+
+    # Create refresh token (plain)
+    plain_refresh_token = secrets.token_urlsafe(32)
+    token_hash = password_service.hash_password(plain_refresh_token)
+
+    # Store refresh token in database
+    refresh_token = RefreshToken(
+        user_id=verified_user.id,
+        token_hash=token_hash,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+    )
+    db_session.add(refresh_token)
+    db_session.commit()
+    db_session.refresh(refresh_token)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": plain_refresh_token,
+        "user": verified_user,
+    }
 
 
 @pytest.fixture

@@ -7,7 +7,8 @@ that can be mounted on the main application.
 from fastapi import APIRouter
 
 from src.api.v1.providers import router as providers_router
-from src.api.v1.auth import router as auth_router
+from src.api.v1.auth import router as auth_oauth_router
+from src.api.v1.auth_jwt import router as auth_jwt_router
 
 # Create main API router
 api_router = APIRouter()
@@ -15,7 +16,11 @@ api_router = APIRouter()
 # Include sub-routers
 api_router.include_router(providers_router, prefix="/providers", tags=["providers"])
 
-api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
+# OAuth authentication endpoints (provider connections)
+api_router.include_router(auth_oauth_router, prefix="/auth", tags=["oauth"])
+
+# JWT authentication endpoints (user auth)
+api_router.include_router(auth_jwt_router, prefix="/auth", tags=["authentication"])
 
 
 # Health check at API level

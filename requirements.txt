@@ -22,6 +22,7 @@ passlib[bcrypt]
 # Configuration
 python-dotenv
 pydantic-settings
+email-validator
 
 # Utilities
 python-multipart

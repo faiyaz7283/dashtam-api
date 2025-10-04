@@ -54,18 +54,22 @@ class AuthService:
         email_service: Service for email operations (async)
     """
 
-    def __init__(self, session: AsyncSession, development_mode: bool = False):
+    def __init__(self, session: AsyncSession):
         """Initialize auth service with dependencies.
 
         Args:
             session: Async database session
-            development_mode: If True, emails are logged instead of sent
+
+        Note:
+            Development mode is automatically determined from settings.DEBUG.
+            When DEBUG=True, emails are logged instead of sent.
         """
         self.session = session
+        self.settings = get_settings()
         self.password_service = PasswordService()
         self.jwt_service = JWTService()
-        self.email_service = EmailService(development_mode=development_mode)
-        self.settings = get_settings()
+        # Auto-determine development mode from DEBUG setting
+        self.email_service = EmailService(development_mode=self.settings.DEBUG)
 
     async def register_user(
         self, email: str, password: str, name: Optional[str] = None
@@ -124,21 +128,21 @@ class AuthService:
             password_hash=password_hash,
             name=name,
             is_active=True,  # Account is active but not verified
-            is_verified=False,
+            email_verified=False,
         )
 
         self.session.add(user)
         await self.session.flush()  # Get user ID
         await self.session.refresh(user)
 
-        # Generate verification token
-        verification_token = await self._create_verification_token(user.id)
+        # Generate verification token (returns plain token and hashed record)
+        plain_token, verification_token = await self._create_verification_token(user.id)
 
-        # Send verification email (non-blocking)
+        # Send verification email with plain token (non-blocking)
         try:
             await self.email_service.send_verification_email(
                 to_email=email,
-                verification_token=verification_token.token,
+                verification_token=plain_token,
                 user_name=name,
             )
             logger.info(f"Verification email sent to {email}")
@@ -172,14 +176,20 @@ class AuthService:
             >>> user.is_verified
             True
         """
-        # Find verification token
+        # Get all unused verification tokens for potential match
         result = await self.session.execute(
             select(EmailVerificationToken).where(
-                EmailVerificationToken.token == token,
                 EmailVerificationToken.used_at.is_(None),
             )
         )
-        verification_token = result.scalar_one_or_none()
+        verification_tokens = result.scalars().all()
+
+        # Find matching token by comparing hashes
+        verification_token = None
+        for token_record in verification_tokens:
+            if self.password_service.verify_password(token, token_record.token_hash):
+                verification_token = token_record
+                break
 
         if not verification_token:
             raise HTTPException(
@@ -206,8 +216,8 @@ class AuthService:
             )
 
         # Mark user as verified
-        user.is_verified = True
-        user.verified_at = datetime.now(timezone.utc)
+        user.email_verified = True
+        user.email_verified_at = datetime.now(timezone.utc)
 
         # Mark token as used
         verification_token.used_at = datetime.now(timezone.utc)
@@ -273,7 +283,7 @@ class AuthService:
             )
 
         # Check if email is verified
-        if not user.is_verified:
+        if not user.email_verified:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Email not verified. Please check your email for verification link.",
@@ -287,17 +297,14 @@ class AuthService:
         # Update last login
         user.last_login_at = datetime.now(timezone.utc)
 
-        # Create refresh token in database
-        refresh_token_record = await self._create_refresh_token(user.id)
-
-        # Generate JWT tokens
+        # Generate JWT access token (stateless)
         access_token = self.jwt_service.create_access_token(
             user_id=user.id, email=user.email
         )
 
-        refresh_token = self.jwt_service.create_refresh_token(
-            user_id=user.id, jti=refresh_token_record.id
-        )
+        # Generate opaque refresh token (stateful, hashed in DB)
+        # Pattern A: Opaque tokens, not JWT (industry standard)
+        refresh_token, refresh_token_record = await self._create_refresh_token(user.id)
 
         await self.session.commit()
 
@@ -305,48 +312,43 @@ class AuthService:
         return access_token, refresh_token, user
 
     async def refresh_access_token(self, refresh_token: str) -> str:
-        """Generate new access token using refresh token.
+        """Generate new access token using opaque refresh token.
 
-        Validates the refresh token and generates a new access token.
-        Refresh token remains valid for future use.
+        Validates the opaque refresh token by hashing and database lookup.
+        This is Pattern A (industry standard): JWT access + opaque refresh.
 
         Args:
-            refresh_token: JWT refresh token string
+            refresh_token: Opaque refresh token string (not JWT)
 
         Returns:
-            New access token string
+            New JWT access token string
 
         Raises:
-            HTTPException: If refresh token invalid or revoked
+            HTTPException: If refresh token invalid, expired, or revoked
 
         Example:
             >>> service = AuthService(session)
             >>> new_access_token = await service.refresh_access_token(refresh_token)
         """
-        try:
-            # Decode and validate refresh token
-            token_jti = self.jwt_service.get_token_jti(refresh_token)
-            user_id = self.jwt_service.get_user_id_from_token(refresh_token)
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid refresh token: {str(e)}",
-            )
-
-        # Check if refresh token exists and is valid
+        # Get all active (non-revoked) refresh tokens
         result = await self.session.execute(
-            select(RefreshToken).where(
-                RefreshToken.id == token_jti,
-                RefreshToken.user_id == user_id,
-                RefreshToken.revoked_at.is_(None),
-            )
+            select(RefreshToken).where(RefreshToken.revoked_at.is_(None))
         )
-        refresh_token_record = result.scalar_one_or_none()
+        refresh_tokens = result.scalars().all()
+
+        # Find matching token by comparing hashes (secure validation)
+        refresh_token_record = None
+        for token_record in refresh_tokens:
+            if self.password_service.verify_password(
+                refresh_token, token_record.token_hash
+            ):
+                refresh_token_record = token_record
+                break
 
         if not refresh_token_record:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token not found or revoked",
+                detail="Invalid or revoked refresh token",
             )
 
         # Check if token expired
@@ -357,7 +359,9 @@ class AuthService:
             )
 
         # Get user
-        result = await self.session.execute(select(User).where(User.id == user_id))
+        result = await self.session.execute(
+            select(User).where(User.id == refresh_token_record.user_id)
+        )
         user = result.scalar_one_or_none()
 
         if not user or not user.is_active:
@@ -366,7 +370,7 @@ class AuthService:
                 detail="User not found or inactive",
             )
 
-        # Generate new access token
+        # Generate new JWT access token
         access_token = self.jwt_service.create_access_token(
             user_id=user.id, email=user.email
         )
@@ -375,13 +379,14 @@ class AuthService:
         return access_token
 
     async def logout(self, refresh_token: str) -> None:
-        """Logout user by revoking refresh token.
+        """Logout user by revoking opaque refresh token.
 
-        Marks the refresh token as revoked so it cannot be used again.
-        Access tokens remain valid until expiration (stateless).
+        Validates the opaque refresh token by hashing and database lookup,
+        then marks it as revoked. Access tokens remain valid until expiration.
+        This is Pattern A (industry standard): JWT access + opaque refresh.
 
         Args:
-            refresh_token: JWT refresh token string
+            refresh_token: Opaque refresh token string (not JWT)
 
         Raises:
             HTTPException: If refresh token invalid
@@ -390,28 +395,32 @@ class AuthService:
             >>> service = AuthService(session)
             >>> await service.logout(refresh_token)
         """
-        try:
-            token_jti = self.jwt_service.get_token_jti(refresh_token)
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid refresh token: {str(e)}",
-            )
-
-        # Find and revoke refresh token
+        # Get all active (non-revoked) refresh tokens
         result = await self.session.execute(
-            select(RefreshToken).where(
-                RefreshToken.id == token_jti, RefreshToken.revoked_at.is_(None)
-            )
+            select(RefreshToken).where(RefreshToken.revoked_at.is_(None))
         )
-        refresh_token_record = result.scalar_one_or_none()
+        refresh_tokens = result.scalars().all()
+
+        # Find matching token by comparing hashes (secure validation)
+        refresh_token_record = None
+        for token_record in refresh_tokens:
+            if self.password_service.verify_password(
+                refresh_token, token_record.token_hash
+            ):
+                refresh_token_record = token_record
+                break
 
         if refresh_token_record:
+            # Revoke the token
             refresh_token_record.revoked_at = datetime.now(timezone.utc)
+            refresh_token_record.is_revoked = True
             await self.session.commit()
-            logger.info(f"Refresh token revoked: {token_jti}")
+            logger.info(
+                f"Refresh token revoked for user: {refresh_token_record.user_id}"
+            )
         else:
-            logger.warning(f"Refresh token not found or already revoked: {token_jti}")
+            # Don't reveal if token doesn't exist (security best practice)
+            logger.warning("Logout attempted with invalid or already revoked token")
 
     async def request_password_reset(self, email: str) -> None:
         """Request password reset by sending reset email.
@@ -439,13 +448,13 @@ class AuthService:
             logger.info(f"Password reset requested for inactive user: {email}")
             return
 
-        # Generate reset token
-        reset_token = await self._create_password_reset_token(user.id)
+        # Generate reset token (returns plain token and hashed record)
+        plain_token, reset_token = await self._create_password_reset_token(user.id)
 
-        # Send password reset email
+        # Send password reset email with plain token
         try:
             await self.email_service.send_password_reset_email(
-                to_email=email, reset_token=reset_token.token, user_name=user.name
+                to_email=email, reset_token=plain_token, user_name=user.name
             )
             logger.info(f"Password reset email sent to {email}")
         except Exception as e:
@@ -476,13 +485,18 @@ class AuthService:
             ...     new_password="NewSecurePass123!"
             ... )
         """
-        # Find reset token
+        # Get all unused reset tokens for potential match
         result = await self.session.execute(
-            select(PasswordResetToken).where(
-                PasswordResetToken.token == token, PasswordResetToken.used_at.is_(None)
-            )
+            select(PasswordResetToken).where(PasswordResetToken.used_at.is_(None))
         )
-        reset_token = result.scalar_one_or_none()
+        reset_tokens = result.scalars().all()
+
+        # Find matching token by comparing hashes
+        reset_token = None
+        for token_record in reset_tokens:
+            if self.password_service.verify_password(token, token_record.token_hash):
+                reset_token = token_record
+                break
 
         if not reset_token:
             raise HTTPException(
@@ -675,69 +689,102 @@ class AuthService:
 
     # Private helper methods
 
-    async def _create_verification_token(self, user_id: UUID) -> EmailVerificationToken:
+    async def _create_verification_token(
+        self, user_id: UUID
+    ) -> tuple[str, EmailVerificationToken]:
         """Create email verification token for user.
 
         Args:
             user_id: User's unique identifier
 
         Returns:
-            Created verification token instance
+            Tuple of (plain_token, token_record)
+            - plain_token: Plain text token to send in email
+            - token_record: Database record with hashed token
         """
-        token = secrets.token_urlsafe(32)
+        # Generate plain token
+        plain_token = secrets.token_urlsafe(32)
+
+        # Hash token for storage (security best practice)
+        token_hash = self.password_service.hash_password(plain_token)
+
         expires_at = datetime.now(timezone.utc) + timedelta(
             hours=self.settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS
         )
 
         verification_token = EmailVerificationToken(
-            user_id=user_id, token=token, expires_at=expires_at
+            user_id=user_id, token_hash=token_hash, expires_at=expires_at
         )
 
         self.session.add(verification_token)
         await self.session.flush()
 
-        return verification_token
+        return plain_token, verification_token
 
-    async def _create_refresh_token(self, user_id: UUID) -> RefreshToken:
-        """Create refresh token for user.
+    async def _create_refresh_token(self, user_id: UUID) -> tuple[str, RefreshToken]:
+        """Create opaque refresh token for user (Industry Standard Pattern A).
+
+        Generates a random opaque token (not JWT), hashes it for storage,
+        and returns both the plain token and the database record.
+        This is the industry standard pattern used by Auth0, GitHub, etc.
 
         Args:
             user_id: User's unique identifier
 
         Returns:
-            Created refresh token instance
+            Tuple of (plain_token, token_record)
+            - plain_token: Opaque random token to return to client
+            - token_record: Database record with hashed token
         """
+        # Generate random opaque token (like email verification)
+        plain_token = secrets.token_urlsafe(32)
+
+        # Hash token for storage (security best practice)
+        token_hash = self.password_service.hash_password(plain_token)
+
         expires_at = datetime.now(timezone.utc) + timedelta(
             days=self.settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
 
-        refresh_token = RefreshToken(user_id=user_id, expires_at=expires_at)
+        # Create refresh token record with hash
+        refresh_token = RefreshToken(
+            user_id=user_id, token_hash=token_hash, expires_at=expires_at
+        )
 
         self.session.add(refresh_token)
         await self.session.flush()
         await self.session.refresh(refresh_token)
 
-        return refresh_token
+        return plain_token, refresh_token
 
-    async def _create_password_reset_token(self, user_id: UUID) -> PasswordResetToken:
+    async def _create_password_reset_token(
+        self, user_id: UUID
+    ) -> tuple[str, PasswordResetToken]:
         """Create password reset token for user.
 
         Args:
             user_id: User's unique identifier
 
         Returns:
-            Created reset token instance
+            Tuple of (plain_token, token_record)
+            - plain_token: Plain text token to send in email
+            - token_record: Database record with hashed token
         """
-        token = secrets.token_urlsafe(32)
+        # Generate plain token
+        plain_token = secrets.token_urlsafe(32)
+
+        # Hash token for storage (security best practice)
+        token_hash = self.password_service.hash_password(plain_token)
+
         expires_at = datetime.now(timezone.utc) + timedelta(
             hours=self.settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS
         )
 
         reset_token = PasswordResetToken(
-            user_id=user_id, token=token, expires_at=expires_at
+            user_id=user_id, token_hash=token_hash, expires_at=expires_at
         )
 
         self.session.add(reset_token)
         await self.session.flush()
 
-        return reset_token
+        return plain_token, reset_token

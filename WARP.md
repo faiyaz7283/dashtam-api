@@ -65,23 +65,39 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Comprehensive documentation (token-rotation.md guide)
   - ✅ 8 unit tests for token rotation scenarios
   - ✅ All provider HTTP calls protected with timeouts (30s total, 10s connect)
-- ✅ **P1 JWT USER AUTHENTICATION - PHASE 2 COMPLETE** (October 2025)
-  - 📚 **Research Complete**: Comprehensive authentication approaches analysis (1,008 lines)
-  - 📚 **Implementation Guide Complete**: Phase-based implementation plan (1,520+ lines)
-  - 🎯 **Decision**: JWT + Refresh Tokens (industry standard, 95% fintech adoption)
-  - ✅ **Phase 2 Complete**: Core Services Implementation
+- ✅ **P1 JWT USER AUTHENTICATION COMPLETE** (October 2025)
+  - 📚 **Research Complete**: Comprehensive authentication approaches analysis
+  - 🎯 **Pattern A Implemented**: JWT Access + Opaque Refresh (Industry Standard)
+    - ✅ JWT access tokens (stateless, 30 min TTL)
+    - ✅ Opaque refresh tokens (stateful, hashed, 30 days TTL)
+    - ✅ Matches Auth0, GitHub, Google pattern (95% industry adoption)
+    - ✅ Security vulnerability fixed (proper token hash validation)
+  - ✅ **Core Services**: Complete & Production-Ready
     - ✅ PasswordService: bcrypt hashing with Python 3.13 compatibility (17 unit tests, 95% coverage)
-    - ✅ JWTService: Access & refresh tokens with validation (21 unit tests, 89% coverage)
+    - ✅ JWTService: JWT generation & validation (21 unit tests, 89% coverage)
     - ✅ EmailService: AWS SES integration with templates (20 unit tests, 95% coverage)
-    - ✅ AuthService: Complete auth flow (registration, login, password reset)
-    - ✅ Configuration: Added JWT, bcrypt, and email settings
-    - ✅ Documentation: async-vs-sync-patterns.md, uv-package-management.md
-    - ✅ **All 236 tests passing** (60 API + 60 integration + 176 unit tests)
-  - 🚧 **Phase 3 Next**: API Endpoints (registration, login, password reset, email verification)
-  - 📋 **Documentation**: `docs/research/authentication-approaches-research.md`
-  - 📋 **Implementation Guide**: `docs/development/guides/authentication-implementation.md`
-  - 📋 **Quick Reference**: `docs/development/guides/auth-quick-reference.md`
-- ✅ **Core infrastructure at 67% test coverage, production-ready foundation**
+    - ✅ AuthService: Complete auth flow with opaque refresh tokens
+  - ✅ **API Endpoints**: All Implemented
+    - ✅ Registration with email verification
+    - ✅ Email verification with hashed tokens
+    - ✅ Login with JWT + opaque refresh token
+    - ✅ Token refresh with hash validation
+    - ✅ Logout with token revocation
+    - ✅ Password reset flow (request + confirm)
+    - ✅ User profile management (GET/PATCH /auth/me)
+  - ✅ **Security Features**:
+    - ✅ All tokens hashed before storage (bcrypt)
+    - ✅ Email verification required for login
+    - ✅ Password complexity validation
+    - ✅ Account lockout after failed attempts
+    - ✅ Device & IP tracking
+  - ✅ **Test Coverage**: 265 tests passing, 71% code coverage
+  - ✅ **Documentation**: Comprehensive architecture guide
+    - ✅ JWT Authentication Architecture: `docs/development/architecture/jwt-authentication.md`
+    - ✅ Pattern A design rationale & security model
+    - ✅ Complete API endpoint documentation
+    - ✅ Database schema & implementation details
+- ✅ **Core infrastructure at 71% test coverage, production-ready foundation**
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
 - 📋 Overall coverage target: 85% (currently 68%)
@@ -899,12 +915,24 @@ docs/
 
 ### After Completing Each Phase
 
-**1. Verification & Validation** ✅
+**1. Development Environment Monitoring** 🔍
+- **CRITICAL**: Keep development environment running during active development: `make dev-up`
+- Monitor application logs in real-time: `make dev-logs`
+- Watch for import errors, missing dependencies, or runtime issues as you develop
+- Catch errors early by observing logs after creating/editing files
+- This prevents discovering issues only during final testing
+- Benefits:
+  - Immediate feedback on syntax/import errors
+  - Early detection of missing dependencies (e.g., email-validator)
+  - Real-time visibility into application behavior
+  - Faster debugging cycle
+
+**2. Verification & Validation** ✅
 - Verify everything works as designed
 - Identify and fix any bugs
 - Test all new functionality manually
 
-**2. Test Creation** 🧪
+**3. Test Creation** 🧪
 - Create comprehensive tests following `docs/development/testing/guide.md`
 - **Unit tests** for all new services/functions/classes (test in isolation)
 - **Integration tests** for ANY integrated services:
@@ -916,26 +944,26 @@ docs/
 - **API tests** for new HTTP endpoints (end-to-end)
 - Ensure test coverage meets project standards (85% target)
 
-**3. Run All Tests** 🏃
+**4. Run All Tests** 🏃
 - Run entire test suite: `make test`
 - Verify all tests pass (both new and existing)
 - Check test coverage: `make test-coverage`
 - Fix any broken tests immediately
 
-**4. Code Quality** 🎨
+**5. Code Quality** 🎨
 - Lint code: `make lint` (ruff check)
 - Format code: `make format` (ruff format)
 - Fix all linting errors and warnings
 - Ensure code follows project standards
 
-**5. Documentation Updates** 📚
+**6. Documentation Updates** 📚
 - Update all relevant documentation for completed work
 - Update WARP.md if project rules or context changed
 - Update implementation guides with completion status
 - Document any architectural decisions or patterns
 - Add inline code documentation where needed
 
-**6. Commit Changes** 💾
+**7. Commit Changes** 💾
 - Stage all changes: `git add .`
 - Write comprehensive commit message:
   ```
@@ -952,7 +980,7 @@ docs/
 
 ### Once All Work Complete
 
-**7. Pull Request Creation** 🔀
+**8. Pull Request Creation** 🔀
 - Create comprehensive pull request with:
   - Clear description of all changes
   - List of features implemented

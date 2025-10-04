@@ -275,13 +275,15 @@ class TokenService:
             encrypted_access = self.encryption.encrypt(new_tokens["access_token"])
 
             # Handle token rotation with improved detection and logging
-            encrypted_refresh = token.refresh_token_encrypted  # Keep existing by default
+            encrypted_refresh = (
+                token.refresh_token_encrypted
+            )  # Keep existing by default
             token_rotated = False
             rotation_type = "none"
 
             if new_tokens.get("refresh_token"):
                 new_refresh = new_tokens["refresh_token"]
-                
+
                 if new_refresh != refresh_token:
                     # Provider sent a NEW refresh token (rotation occurred)
                     encrypted_refresh = self.encryption.encrypt(new_refresh)

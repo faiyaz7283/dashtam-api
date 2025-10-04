@@ -591,16 +591,16 @@ class BaseProvider(ABC):
         IMPORTANT - Token Rotation Handling:
             This method MUST correctly handle token rotation by only including
             'refresh_token' in the response if the provider actually sends one.
-            
+
             Token rotation occurs when a provider sends a NEW refresh token
             during the refresh operation, invalidating the old one. This is a
             security best practice used by many OAuth2 providers.
-            
+
             Implementation Rules:
             1. If provider sends refresh_token → Include it in response
             2. If provider does NOT send refresh_token → Omit the key entirely
             3. NEVER default to the input refresh_token if not provided
-            
+
             The TokenService will automatically detect and handle rotation by
             comparing the new refresh_token (if present) with the stored one.
 
@@ -617,17 +617,17 @@ class BaseProvider(ABC):
                 "id_token": str,               # Optional: JWT ID token (OIDC)
                 "scope": str                   # Optional: Granted OAuth scopes
             }
-            
+
             Examples:
                 # Provider rotates refresh token (includes new one)
                 {"access_token": "new_abc", "refresh_token": "new_xyz", "expires_in": 3600}
-                
+
                 # Provider does NOT rotate (omits refresh_token)
                 {"access_token": "new_abc", "expires_in": 3600}
 
         Raises:
             AuthenticationError: If refresh fails.
-            
+
         Example Implementation:
             ```python
             async def refresh_authentication(self, refresh_token: str) -> Dict[str, Any]:
@@ -636,16 +636,16 @@ class BaseProvider(ABC):
                     data={"grant_type": "refresh_token", "refresh_token": refresh_token}
                 )
                 tokens = response.json()
-                
+
                 result = {
                     "access_token": tokens["access_token"],
                     "expires_in": tokens.get("expires_in", 3600),
                 }
-                
+
                 # Only include refresh_token if provider sent it
                 if "refresh_token" in tokens:
                     result["refresh_token"] = tokens["refresh_token"]
-                
+
                 return result
             ```
         """

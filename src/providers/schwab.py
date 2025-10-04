@@ -192,14 +192,14 @@ class SchwabProvider(BaseProvider):
                 "expires_in": tokens.get("expires_in", 1800),
                 "token_type": tokens.get("token_type", "Bearer"),
             }
-            
+
             # Only include refresh_token if Schwab actually sent one (rotation)
             if "refresh_token" in tokens:
                 result["refresh_token"] = tokens["refresh_token"]
                 logger.debug("Schwab sent new refresh token (rotation detected)")
             else:
                 logger.debug("Schwab did not send refresh token (no rotation)")
-            
+
             return result
 
     async def get_accounts(

@@ -349,9 +349,7 @@ class TestTokenRotationScenarios:
         # Check that session.add was called with ProviderAuditLog
         add_calls = mock_session.add.call_args_list
         audit_logs = [
-            call[0][0]
-            for call in add_calls
-            if isinstance(call[0][0], ProviderAuditLog)
+            call[0][0] for call in add_calls if isinstance(call[0][0], ProviderAuditLog)
         ]
 
         assert len(audit_logs) > 0
@@ -459,9 +457,7 @@ class TestTokenRotationEdgeCases:
         # Verify failure audit log was created
         add_calls = mock_session.add.call_args_list
         audit_logs = [
-            call[0][0]
-            for call in add_calls
-            if isinstance(call[0][0], ProviderAuditLog)
+            call[0][0] for call in add_calls if isinstance(call[0][0], ProviderAuditLog)
         ]
         assert len(audit_logs) > 0
         failure_log = audit_logs[-1]

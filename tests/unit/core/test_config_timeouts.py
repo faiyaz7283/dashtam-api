@@ -5,7 +5,6 @@ and that the get_http_timeout() method returns correct httpx.Timeout objects.
 """
 
 import httpx
-import pytest
 
 from src.core.config import Settings
 

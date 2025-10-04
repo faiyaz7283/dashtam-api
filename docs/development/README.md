@@ -10,8 +10,8 @@ Documentation for developers working on the Dashtam project.
 System design, database schema, and API architecture:
 
 - **[System Overview](architecture/overview.md)** - High-level architecture and design decisions
+- **[RESTful API Design](architecture/restful-api-design.md)** - Complete REST architecture guide
 - [Database Schema](architecture/) - Database models and relationships (to be documented)
-- [API Design](architecture/) - API design patterns and conventions (to be documented)
 
 ### Infrastructure
 Docker, environments, and CI/CD:
@@ -27,11 +27,19 @@ Testing strategy, guides, and best practices:
 - **[Testing Guide](testing/guide.md)** - Comprehensive guide for writing tests
 - **[Testing Migration](testing/migration.md)** - Migration from async to sync testing
 
+### Code Reviews
+Code quality reviews and compliance audits:
+
+- **[REST API Compliance Review](reviews/rest-api-compliance-review.md)** - Comprehensive REST compliance audit
+- **[REST Compliance Summary](reviews/rest-compliance-summary.md)** - Quick overview of REST issues
+
 ### Development Guides
 How-to guides for common development tasks:
 
 - **[Git Workflow Guide](guides/git-workflow.md)** - Complete Git Flow workflow with examples
 - **[Git Quick Reference](guides/git-quick-reference.md)** - One-page cheat sheet for Git operations
+- **[RESTful API Quick Reference](guides/restful-api-quick-reference.md)** - Quick guide for building REST APIs
+- **[JWT Auth Quick Reference](guides/jwt-auth-quick-reference.md)** - JWT authentication patterns and examples
 - [Adding Providers](guides/) - How to integrate new financial providers (to be documented)
 - [Database Migrations](guides/) - Managing database schema changes (to be documented)
 

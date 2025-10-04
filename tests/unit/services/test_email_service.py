@@ -233,7 +233,7 @@ class TestEmailService:
     def test_email_service_uses_correct_sender(self):
         """Test that email service uses configured sender from environment."""
         from src.core.config import get_settings
-        
+
         service = EmailService(development_mode=True)
         settings = get_settings()
 

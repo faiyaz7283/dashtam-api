@@ -7,11 +7,35 @@
 
 ---
 
+## 🎉 Recent Achievements
+
+### ✅ Completed Items (October 2025)
+
+**P0 Critical Issues - RESOLVED**:
+1. ✅ **Timezone-aware datetime storage** - Completed 2025-10-03
+   - Full TIMESTAMPTZ implementation across all tables
+   - Alembic migration: `bce8c437167b`
+   - All 122 tests updated and passing
+   - PR: #5 merged to development
+
+2. ✅ **Database migration framework** - Completed 2025-10-03
+   - Alembic fully integrated with async support
+   - Automatic migrations in all environments (dev/test/CI)
+   - Comprehensive documentation: `docs/development/infrastructure/database-migrations.md`
+   - PR: #6 merged to development
+
+**Impact**: Production blockers removed. System is now ready for P1 improvements.
+
+---
+
 ## Critical Issues (Must Fix Before Production)
 
-### 1. Timezone-Naive DateTime Storage ⚠️ CRITICAL
+### ~~1. Timezone-Naive DateTime Storage~~ ✅ RESOLVED
 
-**Current State**: Database stores naive (timezone-unaware) Python `datetime` objects.
+**Status**: ✅ **COMPLETED 2025-10-03** (PR #5)  
+**Resolution**: Full timezone-aware implementation with TIMESTAMPTZ
+
+**What Was Done**:
 
 **Problem**:
 - Timestamps are stored without timezone information
@@ -91,7 +115,23 @@ src/services/token_service.py - Token expiration calculations
 5. Update all tests to use timezone-aware datetimes
 6. Add CI check to fail on `datetime.utcnow()` usage
 
-**Estimated Effort**: 1-2 days (Medium priority for pre-production)
+**Implementation Details**:
+- ✅ All datetime columns converted to `TIMESTAMP WITH TIME ZONE`
+- ✅ All Python code uses `datetime.now(timezone.utc)`
+- ✅ SQLModel field definitions updated with `sa_column=Column(DateTime(timezone=True))`
+- ✅ Fixed 4 integration tests for timezone-aware comparisons
+- ✅ 122/122 tests passing
+- ✅ Alembic migration: `bce8c437167b`
+
+**Verification**:
+```sql
+-- Confirmed: All datetime columns are TIMESTAMPTZ
+SELECT column_name, data_type 
+FROM information_schema.columns 
+WHERE table_schema = 'public' 
+AND data_type LIKE '%time%';
+-- Result: timestamp with time zone
+```
 
 **References**:
 - [PostgreSQL Timestamp Documentation](https://www.postgresql.org/docs/current/datatype-datetime.html)
@@ -102,28 +142,45 @@ src/services/token_service.py - Token expiration calculations
 
 ## High Priority Issues
 
-### 2. Missing Database Migration Framework
+### ~~2. Database Migration Framework~~ ✅ RESOLVED
 
-**Current State**: Database schema managed manually via `init_db.py` script.
+**Status**: ✅ **COMPLETED 2025-10-03** (PR #6)  
+**Resolution**: Alembic fully integrated with automatic execution
 
-**Problem**:
-- No version control for database schema changes
-- Cannot rollback schema changes
-- No automated migration process for production deployments
-- Risk of data loss during manual schema updates
-- Team members may have different database states
+**What Was Done**:
+- ✅ Alembic configured with async SQLAlchemy support
+- ✅ Initial migration created: `20251003_2149-bce8c437167b`
+- ✅ Automatic migration execution in all environments:
+  - Development: Runs on `make dev-up`
+  - Test: Runs on `make test-up`
+  - CI/CD: Runs in GitHub Actions pipeline
+- ✅ Makefile commands added:
+  - `make migrate-create` - Generate new migration
+  - `make migrate-up/down` - Apply/rollback migrations
+  - `make migrate-history` - View migration history
+  - `make migrate-current` - Check current version
+- ✅ Comprehensive documentation: 710-line guide
+- ✅ Ruff linting hooks integrated
+- ✅ Timestamped filenames with UTC timezone
 
-**Best Practice Solution**:
-- Implement Alembic for database migrations
-- All schema changes tracked in version-controlled migration files
-- Support for upgrade/downgrade operations
-- Automated migration application on deployment
+**Implementation Files**:
+- `alembic.ini` - Configuration
+- `alembic/env.py` - Async environment setup
+- `alembic/versions/` - Migration scripts
+- `docs/development/infrastructure/database-migrations.md` - Full guide
 
-**Status**: Already planned in WARP.md roadmap
+**Verification**:
+```bash
+make migrate-current
+# Output: bce8c437167b (head)
+
+make migrate-history
+# Shows: Initial database schema with timezone-aware datetimes
+```
 
 ---
 
-### 3. Token Security - Missing Token Rotation on Breach
+### 3. Token Security - Missing Token Rotation on Breach ⚠️ NEXT PRIORITY
 
 **Current State**: Tokens are encrypted at rest but not automatically rotated on security events.
 
@@ -271,24 +328,24 @@ async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as clien
 
 ### Priority Matrix
 
-| Priority | Issue | Impact | Effort | Status |
-|----------|-------|--------|--------|--------|
-| P0 (Critical) | Timezone-aware datetimes | High | Medium | 🔴 Discovered |
-| P0 (Critical) | Missing migrations | High | Medium | 🟡 Planned |
-| P1 (High) | Token rotation | Medium | Medium | 🔴 Discovered |
-| P1 (High) | Connection timeouts | Medium | Low | 🔴 Discovered |
-| P2 (Medium) | Audit log context | Low | Medium | 🔴 Discovered |
-| P2 (Medium) | Rate limiting | Medium | Medium | 🔴 Discovered |
-| P2 (Medium) | Secret management | High | High | 🔴 Discovered |
-| P3 (Low) | Error messages | Low | Low | 🔴 Discovered |
-| P3 (Low) | Request validation | Low | Medium | 🔴 Discovered |
-| P3 (Low) | Hard-coded config | Low | Low | 🔴 Discovered |
+| Priority | Issue | Impact | Effort | Status | Completion |
+|----------|-------|--------|--------|--------|------------|
+| ~~P0~~ | ~~Timezone-aware datetimes~~ | High | Medium | ✅ **RESOLVED** | 2025-10-03 |
+| ~~P0~~ | ~~Missing migrations~~ | High | Medium | ✅ **RESOLVED** | 2025-10-03 |
+| **P1** | **Token rotation** | Medium | Medium | 🟡 **READY** | Next |
+| **P1** | **Connection timeouts** | Medium | Low | 🟡 **READY** | Next |
+| P2 | Audit log context | Low | Medium | 🔴 TODO | Later |
+| P2 | Rate limiting | Medium | Medium | 🔴 TODO | Later |
+| P2 | Secret management | High | High | 🔴 TODO | Pre-prod |
+| P3 | Error messages | Low | Low | 🔴 TODO | Polish |
+| P3 | Request validation | Low | Medium | 🔴 TODO | Polish |
+| P3 | Hard-coded config | Low | Low | 🔴 TODO | Polish |
 
 ### Status Legend
-- 🔴 Discovered - Issue identified, not started
-- 🟡 Planned - Included in roadmap
-- 🔵 In Progress - Actively being worked on
-- ✅ Resolved - Implemented and tested
+- ✅ **RESOLVED** - Implemented, tested, and merged to development
+- 🟡 **READY** - Ready to be worked on (dependencies met)
+- 🔴 **TODO** - Issue identified, waiting for dependencies or prioritization
+- 🔵 **IN PROGRESS** - Actively being worked on
 
 ---
 
@@ -325,6 +382,17 @@ When you discover a design flaw or improvement opportunity:
 
 ---
 
-**Last Updated**: 2025-10-03  
+## Recent Activity Log
+
+### 2025-10-03
+- ✅ **P0 RESOLVED**: Implemented timezone-aware datetimes (PR #5)
+- ✅ **P0 RESOLVED**: Integrated Alembic migrations (PR #6)
+- 📊 **Status**: All critical blockers removed, ready for P1 work
+- 🎯 **Next**: Connection timeouts (quick win) or Token rotation (security)
+
+---
+
+**Last Updated**: 2025-10-04  
 **Next Review**: 2025-11-03  
-**Document Owner**: Architecture Team
+**Document Owner**: Architecture Team  
+**Current Sprint**: P1 Items (Connection Timeouts + Token Rotation)

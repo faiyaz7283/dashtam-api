@@ -41,7 +41,7 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Token service unit tests (15 tests)
   - ✅ Token service integration tests (10 tests)
   - ✅ Enhanced encryption service tests (17 tests)
-  - ✅ **110 tests passing, 67% code coverage**
+  - ✅ **122 tests passing, 68% code coverage**
 - ✅ **PHASE 2 CI/CD COMPLETE**
   - ✅ GitHub Actions workflow configured and operational
   - ✅ Automated linting and code formatting checks
@@ -51,11 +51,19 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Coverage reporting to Codecov on all CI runs
   - ✅ Docker Compose v2 migration complete
   - ✅ All tests passing in CI pipeline
-- ✅ **Core infrastructure at 67% test coverage**
+- ✅ **P0 CRITICAL ITEMS COMPLETE** (October 2025)
+  - ✅ **Timezone-aware datetimes**: Full TIMESTAMPTZ implementation (PR #5)
+  - ✅ **Database migrations**: Alembic fully integrated with auto-execution (PR #6)
+  - ✅ All datetime columns use `TIMESTAMP WITH TIME ZONE`
+  - ✅ Alembic migration: `bce8c437167b` (Initial schema)
+  - ✅ Automatic migrations in dev/test/CI environments
+  - ✅ Comprehensive migration documentation (710 lines)
+  - ✅ Makefile commands: `migrate-create`, `migrate-up`, `migrate-down`, `migrate-history`
+- ✅ **Core infrastructure at 68% test coverage, production-ready foundation**
+- 🎯 **NEXT**: P1 items (Connection timeouts + Token rotation)
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
-- 📋 Schwab provider test coverage expansion (currently 30%, target 70%+)
-- 📋 Overall coverage target: 85% (currently 67%)
+- 📋 Overall coverage target: 85% (currently 68%)
 
 ## Architecture Rules
 
@@ -671,20 +679,39 @@ docs/
 11. ✅ Branch protection with status checks
 12. ✅ Health checks for all services
 13. ✅ Codecov integration with automated coverage reporting
-14. ✅ All tests passing (39 tests, 51% coverage)
+14. ✅ All tests passing (122 tests, 68% coverage)
+15. ✅ **P0: Timezone-aware datetimes** (PR #5, 2025-10-03)
+    - Full TIMESTAMPTZ implementation across all tables
+    - PCI-DSS compliance achieved
+    - All 4 failing integration tests fixed
+16. ✅ **P0: Database migrations with Alembic** (PR #6, 2025-10-03)
+    - Async SQLAlchemy support
+    - Automatic execution in all environments
+    - Initial migration: `bce8c437167b`
+    - Comprehensive documentation: `docs/development/infrastructure/database-migrations.md`
+    - Production-safe schema evolution
 
-**Pending:**
-1. Expand test coverage to 85%+ (Phase 2+ of TEST_COVERAGE_PLAN.md)
-   - Token service tests
-   - Auth endpoint tests
+**In Progress / Next Sprint:**
+1. **P1: Connection timeouts** (Quick win - 1 day)
+   - Add timeout handling to all httpx API calls
+   - Prevent hanging requests
+2. **P1: Token rotation mechanism** (Security - 3-4 days)
+   - Add token versioning
+   - Implement automatic rotation on security events
+   - Support breach response
+
+**Planned (P2/P3):**
+1. Expand test coverage to 85%+
    - Provider integration tests (Schwab)
    - Error handling and edge cases
-2. Implement Alembic for database migrations
-3. Implement API versioning strategy
-4. Add request/response caching
-5. Implement retry logic with exponential backoff
-6. Add metrics and monitoring (Prometheus/Grafana)
-7. SSL support for test environment (optional, for OAuth integration tests)
+2. Rate limiting (Redis-based)
+3. Secret management (Vault/AWS Secrets Manager)
+4. Repository pattern implementation
+5. Enhanced audit logging with request context
+6. API versioning strategy
+7. Request/response caching
+8. Retry logic with exponential backoff
+9. Metrics and monitoring (Prometheus/Grafana)
 
 ## Development Environment Setup
 

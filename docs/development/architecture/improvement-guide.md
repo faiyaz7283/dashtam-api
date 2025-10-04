@@ -24,7 +24,21 @@
    - Comprehensive documentation: `docs/development/infrastructure/database-migrations.md`
    - PR: #6 merged to development
 
-**Impact**: Production blockers removed. System is now ready for P1 improvements.
+**P1 High-Priority Issues - RESOLVED**:
+3. ✅ **HTTP connection timeouts** - Completed 2025-10-04
+   - HTTP timeout configuration in settings (30s total, 10s connect)
+   - Applied to all provider HTTP calls (Schwab)
+   - Comprehensive unit tests for timeout behavior
+   - PR: #7 merged to development
+
+4. ✅ **OAuth token rotation handling** - Completed 2025-10-04
+   - Fixed Schwab provider refresh token response handling
+   - Enhanced TokenService with rotation detection (3 scenarios)
+   - Comprehensive documentation: `docs/development/guides/token-rotation.md`
+   - 8 unit tests covering all rotation scenarios
+   - PR: #8 merged to development
+
+**Impact**: All P0 and P1 items resolved. System is production-ready from architecture perspective. Focus can now shift to P2 items for enhanced security and operational excellence.
 
 ---
 
@@ -180,7 +194,93 @@ make migrate-history
 
 ---
 
-### 3. Token Security - Missing Token Rotation on Breach ⚠️ NEXT PRIORITY
+### ~~3. HTTP Connection Timeout Handling~~ ✅ RESOLVED
+
+**Status**: ✅ **COMPLETED 2025-10-04** (PR #7)  
+**Resolution**: HTTP timeout configuration implemented across all provider API calls
+
+**What Was Done**:
+- ✅ Added HTTP timeout settings to core configuration:
+  - `HTTP_TIMEOUT_TOTAL`: 30 seconds (overall request timeout)
+  - `HTTP_TIMEOUT_CONNECT`: 10 seconds (connection establishment)
+  - `HTTP_TIMEOUT_READ`: 30 seconds (reading response data)
+  - `HTTP_TIMEOUT_POOL`: 5 seconds (acquiring connection from pool)
+- ✅ Helper method `get_http_timeout()` returns configured `httpx.Timeout` object
+- ✅ Applied to all Schwab provider HTTP calls (authenticate, refresh, accounts, transactions)
+- ✅ Configurable via environment variables for different environments
+- ✅ 5 unit tests validating timeout configuration and behavior
+- ✅ Documentation in code and docstrings
+
+**Implementation Files**:
+- `src/core/config.py` - Timeout configuration settings
+- `src/providers/schwab.py` - Applied to all HTTP calls
+- `tests/unit/core/test_config_timeouts.py` - Comprehensive tests
+
+**Verification**:
+```python
+# All httpx.AsyncClient calls now use timeouts
+async with httpx.AsyncClient(timeout=settings.get_http_timeout()) as client:
+    response = await client.post(url, ...)
+```
+
+**Benefits**:
+- Prevents indefinite hangs on slow/unresponsive APIs
+- Protects against connection pool exhaustion
+- Better user experience with predictable response times
+- Prevents resource exhaustion attacks
+
+---
+
+### ~~4. OAuth Token Rotation Logic~~ ✅ RESOLVED
+
+**Status**: ✅ **COMPLETED 2025-10-04** (PR #8)  
+**Resolution**: Universal token rotation detection implemented with comprehensive testing
+
+**What Was Done**:
+- ✅ Fixed Schwab provider to only include `refresh_token` if provider sends it
+- ✅ Enhanced TokenService with intelligent rotation detection:
+  - **Scenario 1**: Provider rotates token (sends new refresh_token)
+  - **Scenario 2**: No rotation (omits refresh_token key) - most common
+  - **Scenario 3**: Same token returned (edge case)
+- ✅ Improved logging for all rotation scenarios (INFO and DEBUG levels)
+- ✅ Updated audit logs to capture rotation details (`token_rotated`, `rotation_type`)
+- ✅ Comprehensive BaseProvider documentation with implementation examples
+- ✅ Complete implementation guide: `docs/development/guides/token-rotation.md` (469 lines)
+- ✅ 8 unit tests covering all rotation scenarios (511 lines)
+- ✅ Universal logic works for ANY OAuth provider (Schwab, Plaid, Chase, etc.)
+
+**Implementation Files**:
+- `src/providers/schwab.py` - Fixed refresh token response handling
+- `src/services/token_service.py` - Enhanced rotation detection and logging
+- `src/providers/base.py` - Detailed refresh_authentication() documentation
+- `docs/development/guides/token-rotation.md` - Complete implementation guide
+- `tests/unit/services/test_token_rotation.py` - 8 comprehensive tests
+
+**Verification**:
+```python
+# TokenService automatically detects rotation
+if new_tokens.get("refresh_token"):
+    if new_tokens["refresh_token"] != old_token:
+        # Rotation detected - encrypt and store new token
+        logger.info("Token rotation detected")
+    else:
+        # Same token returned
+        logger.debug("Same refresh token returned")
+else:
+    # No rotation - keep existing token
+    logger.debug("No refresh_token in response, keeping existing")
+```
+
+**Benefits**:
+- Correctly handles both rotating and non-rotating OAuth providers
+- Detailed audit trail of all token rotation events
+- Future-proof: works with any new provider without changes
+- Comprehensive documentation for implementing new providers
+- Enhanced security through proper token lifecycle management
+
+---
+
+### 5. Token Security - Missing Token Rotation on Breach ⚠️ NEXT PRIORITY
 
 **Current State**: Tokens are encrypted at rest but not automatically rotated on security events.
 
@@ -201,32 +301,10 @@ make migrate-history
 
 **Estimated Effort**: 3-4 days
 
----
-
-### 4. Missing Connection Timeout Handling
-
-**Current State**: HTTP requests to provider APIs have no explicit timeout configuration.
-
-**Problem**:
-- Requests may hang indefinitely
-- Can exhaust connection pools
-- Poor user experience with no feedback
-- Potential for resource exhaustion attacks
-
-**Best Practice Solution**:
-```python
-# Add to all httpx.AsyncClient calls
-async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
-    response = await client.get(url)
-```
-
-**Estimated Effort**: 1 day
-
----
 
 ## Medium Priority Issues
 
-### 5. Audit Log Lacks Request Context
+### 6. Audit Log Lacks Request Context
 
 **Current State**: Audit logs capture action, user_id, and basic details, but miss critical context.
 
@@ -247,7 +325,7 @@ async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as clien
 
 ---
 
-### 6. Missing Rate Limiting
+### 7. Missing Rate Limiting
 
 **Current State**: No rate limiting on API endpoints or provider calls.
 
@@ -267,7 +345,7 @@ async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as clien
 
 ---
 
-### 7. Environment-Specific Secrets in Version Control
+### 8. Environment-Specific Secrets in Version Control
 
 **Current State**: `.env.example` files contain example secrets, risk of actual secrets being committed.
 
@@ -290,7 +368,7 @@ async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as clien
 
 ## Low Priority (Quality of Life)
 
-### 8. Inconsistent Error Messages
+### 9. Inconsistent Error Messages
 
 **Current State**: Error messages vary in format and detail level.
 
@@ -302,7 +380,7 @@ async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as clien
 
 ---
 
-### 9. Missing Request Validation Schemas
+### 10. Missing Request Validation Schemas
 
 **Current State**: Some endpoints lack comprehensive input validation.
 
@@ -313,7 +391,7 @@ async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as clien
 
 ---
 
-### 10. Hard-Coded Configuration Values
+### 11. Hard-Coded Configuration Values
 
 **Current State**: Some configuration values are hard-coded in source files.
 
@@ -332,10 +410,11 @@ async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as clien
 |----------|-------|--------|--------|--------|------------|
 | ~~P0~~ | ~~Timezone-aware datetimes~~ | High | Medium | ✅ **RESOLVED** | 2025-10-03 |
 | ~~P0~~ | ~~Missing migrations~~ | High | Medium | ✅ **RESOLVED** | 2025-10-03 |
-| **P1** | **Token rotation** | Medium | Medium | 🟡 **READY** | Next |
-| **P1** | **Connection timeouts** | Medium | Low | 🟡 **READY** | Next |
+| ~~**P1**~~ | ~~**Connection timeouts**~~ | Medium | Low | ✅ **RESOLVED** | 2025-10-04 |
+| ~~**P1**~~ | ~~**Token rotation logic**~~ | Medium | Medium | ✅ **RESOLVED** | 2025-10-04 |
+| **P2** | **Token breach rotation** | Medium | Medium | 🟡 **READY** | Next |
+| **P2** | **Rate limiting** | Medium | Medium | 🟡 **READY** | Next |
 | P2 | Audit log context | Low | Medium | 🔴 TODO | Later |
-| P2 | Rate limiting | Medium | Medium | 🔴 TODO | Later |
 | P2 | Secret management | High | High | 🔴 TODO | Pre-prod |
 | P3 | Error messages | Low | Low | 🔴 TODO | Polish |
 | P3 | Request validation | Low | Medium | 🔴 TODO | Polish |
@@ -384,15 +463,20 @@ When you discover a design flaw or improvement opportunity:
 
 ## Recent Activity Log
 
+### 2025-10-04
+- ✅ **P1 RESOLVED**: Implemented HTTP connection timeouts (PR #7)
+- ✅ **P1 RESOLVED**: Implemented OAuth token rotation handling (PR #8)
+- 📊 **Status**: All P0 and P1 items complete! 135 tests passing, 69% coverage
+- 🎯 **Next**: Rate limiting (P2) or Token breach rotation (P2)
+
 ### 2025-10-03
 - ✅ **P0 RESOLVED**: Implemented timezone-aware datetimes (PR #5)
 - ✅ **P0 RESOLVED**: Integrated Alembic migrations (PR #6)
 - 📊 **Status**: All critical blockers removed, ready for P1 work
-- 🎯 **Next**: Connection timeouts (quick win) or Token rotation (security)
 
 ---
 
 **Last Updated**: 2025-10-04  
 **Next Review**: 2025-11-03  
 **Document Owner**: Architecture Team  
-**Current Sprint**: P1 Items (Connection Timeouts + Token Rotation)
+**Current Sprint**: P2 Items (Rate Limiting + Enhanced Security)

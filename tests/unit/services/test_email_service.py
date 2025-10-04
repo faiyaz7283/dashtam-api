@@ -231,11 +231,15 @@ class TestEmailService:
         assert result is True
 
     def test_email_service_uses_correct_sender(self):
-        """Test that email service uses configured sender."""
+        """Test that email service uses configured sender from environment."""
+        from src.core.config import get_settings
+        
         service = EmailService(development_mode=True)
+        settings = get_settings()
 
-        assert service.from_email == "noreply@dashtam.com"
-        assert service.from_name == "Dashtam"
+        # Check that service uses the configured values from settings
+        assert service.from_email == settings.SES_FROM_EMAIL
+        assert service.from_name == settings.SES_FROM_NAME
 
     @pytest.mark.asyncio
     async def test_fallback_to_dev_mode_on_aws_error(self):

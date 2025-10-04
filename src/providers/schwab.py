@@ -156,10 +156,22 @@ class SchwabProvider(BaseProvider):
             refresh_token: Valid refresh token from Schwab.
 
         Returns:
-            Dictionary with new access_token and updated tokens.
+            Dictionary with new access_token and optionally a new refresh_token.
+            Only includes refresh_token key if Schwab actually rotates it.
+            Format: {
+                "access_token": str,
+                "refresh_token": Optional[str],  # Only if rotated
+                "expires_in": int,
+                "token_type": str
+            }
 
         Raises:
             Exception: If refresh fails or token is invalid.
+
+        Note:
+            Schwab may or may not rotate refresh tokens. This method only
+            includes 'refresh_token' in the response if Schwab sends one,
+            allowing TokenService to detect rotation correctly.
         """
         async with httpx.AsyncClient(timeout=settings.get_http_timeout()) as client:
             response = await client.post(
@@ -174,12 +186,21 @@ class SchwabProvider(BaseProvider):
             tokens = response.json()
             logger.info("Successfully refreshed Schwab tokens")
 
-            return {
+            # Build response dict - only include refresh_token if provider sent it
+            result = {
                 "access_token": tokens["access_token"],
-                "refresh_token": tokens.get("refresh_token", refresh_token),
                 "expires_in": tokens.get("expires_in", 1800),
                 "token_type": tokens.get("token_type", "Bearer"),
             }
+            
+            # Only include refresh_token if Schwab actually sent one (rotation)
+            if "refresh_token" in tokens:
+                result["refresh_token"] = tokens["refresh_token"]
+                logger.debug("Schwab sent new refresh token (rotation detected)")
+            else:
+                logger.debug("Schwab did not send refresh token (no rotation)")
+            
+            return result
 
     async def get_accounts(
         self, provider_id: UUID, user_id: UUID, session: AsyncSession

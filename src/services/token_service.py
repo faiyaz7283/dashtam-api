@@ -271,20 +271,41 @@ class TokenService:
             # Call provider's refresh method
             new_tokens = await provider_impl.refresh_authentication(refresh_token)
 
-            # Encrypt new tokens
+            # Encrypt new access token
             encrypted_access = self.encryption.encrypt(new_tokens["access_token"])
 
-            # Handle token rotation - update refresh token if provider sends new one
-            encrypted_refresh = (
-                token.refresh_token_encrypted
-            )  # Keep existing by default
-            if (
-                new_tokens.get("refresh_token")
-                and new_tokens["refresh_token"] != refresh_token
-            ):
-                # Provider rotated the refresh token
-                encrypted_refresh = self.encryption.encrypt(new_tokens["refresh_token"])
-                logger.info(f"Refresh token rotated for {provider.alias}")
+            # Handle token rotation with improved detection and logging
+            encrypted_refresh = token.refresh_token_encrypted  # Keep existing by default
+            token_rotated = False
+            rotation_type = "none"
+
+            if new_tokens.get("refresh_token"):
+                new_refresh = new_tokens["refresh_token"]
+                
+                if new_refresh != refresh_token:
+                    # Provider sent a NEW refresh token (rotation occurred)
+                    encrypted_refresh = self.encryption.encrypt(new_refresh)
+                    token_rotated = True
+                    rotation_type = "rotated"
+                    logger.info(
+                        f"Token rotation detected for {provider.alias}: "
+                        f"Provider sent new refresh token"
+                    )
+                else:
+                    # Provider sent SAME refresh token (unusual but valid)
+                    # Keep existing encrypted version
+                    rotation_type = "same_token_returned"
+                    logger.debug(
+                        f"Provider {provider.alias} returned same refresh token "
+                        f"(no rotation)"
+                    )
+            else:
+                # Provider did NOT send refresh token (most common for no rotation)
+                rotation_type = "not_included"
+                logger.debug(
+                    f"Provider {provider.alias} did not include refresh_token in response "
+                    f"(no rotation, keeping existing token)"
+                )
 
             # Update token
             token.update_tokens(
@@ -299,7 +320,7 @@ class TokenService:
             connection.error_count = 0
             connection.error_message = None
 
-            # Create audit log
+            # Create audit log with rotation details
             audit_log = ProviderAuditLog(
                 connection_id=connection.id,
                 user_id=user_id,
@@ -308,7 +329,8 @@ class TokenService:
                     "provider_key": provider.provider_key,
                     "alias": provider.alias,
                     "refresh_count": token.refresh_count,
-                    "token_rotated": new_tokens.get("refresh_token") is not None,
+                    "token_rotated": token_rotated,
+                    "rotation_type": rotation_type,  # rotated, not_included, same_token_returned
                 },
             )
             self.session.add(audit_log)

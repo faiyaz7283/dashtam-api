@@ -59,8 +59,22 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ Automatic migrations in dev/test/CI environments
   - ✅ Comprehensive migration documentation (710 lines)
   - ✅ Makefile commands: `migrate-create`, `migrate-up`, `migrate-down`, `migrate-history`
+- ✅ **P1 HIGH-PRIORITY ITEMS COMPLETE** (October 2025)
+  - ✅ **HTTP connection timeouts**: Configurable timeouts for all provider API calls (PR #7)
+  - ✅ **OAuth token rotation**: Universal token rotation detection with 3 scenarios (PR #8)
+  - ✅ Comprehensive documentation (token-rotation.md guide)
+  - ✅ 8 unit tests for token rotation scenarios
+  - ✅ All provider HTTP calls protected with timeouts (30s total, 10s connect)
+- 🔥 **P1 NEXT PRIORITY: JWT User Authentication** (October 2025)
+  - 📚 **Research Complete**: Comprehensive authentication approaches analysis (1,008 lines)
+  - 📚 **Implementation Guide Complete**: Day-by-day plan with production code (1,520+ lines)
+  - 🎯 **Decision**: JWT + Refresh Tokens (industry standard, 95% fintech adoption)
+  - ⏱️ **Timeline**: 4-5 days implementation
+  - 🚫 **Blocks P2 Work**: Rate limiting, token breach rotation, audit context all require real auth
+  - 📋 **Documentation**: `docs/research/authentication-approaches-research.md`
+  - 📋 **Implementation Guide**: `docs/development/guides/authentication-implementation.md`
+  - 📋 **Quick Reference**: `docs/development/guides/auth-quick-reference.md`
 - ✅ **Core infrastructure at 68% test coverage, production-ready foundation**
-- 🎯 **NEXT**: P1 items (Connection timeouts + Token rotation)
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
 - 📋 Overall coverage target: 85% (currently 68%)

@@ -280,7 +280,128 @@ else:
 
 ---
 
-### 5. Token Security - Missing Token Rotation on Breach ⚠️ NEXT PRIORITY
+### 5. User Authentication System (JWT) 🔥 PRIORITY P1
+
+**Current State**: Using mock authentication that creates/returns a test user. No real authentication or authorization.
+
+**Problem**:
+- **Security Gap**: No real user authentication - anyone can access test user's data
+- **Architecture Lock-In**: More endpoints built = harder to retrofit auth later
+- **Blocks P2 Features**: Rate limiting, token breach rotation, and audit logs all require real auth
+- **Testing Limitation**: Cannot test multi-user scenarios or authorization
+- **Production Blocker**: Cannot onboard real users without authentication
+- **Compliance Risk**: Financial apps require provable user identity for audit trails
+- **Technical Debt**: 91 failing fixture tests need updates anyway - combine with auth migration
+
+**Affected Components**:
+```
+src/api/v1/auth.py         - Mock get_current_user() function
+src/models/user.py         - User model lacks authentication fields
+tests/*                    - All tests use mock authentication
+src/api/v1/providers.py    - Basic ownership check but no real auth
+```
+
+**Best Practice Solution**:
+
+**Implement JWT + Refresh Token Authentication (Industry Standard)**
+
+1. **Database Schema** (4 new tables):
+   - Extend `users` table: password_hash, email_verified, failed_login_attempts, locked_until
+   - New `refresh_tokens` table: token rotation, device tracking, revocation
+   - New `email_verification_tokens` table: one-time tokens, 24h expiry
+   - New `password_reset_tokens` table: one-time tokens, 15min expiry
+
+2. **Service Layer**:
+   ```python
+   # src/services/auth_service.py
+   class AuthService:
+       - register_user() - Create user with bcrypt password hash
+       - authenticate_user() - Verify credentials, track failed attempts
+       - create_access_token() - Generate JWT (30 min expiry)
+       - create_refresh_token() - Generate & store refresh token (30 days)
+       - verify_refresh_token() - Validate and rotate refresh tokens
+       - verify_email() - One-time email verification
+       - reset_password() - Secure password reset flow
+   ```
+
+3. **API Endpoints** (11 new endpoints):
+   ```python
+   POST /api/v1/auth/signup              # Create account + send verification
+   POST /api/v1/auth/login               # Get access + refresh tokens
+   POST /api/v1/auth/refresh             # Rotate tokens (refresh flow)
+   POST /api/v1/auth/logout              # Revoke refresh token
+   POST /api/v1/auth/verify-email        # Verify with token from email
+   POST /api/v1/auth/resend-verification # Resend verification email
+   POST /api/v1/auth/forgot-password     # Request reset token
+   POST /api/v1/auth/reset-password      # Reset with token from email
+   GET  /api/v1/auth/me                  # Get current user
+   PATCH /api/v1/auth/me                 # Update profile
+   POST /api/v1/auth/change-password     # Change password (authenticated)
+   ```
+
+4. **Security Features**:
+   - ✅ Bcrypt password hashing (12 rounds, ~300ms)
+   - ✅ Password complexity requirements (8+ chars, upper, lower, digit, special)
+   - ✅ Account lockout (10 failed attempts = 1 hour lock)
+   - ✅ Refresh token rotation (prevents replay attacks)
+   - ✅ JWT access tokens (30 min expiry, stateless)
+   - ✅ Email verification required
+   - ✅ Rate limiting on auth endpoints
+
+5. **Migration Strategy**:
+   ```python
+   # Update get_current_user() dependency
+   # Before (mock):
+   async def get_current_user() -> User:
+       return test_user  # Creates/returns test@example.com
+   
+   # After (JWT):
+   async def get_current_user(
+       credentials: HTTPAuthorizationCredentials = Depends(security)
+   ) -> User:
+       payload = jwt.decode(credentials.credentials, SECRET_KEY)
+       user = await get_user_by_id(payload["sub"])
+       return user
+   
+   # Update all 150+ tests to use authenticated client
+   # Fix 91 failing fixture tests simultaneously
+   ```
+
+**Why This is P1 (Must Do Before P2)**:
+1. **Unblocks P2**: Rate limiting REQUIRES knowing which user made request
+2. **Unblocks P2**: Token breach rotation REQUIRES knowing which user owns tokens
+3. **Unblocks P2**: Audit log context REQUIRES real user identity
+4. **Architecture**: Every day adds more endpoints assuming mock auth
+5. **Testing**: Fix fixtures + add auth = ONE migration effort (not two)
+6. **Product**: Cannot test with real users until auth exists
+7. **Compliance**: SOC 2 / PCI-DSS require strong user authentication
+
+**Implementation Timeline: 4-5 days**
+- Day 1: Database migrations + models (User, RefreshToken, etc.)
+- Day 2: AuthService implementation (password, tokens, validation)
+- Day 3: API endpoints (signup, login, refresh, logout)
+- Day 4: Email verification + password reset flows
+- Day 5: Test migration (update all tests, fix failing fixtures)
+
+**Documentation**:
+- 📚 Complete research: `docs/research/authentication-approaches-research.md`
+- 📚 Implementation guide: `docs/development/guides/authentication-implementation.md`
+- 📚 Comparison of 6 modern auth approaches (JWT, OAuth2, Passkeys, Magic Links, etc.)
+
+**Progressive Enhancement Path**:
+- **Phase 1 (Now)**: JWT email/password → Production-ready baseline
+- **Phase 2 (Q1 2026)**: Social auth (Google, Apple) → Better UX
+- **Phase 3 (Q2 2026)**: Passkeys (WebAuthn) → Passwordless future
+- **Phase 4 (Q3 2026)**: MFA (TOTP, SMS) → Enterprise security
+
+**Estimated Effort**: 4-5 days  
+**Estimated Impact**: 🔴 **CRITICAL** - Unblocks all P2 work, enables real users  
+**Status**: 🟡 **READY** - Research complete, implementation guide written  
+**Decision**: ✅ **APPROVED** - Prioritized as P1 (2025-10-04)
+
+---
+
+### 6. Token Security - Missing Token Rotation on Breach
 
 **Current State**: Tokens are encrypted at rest but not automatically rotated on security events.
 
@@ -412,8 +533,9 @@ else:
 | ~~P0~~ | ~~Missing migrations~~ | High | Medium | ✅ **RESOLVED** | 2025-10-03 |
 | ~~**P1**~~ | ~~**Connection timeouts**~~ | Medium | Low | ✅ **RESOLVED** | 2025-10-04 |
 | ~~**P1**~~ | ~~**Token rotation logic**~~ | Medium | Medium | ✅ **RESOLVED** | 2025-10-04 |
-| **P2** | **Token breach rotation** | Medium | Medium | 🟡 **READY** | Next |
-| **P2** | **Rate limiting** | Medium | Medium | 🟡 **READY** | Next |
+| **🔥 P1** | **JWT User Authentication** | **Critical** | **Medium** | **🟡 NEXT** | **Starting** |
+| **P2** | **Rate limiting** | Medium | Medium | ⏸️ **BLOCKED** | After Auth |
+| **P2** | **Token breach rotation** | Medium | Medium | ⏸️ **BLOCKED** | After Auth |
 | P2 | Audit log context | Low | Medium | 🔴 TODO | Later |
 | P2 | Secret management | High | High | 🔴 TODO | Pre-prod |
 | P3 | Error messages | Low | Low | 🔴 TODO | Polish |
@@ -422,7 +544,9 @@ else:
 
 ### Status Legend
 - ✅ **RESOLVED** - Implemented, tested, and merged to development
+- 🟡 **NEXT** - Next priority item, ready to start
 - 🟡 **READY** - Ready to be worked on (dependencies met)
+- ⏸️ **BLOCKED** - Waiting on dependencies (e.g., auth required for rate limiting)
 - 🔴 **TODO** - Issue identified, waiting for dependencies or prioritization
 - 🔵 **IN PROGRESS** - Actively being worked on
 
@@ -466,8 +590,10 @@ When you discover a design flaw or improvement opportunity:
 ### 2025-10-04
 - ✅ **P1 RESOLVED**: Implemented HTTP connection timeouts (PR #7)
 - ✅ **P1 RESOLVED**: Implemented OAuth token rotation handling (PR #8)
-- 📊 **Status**: All P0 and P1 items complete! 135 tests passing, 69% coverage
-- 🎯 **Next**: Rate limiting (P2) or Token breach rotation (P2)
+- 🔥 **P1 PRIORITIZED**: JWT User Authentication system (blocks P2 work)
+- 📚 **Documentation**: Created comprehensive auth research + implementation guide
+- 📊 **Status**: P0/P1 items complete. Auth promoted to P1 priority.
+- 🎯 **Next**: Implement JWT authentication (4-5 days), then P2 items
 
 ### 2025-10-03
 - ✅ **P0 RESOLVED**: Implemented timezone-aware datetimes (PR #5)

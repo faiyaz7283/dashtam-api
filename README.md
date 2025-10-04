@@ -4,26 +4,91 @@
 [![codecov](https://codecov.io/gh/faiyaz7283/Dashtam/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/Dashtam)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com)
+[![Code Coverage](https://img.shields.io/badge/coverage-68%25-yellow.svg)](https://codecov.io/gh/faiyaz7283/Dashtam)
 
 A secure, modern financial data aggregation platform that connects to multiple financial institutions through OAuth2, providing a unified API for accessing accounts, transactions, and financial data.
 
+> **Status**: Active Development | **Phase**: P1 Implementation (User Authentication) | **Test Coverage**: 68% (122 tests passing)
+
 ## 🚀 Features
 
-- **Multi-Provider Support**: Connect to multiple financial institutions (starting with Charles Schwab)
-- **OAuth2 Authentication**: Secure authentication with financial providers
-- **Encrypted Token Storage**: All OAuth tokens are encrypted at rest
-- **Async Architecture**: Built with FastAPI and async/await for high performance
-- **Type Safety**: Full typing with Pydantic and SQLModel
-- **Docker-First**: Containerized development and deployment
-- **HTTPS Everywhere**: SSL/TLS enabled by default for all services
-- **Audit Logging**: Comprehensive audit trail for all provider operations
+### Core Infrastructure
+- ✅ **Multi-Provider Support**: Connect to multiple financial institutions (Charles Schwab implemented)
+- ✅ **OAuth2 Authentication**: Secure authentication with financial providers
+- ✅ **Token Encryption**: All OAuth tokens encrypted at rest with AES-256
+- ✅ **Token Rotation**: Universal token rotation detection (supports rotating and non-rotating providers)
+- ✅ **HTTP Timeouts**: Configurable connection timeouts (prevents hanging requests)
+- ✅ **Async Architecture**: Built with FastAPI and async/await for high performance
+- ✅ **Type Safety**: Full typing with Pydantic v2 and SQLModel
+- ✅ **Docker-First**: Containerized development and deployment with parallel environments
+- ✅ **HTTPS Everywhere**: SSL/TLS enabled by default for all services
+- ✅ **Database Migrations**: Alembic integration with automatic migrations
+- ✅ **Timezone-Aware**: All datetimes use PostgreSQL TIMESTAMPTZ
+- ✅ **Audit Logging**: Comprehensive audit trail for all provider operations
+- ✅ **CI/CD Pipeline**: GitHub Actions with automated testing and code coverage
+- ✅ **Test Coverage**: 68% coverage with 122 passing tests
+
+### In Progress
+- 🔥 **User Authentication**: JWT + refresh tokens (research complete, ready for implementation)
+- 🚧 **Financial Data API**: Account and transaction endpoints
+- 🚧 **Rate Limiting**: API rate limiting and throttling
+- 🚧 **Additional Providers**: Plaid, Chase, Bank of America integrations
+
+## 🎉 Recent Accomplishments (October 2025)
+
+### P0 Critical Items ✅
+- **Timezone-Aware Datetimes** (PR #5): Full PostgreSQL TIMESTAMPTZ implementation
+- **Database Migrations** (PR #6): Alembic integration with automatic migrations in all environments
+
+### P1 High-Priority Items ✅
+- **HTTP Connection Timeouts** (PR #7): Configurable timeouts for all provider API calls
+- **OAuth Token Rotation** (PR #8): Universal token rotation detection supporting both rotating and non-rotating providers
+
+### Documentation & Planning 📚
+- **Authentication Research**: Comprehensive analysis of 6 modern auth approaches (1,008 lines)
+- **Implementation Guide**: Production-ready JWT implementation guide (1,520+ lines)
+- **Token Rotation Guide**: Complete documentation of OAuth token lifecycle management
+
+## 🗺️ Roadmap
+
+### Phase 1: User Authentication (Next - 4-5 days) 🔥
+- JWT + refresh token authentication
+- Email verification
+- Password reset flow
+- 11 new API endpoints
+- 65+ tests
+
+### Phase 2: Enhanced Security (2-3 weeks)
+- Rate limiting (Redis-based)
+- Token breach rotation
+- Audit log enhancements
+- Secret management
+
+### Phase 3: Financial Data API (1-2 months)
+- Account aggregation endpoints
+- Transaction history
+- Balance tracking
+- Real-time updates
+
+### Phase 4: Provider Expansion (2-3 months)
+- Plaid integration (broad bank support)
+- Chase direct integration
+- Bank of America integration
+- Additional brokerage providers
+
+### Phase 5: Advanced Authentication (3-6 months)
+- Social authentication (Google, Apple)
+- Passkeys / WebAuthn (passwordless)
+- Multi-factor authentication (TOTP, SMS)
+- Biometric support
 
 ## 📋 Prerequisites
 
-- Docker and Docker Compose
-- Python 3.13+ (for local development)
+- Docker and Docker Compose (v2.0+)
 - Make (for convenience commands)
-- OpenSSL (for certificate generation)
+- OpenSSL (for SSL certificate generation)
+
+> **Note**: All development happens in Docker containers. You do NOT need Python installed locally.
 
 ## 🛠️ Quick Start
 
@@ -68,8 +133,10 @@ make dev-up
 
 The development environment will be available at:
 - **Main API**: https://localhost:8000
+- **API Documentation**: https://localhost:8000/docs (Swagger UI)
+- **Alternative API Docs**: https://localhost:8000/redoc (ReDoc)
 - **OAuth Callback Server**: https://127.0.0.1:8182
-- **API Docs**: https://localhost:8000/docs
+- **Health Check**: https://localhost:8000/health
 
 ## 📦 Project Structure
 
@@ -161,9 +228,12 @@ make setup          # Run initial setup (certs + keys + env files)
 make status-all     # Check status of all environments
 make clean          # Clean up everything (all environments)
 
-# Database (dev environment)
-make migrate        # Run database migrations
-make migration      # Create new migration
+# Database Migrations (dev environment)
+make migrate-up        # Run pending migrations
+make migrate-down      # Rollback last migration
+make migrate-create    # Create new migration
+make migrate-history   # View migration history
+make migrate-current   # Show current migration version
 
 # Provider Authentication (dev environment)
 make auth-schwab    # Start Schwab OAuth flow
@@ -264,7 +334,9 @@ The project uses GitHub Actions for continuous integration:
 ### Workflow Status
 
 - ✅ **Code Quality**: Automated linting (ruff) and formatting checks
-- ⚠️ **Tests**: 56 passing, 91 failing (async fixture issues being addressed)
+- ✅ **Test Coverage**: 122 tests passing, 68% code coverage
+- ✅ **Branch Protection**: Development branch protected with required checks
+- ✅ **Coverage Reporting**: Codecov integration active
 
 ### Local CI Testing
 
@@ -287,12 +359,21 @@ The `development` branch is protected with:
 
 ## 🔐 Security
 
-- **HTTPS Only**: All services use SSL/TLS
-- **Encrypted Storage**: OAuth tokens are encrypted using AES-256
-- **Secure Keys**: Cryptographically secure key generation
-- **Token Rotation**: Automatic token refresh with rotation support
-- **Audit Trail**: All provider operations are logged
-- **Environment Isolation**: Separate dev, test, and CI environments
+### Current Security Features
+- ✅ **HTTPS Everywhere**: All services use SSL/TLS (self-signed in dev, proper certs in prod)
+- ✅ **Token Encryption**: OAuth tokens encrypted using AES-256 before storage
+- ✅ **Secure Key Generation**: Cryptographically secure key generation scripts
+- ✅ **Token Rotation**: Universal token rotation detection (rotating and non-rotating providers)
+- ✅ **HTTP Timeouts**: Configurable timeouts prevent hanging requests and DoS
+- ✅ **Audit Trail**: All provider operations logged with IP and user agent
+- ✅ **Environment Isolation**: Separate dev, test, and CI environments (no conflicts)
+- ✅ **Timezone-Aware Storage**: All timestamps use PostgreSQL TIMESTAMPTZ
+
+### Planned Security Enhancements
+- 🔥 **User Authentication**: JWT + refresh tokens (research complete, ready for implementation)
+- 🚧 **Rate Limiting**: API rate limiting and throttling
+- 🚧 **MFA**: Multi-factor authentication support
+- 🚧 **Passkeys**: WebAuthn/FIDO2 passwordless authentication
 
 ## 🌐 API Documentation
 
@@ -323,6 +404,13 @@ https://localhost:8000/api/v1
 - `POST /api/v1/auth/{provider_id}/refresh` - Manually refresh tokens
 - `GET /api/v1/auth/{provider_id}/status` - Get token status
 - `DELETE /api/v1/auth/{provider_id}/disconnect` - Disconnect provider
+
+#### User Authentication (Coming Soon)
+- `POST /api/v1/auth/signup` - Create new user account
+- `POST /api/v1/auth/login` - Login with email/password
+- `POST /api/v1/auth/refresh` - Refresh access token
+- `POST /api/v1/auth/logout` - Logout and revoke tokens
+- `GET /api/v1/auth/me` - Get current user profile
 
 #### Financial Data (Coming Soon)
 - `GET /api/v1/accounts` - Get all connected accounts

@@ -28,23 +28,23 @@ class TestTimezoneAwareDatetimes:
         assert user.created_at.tzinfo == timezone.utc
 
     def test_user_model_last_login_accepts_timezone_aware(self):
-        """Verify User model's last_login accepts timezone-aware datetime."""
+        """Verify User model's last_login_at accepts timezone-aware datetime."""
         now = datetime.now(timezone.utc)
-        user = User(email="test@example.com", name="Test User", last_login=now)
+        user = User(email="test@example.com", name="Test User", last_login_at=now)
 
-        assert user.last_login is not None
-        assert user.last_login.tzinfo is not None
-        assert user.last_login.tzinfo == timezone.utc
+        assert user.last_login_at is not None
+        assert user.last_login_at.tzinfo is not None
+        assert user.last_login_at.tzinfo == timezone.utc
 
     def test_user_model_converts_naive_datetime_to_aware(self):
         """Verify naive datetimes are converted to timezone-aware."""
         # Create naive datetime
         naive_dt = datetime(2025, 1, 1, 12, 0, 0)
-        user = User(email="test@example.com", name="Test User", last_login=naive_dt)
+        user = User(email="test@example.com", name="Test User", last_login_at=naive_dt)
 
         # Should be converted to timezone-aware UTC
-        assert user.last_login.tzinfo is not None
-        assert user.last_login.tzinfo == timezone.utc
+        assert user.last_login_at.tzinfo is not None
+        assert user.last_login_at.tzinfo == timezone.utc
 
     def test_provider_model_timestamps_are_timezone_aware(self):
         """Verify Provider model timestamps are timezone-aware."""
@@ -163,9 +163,9 @@ class TestTimezoneAwareDatetimes:
         pst = tz(timedelta(hours=-8))
         pst_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=pst)
 
-        user = User(email="test@example.com", name="Test User", last_login=pst_time)
+        user = User(email="test@example.com", name="Test User", last_login_at=pst_time)
 
         # Should be converted to UTC
-        assert user.last_login.tzinfo == timezone.utc
+        assert user.last_login_at.tzinfo == timezone.utc
         # Time should be adjusted (12:00 PST = 20:00 UTC)
-        assert user.last_login.hour == 20
+        assert user.last_login_at.hour == 20

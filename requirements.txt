@@ -27,3 +27,6 @@ pydantic-settings
 python-multipart
 python-dateutil
 pytz
+
+# AWS Services
+boto3

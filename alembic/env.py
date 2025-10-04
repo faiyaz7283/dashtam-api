@@ -19,6 +19,11 @@ from sqlmodel import SQLModel
 
 # Import all models so SQLModel can see them for autogenerate
 from src.models.user import User  # noqa: F401
+from src.models.auth import (  # noqa: F401
+    RefreshToken,
+    EmailVerificationToken,
+    PasswordResetToken,
+)
 from src.models.provider import (  # noqa: F401
     Provider,
     ProviderConnection,

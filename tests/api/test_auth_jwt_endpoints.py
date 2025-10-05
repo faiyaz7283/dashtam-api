@@ -237,42 +237,51 @@ class TestPasswordReset:
     def test_password_reset_request_success(
         self, client: TestClient, verified_user: User
     ):
-        """Test password reset request."""
+        """Test password reset request (POST /password-resets)."""
         response = client.post(
-            "/api/v1/auth/password-reset/request",
+            "/api/v1/password-resets",
             json={"email": verified_user.email},
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 202  # Accepted
         assert "email" in response.json()["message"].lower()
 
     def test_password_reset_request_nonexistent_email(self, client: TestClient):
         """Test password reset for non-existent email (should still return success)."""
         response = client.post(
-            "/api/v1/auth/password-reset/request",
+            "/api/v1/password-resets",
             json={"email": "nonexistent@example.com"},
         )
 
-        # Should still return 200 to prevent email enumeration
-        assert response.status_code == 200
+        # Should still return 202 to prevent email enumeration
+        assert response.status_code == 202
 
     def test_password_reset_confirm_invalid_token(self, client: TestClient):
-        """Test password reset with invalid token."""
-        response = client.post(
-            "/api/v1/auth/password-reset/confirm",
-            json={"token": "invalid_token", "new_password": "NewSecure123!"},
+        """Test password reset with invalid token (PATCH /password-resets/{token})."""
+        response = client.patch(
+            "/api/v1/password-resets/invalid_token",
+            json={"new_password": "NewSecure123!"},
         )
 
         assert response.status_code == 400
 
     def test_password_reset_confirm_weak_password(self, client: TestClient):
         """Test password reset with weak password."""
-        response = client.post(
-            "/api/v1/auth/password-reset/confirm",
-            json={"token": "some_token", "new_password": "weak"},
+        response = client.patch(
+            "/api/v1/password-resets/some_token",
+            json={"new_password": "weak"},
         )
 
         assert response.status_code == 422  # Validation error
+
+    def test_verify_password_reset_token_invalid(self, client: TestClient):
+        """Test verifying invalid password reset token (GET /password-resets/{token})."""
+        response = client.get("/api/v1/password-resets/invalid_token")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valid"] is False
+        assert data["email"] is None
 
 
 class TestUserProfile:
@@ -451,17 +460,17 @@ class TestSecurityFeatures:
     def test_email_enumeration_protection(self, client: TestClient):
         """Test that password reset doesn't reveal if email exists."""
         response1 = client.post(
-            "/api/v1/auth/password-reset/request",
+            "/api/v1/password-resets",
             json={"email": "exists@example.com"},
         )
 
         response2 = client.post(
-            "/api/v1/auth/password-reset/request",
+            "/api/v1/password-resets",
             json={"email": "doesnotexist@example.com"},
         )
 
-        # Both should return same response
-        assert response1.status_code == response2.status_code == 200
+        # Both should return same response (202 Accepted)
+        assert response1.status_code == response2.status_code == 202
         assert response1.json()["message"] == response2.json()["message"]
 
 

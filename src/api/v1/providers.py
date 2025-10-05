@@ -5,23 +5,33 @@ not provider types (catalog). Provider types are handled in provider_types.py.
 """
 
 import logging
-from typing import List
+from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from src.api.dependencies import get_current_user
+from src.api.v1.provider_authorization import router as authorization_router
 from src.core.database import get_session
-from src.models.user import User
 from src.models.provider import Provider, ProviderConnection
+from src.models.user import User
 from src.providers import ProviderRegistry
-from src.api.v1.auth import get_current_user
-from src.schemas.provider import CreateProviderRequest, ProviderResponse
+from src.schemas.common import MessageResponse, PaginatedResponse
+from src.schemas.provider import (
+    CreateProviderRequest,
+    ProviderResponse,
+    UpdateProviderRequest,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Include authorization sub-router for OAuth flow
+router.include_router(authorization_router, prefix="", tags=["provider-authorization"])
 
 
 @router.post("/", response_model=ProviderResponse, status_code=status.HTTP_201_CREATED)
@@ -100,21 +110,96 @@ async def create_provider_instance(
     )
 
 
-@router.get("/", response_model=List[ProviderResponse])
+@router.get("/", response_model=PaginatedResponse[ProviderResponse])
 async def list_user_providers(
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    per_page: int = Query(50, ge=1, le=100, description="Items per page"),
+    connection_status: Optional[str] = Query(
+        None, alias="status", description="Filter by connection status"
+    ),
+    provider_key: Optional[str] = Query(None, description="Filter by provider type"),
+    sort: str = Query("created_at", description="Sort field"),
+    order: str = Query("desc", description="Sort order (asc/desc)"),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
-    """Get all provider instances for the current user."""
+) -> PaginatedResponse[ProviderResponse]:
+    """Get all provider instances for the current user.
+
+    Supports pagination, filtering, and sorting:
+    - Pagination: page and per_page parameters
+    - Filtering: by status (e.g., 'active', 'pending') and provider_key (e.g., 'schwab')
+    - Sorting: by created_at, updated_at, alias, or provider_key (asc/desc)
+
+    Args:
+        page: Page number (1-indexed).
+        per_page: Number of items per page (max 100).
+        connection_status: Filter by connection status.
+        provider_key: Filter by provider type.
+        sort: Field to sort by.
+        order: Sort order (asc or desc).
+        current_user: Currently authenticated user.
+        session: Database session.
+
+    Returns:
+        Paginated list of provider instances with metadata.
+    """
     from sqlalchemy.orm import selectinload
 
-    result = await session.execute(
+    # Build base query
+    query = (
         select(Provider)
         .options(selectinload(Provider.connection))
         .where(Provider.user_id == current_user.id)
     )
+
+    # Build count query (before joins/filters for accurate total)
+    count_query = (
+        select(func.count())
+        .select_from(Provider)
+        .where(Provider.user_id == current_user.id)
+    )
+
+    # Apply filters
+    if connection_status:
+        # Join with connection to filter by status
+        query = query.join(Provider.connection).where(
+            ProviderConnection.status == connection_status
+        )
+        count_query = count_query.join(Provider.connection).where(
+            ProviderConnection.status == connection_status
+        )
+
+    if provider_key:
+        query = query.where(Provider.provider_key == provider_key)
+        count_query = count_query.where(Provider.provider_key == provider_key)
+
+    # Apply sorting
+    allowed_sort_fields = ["created_at", "updated_at", "alias", "provider_key"]
+    if sort not in allowed_sort_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot sort by '{sort}'. Allowed fields: {allowed_sort_fields}",
+        )
+
+    sort_column = getattr(Provider, sort)
+    if order.lower() == "desc":
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
+
+    # Get total count
+    result = await session.execute(count_query)
+    total = result.scalar() or 0
+
+    # Apply pagination
+    offset = (page - 1) * per_page
+    query = query.offset(offset).limit(per_page)
+
+    # Execute query
+    result = await session.execute(query)
     providers = result.scalars().all()
 
+    # Build response items
     responses = []
     for provider in providers:
         connection = provider.connection
@@ -137,7 +222,9 @@ async def list_user_providers(
             )
         )
 
-    return responses
+    return PaginatedResponse.create(
+        items=responses, total=total, page=page, per_page=per_page
+    )
 
 
 @router.get("/{provider_id}", response_model=ProviderResponse)
@@ -187,13 +274,125 @@ async def get_provider(
     )
 
 
-@router.delete("/{provider_id}")
+@router.patch("/{provider_id}", response_model=ProviderResponse)
+async def update_provider(
+    provider_id: UUID,
+    request: UpdateProviderRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> ProviderResponse:
+    """Update a provider instance (partial update).
+
+    Currently supports updating the alias (custom name) only.
+
+    Args:
+        provider_id: UUID of the provider instance to update.
+        request: Update data (alias).
+        current_user: Currently authenticated user.
+        session: Database session.
+
+    Returns:
+        Updated provider instance.
+
+    Raises:
+        HTTPException: 404 if provider not found, 403 if no access,
+                      409 if alias conflicts with existing provider.
+    """
+    from sqlalchemy.orm import selectinload
+
+    # Get provider with connection
+    result = await session.execute(
+        select(Provider)
+        .options(selectinload(Provider.connection))
+        .where(Provider.id == provider_id)
+    )
+    provider = result.scalar_one_or_none()
+
+    if not provider:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Provider not found"
+        )
+
+    if provider.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this provider",
+        )
+
+    # Check if new alias conflicts with another provider
+    if request.alias != provider.alias:
+        result = await session.execute(
+            select(Provider).where(
+                Provider.user_id == current_user.id,
+                Provider.alias == request.alias,
+                Provider.id != provider_id,
+            )
+        )
+        if result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"You already have a provider named '{request.alias}'",
+            )
+
+        # Update alias
+        old_alias = provider.alias
+        provider.alias = request.alias
+
+        try:
+            await session.commit()
+            await session.refresh(provider)
+
+            logger.info(
+                f"Updated provider alias from '{old_alias}' to '{request.alias}' "
+                f"for user {current_user.email}"
+            )
+        except Exception as e:
+            await session.rollback()
+            logger.error(f"Failed to update provider: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update provider: {str(e)}",
+            )
+
+    # Return updated provider
+    connection = provider.connection
+
+    return ProviderResponse(
+        id=provider.id,
+        provider_key=provider.provider_key,
+        alias=provider.alias,
+        status=connection.status.value if connection else "not_connected",
+        is_connected=provider.is_connected,
+        needs_reconnection=provider.needs_reconnection,
+        connected_at=connection.connected_at.isoformat()
+        if connection and connection.connected_at
+        else None,
+        last_sync_at=connection.last_sync_at.isoformat()
+        if connection and connection.last_sync_at
+        else None,
+        accounts_count=connection.accounts_count if connection else 0,
+    )
+
+
+@router.delete("/{provider_id}", response_model=MessageResponse)
 async def delete_provider(
     provider_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
-    """Delete a provider instance and all associated data."""
+) -> MessageResponse:
+    """Delete a provider instance and all associated data.
+
+    Args:
+        provider_id: UUID of the provider to delete.
+        current_user: Current authenticated user.
+        session: Database session.
+
+    Returns:
+        Success message.
+
+    Raises:
+        HTTPException: 404 if provider not found, 403 if forbidden, 500 on failure.
+    """
     from sqlmodel import select
 
     result = await session.execute(select(Provider).where(Provider.id == provider_id))
@@ -220,7 +419,9 @@ async def delete_provider(
             f"Deleted provider '{provider.alias}' for user {current_user.email}"
         )
 
-        return {"message": f"Provider '{provider.alias}' deleted successfully"}
+        return MessageResponse(
+            message=f"Provider '{provider.alias}' deleted successfully"
+        )
     except Exception as e:
         await session.rollback()
         logger.error(f"Failed to delete provider: {e}")

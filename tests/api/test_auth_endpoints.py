@@ -407,7 +407,8 @@ class TestGetCurrentUser:
         """Test that get_current_user creates a test user in development."""
         # The dependency is called for every request
         # Just verify it works by making any authenticated request
-        response = client.get("/api/v1/providers/available")
+        # Note: Using provider-types endpoint (public, no auth required)
+        response = client.get("/api/v1/provider-types")
 
         assert response.status_code == status.HTTP_200_OK
         # If this passes, get_current_user worked

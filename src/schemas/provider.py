@@ -84,6 +84,27 @@ class CreateProviderRequest(BaseModel):
     }
 
 
+class UpdateProviderRequest(BaseModel):
+    """Request to update a provider instance.
+
+    Used for partial updates (PATCH). Currently only alias can be updated.
+
+    Attributes:
+        alias: Updated custom name for this connection.
+    """
+
+    alias: str = Field(
+        ...,
+        description="Updated custom name for this connection",
+        min_length=1,
+        max_length=100,
+    )
+
+    model_config = {
+        "json_schema_extra": {"example": {"alias": "My Updated Schwab Account"}}
+    }
+
+
 class ProviderResponse(BaseModel):
     """Response for a provider instance.
 

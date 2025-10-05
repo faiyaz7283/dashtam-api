@@ -19,6 +19,12 @@ from src.models.user import User
 from src.models.provider import Provider
 from src.providers import ProviderRegistry
 from src.services.token_service import TokenService
+from src.schemas.common import (
+    AuthorizationUrlResponse,
+    MessageResponse,
+    OAuthCallbackResponse,
+    TokenStatusResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,16 +57,27 @@ async def get_current_user(session: AsyncSession = Depends(get_session)) -> User
     return user
 
 
-@router.get("/{provider_id}/authorize")
+@router.get("/{provider_id}/authorize", response_model=AuthorizationUrlResponse)
 async def get_authorization_url(
     provider_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> AuthorizationUrlResponse:
     """Get the OAuth authorization URL for a provider.
 
     Returns the URL where the user should be redirected to
     authorize the provider connection.
+
+    Args:
+        provider_id: UUID of the provider to authorize.
+        current_user: Current authenticated user.
+        session: Database session.
+
+    Returns:
+        Authorization URL and message.
+
+    Raises:
+        HTTPException: 404 if provider not found, 403 if forbidden.
     """
     # Get provider
     from sqlmodel import select
@@ -91,10 +108,10 @@ async def get_authorization_url(
 
     logger.info(f"Generated auth URL for provider {provider.alias}")
 
-    return {
-        "auth_url": auth_url,
-        "message": f"Visit this URL to authorize {provider.alias}",
-    }
+    return AuthorizationUrlResponse(
+        auth_url=auth_url,
+        message=f"Visit this URL to authorize {provider.alias}",
+    )
 
 
 @router.get("/{provider_id}/authorize/redirect")
@@ -107,15 +124,23 @@ async def redirect_to_authorization(
 
     This endpoint directly redirects the user to the provider's
     authorization page instead of returning the URL.
+
+    Args:
+        provider_id: UUID of the provider to authorize.
+        current_user: Current authenticated user.
+        session: Database session.
+
+    Returns:
+        Redirect response to OAuth authorization page.
     """
     # Get authorization URL
     result = await get_authorization_url(provider_id, current_user, session)
 
     # Redirect to authorization page
-    return RedirectResponse(url=result["auth_url"])
+    return RedirectResponse(url=result.auth_url)
 
 
-@router.get("/{provider_id}/callback")
+@router.get("/{provider_id}/callback", response_model=OAuthCallbackResponse)
 async def handle_oauth_callback(
     provider_id: UUID,
     code: Optional[str] = Query(None),
@@ -124,11 +149,26 @@ async def handle_oauth_callback(
     request: Request = None,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> OAuthCallbackResponse:
     """Handle OAuth callback from provider.
 
     This endpoint receives the authorization code from the provider
     and exchanges it for access tokens.
+
+    Args:
+        provider_id: UUID of the provider.
+        code: Authorization code from OAuth provider.
+        error: Error message from OAuth provider (if any).
+        state: State parameter for CSRF protection.
+        request: HTTP request for audit logging.
+        current_user: Current authenticated user.
+        session: Database session.
+
+    Returns:
+        OAuth callback success response with connection details.
+
+    Raises:
+        HTTPException: Various errors during OAuth flow.
     """
     # Handle OAuth errors
     if error:
@@ -213,25 +253,36 @@ async def handle_oauth_callback(
         f"Successfully connected provider {provider.alias} for user {current_user.email}"
     )
 
-    return {
-        "message": f"Successfully connected {provider.alias}!",
-        "provider_id": provider.id,
-        "alias": provider.alias,
-        "expires_in": tokens.get("expires_in"),
-        "scope": tokens.get("scope"),
-    }
+    return OAuthCallbackResponse(
+        message=f"Successfully connected {provider.alias}!",
+        provider_id=str(provider.id),
+        alias=provider.alias,
+        expires_in=tokens.get("expires_in"),
+        scope=tokens.get("scope"),
+    )
 
 
-@router.post("/{provider_id}/refresh")
+@router.post("/{provider_id}/refresh", response_model=MessageResponse)
 async def refresh_provider_tokens(
     provider_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> MessageResponse:
     """Manually refresh tokens for a provider.
 
     This endpoint forces a token refresh even if the current
     token hasn't expired yet.
+
+    Args:
+        provider_id: UUID of the provider.
+        current_user: Current authenticated user.
+        session: Database session.
+
+    Returns:
+        Success message.
+
+    Raises:
+        HTTPException: 404 if provider not found, 403 if forbidden, 500 on failure.
     """
     # Get provider
     from sqlmodel import select
@@ -269,19 +320,32 @@ async def refresh_provider_tokens(
 
     logger.info(f"Refreshed tokens for provider {provider.alias}")
 
-    return {"message": f"Tokens refreshed successfully for {provider.alias}"}
+    return MessageResponse(
+        message=f"Tokens refreshed successfully for {provider.alias}"
+    )
 
 
-@router.get("/{provider_id}/status")
+@router.get("/{provider_id}/status", response_model=TokenStatusResponse)
 async def get_token_status(
     provider_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> TokenStatusResponse:
     """Get the current token status for a provider.
 
     Returns information about the stored tokens without
     exposing the actual token values.
+
+    Args:
+        provider_id: UUID of the provider.
+        current_user: Current authenticated user.
+        session: Database session.
+
+    Returns:
+        Token status information.
+
+    Raises:
+        HTTPException: 404 if provider not found, 403 if forbidden.
     """
     # Get provider
     from sqlmodel import select
@@ -305,32 +369,48 @@ async def get_token_status(
     token_info = await token_service.get_token_info(provider_id=provider.id)
 
     if not token_info:
-        return {
-            "provider_id": provider.id,
-            "alias": provider.alias,
-            "status": "not_connected",
-            "message": "No tokens found. Please authorize the provider first.",
-        }
+        return TokenStatusResponse(
+            provider_id=str(provider.id),
+            alias=provider.alias,
+            status="not_connected",
+            message="No tokens found. Please authorize the provider first.",
+        )
 
-    return {
-        "provider_id": provider.id,
-        "alias": provider.alias,
-        "status": "connected",
-        **token_info,
-    }
+    return TokenStatusResponse(
+        provider_id=str(provider.id),
+        alias=provider.alias,
+        status="connected",
+        has_access_token=token_info.get("has_access_token"),
+        has_refresh_token=token_info.get("has_refresh_token"),
+        expires_at=token_info.get("expires_at"),
+        created_at=token_info.get("created_at"),
+        updated_at=token_info.get("updated_at"),
+    )
 
 
-@router.delete("/{provider_id}/disconnect")
+@router.delete("/{provider_id}/disconnect", response_model=MessageResponse)
 async def disconnect_provider(
     provider_id: UUID,
     request: Request = None,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> MessageResponse:
     """Disconnect a provider by revoking its tokens.
 
     This removes the stored tokens but keeps the provider
     instance for potential reconnection.
+
+    Args:
+        provider_id: UUID of the provider.
+        request: HTTP request for audit logging.
+        current_user: Current authenticated user.
+        session: Database session.
+
+    Returns:
+        Success message.
+
+    Raises:
+        HTTPException: 404 if provider not found, 403 if forbidden, 500 on failure.
     """
     # Get provider
     from sqlmodel import select
@@ -376,4 +456,4 @@ async def disconnect_provider(
 
     logger.info(f"Disconnected provider {provider.alias} for user {current_user.email}")
 
-    return {"message": f"Successfully disconnected {provider.alias}"}
+    return MessageResponse(message=f"Successfully disconnected {provider.alias}")

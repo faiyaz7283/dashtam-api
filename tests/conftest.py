@@ -188,6 +188,76 @@ def client(db: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(scope="session")
+def client_no_auth(db: Session) -> Generator[TestClient, None, None]:
+    """FastAPI TestClient without authentication override.
+
+    Used for testing public endpoints that don't require authentication,
+    such as provider type catalog endpoints.
+
+    This client has the database override but NOT the authentication override,
+    allowing tests to verify that endpoints are truly public.
+    """
+    from src.core.database import get_session
+
+    # Create wrapper class to handle async-to-sync conversion
+    class AsyncToSyncWrapper:
+        """Wrapper to make sync Session work with async endpoints."""
+
+        def __init__(self, sync_session: Session):
+            self.session = sync_session
+
+        async def execute(self, *args, **kwargs):
+            """Wrap sync execute to be awaitable."""
+            return self.session.execute(*args, **kwargs)
+
+        async def commit(self):
+            """Wrap sync commit to be awaitable."""
+            return self.session.commit()
+
+        async def rollback(self):
+            """Wrap sync rollback to be awaitable."""
+            return self.session.rollback()
+
+        async def refresh(self, *args, **kwargs):
+            """Wrap sync refresh to be awaitable."""
+            return self.session.refresh(*args, **kwargs)
+
+        async def flush(self, *args, **kwargs):
+            """Wrap sync flush to be awaitable."""
+            return self.session.flush(*args, **kwargs)
+
+        def add(self, *args, **kwargs):
+            """Direct pass-through for add (not awaited)."""
+            return self.session.add(*args, **kwargs)
+
+        async def delete(self, *args, **kwargs):
+            """Wrap sync delete to be awaitable."""
+            return self.session.delete(*args, **kwargs)
+
+        async def close(self):
+            """Wrap close to be awaitable."""
+            pass  # Session lifecycle managed by fixture
+
+    # Override async database session with wrapped sync session
+    async def override_get_session():
+        """Provide wrapped synchronous session for async endpoints."""
+        wrapper = AsyncToSyncWrapper(db)
+        try:
+            yield wrapper
+        finally:
+            pass
+
+    # Apply ONLY database override, NOT authentication override
+    app.dependency_overrides[get_session] = override_get_session
+
+    with TestClient(app) as c:
+        yield c
+
+    # Clean up overrides after test module
+    app.dependency_overrides.clear()
+
+
 # ============================================================================
 # Test Data Fixtures
 # ============================================================================

@@ -1,15 +1,13 @@
 """Provider management API endpoints.
 
-This module handles CRUD operations for provider instances,
-including listing available providers, creating new instances,
-and managing existing connections.
+This module handles CRUD operations for provider instances (user's connections),
+not provider types (catalog). Provider types are handled in provider_types.py.
 """
 
 import logging
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -19,88 +17,14 @@ from src.models.user import User
 from src.models.provider import Provider, ProviderConnection
 from src.providers import ProviderRegistry
 from src.api.v1.auth import get_current_user
+from src.schemas.provider import CreateProviderRequest, ProviderResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-class ProviderTypeInfo(BaseModel):
-    """Information about an available provider type."""
-
-    key: str
-    name: str
-    provider_type: str
-    description: str
-    icon_url: Optional[str]
-    is_configured: bool
-    supported_features: List[str]
-
-
-class CreateProviderRequest(BaseModel):
-    """Request to create a new provider instance."""
-
-    provider_key: str = Field(..., description="Provider type key (e.g., 'schwab')")
-    alias: str = Field(..., description="User's custom name for this connection")
-
-
-class ProviderResponse(BaseModel):
-    """Response for a provider instance."""
-
-    id: UUID
-    provider_key: str
-    alias: str
-    status: str
-    is_connected: bool
-    needs_reconnection: bool
-    connected_at: Optional[str]
-    last_sync_at: Optional[str]
-    accounts_count: int
-
-
-@router.get("/available", response_model=List[ProviderTypeInfo])
-async def get_available_providers():
-    """Get list of all available provider types.
-
-    Returns information about which providers can be connected,
-    including whether they are properly configured.
-    """
-    providers = ProviderRegistry.get_available_providers()
-
-    return [
-        ProviderTypeInfo(
-            key=key,
-            name=info["name"],
-            provider_type=info["provider_type"],
-            description=info.get("description", ""),
-            icon_url=info.get("icon_url"),
-            is_configured=info["is_configured"],
-            supported_features=info.get("supported_features", []),
-        )
-        for key, info in providers.items()
-    ]
-
-
-@router.get("/configured", response_model=List[ProviderTypeInfo])
-async def get_configured_providers():
-    """Get list of providers that are properly configured and ready to use."""
-    providers = ProviderRegistry.get_configured_providers()
-
-    return [
-        ProviderTypeInfo(
-            key=key,
-            name=info["name"],
-            provider_type=info["provider_type"],
-            description=info.get("description", ""),
-            icon_url=info.get("icon_url"),
-            is_configured=True,
-            supported_features=info.get("supported_features", []),
-        )
-        for key, info in providers.items()
-    ]
-
-
-@router.post("/create", response_model=ProviderResponse)
+@router.post("/", response_model=ProviderResponse, status_code=status.HTTP_201_CREATED)
 async def create_provider_instance(
     request: CreateProviderRequest,
     current_user: User = Depends(get_current_user),

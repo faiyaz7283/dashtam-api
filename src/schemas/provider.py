@@ -4,6 +4,7 @@ This module contains request/response schemas for provider-related endpoints,
 including provider types, instances, connections, and status.
 """
 
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -126,6 +127,108 @@ class ProviderResponse(BaseModel):
                 "connected_at": "2025-10-04T20:00:00Z",
                 "last_sync_at": "2025-10-04T20:30:00Z",
                 "accounts_count": 3,
+            }
+        }
+    }
+
+
+class AuthorizationInitiateResponse(BaseModel):
+    """Response when initiating OAuth authorization flow.
+
+    Contains the authorization URL where the user should be redirected
+    to authorize the provider connection.
+
+    Attributes:
+        auth_url: URL to redirect user for OAuth authorization.
+        state: State parameter for CSRF protection (matches provider_id).
+        message: Instructions for the user.
+    """
+
+    auth_url: str = Field(..., description="OAuth authorization URL")
+    state: str = Field(..., description="State parameter for CSRF protection")
+    message: str = Field(..., description="Instructions for authorization")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "auth_url": "https://api.schwabapi.com/v1/oauth/authorize?client_id=...",
+                "state": "123e4567-e89b-12d3-a456-426614174000",
+                "message": "Visit the auth_url to authorize My Schwab Account",
+            }
+        }
+    }
+
+
+class AuthorizationStatusResponse(BaseModel):
+    """Response containing authorization/connection status.
+
+    Returns information about stored tokens without exposing actual token values.
+
+    Attributes:
+        provider_id: UUID of the provider instance.
+        alias: User's custom name for this provider.
+        status: Connection status (connected, not_connected).
+        message: Additional status information.
+        expires_at: ISO timestamp when access token expires (if connected).
+        has_refresh_token: Whether a refresh token is available (if connected).
+        scope: OAuth scopes granted (if connected).
+    """
+
+    provider_id: UUID = Field(..., description="Provider instance ID")
+    alias: str = Field(..., description="Provider alias")
+    status: str = Field(..., description="Connection status")
+    message: Optional[str] = Field(default=None, description="Status message")
+    expires_at: Optional[datetime] = Field(
+        default=None, description="Token expiration timestamp"
+    )
+    has_refresh_token: Optional[bool] = Field(
+        default=None, description="Whether refresh token available"
+    )
+    scope: Optional[str] = Field(default=None, description="OAuth scopes granted")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "provider_id": "123e4567-e89b-12d3-a456-426614174000",
+                "alias": "My Schwab Account",
+                "status": "connected",
+                "expires_at": "2025-10-04T21:00:00Z",
+                "has_refresh_token": True,
+                "scope": "read write",
+            }
+        }
+    }
+
+
+class AuthorizationCallbackResponse(BaseModel):
+    """Response after successful OAuth callback.
+
+    Returned after the authorization code has been exchanged for tokens.
+
+    Attributes:
+        message: Success message.
+        provider_id: UUID of the provider instance.
+        alias: User's custom name for this provider.
+        expires_in: Seconds until access token expires.
+        scope: OAuth scopes granted.
+    """
+
+    message: str = Field(..., description="Success message")
+    provider_id: UUID = Field(..., description="Provider instance ID")
+    alias: str = Field(..., description="Provider alias")
+    expires_in: Optional[int] = Field(
+        default=None, description="Token expiration in seconds"
+    )
+    scope: Optional[str] = Field(default=None, description="OAuth scopes granted")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "message": "Successfully connected My Schwab Account",
+                "provider_id": "123e4567-e89b-12d3-a456-426614174000",
+                "alias": "My Schwab Account",
+                "expires_in": 1800,
+                "scope": "read write",
             }
         }
     }

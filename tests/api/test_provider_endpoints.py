@@ -15,7 +15,9 @@ from src.models.user import User
 class TestProviderInstanceEndpoints:
     """Test suite for provider instance management."""
 
-    def test_create_provider_instance(self, client_with_mock_auth: TestClient, test_user: User):
+    def test_create_provider_instance(
+        self, client_with_mock_auth: TestClient, test_user: User
+    ):
         """Test creating a new provider instance."""
         payload = {"provider_key": "schwab", "alias": "My Schwab Account"}
 
@@ -60,7 +62,9 @@ class TestProviderInstanceEndpoints:
         assert response.status_code == status.HTTP_409_CONFLICT
         assert "already have a provider" in response.json()["detail"]
 
-    def test_list_user_providers(self, client_with_mock_auth: TestClient, test_user: User, db_session):
+    def test_list_user_providers(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
         """Test listing all providers for the current user."""
         # Create test providers
         providers = [
@@ -83,7 +87,9 @@ class TestProviderInstanceEndpoints:
         assert "Schwab 1" in aliases
         assert "Schwab 2" in aliases
 
-    def test_get_provider_by_id(self, client_with_mock_auth: TestClient, test_user: User, db_session):
+    def test_get_provider_by_id(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
         """Test getting a specific provider by ID."""
         # Create test provider
         provider = Provider(
@@ -109,7 +115,9 @@ class TestProviderInstanceEndpoints:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_delete_provider(self, client_with_mock_auth: TestClient, test_user: User, db_session):
+    def test_delete_provider(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
         """Test deleting a provider instance."""
         # Create test provider
         provider = Provider(
@@ -209,11 +217,15 @@ class TestProviderValidation:
     def test_create_provider_missing_fields(self, client_with_mock_auth: TestClient):
         """Test creating provider with missing required fields."""
         # Missing alias
-        response = client_with_mock_auth.post("/api/v1/providers", json={"provider_key": "schwab"})
+        response = client_with_mock_auth.post(
+            "/api/v1/providers", json={"provider_key": "schwab"}
+        )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         # Missing provider_key
-        response = client_with_mock_auth.post("/api/v1/providers", json={"alias": "Test"})
+        response = client_with_mock_auth.post(
+            "/api/v1/providers", json={"alias": "Test"}
+        )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_provider_invalid_json(self, client_with_mock_auth: TestClient):
@@ -248,7 +260,9 @@ class TestProviderResponseStructure:
         self, client_with_mock_auth: TestClient, test_provider_with_connection
     ):
         """Test that provider response includes all expected fields."""
-        response = client_with_mock_auth.get(f"/api/v1/providers/{test_provider_with_connection.id}")
+        response = client_with_mock_auth.get(
+            f"/api/v1/providers/{test_provider_with_connection.id}"
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -287,3 +301,134 @@ class TestProviderResponseStructure:
             assert "provider_key" in provider
             assert "alias" in provider
             assert "status" in provider
+
+
+class TestProviderUpdate:
+    """Test suite for PATCH /providers/{id} endpoint."""
+
+    def test_update_provider_alias(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
+        """Test successfully updating provider alias."""
+        # Create test provider
+        provider = Provider(
+            user_id=test_user.id, provider_key="schwab", alias="Original Name"
+        )
+        db_session.add(provider)
+        db_session.commit()
+        db_session.refresh(provider)
+
+        # Update alias
+        payload = {"alias": "Updated Name"}
+        response = client_with_mock_auth.patch(
+            f"/api/v1/providers/{provider.id}", json=payload
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data["alias"] == "Updated Name"
+        assert data["id"] == str(provider.id)
+        assert data["provider_key"] == "schwab"
+
+    def test_update_provider_same_alias(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
+        """Test updating provider with same alias (no-op)."""
+        # Create test provider
+        provider = Provider(
+            user_id=test_user.id, provider_key="schwab", alias="My Account"
+        )
+        db_session.add(provider)
+        db_session.commit()
+        db_session.refresh(provider)
+
+        # Update with same alias
+        payload = {"alias": "My Account"}
+        response = client_with_mock_auth.patch(
+            f"/api/v1/providers/{provider.id}", json=payload
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["alias"] == "My Account"
+
+    def test_update_provider_duplicate_alias(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
+        """Test updating provider with alias that already exists."""
+        # Create two providers
+        provider1 = Provider(
+            user_id=test_user.id, provider_key="schwab", alias="Account 1"
+        )
+        provider2 = Provider(
+            user_id=test_user.id, provider_key="schwab", alias="Account 2"
+        )
+        db_session.add(provider1)
+        db_session.add(provider2)
+        db_session.commit()
+
+        # Try to update provider2 with provider1's alias
+        payload = {"alias": "Account 1"}
+        response = client_with_mock_auth.patch(
+            f"/api/v1/providers/{provider2.id}", json=payload
+        )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert "already have a provider" in response.json()["detail"]
+
+    def test_update_provider_not_found(self, client_with_mock_auth: TestClient):
+        """Test updating non-existent provider returns 404."""
+        fake_uuid = "00000000-0000-0000-0000-000000000000"
+        payload = {"alias": "New Name"}
+        response = client_with_mock_auth.patch(
+            f"/api/v1/providers/{fake_uuid}", json=payload
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_update_provider_empty_alias(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
+        """Test updating provider with empty alias is rejected."""
+        # Create test provider
+        provider = Provider(
+            user_id=test_user.id, provider_key="schwab", alias="Original"
+        )
+        db_session.add(provider)
+        db_session.commit()
+
+        # Try to update with empty alias
+        payload = {"alias": ""}
+        response = client_with_mock_auth.patch(
+            f"/api/v1/providers/{provider.id}", json=payload
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+    def test_update_provider_missing_alias(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
+        """Test updating provider without alias field is rejected."""
+        # Create test provider
+        provider = Provider(
+            user_id=test_user.id, provider_key="schwab", alias="Original"
+        )
+        db_session.add(provider)
+        db_session.commit()
+
+        # Try to update with no payload
+        response = client_with_mock_auth.patch(
+            f"/api/v1/providers/{provider.id}", json={}
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+    def test_update_provider_invalid_uuid(self, client_with_mock_auth: TestClient):
+        """Test updating provider with invalid UUID format."""
+        payload = {"alias": "New Name"}
+        response = client_with_mock_auth.patch(
+            "/api/v1/providers/not-a-uuid", json=payload
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

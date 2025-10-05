@@ -264,6 +264,65 @@ class UpdateUserRequest(BaseModel):
     }
 
 
+class CreatePasswordResetRequest(BaseModel):
+    """Request to create a password reset (resource-oriented).
+
+    Attributes:
+        email: Email address to send reset link to.
+    """
+
+    email: EmailStr = Field(
+        ..., description="Email address to send password reset link"
+    )
+
+    model_config = {"json_schema_extra": {"example": {"email": "john.doe@example.com"}}}
+
+
+class VerifyResetTokenResponse(BaseModel):
+    """Response for password reset token verification.
+
+    Attributes:
+        valid: Whether the token is valid.
+        email: Email address associated with token (only if valid).
+        expires_at: Token expiration timestamp (only if valid).
+    """
+
+    valid: bool = Field(..., description="Whether the token is valid")
+    email: Optional[str] = Field(
+        default=None, description="Email address associated with token"
+    )
+    expires_at: Optional[str] = Field(
+        default=None, description="Token expiration timestamp (ISO 8601)"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "valid": True,
+                "email": "john.doe@example.com",
+                "expires_at": "2025-10-05T12:00:00Z",
+            }
+        }
+    }
+
+
+class CompletePasswordResetRequest(BaseModel):
+    """Request to complete password reset (resource-oriented).
+
+    Attributes:
+        new_password: New password meeting strength requirements.
+    """
+
+    new_password: str = Field(
+        ...,
+        description="New password (min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special)",
+        min_length=8,
+        max_length=128,
+    )
+
+    model_config = {"json_schema_extra": {"example": {"new_password": "NewSecure123!"}}}
+
+
 class MessageResponse(BaseModel):
     """Generic message response for auth operations.
 

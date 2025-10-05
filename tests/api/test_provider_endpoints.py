@@ -15,11 +15,11 @@ from src.models.user import User
 class TestProviderInstanceEndpoints:
     """Test suite for provider instance management."""
 
-    def test_create_provider_instance(self, client: TestClient, test_user: User):
+    def test_create_provider_instance(self, client_with_mock_auth: TestClient, test_user: User):
         """Test creating a new provider instance."""
         payload = {"provider_key": "schwab", "alias": "My Schwab Account"}
 
-        response = client.post("/api/v1/providers", json=payload)
+        response = client_with_mock_auth.post("/api/v1/providers", json=payload)
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
@@ -32,17 +32,17 @@ class TestProviderInstanceEndpoints:
         assert data["is_connected"] is False
         assert data["needs_reconnection"] is True
 
-    def test_create_provider_invalid_key(self, client: TestClient):
+    def test_create_provider_invalid_key(self, client_with_mock_auth: TestClient):
         """Test creating a provider with invalid provider_key."""
         payload = {"provider_key": "nonexistent_provider", "alias": "Test"}
 
-        response = client.post("/api/v1/providers", json=payload)
+        response = client_with_mock_auth.post("/api/v1/providers", json=payload)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "not available" in response.json()["detail"].lower()
 
     def test_create_provider_duplicate_alias(
-        self, client: TestClient, test_user: User, db_session
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
         """Test creating a provider with duplicate alias fails."""
         # Create first provider
@@ -55,12 +55,12 @@ class TestProviderInstanceEndpoints:
         # Try to create second with same alias
         payload = {"provider_key": "schwab", "alias": "My Account"}
 
-        response = client.post("/api/v1/providers", json=payload)
+        response = client_with_mock_auth.post("/api/v1/providers", json=payload)
 
         assert response.status_code == status.HTTP_409_CONFLICT
         assert "already have a provider" in response.json()["detail"]
 
-    def test_list_user_providers(self, client: TestClient, test_user: User, db_session):
+    def test_list_user_providers(self, client_with_mock_auth: TestClient, test_user: User, db_session):
         """Test listing all providers for the current user."""
         # Create test providers
         providers = [
@@ -71,7 +71,7 @@ class TestProviderInstanceEndpoints:
             db_session.add(provider)
         db_session.commit()
 
-        response = client.get("/api/v1/providers/")
+        response = client_with_mock_auth.get("/api/v1/providers/")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -83,7 +83,7 @@ class TestProviderInstanceEndpoints:
         assert "Schwab 1" in aliases
         assert "Schwab 2" in aliases
 
-    def test_get_provider_by_id(self, client: TestClient, test_user: User, db_session):
+    def test_get_provider_by_id(self, client_with_mock_auth: TestClient, test_user: User, db_session):
         """Test getting a specific provider by ID."""
         # Create test provider
         provider = Provider(
@@ -93,7 +93,7 @@ class TestProviderInstanceEndpoints:
         db_session.commit()
         db_session.refresh(provider)
 
-        response = client.get(f"/api/v1/providers/{provider.id}")
+        response = client_with_mock_auth.get(f"/api/v1/providers/{provider.id}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -102,14 +102,14 @@ class TestProviderInstanceEndpoints:
         assert data["alias"] == "Test Provider"
         assert data["provider_key"] == "schwab"
 
-    def test_get_provider_not_found(self, client: TestClient):
+    def test_get_provider_not_found(self, client_with_mock_auth: TestClient):
         """Test getting a non-existent provider returns 404."""
         fake_uuid = "00000000-0000-0000-0000-000000000000"
-        response = client.get(f"/api/v1/providers/{fake_uuid}")
+        response = client_with_mock_auth.get(f"/api/v1/providers/{fake_uuid}")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_delete_provider(self, client: TestClient, test_user: User, db_session):
+    def test_delete_provider(self, client_with_mock_auth: TestClient, test_user: User, db_session):
         """Test deleting a provider instance."""
         # Create test provider
         provider = Provider(
@@ -121,7 +121,7 @@ class TestProviderInstanceEndpoints:
 
         provider_id = provider.id
 
-        response = client.delete(f"/api/v1/providers/{provider_id}")
+        response = client_with_mock_auth.delete(f"/api/v1/providers/{provider_id}")
 
         assert response.status_code == status.HTTP_200_OK
         assert "deleted successfully" in response.json()["message"]
@@ -132,10 +132,10 @@ class TestProviderInstanceEndpoints:
         result = db_session.execute(select(Provider).where(Provider.id == provider_id))
         assert result.scalar_one_or_none() is None
 
-    def test_delete_provider_not_found(self, client: TestClient):
+    def test_delete_provider_not_found(self, client_with_mock_auth: TestClient):
         """Test deleting a non-existent provider returns 404."""
         fake_uuid = "00000000-0000-0000-0000-000000000000"
-        response = client.delete(f"/api/v1/providers/{fake_uuid}")
+        response = client_with_mock_auth.delete(f"/api/v1/providers/{fake_uuid}")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -144,7 +144,7 @@ class TestProviderConnectionStatus:
     """Test suite for provider connection status."""
 
     def test_provider_with_pending_connection(
-        self, client: TestClient, test_user: User, db_session
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
         """Test provider with pending connection shows correct status."""
         provider = Provider(
@@ -158,7 +158,7 @@ class TestProviderConnectionStatus:
         db_session.commit()
         db_session.refresh(provider)
 
-        response = client.get(f"/api/v1/providers/{provider.id}")
+        response = client_with_mock_auth.get(f"/api/v1/providers/{provider.id}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -168,12 +168,12 @@ class TestProviderConnectionStatus:
         # Note: needs_reconnection is derived from connection status in the response
 
     def test_provider_with_active_connection(
-        self, client: TestClient, test_provider_with_connection
+        self, client_with_mock_auth: TestClient, test_provider_with_connection
     ):
         """Test provider with active connection shows correct status."""
         provider = test_provider_with_connection
 
-        response = client.get(f"/api/v1/providers/{provider.id}")
+        response = client_with_mock_auth.get(f"/api/v1/providers/{provider.id}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -183,10 +183,10 @@ class TestProviderConnectionStatus:
         assert data["needs_reconnection"] is False
 
     def test_list_providers_includes_connection_info(
-        self, client: TestClient, test_provider_with_connection
+        self, client_with_mock_auth: TestClient, test_provider_with_connection
     ):
         """Test that listing providers includes connection information."""
-        response = client.get("/api/v1/providers/")
+        response = client_with_mock_auth.get("/api/v1/providers/")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -206,36 +206,36 @@ class TestProviderConnectionStatus:
 class TestProviderValidation:
     """Test suite for request validation."""
 
-    def test_create_provider_missing_fields(self, client: TestClient):
+    def test_create_provider_missing_fields(self, client_with_mock_auth: TestClient):
         """Test creating provider with missing required fields."""
         # Missing alias
-        response = client.post("/api/v1/providers", json={"provider_key": "schwab"})
+        response = client_with_mock_auth.post("/api/v1/providers", json={"provider_key": "schwab"})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         # Missing provider_key
-        response = client.post("/api/v1/providers", json={"alias": "Test"})
+        response = client_with_mock_auth.post("/api/v1/providers", json={"alias": "Test"})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
-    def test_create_provider_invalid_json(self, client: TestClient):
+    def test_create_provider_invalid_json(self, client_with_mock_auth: TestClient):
         """Test creating provider with invalid JSON."""
-        response = client.post(
+        response = client_with_mock_auth.post(
             "/api/v1/providers",
             data="not valid json",
             headers={"Content-Type": "application/json"},
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
-    def test_get_provider_invalid_uuid(self, client: TestClient):
+    def test_get_provider_invalid_uuid(self, client_with_mock_auth: TestClient):
         """Test getting provider with invalid UUID format."""
-        response = client.get("/api/v1/providers/not-a-uuid")
+        response = client_with_mock_auth.get("/api/v1/providers/not-a-uuid")
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
-    def test_create_provider_empty_alias(self, client: TestClient):
+    def test_create_provider_empty_alias(self, client_with_mock_auth: TestClient):
         """Test creating provider with empty alias is rejected."""
         payload = {"provider_key": "schwab", "alias": ""}
 
-        response = client.post("/api/v1/providers", json=payload)
+        response = client_with_mock_auth.post("/api/v1/providers", json=payload)
 
         # Empty alias should be rejected by validation (min_length=1)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
@@ -245,10 +245,10 @@ class TestProviderResponseStructure:
     """Test suite for response structure validation."""
 
     def test_provider_response_has_all_fields(
-        self, client: TestClient, test_provider_with_connection
+        self, client_with_mock_auth: TestClient, test_provider_with_connection
     ):
         """Test that provider response includes all expected fields."""
-        response = client.get(f"/api/v1/providers/{test_provider_with_connection.id}")
+        response = client_with_mock_auth.get(f"/api/v1/providers/{test_provider_with_connection.id}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -271,9 +271,9 @@ class TestProviderResponseStructure:
         for field in optional_fields:
             assert field in data, f"Missing field: {field}"
 
-    def test_provider_list_response_structure(self, client: TestClient):
+    def test_provider_list_response_structure(self, client_with_mock_auth: TestClient):
         """Test that provider list returns correctly structured data."""
-        response = client.get("/api/v1/providers/")
+        response = client_with_mock_auth.get("/api/v1/providers/")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()

@@ -388,25 +388,119 @@ AWS_REGION=us-east-1  # Not used in CI (mocked)
 
 ## API Design Rules
 
+### REST API Compliance - CRITICAL REQUIREMENT
+
+**MANDATORY**: This project maintains **100% RESTful API compliance**. All API endpoints must strictly follow REST architectural principles without exception.
+
+**Current Status**: ✅ **10/10 REST Compliance Achieved** (verified 2025-10-05)
+
+**Comprehensive REST Guidelines**: See [RESTful API Design Architecture](/Users/faiyazhaider/Dashtam/docs/development/architecture/restful-api-design.md) for complete standards.
+
+#### Core REST Principles (Non-Negotiable)
+
+1. **Resource-Based URLs** ✅
+   - URLs MUST represent resources (nouns), NEVER actions (verbs)
+   - ✅ Correct: `POST /providers`, `PATCH /providers/{id}`
+   - ❌ Wrong: `/createProvider`, `/updateProvider`, `/getProviders`
+
+2. **Proper HTTP Methods** ✅
+   - GET: Retrieve resources (must be safe and idempotent)
+   - POST: Create new resources
+   - PATCH: Partial update of resources
+   - PUT: Complete replacement of resources
+   - DELETE: Remove resources
+   - ❌ NEVER use GET for operations with side effects
+
+3. **Stateless Design** ✅
+   - All requests self-contained
+   - JWT-based authentication (no server sessions)
+   - No client state stored on server
+
+4. **Standard HTTP Status Codes** ✅
+   - 200: Success (GET, PATCH, PUT)
+   - 201: Created (POST)
+   - 204: No Content (DELETE)
+   - 400: Bad Request (validation errors)
+   - 401: Unauthorized (auth required)
+   - 403: Forbidden (no permission)
+   - 404: Not Found
+   - 409: Conflict (e.g., duplicate)
+   - 500: Internal Server Error
+
+5. **Schema Separation** ✅
+   - All request/response schemas in `src/schemas/`
+   - ❌ NEVER define inline Pydantic models in router files
+   - Schemas organized by domain (auth, provider, common)
+
+6. **Router Independence** ✅
+   - Each router module is self-contained
+   - No duplicate or conflicting implementations
+   - Clean dependency injection patterns
+
+#### REST Compliance Verification
+
+**Before ANY API changes**:
+1. Review [RESTful API Design Architecture](docs/development/architecture/restful-api-design.md)
+2. Ensure no inline schemas in routers
+3. Verify proper HTTP methods and status codes
+4. Check for resource-oriented URLs (no verbs)
+5. Run all tests: `make test`
+6. Verify lint passes: `make lint`
+
+**Audit Reports**:
+- Initial audit: `docs/development/reviews/REST_API_AUDIT_REPORT.md`
+- Current audit: `docs/development/reviews/REST_API_AUDIT_REPORT_2025-10-05.md`
+- Both reports document 10/10 compliance achievement
+
+#### REST Violations - STRICTLY PROHIBITED
+
+❌ **Never Allowed**:
+- Verb-based URLs (`/getUsers`, `/createProvider`)
+- GET requests with side effects
+- Inline Pydantic schemas in router files
+- Inconsistent response formats
+- Non-standard HTTP status codes
+- Duplicate router implementations
+- Action-oriented endpoints (except limited controller patterns for non-CRUD operations)
+
+✅ **Acceptable Exception**:
+- Controller-style endpoints for true actions (e.g., `POST /auth/login`, `POST /providers/{id}/refresh`)
+- Only when operation is genuinely an action, not a resource state change
+- Must be documented and justified
+
+#### Maintaining Compliance
+
+**All API changes require**:
+1. REST principles adherence check
+2. Schema organization verification (no inline models)
+3. HTTP method and status code review
+4. Response format consistency check
+5. Full test coverage with passing tests
+6. Documentation updates
+
+**Compliance Score Target**: 10/10 (current status: ✅ achieved)
+
 ### Endpoint Naming
 - Use RESTful conventions with clear resource names
 - Prefix all API routes with `/api/v1/`
 - Use UUID for resource identifiers, not integers
 - Provider-specific endpoints: `/api/v1/providers/{provider_id}/...`
-- Auth endpoints: `/api/v1/auth/{provider_id}/...`
+- Auth endpoints: `/api/v1/auth/...`
+- Password resets: `/api/v1/password-resets/{token}`
 
 ### Response Format
 - Always return consistent JSON responses
 - Include appropriate HTTP status codes
 - Provide detailed error messages in development
 - Use Pydantic models for request/response validation
+- All schemas defined in `src/schemas/` directory
 
 ### Authentication Flow
 The OAuth flow must follow this exact sequence:
-1. Create provider instance: `POST /api/v1/providers/create`
-2. Get authorization URL: `GET /api/v1/auth/{provider_id}/authorize`
+1. Create provider instance: `POST /api/v1/providers`
+2. Initiate authorization: `POST /api/v1/providers/{provider_id}/authorization`
 3. User authorizes in browser
-4. Callback received at `https://127.0.0.1:8182`
+4. Callback handled: `GET /api/v1/providers/{provider_id}/authorization/callback`
 5. Tokens stored encrypted in database
 6. Provider marked as connected
 

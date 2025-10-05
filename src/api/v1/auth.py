@@ -10,7 +10,6 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -112,32 +111,6 @@ async def get_authorization_url(
         auth_url=auth_url,
         message=f"Visit this URL to authorize {provider.alias}",
     )
-
-
-@router.get("/{provider_id}/authorize/redirect")
-async def redirect_to_authorization(
-    provider_id: UUID,
-    current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-):
-    """Redirect to the OAuth authorization page.
-
-    This endpoint directly redirects the user to the provider's
-    authorization page instead of returning the URL.
-
-    Args:
-        provider_id: UUID of the provider to authorize.
-        current_user: Current authenticated user.
-        session: Database session.
-
-    Returns:
-        Redirect response to OAuth authorization page.
-    """
-    # Get authorization URL
-    result = await get_authorization_url(provider_id, current_user, session)
-
-    # Redirect to authorization page
-    return RedirectResponse(url=result.auth_url)
 
 
 @router.get("/{provider_id}/callback", response_model=OAuthCallbackResponse)

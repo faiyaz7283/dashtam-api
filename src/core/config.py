@@ -162,9 +162,7 @@ class Settings(BaseSettings):
         default=5.0, description="Pool acquisition timeout for HTTP requests in seconds"
     )
 
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
-    )
+    model_config = SettingsConfigDict(case_sensitive=True, extra="ignore")
 
     @field_validator("DEBUG", mode="after")
     @classmethod

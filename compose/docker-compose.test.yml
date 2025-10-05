@@ -19,10 +19,8 @@ services:
   postgres:
     image: postgres:17.6-alpine3.22
     container_name: dashtam-test-postgres
-    environment:
-      POSTGRES_DB: ${TEST_POSTGRES_DB:-dashtam_test}
-      POSTGRES_USER: ${TEST_POSTGRES_USER:-dashtam_test_user}
-      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:-test_password}
+    env_file:
+      - ../env/.env.test
     ports:
       - "5433:5432"  # Different external port to avoid conflict with dev
     tmpfs:
@@ -40,6 +38,8 @@ services:
   redis:
     image: redis:8.2.1-alpine3.22
     container_name: dashtam-test-redis
+    env_file:
+      - ../env/.env.test
     ports:
       - "6380:6379"  # Different external port
     tmpfs:
@@ -57,31 +57,22 @@ services:
   # Main Application (Testing)
   app:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: development
     container_name: dashtam-test-app
-    environment:
-      DATABASE_URL: postgresql+asyncpg://${TEST_POSTGRES_USER:-dashtam_test_user}:${TEST_POSTGRES_PASSWORD:-test_password}@postgres:5432/${TEST_POSTGRES_DB:-dashtam_test}
-      REDIS_URL: redis://redis:6379/1  # Use DB 1 for tests
-      SECRET_KEY: ${SECRET_KEY:-test-secret-key-for-automated-testing-only}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-test-encryption-key-32-chars-long}
-      ENVIRONMENT: testing
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      API_BASE_URL: http://localhost:8001
-      CALLBACK_BASE_URL: http://127.0.0.1:8183
-      TESTING: "true"
-      DISABLE_EXTERNAL_CALLS: "true"
-      MOCK_PROVIDERS: "true"
+    env_file:
+      - ../env/.env.test
     ports:
       - "8001:8000"  # Different external port (8001), internal stays 8000
     volumes:
-      - ./src:/app/src:rw
-      - ./tests:/app/tests:rw
-      - ./alembic:/app/alembic:rw
-      - ./alembic.ini:/app/alembic.ini:rw
-      - ./certs:/app/certs:ro
-      - ./.env.test:/app/.env:ro
+      - ../src:/app/src:rw
+      - ../tests:/app/tests:rw
+      - ../alembic:/app/alembic:rw
+      - ../alembic.ini:/app/alembic.ini:ro
+      - ../certs:/app/certs:ro
+      - ../pyproject.toml:/app/pyproject.toml:ro
+      - ../uv.lock:/app/uv.lock:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,17 +94,16 @@ services:
   # OAuth Callback Server (Testing)
   callback:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: callback
     container_name: dashtam-test-callback
-    environment:
-      API_BASE_URL: http://app:8000
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    env_file:
+      - ../env/.env.test
     ports:
       - "8183:8182"  # Different external port
     volumes:
-      - ./certs:/app/certs:ro
+      - ../certs:/app/certs:ro
     depends_on:
       - app
     networks:

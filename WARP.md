@@ -107,6 +107,18 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
     - ✅ RESTful API Design: `docs/development/architecture/restful-api-design.md`
     - ✅ REST API Audit Reports: `docs/development/reviews/REST_API_AUDIT_REPORT_2025-10-05.md`
     - ✅ Schema Design Patterns: `docs/development/architecture/schemas-design.md`
+- ✅ **DOCKER & BUILD INFRASTRUCTURE REFACTOR COMPLETE** (October 2025)
+  - ✅ **Organized Directory Structure**:
+    - `compose/` - All docker-compose files (dev, test, ci, prod template)
+    - `env/` - Environment configurations with comprehensive README
+    - `docker/` - Dockerfile and .dockerignore
+  - ✅ **Non-Root Containers**: All containers run as `appuser` (UID 1000) for security
+  - ✅ **UV Integration**: Fast deterministic builds with `uv sync --frozen`
+  - ✅ **Environment Variables**: Using `env_file` in compose, no .env volume mounts
+  - ✅ **Multi-Stage Dockerfile**: Optimized builds (base, development, builder, production, callback)
+  - ✅ **File Permissions**: Proper ownership (appuser:appuser) throughout
+  - ✅ **Makefile**: Updated with new paths (compose/, env/)
+  - ✅ **All Tests Passing**: 295 tests in dev, test, and CI environments
 - ✅ **Core infrastructure at 76% test coverage, production-ready foundation**
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
@@ -149,16 +161,40 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
 **Example Workflow:**
 ```bash
 # Add a new dependency
-docker compose -f docker-compose.dev.yml exec app uv add boto3
+docker compose -f compose/docker-compose.dev.yml exec app uv add boto3
 
 # After pulling changes with new dependencies
-docker compose -f docker-compose.dev.yml exec app uv sync
+docker compose -f compose/docker-compose.dev.yml exec app uv sync
 
 # Run tests with project dependencies
-docker compose -f docker-compose.dev.yml exec app uv run pytest
+docker compose -f compose/docker-compose.dev.yml exec app uv run pytest
 ```
 
 **Full Documentation**: See [docs/development/guides/uv-package-management.md](docs/development/guides/uv-package-management.md) for comprehensive UV usage guide.
+
+### Docker & Environment Configuration
+**CRITICAL RULES**: The project uses a modern Docker setup with organized directories.
+
+**Directory Structure:**
+- ✅ **`compose/`** - All docker-compose files (dev, test, ci, prod template)
+- ✅ **`env/`** - Environment variable files (.env.dev, .env.test, .env.ci)
+- ✅ **`docker/`** - Dockerfile and .dockerignore
+
+**Environment Variables:**
+- ✅ **Use `env_file:` in docker-compose** - Docker Compose loads env files
+- ✅ **NO `.env` volume mounts** - Environment variables passed via env_file
+- ✅ **Pydantic reads from environment** - No `env_file` parameter in Settings
+- ✅ **Single source of truth** - `POSTGRES_*` vars (not TEST_POSTGRES_*)
+
+**Docker Commands:**
+- ✅ **Use `make` commands** - All commands updated for new structure
+- ✅ **`make dev-up`** - Starts services using `compose/docker-compose.dev.yml`
+- ✅ **`make test`** - Runs tests using `compose/docker-compose.test.yml`
+
+**Security:**
+- ✅ **Non-root containers** - All services run as `appuser` (UID 1000)
+- ✅ **Proper file ownership** - Files owned by appuser:appuser
+- ✅ **`uv sync --frozen`** - Fast, deterministic builds from lockfile
 
 ### Database Access Patterns
 

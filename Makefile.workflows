@@ -53,18 +53,18 @@ gh-logs-id:
 
 # CI Docker Operations
 ci-down:
-	@docker-compose -f docker-compose.ci.yml down -v
+	@docker compose -f compose/docker-compose.ci.yml down -v
 
 # Note: Primary ci-build is in main Makefile
 # This provides a clean build variant
 ci-build-clean:
-	@docker-compose -f docker-compose.ci.yml build --no-cache
+	@docker compose -f compose/docker-compose.ci.yml build --no-cache
 
 ci-up:
-	@docker-compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
+	@docker compose -f compose/docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
 
 ci-up-build:
-	@docker-compose -f docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from app
+	@docker compose -f compose/docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from app
 
 # Test Status Checks
 test-summary:
@@ -105,7 +105,7 @@ fix-and-push: git-add
 # -----------------------------
 ci-test-local: ci-down ci-build-clean
 	@echo "🧪 Running CI tests locally..."
-	@docker-compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app; \
+	@docker compose -f compose/docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app; \
 	EXIT_CODE=$$?; \
 	echo ""; \
 	if [ $$EXIT_CODE -eq 0 ]; then \
@@ -118,7 +118,7 @@ ci-test-local: ci-down ci-build-clean
 # Quick version (no rebuild)
 ci-test-quick: ci-down
 	@echo "🧪 Running CI tests (no rebuild)..."
-	@docker-compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
+	@docker compose -f compose/docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
 
 # -----------------------------
 # Workflow 3: Test Locally → Test CI → Compare
@@ -176,8 +176,8 @@ ready-to-push: format
 # -----------------------------
 ci-debug-setup: ci-down
 	@echo "🔧 Setting up CI for debugging..."
-	@# Modify docker-compose.ci.yml temporarily to keep container running
-	@docker-compose -f docker-compose.ci.yml up -d
+	@# Modify compose/docker-compose.ci.yml temporarily to keep container running
+	@docker compose -f compose/docker-compose.ci.yml up -d
 	@echo "✅ CI container running. Available commands:"
 	@echo "  make ci-shell     - Open shell in container"
 	@echo "  make ci-api-test  - Test API endpoints"

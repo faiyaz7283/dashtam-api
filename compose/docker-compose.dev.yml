@@ -5,10 +5,8 @@ services:
   postgres:
     image: postgres:17.6-alpine3.22
     container_name: dashtam-dev-postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-dashtam}
-      POSTGRES_USER: ${POSTGRES_USER:-dashtam_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_change_me}
+    env_file:
+      - ../env/.env.dev
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -25,6 +23,8 @@ services:
   redis:
     image: redis:8.2.1-alpine3.22
     container_name: dashtam-dev-redis
+    env_file:
+      - ../env/.env.dev
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -41,28 +41,22 @@ services:
   # Main Application (Development)
   app:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: development
     container_name: dashtam-dev-app
-    environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dashtam_user}:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/${POSTGRES_DB:-dashtam}
-      REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-encryption-key-change-in-production}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
-      API_BASE_URL: ${API_BASE_URL:-https://localhost:8000}
-      CALLBACK_BASE_URL: ${CALLBACK_BASE_URL:-https://127.0.0.1:8182}
+    env_file:
+      - ../env/.env.dev
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
-      - ./src:/app/src:rw
-      - ./tests:/app/tests:rw
-      - ./alembic:/app/alembic:rw
-      - ./alembic.ini:/app/alembic.ini:rw
-      - ./certs:/app/certs:ro
-      - ./.env.dev:/app/.env:ro
+      - ../src:/app/src:rw
+      - ../tests:/app/tests:rw
+      - ../alembic:/app/alembic:rw
+      - ../alembic.ini:/app/alembic.ini:ro
+      - ../certs:/app/certs:ro
+      - ../pyproject.toml:/app/pyproject.toml:ro
+      - ../uv.lock:/app/uv.lock:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,17 +69,16 @@ services:
   # OAuth Callback Server (Development)
   callback:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: callback
     container_name: dashtam-dev-callback
-    environment:
-      API_BASE_URL: ${API_BASE_URL:-https://app:8000}
-      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+    env_file:
+      - ../env/.env.dev
     ports:
       - "8182:8182"
     volumes:
-      - ./certs:/app/certs:ro
+      - ../certs:/app/certs:ro
     depends_on:
       - app
     networks:

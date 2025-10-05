@@ -1,11 +1,20 @@
-# Environment files (all variants except examples)
-.env
-.env/
-.env.*
-!.env.*.example
-.env.local
-.env.*.local
-.env.backup
+# Environment files in ROOT directory only (all variants except examples)
+/.env
+/.env.*
+!/.env.*.example
+/.env.local
+/.env.*.local
+/.env.backup
+
+# Ignore .env directories (Python virtual envs) but NOT our env/ config directory
+**/.env/
+
+# Ignore secret env files in env/ directory (but allow .env.ci and examples)
+env/.env
+env/.env.dev
+env/.env.test
+env/.env.prod
+env/.env.local
 
 # Certificates (self-signed, can be regenerated)
 certs/*.pem
@@ -20,8 +29,8 @@ __pycache__/
 .Python
 .venv/
 venv/
-ENV/
-env/
+# Virtual env directory (uppercase only, in subdirectories)
+[E][N][V]/
 .pytest_cache/
 .coverage
 htmlcov/
@@ -31,7 +40,6 @@ build/
 
 # UV
 .uv/
-uv.lock
 
 # Docker
 docker-compose.override.yml

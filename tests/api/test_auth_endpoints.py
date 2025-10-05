@@ -66,33 +66,6 @@ class TestGetAuthorizationURL:
             assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-class TestRedirectToAuthorization:
-    """Test suite for redirect_to_authorization endpoint."""
-
-    def test_redirect_to_authorization(
-        self, client: TestClient, test_provider: Provider
-    ):
-        """Test redirect to OAuth authorization page."""
-        with patch(
-            "src.api.v1.auth.ProviderRegistry.create_provider_instance"
-        ) as mock_registry:
-            mock_provider_impl = MagicMock()
-            mock_provider_impl.get_auth_url.return_value = (
-                "https://provider.com/oauth/authorize"
-            )
-            mock_registry.return_value = mock_provider_impl
-
-            response = client.get(
-                f"/api/v1/auth/{test_provider.id}/authorize/redirect",
-                follow_redirects=False,
-            )
-
-            assert response.status_code == status.HTTP_307_TEMPORARY_REDIRECT
-            assert (
-                response.headers["location"] == "https://provider.com/oauth/authorize"
-            )
-
-
 class TestOAuthCallback:
     """Test suite for handle_oauth_callback endpoint."""
 

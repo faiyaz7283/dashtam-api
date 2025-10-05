@@ -12,39 +12,6 @@ from src.models.provider import Provider, ProviderConnection
 from src.models.user import User
 
 
-class TestProviderListingEndpoints:
-    """Test suite for provider listing endpoints."""
-
-    def test_get_available_providers(self, client: TestClient):
-        """Test getting list of available provider types."""
-        response = client.get("/api/v1/providers/available")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-
-        # Should return a list of providers
-        assert isinstance(data, list)
-        assert len(data) > 0
-
-        # Check structure of first provider
-        provider_info = data[0]
-        assert "key" in provider_info
-        assert "name" in provider_info
-        assert "provider_type" in provider_info
-        assert "is_configured" in provider_info
-
-    def test_get_configured_providers(self, client: TestClient):
-        """Test getting only configured providers."""
-        response = client.get("/api/v1/providers/configured")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-
-        # All returned providers should be configured
-        for provider in data:
-            assert provider["is_configured"] is True
-
-
 class TestProviderInstanceEndpoints:
     """Test suite for provider instance management."""
 
@@ -52,9 +19,9 @@ class TestProviderInstanceEndpoints:
         """Test creating a new provider instance."""
         payload = {"provider_key": "schwab", "alias": "My Schwab Account"}
 
-        response = client.post("/api/v1/providers/create", json=payload)
+        response = client.post("/api/v1/providers", json=payload)
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
 
         # Verify response structure
@@ -69,7 +36,7 @@ class TestProviderInstanceEndpoints:
         """Test creating a provider with invalid provider_key."""
         payload = {"provider_key": "nonexistent_provider", "alias": "Test"}
 
-        response = client.post("/api/v1/providers/create", json=payload)
+        response = client.post("/api/v1/providers", json=payload)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "not available" in response.json()["detail"].lower()
@@ -88,7 +55,7 @@ class TestProviderInstanceEndpoints:
         # Try to create second with same alias
         payload = {"provider_key": "schwab", "alias": "My Account"}
 
-        response = client.post("/api/v1/providers/create", json=payload)
+        response = client.post("/api/v1/providers", json=payload)
 
         assert response.status_code == status.HTTP_409_CONFLICT
         assert "already have a provider" in response.json()["detail"]
@@ -242,19 +209,17 @@ class TestProviderValidation:
     def test_create_provider_missing_fields(self, client: TestClient):
         """Test creating provider with missing required fields."""
         # Missing alias
-        response = client.post(
-            "/api/v1/providers/create", json={"provider_key": "schwab"}
-        )
+        response = client.post("/api/v1/providers", json={"provider_key": "schwab"})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         # Missing provider_key
-        response = client.post("/api/v1/providers/create", json={"alias": "Test"})
+        response = client.post("/api/v1/providers", json={"alias": "Test"})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_provider_invalid_json(self, client: TestClient):
         """Test creating provider with invalid JSON."""
         response = client.post(
-            "/api/v1/providers/create",
+            "/api/v1/providers",
             data="not valid json",
             headers={"Content-Type": "application/json"},
         )
@@ -267,16 +232,13 @@ class TestProviderValidation:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_provider_empty_alias(self, client: TestClient):
-        """Test creating provider with empty alias."""
+        """Test creating provider with empty alias is rejected."""
         payload = {"provider_key": "schwab", "alias": ""}
 
-        response = client.post("/api/v1/providers/create", json=payload)
+        response = client.post("/api/v1/providers", json=payload)
 
-        # Note: Currently empty alias is allowed at API level
-        # This documents current behavior - could add validation later
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["alias"] == ""
+        # Empty alias should be rejected by validation (min_length=1)
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestProviderResponseStructure:

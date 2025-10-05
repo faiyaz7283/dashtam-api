@@ -102,9 +102,7 @@ class TestProviderInstanceEndpoints:
         """Test provider list pagination."""
         # Create 15 test providers
         providers = [
-            Provider(
-                user_id=test_user.id, provider_key="schwab", alias=f"Provider {i}"
-            )
+            Provider(user_id=test_user.id, provider_key="schwab", alias=f"Provider {i}")
             for i in range(15)
         ]
         for provider in providers:
@@ -146,9 +144,7 @@ class TestProviderInstanceEndpoints:
         db_session.commit()
 
         # Filter by schwab
-        response = client_with_mock_auth.get(
-            "/api/v1/providers?provider_key=schwab"
-        )
+        response = client_with_mock_auth.get("/api/v1/providers?provider_key=schwab")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -171,9 +167,7 @@ class TestProviderInstanceEndpoints:
         db_session.commit()
 
         # Test ascending sort
-        response = client_with_mock_auth.get(
-            "/api/v1/providers?sort=alias&order=asc"
-        )
+        response = client_with_mock_auth.get("/api/v1/providers?sort=alias&order=asc")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -182,9 +176,7 @@ class TestProviderInstanceEndpoints:
         # Check if aliases are sorted
         assert aliases == sorted(aliases)
 
-    def test_list_providers_invalid_sort_field(
-        self, client_with_mock_auth: TestClient
-    ):
+    def test_list_providers_invalid_sort_field(self, client_with_mock_auth: TestClient):
         """Test that invalid sort field returns 400."""
         response = client_with_mock_auth.get("/api/v1/providers?sort=invalid_field")
 

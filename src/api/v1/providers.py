@@ -5,7 +5,7 @@ not provider types (catalog). Provider types are handled in provider_types.py.
 """
 
 import logging
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -114,7 +114,9 @@ async def create_provider_instance(
 async def list_user_providers(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     per_page: int = Query(50, ge=1, le=100, description="Items per page"),
-    connection_status: Optional[str] = Query(None, alias="status", description="Filter by connection status"),
+    connection_status: Optional[str] = Query(
+        None, alias="status", description="Filter by connection status"
+    ),
     provider_key: Optional[str] = Query(None, description="Filter by provider type"),
     sort: str = Query("created_at", description="Sort field"),
     order: str = Query("desc", description="Sort order (asc/desc)"),
@@ -151,8 +153,10 @@ async def list_user_providers(
     )
 
     # Build count query (before joins/filters for accurate total)
-    count_query = select(func.count()).select_from(Provider).where(
-        Provider.user_id == current_user.id
+    count_query = (
+        select(func.count())
+        .select_from(Provider)
+        .where(Provider.user_id == current_user.id)
     )
 
     # Apply filters

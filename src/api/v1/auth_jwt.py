@@ -28,8 +28,6 @@ from src.schemas.auth import (
     LoginRequest,
     LoginResponse,
     MessageResponse,
-    PasswordResetConfirm,
-    PasswordResetRequest,
     RefreshTokenRequest,
     RegisterRequest,
     TokenResponse,
@@ -241,68 +239,6 @@ async def logout(
     logger.info(f"User logged out: {current_user.email}")
 
     return MessageResponse(message="Logged out successfully")
-
-
-@router.post("/password-reset/request", response_model=MessageResponse)
-async def request_password_reset(
-    request: PasswordResetRequest,
-    session: AsyncSession = Depends(get_session),
-):
-    """Request password reset link.
-
-    Sends a password reset link to the user's email if the account exists.
-    Always returns success to prevent email enumeration.
-
-    Args:
-        request: Email address for password reset.
-        session: Database session.
-
-    Returns:
-        Success message indicating email sent.
-    """
-    auth_service = AuthService(session)
-
-    # Request password reset (email sent internally by AuthService)
-    # Always succeeds to prevent email enumeration
-    await auth_service.request_password_reset(email=request.email)
-
-    # Always return success to prevent email enumeration
-    return MessageResponse(
-        message="If an account exists with that email, a password reset link has been sent."
-    )
-
-
-@router.post("/password-reset/confirm", response_model=MessageResponse)
-async def confirm_password_reset(
-    request: PasswordResetConfirm,
-    session: AsyncSession = Depends(get_session),
-):
-    """Confirm password reset with new password.
-
-    Validates reset token and updates user's password.
-
-    Args:
-        request: Reset token and new password.
-        session: Database session.
-
-    Returns:
-        Success message.
-
-    Raises:
-        HTTPException: 400 if token invalid or expired.
-    """
-    auth_service = AuthService(session)
-
-    # Reset password (confirmation email sent internally by AuthService)
-    user = await auth_service.reset_password(
-        token=request.token, new_password=request.new_password
-    )
-
-    logger.info(f"Password reset successfully for: {user.email}")
-
-    return MessageResponse(
-        message="Password reset successfully. You can now log in with your new password."
-    )
 
 
 @router.get("/me", response_model=UserResponse)

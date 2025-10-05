@@ -8,7 +8,6 @@ from fastapi import APIRouter
 
 from src.api.v1.provider_types import router as provider_types_router
 from src.api.v1.providers import router as providers_router
-from src.api.v1.auth import router as auth_oauth_router
 from src.api.v1.auth_jwt import router as auth_jwt_router
 from src.api.v1.password_resets import router as password_resets_router
 from src.schemas.common import HealthResponse
@@ -24,9 +23,6 @@ api_router.include_router(
 
 # Provider instances (user connections) - auth required
 api_router.include_router(providers_router, prefix="/providers", tags=["providers"])
-
-# OAuth authentication endpoints (provider connections)
-api_router.include_router(auth_oauth_router, prefix="/auth", tags=["oauth"])
 
 # JWT authentication endpoints (user auth)
 api_router.include_router(auth_jwt_router, prefix="/auth", tags=["authentication"])

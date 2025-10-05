@@ -5,10 +5,11 @@ not provider types (catalog). Provider types are handled in provider_types.py.
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -18,6 +19,7 @@ from src.core.database import get_session
 from src.models.provider import Provider, ProviderConnection
 from src.models.user import User
 from src.providers import ProviderRegistry
+from src.schemas.common import PaginatedResponse
 from src.schemas.provider import (
     CreateProviderRequest,
     ProviderResponse,
@@ -108,21 +110,92 @@ async def create_provider_instance(
     )
 
 
-@router.get("/", response_model=List[ProviderResponse])
+@router.get("/", response_model=PaginatedResponse[ProviderResponse])
 async def list_user_providers(
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    per_page: int = Query(50, ge=1, le=100, description="Items per page"),
+    connection_status: Optional[str] = Query(None, alias="status", description="Filter by connection status"),
+    provider_key: Optional[str] = Query(None, description="Filter by provider type"),
+    sort: str = Query("created_at", description="Sort field"),
+    order: str = Query("desc", description="Sort order (asc/desc)"),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
-    """Get all provider instances for the current user."""
+) -> PaginatedResponse[ProviderResponse]:
+    """Get all provider instances for the current user.
+
+    Supports pagination, filtering, and sorting:
+    - Pagination: page and per_page parameters
+    - Filtering: by status (e.g., 'active', 'pending') and provider_key (e.g., 'schwab')
+    - Sorting: by created_at, updated_at, alias, or provider_key (asc/desc)
+
+    Args:
+        page: Page number (1-indexed).
+        per_page: Number of items per page (max 100).
+        connection_status: Filter by connection status.
+        provider_key: Filter by provider type.
+        sort: Field to sort by.
+        order: Sort order (asc or desc).
+        current_user: Currently authenticated user.
+        session: Database session.
+
+    Returns:
+        Paginated list of provider instances with metadata.
+    """
     from sqlalchemy.orm import selectinload
 
-    result = await session.execute(
+    # Build base query
+    query = (
         select(Provider)
         .options(selectinload(Provider.connection))
         .where(Provider.user_id == current_user.id)
     )
+
+    # Build count query (before joins/filters for accurate total)
+    count_query = select(func.count()).select_from(Provider).where(
+        Provider.user_id == current_user.id
+    )
+
+    # Apply filters
+    if connection_status:
+        # Join with connection to filter by status
+        query = query.join(Provider.connection).where(
+            ProviderConnection.status == connection_status
+        )
+        count_query = count_query.join(Provider.connection).where(
+            ProviderConnection.status == connection_status
+        )
+
+    if provider_key:
+        query = query.where(Provider.provider_key == provider_key)
+        count_query = count_query.where(Provider.provider_key == provider_key)
+
+    # Apply sorting
+    allowed_sort_fields = ["created_at", "updated_at", "alias", "provider_key"]
+    if sort not in allowed_sort_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot sort by '{sort}'. Allowed fields: {allowed_sort_fields}",
+        )
+
+    sort_column = getattr(Provider, sort)
+    if order.lower() == "desc":
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
+
+    # Get total count
+    result = await session.execute(count_query)
+    total = result.scalar() or 0
+
+    # Apply pagination
+    offset = (page - 1) * per_page
+    query = query.offset(offset).limit(per_page)
+
+    # Execute query
+    result = await session.execute(query)
     providers = result.scalars().all()
 
+    # Build response items
     responses = []
     for provider in providers:
         connection = provider.connection
@@ -145,7 +218,9 @@ async def list_user_providers(
             )
         )
 
-    return responses
+    return PaginatedResponse.create(
+        items=responses, total=total, page=page, per_page=per_page
+    )
 
 
 @router.get("/{provider_id}", response_model=ProviderResponse)

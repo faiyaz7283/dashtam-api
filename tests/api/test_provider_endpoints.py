@@ -80,12 +80,116 @@ class TestProviderInstanceEndpoints:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
+        # Verify paginated response structure
+        assert "items" in data
+        assert "total" in data
+        assert "page" in data
+        assert "per_page" in data
+        assert "pages" in data
+        assert "has_next" in data
+        assert "has_prev" in data
+
         # Should return at least our created providers
-        assert len(data) >= 3
-        aliases = [p["alias"] for p in data]
+        assert len(data["items"]) >= 3
+        aliases = [p["alias"] for p in data["items"]]
         assert "Schwab 0" in aliases
         assert "Schwab 1" in aliases
         assert "Schwab 2" in aliases
+
+    def test_list_providers_pagination(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
+        """Test provider list pagination."""
+        # Create 15 test providers
+        providers = [
+            Provider(
+                user_id=test_user.id, provider_key="schwab", alias=f"Provider {i}"
+            )
+            for i in range(15)
+        ]
+        for provider in providers:
+            db_session.add(provider)
+        db_session.commit()
+
+        # Test page 1 with 10 items per page
+        response = client_with_mock_auth.get("/api/v1/providers?page=1&per_page=10")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data["page"] == 1
+        assert data["per_page"] == 10
+        assert data["total"] >= 15
+        assert len(data["items"]) == 10
+        assert data["has_next"] is True
+        assert data["has_prev"] is False
+
+        # Test page 2
+        response = client_with_mock_auth.get("/api/v1/providers?page=2&per_page=10")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data["page"] == 2
+        assert len(data["items"]) >= 5  # At least 5 more
+        assert data["has_prev"] is True
+
+    def test_list_providers_filtering_by_provider_key(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
+        """Test filtering providers by provider_key."""
+        # Create providers of different types
+        schwab_provider = Provider(
+            user_id=test_user.id, provider_key="schwab", alias="Schwab Account"
+        )
+        db_session.add(schwab_provider)
+        db_session.commit()
+
+        # Filter by schwab
+        response = client_with_mock_auth.get(
+            "/api/v1/providers?provider_key=schwab"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        for item in data["items"]:
+            assert item["provider_key"] == "schwab"
+
+    def test_list_providers_sorting(
+        self, client_with_mock_auth: TestClient, test_user: User, db_session
+    ):
+        """Test sorting providers by alias."""
+        # Create providers with specific aliases
+        providers = [
+            Provider(user_id=test_user.id, provider_key="schwab", alias="Zebra"),
+            Provider(user_id=test_user.id, provider_key="schwab", alias="Alpha"),
+            Provider(user_id=test_user.id, provider_key="schwab", alias="Beta"),
+        ]
+        for provider in providers:
+            db_session.add(provider)
+        db_session.commit()
+
+        # Test ascending sort
+        response = client_with_mock_auth.get(
+            "/api/v1/providers?sort=alias&order=asc"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        aliases = [item["alias"] for item in data["items"]]
+        # Check if aliases are sorted
+        assert aliases == sorted(aliases)
+
+    def test_list_providers_invalid_sort_field(
+        self, client_with_mock_auth: TestClient
+    ):
+        """Test that invalid sort field returns 400."""
+        response = client_with_mock_auth.get("/api/v1/providers?sort=invalid_field")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Cannot sort" in response.json()["detail"]
 
     def test_get_provider_by_id(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
@@ -199,9 +303,14 @@ class TestProviderConnectionStatus:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        # Find our test provider
+        # Find our test provider in paginated items
         provider_data = next(
-            (p for p in data if p["id"] == str(test_provider_with_connection.id)), None
+            (
+                p
+                for p in data["items"]
+                if p["id"] == str(test_provider_with_connection.id)
+            ),
+            None,
         )
 
         assert provider_data is not None
@@ -286,17 +395,25 @@ class TestProviderResponseStructure:
             assert field in data, f"Missing field: {field}"
 
     def test_provider_list_response_structure(self, client_with_mock_auth: TestClient):
-        """Test that provider list returns correctly structured data."""
+        """Test that provider list returns correctly structured paginated data."""
         response = client_with_mock_auth.get("/api/v1/providers/")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert isinstance(data, list)
+        # Verify paginated response structure
+        assert isinstance(data, dict)
+        assert "items" in data
+        assert "total" in data
+        assert "page" in data
+        assert "per_page" in data
+        assert "pages" in data
+        assert "has_next" in data
+        assert "has_prev" in data
 
-        # If any providers exist, check structure
-        if data:
-            provider = data[0]
+        # If any providers exist, check item structure
+        if data["items"]:
+            provider = data["items"][0]
             assert "id" in provider
             assert "provider_key" in provider
             assert "alias" in provider

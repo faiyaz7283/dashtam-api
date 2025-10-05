@@ -53,14 +53,42 @@ docs/
 
 ---
 
+## 📝 Naming Conventions
+
+### File Naming
+- **Use kebab-case**: `my-document.md` (all lowercase with hyphens)
+- **Include type suffix when helpful**:
+  - `-architecture.md` - Architecture documentation
+  - `-guide.md` - How-to guides and tutorials
+  - `-reference.md` - Quick references
+  - `-plan.md` - Implementation plans (archive when completed)
+  - `-review-YYYY-MM-DD.md` - Dated reviews/audits
+- **Keep names concise but descriptive**
+- **Avoid special characters** except hyphens
+
+### Examples
+- ✅ Good: `jwt-authentication-architecture.md`, `git-workflow-guide.md`
+- ✅ Good: `rest-api-audit-2025-10-05.md` (dated reviews)
+- ❌ Avoid: `JWT_Authentication.md`, `git_workflow.md`
+
+---
+
 ## 📝 Contributing to Documentation
 
 When adding new documentation, follow this structure:
 
 - **Development docs** → `docs/development/[category]/`
-- **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/`
+  - `architecture/` - System architecture and design patterns
+  - `guides/` - How-to guides and tutorials
+  - `infrastructure/` - Docker, CI/CD, deployment
+  - `testing/` - Testing strategy and guides
+  - `reviews/` - Code reviews, audits, assessments
+- **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/` (future)
 - **Research/decisions** → `docs/research/`
 - **Historical/archived** → `docs/research/archived/`
+  - `implementation-plans/` - Completed implementation plans
+  - `reviews/` - Historical reviews and assessments
+  - `completed-research/` - Resolved research and fixes
 
 See [WARP.md](../WARP.md) for complete documentation guidelines.
 

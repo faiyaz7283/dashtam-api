@@ -19,7 +19,7 @@ from src.core.database import get_session
 from src.models.provider import Provider, ProviderConnection
 from src.models.user import User
 from src.providers import ProviderRegistry
-from src.schemas.common import PaginatedResponse
+from src.schemas.common import MessageResponse, PaginatedResponse
 from src.schemas.provider import (
     CreateProviderRequest,
     ProviderResponse,
@@ -374,13 +374,25 @@ async def update_provider(
     )
 
 
-@router.delete("/{provider_id}")
+@router.delete("/{provider_id}", response_model=MessageResponse)
 async def delete_provider(
     provider_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
-    """Delete a provider instance and all associated data."""
+) -> MessageResponse:
+    """Delete a provider instance and all associated data.
+
+    Args:
+        provider_id: UUID of the provider to delete.
+        current_user: Current authenticated user.
+        session: Database session.
+
+    Returns:
+        Success message.
+
+    Raises:
+        HTTPException: 404 if provider not found, 403 if forbidden, 500 on failure.
+    """
     from sqlmodel import select
 
     result = await session.execute(select(Provider).where(Provider.id == provider_id))
@@ -407,7 +419,9 @@ async def delete_provider(
             f"Deleted provider '{provider.alias}' for user {current_user.email}"
         )
 
-        return {"message": f"Provider '{provider.alias}' deleted successfully"}
+        return MessageResponse(
+            message=f"Provider '{provider.alias}' deleted successfully"
+        )
     except Exception as e:
         await session.rollback()
         logger.error(f"Failed to delete provider: {e}")

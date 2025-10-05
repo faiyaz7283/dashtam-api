@@ -18,12 +18,8 @@ services:
   postgres:
     image: postgres:17.6-alpine3.22
     container_name: dashtam-ci-postgres
-    environment:
-      POSTGRES_DB: ${TEST_POSTGRES_DB:-dashtam_test}
-      POSTGRES_USER: ${TEST_POSTGRES_USER:-dashtam_test_user}
-      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:-test_password}
-      # Performance optimizations for CI (sacrifices durability for speed)
-      POSTGRES_INITDB_ARGS: "-E UTF8 --lc-collate=C --lc-ctype=C"
+    env_file:
+      - ../env/.env.ci
     # No port mapping - internal only
     tmpfs:
       - /var/lib/postgresql/data
@@ -55,6 +51,8 @@ services:
   redis:
     image: redis:8.2.1-alpine3.22
     container_name: dashtam-ci-redis
+    env_file:
+      - ../env/.env.ci
     # No port mapping - internal only
     tmpfs:
       - /data
@@ -71,35 +69,20 @@ services:
   # Main Application (CI) - Runs tests and exits
   app:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: development
     container_name: dashtam-ci-app
-    environment:
-      DATABASE_URL: postgresql+asyncpg://${TEST_POSTGRES_USER:-dashtam_test_user}:${TEST_POSTGRES_PASSWORD:-test_password}@postgres:5432/${TEST_POSTGRES_DB:-dashtam_test}
-      REDIS_URL: redis://redis:6379/1
-      SECRET_KEY: ${SECRET_KEY:-ci-test-secret-key-never-use-in-production}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-ci-test-encryption-key-32chars}
-      ENVIRONMENT: testing
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}  # Changed to INFO for better debugging
-      # URLs for internal communication
-      API_BASE_URL: http://app:8000  # Added - internal Docker network URL
-      CALLBACK_BASE_URL: http://callback:8182  # Added - callback service URL
-      # CI-specific settings
-      TESTING: "true"
-      CI: "true"
-      DISABLE_EXTERNAL_CALLS: "true"
-      MOCK_PROVIDERS: "true"
-      PYTHONUNBUFFERED: "1"
-      # Optional: Codecov token can be passed from CI secrets
-      CODECOV_TOKEN: ${CODECOV_TOKEN:-}
+    env_file:
+      - ../env/.env.ci
     # No port mapping - not needed in CI
     volumes:
-      - ./src:/app/src:ro
-      - ./tests:/app/tests:ro
-      - ./alembic:/app/alembic:ro
-      - ./alembic.ini:/app/alembic.ini:ro
-      - ./.env.ci:/app/.env:ro
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../alembic:/app/alembic:ro
+      - ../alembic.ini:/app/alembic.ini:ro
+      - ../pyproject.toml:/app/pyproject.toml:ro
+      - ../uv.lock:/app/uv.lock:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,16 +113,15 @@ services:
   # OAuth Callback Server (CI) - Required for OAuth tests
   callback:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: callback
     container_name: dashtam-ci-callback
-    environment:
-      API_BASE_URL: http://app:8000
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    env_file:
+      - ../env/.env.ci
     # No port mapping - internal communication only in CI
     volumes:
-      - ./certs:/app/certs:ro
+      - ../certs:/app/certs:ro
     depends_on:
       - app
     networks:

@@ -35,7 +35,6 @@ htmlcov/
 # Virtual environments
 venv/
 ENV/
-env/
 .venv/
 
 # IDE and editor files
@@ -52,6 +51,7 @@ env/
 docs/
 LICENSE
 Makefile
+Makefile.workflows
 
 # Test files (not needed in production)
 tests/
@@ -72,6 +72,10 @@ certs/*.pem
 *.backup
 backup/
 backups/
+
+# Compose and env directories (not needed in images)
+compose/
+env/
 
 # Temporary files
 tmp/

@@ -136,12 +136,12 @@ make setup
 This will:
 - Generate self-signed SSL certificates for HTTPS
 - Create secure encryption keys for token storage
-- Create `.env.dev` file with secure defaults
-- Create `.env.test` file for testing
+- Create `env/.env.dev` file with secure defaults
+- Create `env/.env.test` file for testing
 
 ### 3. Configure OAuth Credentials
 
-Edit the `.env.dev` file and add your OAuth credentials:
+Edit the `env/.env.dev` file and add your OAuth credentials:
 
 ```env
 # Charles Schwab OAuth (get from https://developer.schwab.com/)
@@ -168,8 +168,21 @@ The development environment will be available at:
 
 ```
 Dashtam/
+├── compose/                 # Docker Compose configurations
+│   ├── docker-compose.dev.yml    # Development environment
+│   ├── docker-compose.test.yml   # Test environment
+│   ├── docker-compose.ci.yml     # CI/CD environment
+│   └── docker-compose.prod.yml.example  # Production template
 ├── docker/                  # Docker configuration
-│   └── Dockerfile           # Multi-stage Dockerfile
+│   ├── Dockerfile           # Multi-stage Dockerfile (dev, builder, production, callback)
+│   └── .dockerignore        # Docker build context exclusions
+├── env/                     # Environment configurations
+│   ├── .env.dev             # Development variables (gitignored)
+│   ├── .env.test            # Test variables (gitignored)
+│   ├── .env.ci              # CI variables (committed)
+│   ├── .env.example         # Template for non-production
+│   ├── .env.prod.example    # Template for production
+│   └── README.md            # Environment configuration guide
 ├── src/                     # Application source code
 │   ├── api/                 # API endpoints
 │   │   └── v1/              # API version 1
@@ -180,6 +193,7 @@ Dashtam/
 │   ├── models/              # SQLModel database models
 │   │   ├── base.py          # Base model classes
 │   │   ├── user.py          # User model
+│   │   ├── auth.py          # Authentication models
 │   │   └── provider.py      # Provider models
 │   ├── providers/           # Financial provider implementations
 │   │   ├── base.py          # Base provider interface
@@ -187,18 +201,31 @@ Dashtam/
 │   │   └── schwab.py        # Schwab implementation
 │   ├── services/            # Business logic services
 │   │   ├── encryption.py    # Token encryption
-│   │   └── token_service.py # Token management
+│   │   ├── token_service.py # Token management
+│   │   ├── jwt_service.py   # JWT authentication
+│   │   ├── auth_service.py  # User authentication
+│   │   └── email_service.py # Email notifications
+│   ├── schemas/             # Pydantic schemas
+│   │   ├── auth.py          # Authentication schemas
+│   │   ├── provider.py      # Provider schemas
+│   │   └── common.py        # Common schemas
 │   └── main.py              # FastAPI application
 ├── scripts/                 # Utility scripts
 │   ├── generate-certs.sh    # SSL certificate generation
 │   └── generate-keys.sh     # Security key generation
-├── tests/                   # Test suite
+├── tests/                   # Test suite (295 tests, 76% coverage)
+│   ├── unit/                # Unit tests
+│   ├── integration/         # Integration tests
+│   └── api/                 # API endpoint tests
 ├── alembic/                 # Database migrations
-├── requirements.txt         # Python dependencies
-├── requirements-dev.txt     # Development dependencies
-├── docker-compose.yml       # Docker services configuration
+├── docs/                    # Documentation
+│   ├── development/         # Development guides
+│   └── research/            # Architecture research
+├── pyproject.toml           # Project dependencies (UV)
+├── uv.lock                  # Locked dependency versions
 ├── Makefile                 # Convenience commands
-└── .env.example             # Environment variables template
+├── Makefile.workflows       # Workflow commands
+└── README.md                # This file
 ```
 
 ## 🔧 Development
@@ -324,11 +351,12 @@ make test-down
 ### Technology Stack
 
 - **Backend Framework**: FastAPI
-- **Database**: PostgreSQL with SQLModel ORM
-- **Cache**: Redis
-- **Authentication**: OAuth2 with encrypted token storage
-- **Package Management**: UV
-- **Containerization**: Docker & Docker Compose
+- **Database**: PostgreSQL 17.6 with SQLModel ORM
+- **Cache**: Redis 8.2.1
+- **Authentication**: OAuth2 + JWT with encrypted token storage
+- **Package Management**: UV (uv sync --frozen for fast, deterministic builds)
+- **Containerization**: Docker & Docker Compose with multi-stage builds
+- **Security**: Non-root containers (appuser, UID 1000) for all environments
 
 ### Key Components
 

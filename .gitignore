@@ -31,7 +31,6 @@ build/
 
 # UV
 .uv/
-uv.lock
 
 # Docker
 docker-compose.override.yml

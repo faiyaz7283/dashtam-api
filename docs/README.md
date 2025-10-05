@@ -24,12 +24,13 @@ Historical research, architectural decisions, and migration notes:
   - [Test Coverage Plan](research/test-coverage-plan.md)
   - [Archived Documents](research/archived/)
 
-### For Users (Coming Soon)
-Documentation for using the Dashtam application:
+### For Users
+Documentation for using and testing the Dashtam application:
 
-- **[Setup Guides](setup/)** - Installation and configuration (to be added)
-- **[API Documentation](api/)** - API endpoints and usage (to be added)
-- **[User Guides](guides/)** - OAuth flow, troubleshooting, etc. (to be added)
+- **[Setup Guides](setup/)** - Installation and configuration (planned)
+- **[API Documentation](api/)** - API endpoints and usage (planned)
+- **[User Guides](guides/)** - Troubleshooting and tips (planned)
+- **[API Flows (Manual Testing)](../docs/api-flows/)** - HTTPS-first, user-centric flows for manual testing (dev TLS)
 
 ---
 
@@ -37,6 +38,10 @@ Documentation for using the Dashtam application:
 
 ```
 docs/
+├── api-flows/          # Manual API flows (HTTPS-first, dev TLS)
+│   ├── auth/           # Registration, login, password reset
+│   └── providers/      # Provider onboarding flows
+│
 ├── development/        # Developer documentation
 │   ├── architecture/   # System architecture and design
 │   ├── infrastructure/ # Docker, CI/CD, environments
@@ -46,14 +51,16 @@ docs/
 ├── research/           # Research and decision records
 │   └── archived/       # Historical documents
 │
-├── setup/              # User setup guides (future)
-├── api/                # API documentation (future)
-└── guides/             # User guides (future)
+├── setup/              # User setup guides (planned)
+├── api/                # API reference (planned)
+└── guides/             # User guides (planned)
 ```
 
 ---
 
 ## 📝 Naming Conventions
+
+For API flows, use kebab-case filenames and keep each flow focused on a single user journey (not a single HTTP verb). A reusable flow template is available at `docs/api-flows/flow-template.md`.
 
 ### File Naming
 - **Use kebab-case**: `my-document.md` (all lowercase with hyphens)

@@ -234,6 +234,24 @@ provider = result.scalar_one_or_none()
 
 ## Coding Standards
 
+### Documentation: API Flows (Manual Testing)
+- When creating, modifying, or deleting user-facing API endpoints, you MUST also create/modify/delete the corresponding manual API flow guides under `docs/api-flows/`.
+- Organize flows by domain (auth, providers, etc.), not HTTP verb. Each flow represents a user journey (e.g., registration, login, provider onboarding), which may span multiple endpoints.
+- Follow the reusable template: `docs/api-flows/flow-template.md`.
+- Keep flows HTTPS-first (dev TLS). Use `curl -k` for self-signed certificates in development.
+- Use environment variables in examples. Never inline real secrets. Prefer placeholders and shell variables (`BASE_URL`, `ACCESS_TOKEN`, etc.).
+- Include: Purpose, Prerequisites, Step-by-step commands, Expected response snippets, Cleanup (when applicable), Troubleshooting.
+- Naming: kebab-case file names (e.g., `provider-onboarding.md`). Keep titles concise and descriptive.
+- Keep docs in sync with behavior: when request/response shapes or status codes change, update affected flows.
+- Deprecations/removals: if an endpoint is removed, delete or deprecate the related flow and add a pointer to the replacement (if any).
+- Cross-reference: ensure `docs/README.md` structure stays aligned and links are updated when you add or move flows.
+
+PR checklist additions (for any API endpoint change):
+- [ ] Updated/added/removed relevant flow(s) in `docs/api-flows/`
+- [ ] Verified flows end-to-end against dev HTTPS
+- [ ] Kept examples free of real secrets and used variables/placeholders
+- [ ] Updated docs/README.md navigation if structure changed
+
 ### Python Code Style
 - **Type Hints**: ALWAYS use type hints for function parameters and return values
 - **Docstrings**: Use Google-style docstrings for all functions and classes

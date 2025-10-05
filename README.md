@@ -431,6 +431,8 @@ The `development` branch is protected with:
 
 ## 🌐 API Documentation
 
+For hands-on, HTTPS-first manual testing guides, see: docs/api-flows/
+
 ### Base URL
 ```
 https://localhost:8000/api/v1

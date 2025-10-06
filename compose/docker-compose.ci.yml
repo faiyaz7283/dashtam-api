@@ -25,7 +25,7 @@ services:
       - /var/lib/postgresql/data
       - /var/run/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TEST_POSTGRES_USER:-dashtam_test_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashtam_test_user} -d ${POSTGRES_DB:-dashtam_test}"]
       interval: 2s
       timeout: 2s
       retries: 10
@@ -81,6 +81,7 @@ services:
       - ../tests:/app/tests:ro
       - ../alembic:/app/alembic:ro
       - ../alembic.ini:/app/alembic.ini:ro
+      - ../certs:/app/certs:ro
       - ../pyproject.toml:/app/pyproject.toml:ro
       - ../uv.lock:/app/uv.lock:ro
     depends_on:

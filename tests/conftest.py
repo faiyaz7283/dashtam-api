@@ -625,3 +625,23 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.integration)
         elif "/api/" in test_path:
             item.add_marker(pytest.mark.api)
+
+
+# ============================================================================
+# HTTPS/SSL Fixtures for Test Environments
+# ============================================================================
+
+
+@pytest.fixture(scope="session", autouse=True)
+def disable_ssl_warnings():
+    """Disable SSL warnings for self-signed certs in test environments.
+
+    Test and CI environments use self-signed SSL certificates for HTTPS testing.
+    This fixture suppresses SSL verification warnings to keep test output clean
+    while still testing HTTPS functionality.
+
+    Note: This is safe for test environments. Production uses proper certificates.
+    """
+    import urllib3
+
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

@@ -606,3 +606,64 @@ When you discover a design flaw or improvement opportunity:
 **Next Review**: 2025-11-03  
 **Document Owner**: Architecture Team  
 **Current Sprint**: P2 Items (Rate Limiting + Enhanced Security)
+
+---
+
+## P2: Session Management Endpoints
+
+**Status**: Planned  
+**Complexity**: Medium  
+**Estimated Effort**: 3-4 days  
+**Added**: 2025-10-06
+
+**Problem Statement**:
+Currently, users cannot view or manage their active sessions. After password reset, all sessions are revoked, but users have no visibility into:
+- How many devices are logged in
+- When/where each session was created
+- Which sessions to revoke individually
+
+**Proposed Solution**:
+
+### New Endpoints
+
+1. **GET /api/v1/auth/sessions** - List all active sessions with device/IP info
+2. **DELETE /api/v1/auth/sessions/{id}** - Revoke specific session
+3. **DELETE /api/v1/auth/sessions/all** - Logout from all devices
+4. **DELETE /api/v1/auth/sessions/others** - Logout from all other devices
+
+### Implementation Highlights
+
+- Leverage existing `refresh_tokens` table (already has device_info, IP, user_agent)
+- Add IP geolocation for user-friendly location display
+- Show "current session" indicator
+- Rate limit session management endpoints
+
+### User Experience
+
+Users can:
+- View all active sessions (device, location, last activity)
+- Revoke suspicious sessions individually
+- Logout from all devices with one click
+- See which device is currently active
+
+### Security Benefits
+
+- Users can detect unauthorized access
+- Quick response to compromise (revoke all sessions)
+- Visibility into account activity
+- Complements password reset session revocation
+
+### Related Features
+
+- Suspicious activity alerts (login from new device/location)
+- Session expiration policies (configurable per device type)
+- Trusted device management
+
+### Industry Examples
+
+- GitHub: Settings → Sessions
+- Google: Security → Your devices  
+- Facebook: Settings → Security → Where You're Logged In
+
+**See**: [Full implementation details in improvement-guide.md](improvement-guide.md)
+

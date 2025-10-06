@@ -459,6 +459,153 @@ For use cases requiring immediate JWT revocation (rare):
 ⚠️ Access tokens: Valid until expiration (JWT, stateless)  
 📚 Industry standard: 30-minute window is acceptable for most applications
 
+### Flow 6: Password Reset with Session Revocation
+
+```
+┌────────┐                                           ┌────────┐
+│ Client │                                           │ Server │
+└────────┘                                           └────────┘
+    │                                                     │
+    │  POST /password-resets/                             │
+    │  {email: "user@example.com"}                        │
+    ├────────────────────────────────────────────────────>│
+    │                                                     │
+    │                                              1. Find user by email
+    │                                              2. Generate reset token
+    │                                              3. Hash & store token
+    │                                              4. Send reset email
+    │                                                     │
+    │  {message: "If account exists, email sent"}         │
+    │<────────────────────────────────────────────────────┤
+    │                                                     │
+    │                                                     │
+    │  (User clicks link in email)                        │
+    │  PATCH /password-resets/{token}                     │
+    │  {new_password: "NewSecurePass123!"}                │
+    ├────────────────────────────────────────────────────>│
+    │                                                     │
+    │                                              1. Verify token
+    │                                              2. Check token not expired
+    │                                              3. Validate new password strength
+    │                                              4. Update password hash
+    │                                              5. Mark reset token as used
+    │                                              6. REVOKE ALL refresh tokens 🔒
+    │                                              7. Send confirmation email
+    │                                                     │
+    │  {message: "Password reset successfully"}           │
+    │<────────────────────────────────────────────────────┤
+    │                                                     │
+    │  User must login again with new password            │
+```
+
+**🔒 Security Enhancement: Session Revocation on Password Reset**
+
+When a user resets their password, **all active refresh tokens are immediately revoked**. This ensures that any potentially compromised sessions are terminated.
+
+**Why This Is Critical:**
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Scenario: Password Reset After Compromise                    │
+└──────────────────────────────────────────────────────────────┘
+
+1. Attacker compromises user's password
+2. Attacker logs in (gets refresh token, 30-day lifetime)
+3. User realizes account compromise
+4. User requests password reset
+
+❌ WITHOUT session revocation:
+  → Attacker's refresh token still works for 30 days
+  → Attacker can continue accessing account
+  → Password change provides NO security!
+
+✅ WITH session revocation:
+  → All refresh tokens revoked (including attacker's)
+  → Attacker cannot get new access tokens
+  → Account secured immediately
+  → User must re-login on all devices
+```
+
+**Implementation Details:**
+
+```python
+async def reset_password(self, token: str, new_password: str) -> User:
+    """Reset password and revoke all sessions."""
+    # ... validate token and password ...
+    
+    # Update password
+    user.password_hash = self.password_service.hash_password(new_password)
+    
+    # Mark reset token as used
+    reset_token.used_at = datetime.now(timezone.utc)
+    
+    # 🔒 SECURITY: Revoke ALL existing refresh tokens
+    result = await self.session.execute(
+        select(RefreshToken).where(
+            RefreshToken.user_id == user.id,
+            RefreshToken.is_revoked == False
+        )
+    )
+    active_tokens = result.scalars().all()
+    
+    for token_record in active_tokens:
+        token_record.revoked_at = datetime.now(timezone.utc)
+        token_record.is_revoked = True
+    
+    logger.info(f"Password reset: Revoked {len(active_tokens)} sessions")
+    
+    await self.session.commit()
+    return user
+```
+
+**Testing Password Reset Security:**
+
+```bash
+# 1. Login and save tokens
+curl -k -X POST "$BASE_URL/api/v1/auth/login" \
+  -d '{"email": "user@example.com", "password": "OldPass123!"}'
+# Save: OLD_REFRESH_TOKEN, OLD_ACCESS_TOKEN
+
+# 2. Request password reset
+curl -k -X POST "$BASE_URL/api/v1/password-resets/" \
+  -d '{"email": "user@example.com"}'
+
+# 3. Extract reset token from logs (development mode)
+docker logs dashtam-dev-app | grep 'reset-password?token=' 
+
+# 4. Complete password reset
+curl -k -X PATCH "$BASE_URL/api/v1/password-resets/$RESET_TOKEN" \
+  -d '{"new_password": "NewSecurePass123!"}'
+
+# 5. Verify old refresh token is revoked
+curl -k -X POST "$BASE_URL/api/v1/auth/refresh" \
+  -d '{"refresh_token": "'$OLD_REFRESH_TOKEN'"}'
+# → 401 Unauthorized ✅ (Token revoked by password reset)
+
+# 6. Verify old access token still works (until expiry)
+curl -k -X GET "$BASE_URL/api/v1/auth/me" \
+  -H "Authorization: Bearer $OLD_ACCESS_TOKEN"
+# → 200 OK ⚠️ (Access token valid for ~30 min, then expires)
+```
+
+**User Experience:**
+
+After password reset:
+- ✅ All devices logged out (refresh tokens revoked)
+- ⚠️ Current sessions may work for ~30 min (access tokens valid until expiry)
+- ✅ Cannot extend sessions (refresh blocked)
+- ✅ Must re-login with new password on all devices
+
+**Security vs Convenience:**
+
+| Approach | Security | User Impact |
+|----------|----------|-------------|
+| **Revoke refresh only** (current) | ✅ High | ⚠️ Logged out all devices |
+| Revoke nothing | ❌ Low | ✅ No disruption |
+| Revoke access + refresh | ✅✅ Highest | ❌❌ Complex JWT blocklist |
+
+**Industry Standard**: Password reset → revoke all refresh tokens (Google, GitHub, Auth0)
+
 ---
 
 ## Database Schema

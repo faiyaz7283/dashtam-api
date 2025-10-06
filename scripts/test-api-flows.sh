@@ -239,6 +239,11 @@ fi
 
 # Test 9: Password Reset Request
 echo -e "${BLUE}Test 9: Password Reset Request${NC}"
+# Save old tokens before password reset (for session revocation test)
+export OLD_REFRESH_TOKEN="$REFRESH_TOKEN"
+export OLD_ACCESS_TOKEN="$ACCESS_TOKEN"
+echo "Saved old tokens for revocation test"
+
 RESET_REQUEST_RESPONSE=$(curl -k -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/password-resets/" \
   -H "Content-Type: application/json" \
   -d "{
@@ -308,8 +313,45 @@ else
     test_result "Confirm Password Reset" 1 "Skipped (no reset token)"
 fi
 
-# Test 13: Login with New Password
-echo -e "${BLUE}Test 13: Login with New Password${NC}"
+# Test 13: Verify Old Refresh Token Revoked (Password Reset Security)
+echo -e "${BLUE}Test 13: Verify Old Refresh Token Revoked After Password Reset${NC}"
+if [ -n "$OLD_REFRESH_TOKEN" ]; then
+    OLD_REFRESH_RESPONSE=$(curl -k -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/auth/refresh" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"refresh_token\": \"$OLD_REFRESH_TOKEN\"
+      }")
+    
+    HTTP_CODE=$(echo "$OLD_REFRESH_RESPONSE" | tail -1)
+    
+    if [ "$HTTP_CODE" = "401" ]; then
+        test_result "Old Refresh Token Revoked (HTTP 401 - Security: Password Reset)" 0
+    else
+        test_result "Old Refresh Token Revoked (HTTP 401)" 1 "Got HTTP $HTTP_CODE (SECURITY ISSUE: Token not revoked!)"
+    fi
+else
+    test_result "Old Refresh Token Revoked" 1 "Skipped (no old token saved)"
+fi
+
+# Test 13a: Verify Old Access Token Still Works (Correct JWT Behavior)
+echo -e "${BLUE}Test 13a: Verify Old Access Token Still Works Until Expiry${NC}"
+if [ -n "$OLD_ACCESS_TOKEN" ]; then
+    OLD_ACCESS_RESPONSE=$(curl -k -s -w "\n%{http_code}" -X GET "$BASE_URL/api/v1/auth/me" \
+      -H "Authorization: Bearer $OLD_ACCESS_TOKEN")
+    
+    HTTP_CODE=$(echo "$OLD_ACCESS_RESPONSE" | tail -1)
+    
+    if [ "$HTTP_CODE" = "200" ]; then
+        test_result "Old Access Token Still Valid (HTTP 200 - Correct: Stateless JWT)" 0
+    else
+        test_result "Old Access Token Still Valid (HTTP 200)" 1 "Got HTTP $HTTP_CODE"
+    fi
+else
+    test_result "Old Access Token Still Valid" 1 "Skipped (no old token)"
+fi
+
+# Test 14: Login with New Password
+echo -e "${BLUE}Test 14: Login with New Password${NC}"
 LOGIN2_RESPONSE=$(curl -k -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d "{
@@ -330,8 +372,8 @@ else
     test_result "Login with New Password (HTTP 200)" 1 "Got HTTP $HTTP_CODE"
 fi
 
-# Test 14: Logout
-echo -e "${BLUE}Test 14: Logout${NC}"
+# Test 15: Logout
+echo -e "${BLUE}Test 15: Logout${NC}"
 if [ -n "$ACCESS_TOKEN2" ] && [ -n "$REFRESH_TOKEN2" ]; then
     LOGOUT_RESPONSE=$(curl -k -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/auth/logout" \
       -H "Authorization: Bearer $ACCESS_TOKEN2" \
@@ -351,8 +393,8 @@ else
     test_result "Logout" 1 "Skipped (no access token)"
 fi
 
-# Test 15: Verify Refresh Token Revoked
-echo -e "${BLUE}Test 15: Verify Refresh Token Revoked${NC}"
+# Test 16: Verify Refresh Token Revoked After Logout
+echo -e "${BLUE}Test 16: Verify Refresh Token Revoked After Logout${NC}"
 if [ -n "$REFRESH_TOKEN2" ]; then
     REVOKED_RESPONSE=$(curl -k -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/auth/refresh" \
       -H "Content-Type: application/json" \
@@ -371,8 +413,8 @@ else
     test_result "Refresh Token Revoked" 1 "Skipped (no refresh token)"
 fi
 
-# Test 16: Verify Access Token Still Works
-echo -e "${BLUE}Test 16: Verify Access Token Still Works After Logout${NC}"
+# Test 17: Verify Access Token Still Works After Logout
+echo -e "${BLUE}Test 17: Verify Access Token Still Works After Logout${NC}"
 if [ -n "$ACCESS_TOKEN2" ]; then
     STILL_VALID_RESPONSE=$(curl -k -s -w "\n%{http_code}" -X GET "$BASE_URL/api/v1/auth/me" \
       -H "Authorization: Bearer $ACCESS_TOKEN2")

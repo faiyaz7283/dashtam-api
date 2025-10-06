@@ -161,9 +161,25 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/login" \
 
 ✅ Password reset successful!
 
+## 🔒 Security Note: Session Revocation
+
+**Important**: When you complete a password reset, **all active sessions are automatically logged out** for security.
+
+**What happens:**
+- ✅ All refresh tokens are revoked immediately
+- ⚠️ Existing access tokens remain valid for ~30 minutes (then expire)
+- ✅ Cannot get new access tokens (refresh is blocked)
+- ✅ Must re-login on all devices with new password
+
+**Why this is important:**
+If your password was compromised, revoking all sessions ensures that an attacker cannot continue accessing your account, even if they already have tokens.
+
+**Testing session revocation:**
+See [Complete Auth Flow](complete-auth-flow.md) for full end-to-end testing including session revocation verification (Tests 13 & 13a).
+
 ## Next Step
 
-**Continue to:** [Login Flow](login.md) to use the new password.
+**Continue to:** [Login Flow](login.md) to use the new password on all devices.
 
 ## Troubleshooting
 

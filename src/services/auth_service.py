@@ -465,8 +465,12 @@ class AuthService:
     async def reset_password(self, token: str, new_password: str) -> User:
         """Reset user password using reset token.
 
-        Validates the reset token, updates password, and sends
-        confirmation email.
+        Validates the reset token, updates password, revokes all existing
+        sessions (for security), and sends confirmation email.
+
+        Security: All active refresh tokens are revoked to ensure that any
+        potentially compromised sessions are terminated. This forces users
+        to log in again with the new password on all devices.
 
         Args:
             token: Password reset token string
@@ -536,6 +540,25 @@ class AuthService:
 
         # Mark token as used
         reset_token.used_at = datetime.now(timezone.utc)
+
+        # 🔒 SECURITY: Revoke all existing refresh tokens (logout all devices)
+        # This prevents compromised sessions from remaining active after password change
+        result = await self.session.execute(
+            select(RefreshToken).where(
+                RefreshToken.user_id == user.id, ~RefreshToken.is_revoked
+            )
+        )
+        active_tokens = result.scalars().all()
+
+        revoked_count = 0
+        for token_record in active_tokens:
+            token_record.revoked_at = datetime.now(timezone.utc)
+            token_record.is_revoked = True
+            revoked_count += 1
+
+        logger.info(
+            f"Password reset for user {user.email}: Revoked {revoked_count} active session(s)"
+        )
 
         await self.session.commit()
 

@@ -9,17 +9,20 @@
 # Ignore .env directories (Python virtual envs) but NOT our env/ config directory
 **/.env/
 
-# Ignore secret env files in env/ directory (but allow .env.ci and examples)
+# Ignore ALL actual env files in env/ directory (they contain secrets)
+# Only commit .example files
 env/.env
-env/.env.dev
-env/.env.test
-env/.env.prod
-env/.env.local
+env/.env.*
+!env/.env.*.example
 
-# Certificates (self-signed, can be regenerated)
-certs/*.pem
+# Certificates
+# Allow self-signed dev/test certs (.pem files are committed for CI/dev/test)
+# Ignore production certs and private keys
 certs/*.key
 certs/*.crt
+certs/prod*.pem
+certs/production*.pem
+certs/staging*.pem
 
 # Python
 __pycache__/

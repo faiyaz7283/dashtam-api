@@ -81,6 +81,7 @@ services:
       - ../tests:/app/tests:ro
       - ../alembic:/app/alembic:ro
       - ../alembic.ini:/app/alembic.ini:ro
+      - ../certs:/app/certs:ro
       - ../pyproject.toml:/app/pyproject.toml:ro
       - ../uv.lock:/app/uv.lock:ro
     depends_on:

@@ -19,6 +19,7 @@ Dashtam follows the testing pyramid approach:
 - **70% Unit Tests**: Fast, isolated tests for individual functions/classes
 - **20% Integration Tests**: Tests for component interactions (database, services)
 - **10% API/E2E Tests**: Tests for complete workflows through HTTP endpoints
+- **Smoke Tests**: Critical path validation (subset of API tests, run pre-deployment)
 
 ### Testing Principles
 1. **Tests should be fast**: Most tests should run in milliseconds
@@ -403,6 +404,13 @@ expires_at = datetime.now(timezone.utc)  # Timezone-aware
 ### Run All Tests
 ```bash
 make test
+```
+
+### Run Test Categories
+```bash
+make test-unit         # Unit tests only
+make test-integration  # Integration tests only
+make test-smoke        # Smoke tests (critical paths)
 ```
 
 ### Run Specific Test File

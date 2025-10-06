@@ -25,7 +25,7 @@ services:
       - /var/lib/postgresql/data
       - /var/run/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TEST_POSTGRES_USER:-dashtam_test_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashtam_test_user} -d ${POSTGRES_DB:-dashtam_test}"]
       interval: 2s
       timeout: 2s
       retries: 10

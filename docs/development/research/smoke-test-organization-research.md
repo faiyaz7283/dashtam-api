@@ -1,8 +1,8 @@
 # Smoke Test Organization & SSL/TLS in Testing - Research & Recommendations
 
 **Date**: 2025-10-06  
-**Status**: Research Complete  
-**Decision Required**: Yes
+**Status**: ✅ SSL/TLS Implementation Complete | Smoke Test Organization Pending  
+**Decision Required**: Yes (Smoke Test Organization Only)
 
 ---
 
@@ -22,15 +22,24 @@
 
 **Key Findings:**
 1. ✅ **Smoke tests belong in the test directory** - Industry consensus (85%+ of projects)
-2. ✅ **SSL/TLS should be enabled in test and CI environments** - Security best practice
+2. ✅ **SSL/TLS should be enabled in test and CI environments** - Security best practice ✅ **COMPLETE**
 3. ✅ **Smoke tests should run in CI/CD** - Essential for deployment confidence
 4. ⚠️ **Current structure is non-standard** - Shell script in `scripts/` is atypical
 
 **Recommended Actions:**
-1. Move smoke tests to `tests/smoke/` directory
-2. Enable SSL/TLS in test and CI environments
-3. Integrate smoke tests into CI/CD pipeline
-4. Optionally: Convert shell script to pytest-based smoke tests
+1. ⏭️ Move smoke tests to `tests/smoke/` directory - **PENDING**
+2. ✅ Enable SSL/TLS in test and CI environments - **COMPLETE** (2025-10-06)
+3. ⏭️ Integrate smoke tests into CI/CD pipeline - **PENDING**
+4. ⏭️ Optionally: Convert shell script to pytest-based smoke tests - **PENDING**
+
+**SSL/TLS Implementation Summary (Completed 2025-10-06):**
+- ✅ Test environment now uses HTTPS (port 8001)
+- ✅ CI environment now uses HTTPS (internal)
+- ✅ Self-signed certificates committed to git
+- ✅ pytest fixtures configured to handle HTTPS
+- ✅ All 305 tests passing with HTTPS enabled
+- ✅ PostgreSQL health check errors fixed
+- ✅ Production parity achieved across dev, test, and CI
 
 ---
 
@@ -47,20 +56,20 @@ Dashtam/
 │   ├── integration/               # Integration tests (pytest)
 │   └── api/                       # API endpoint tests (pytest)
 └── compose/
-    ├── docker-compose.dev.yml     # SSL enabled (port 8000 HTTPS)
-    ├── docker-compose.test.yml    # SSL available but HTTP only (port 8001)
-    └── docker-compose.ci.yml      # No SSL, internal only
+    ├── docker-compose.dev.yml     # ✅ SSL enabled (port 8000 HTTPS)
+    ├── docker-compose.test.yml    # ✅ SSL enabled (port 8001 HTTPS) - Updated 2025-10-06
+    └── docker-compose.ci.yml      # ✅ SSL enabled (internal HTTPS) - Updated 2025-10-06
 ```
 
 ### Current Issues
 
-| Issue | Impact | Priority |
-|-------|--------|----------|
-| Smoke test outside `tests/` | Discoverability, organization | **High** |
-| No SSL in test environment | Can't test HTTPS endpoints realistically | **High** |
-| No SSL in CI environment | Production parity gap | **Medium** |
-| Smoke tests not in CI/CD | Missing deployment gate | **High** |
-| Shell script vs pytest | Inconsistent test approach | **Medium** |
+| Issue | Impact | Priority | Status |
+|-------|--------|----------|--------|
+| Smoke test outside `tests/` | Discoverability, organization | **High** | ⏭️ Pending |
+| No SSL in test environment | Can't test HTTPS endpoints realistically | **High** | ✅ **Fixed** (2025-10-06) |
+| No SSL in CI environment | Production parity gap | **Medium** | ✅ **Fixed** (2025-10-06) |
+| Smoke tests not in CI/CD | Missing deployment gate | **High** | ⏭️ Pending |
+| Shell script vs pytest | Inconsistent test approach | **Medium** | ⏭️ Pending |
 
 ---
 

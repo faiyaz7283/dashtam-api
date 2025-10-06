@@ -78,22 +78,30 @@ async def verify_reset_token(
         Token validity information.
     """
     try:
-        # Verify the token and get associated email
-        # This is a new method we'll need to add to AuthService
+        # Get all unused reset tokens for potential match (same pattern as reset_password)
         from src.models.auth import PasswordResetToken
+        from src.models.user import User
+        from src.services.password_service import PasswordService
         from sqlmodel import select
 
+        # Get all unused password reset tokens
         result = await session.execute(
-            select(PasswordResetToken).where(PasswordResetToken.token == token)
+            select(PasswordResetToken).where(PasswordResetToken.used_at.is_(None))
         )
-        reset_token = result.scalar_one_or_none()
+        reset_tokens = result.scalars().all()
+
+        # Find matching token by comparing hashes (bcrypt comparison)
+        password_service = PasswordService()
+        reset_token = None
+        for token_record in reset_tokens:
+            if password_service.verify_password(token, token_record.token_hash):
+                reset_token = token_record
+                break
 
         if not reset_token or not reset_token.is_valid:
             return VerifyResetTokenResponse(valid=False)
 
         # Get user email
-        from src.models.user import User
-
         result = await session.execute(
             select(User).where(User.id == reset_token.user_id)
         )

@@ -60,10 +60,27 @@ def test_settings() -> TestSettings:
 def setup_test_database():
     """Set up test database schema once per test session.
 
-    Creates all tables at start, drops them at end.
-    This runs automatically for all test sessions.
+    This fixture ensures database schema is ready before any tests run.
+    In CI/test environments, Alembic migrations run first (docker-compose.test.yml).
+    In local development, creates tables from SQLModel if migrations haven't run.
+
+    By using autouse=True, this blocks all tests until schema is ready,
+    ensuring consistent behavior across all environments.
     """
-    # Create all tables
+    # Check if Alembic migrations have already run (CI environment)
+    # If alembic_version table exists, skip create_all (migrations handle schema)
+    from sqlalchemy import inspect
+    import os
+
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+
+    # In CI, migrations handle everything - skip setup
+    if os.getenv("CI") == "true" or "alembic_version" in existing_tables:
+        yield
+        return  # Skip cleanup too
+
+    # Local test environment: create tables from SQLModel metadata
     SQLModel.metadata.create_all(engine)
 
     yield
@@ -84,7 +101,7 @@ def db() -> Generator[Session, None, None]:
 
 
 @pytest.fixture(scope="function")
-def db_session(db: Session) -> Generator[Session, None, None]:
+def db_session(db: Session, request) -> Generator[Session, None, None]:
     """Function-scoped database session for test isolation.
 
     Each test gets access to the session. Tests should create their own
@@ -93,6 +110,9 @@ def db_session(db: Session) -> Generator[Session, None, None]:
 
     Note: This is synchronous Session, not AsyncSession. Perfect for testing
     since TestClient handles the async/sync bridge internally.
+
+    Smoke tests marked with `@pytest.mark.smoke_test` skip database cleanup
+    to allow state to persist across sequential test functions.
     """
     yield db
 
@@ -101,6 +121,10 @@ def db_session(db: Session) -> Generator[Session, None, None]:
         db.rollback()
     except Exception:
         pass
+
+    # Skip cleanup for smoke tests (they need state to persist)
+    if request.node.get_closest_marker("smoke_test"):
+        return
 
     # Optional: Explicit cleanup after each test
     # Deletes are cascaded based on model relationships
@@ -131,7 +155,11 @@ def client(db: Session) -> Generator[TestClient, None, None]:
 
     # Create wrapper class to handle async-to-sync conversion
     class AsyncToSyncWrapper:
-        """Wrapper to make sync Session work with async endpoints."""
+        """Wrapper to make sync Session work with async endpoints.
+
+        CRITICAL: Expires session state after commit to ensure fresh data
+        is visible in subsequent requests (required for CI environment).
+        """
 
         def __init__(self, sync_session: Session):
             self.session = sync_session
@@ -141,8 +169,15 @@ def client(db: Session) -> Generator[TestClient, None, None]:
             return self.session.execute(*args, **kwargs)
 
         async def commit(self):
-            """Wrap sync commit to be awaitable."""
-            return self.session.commit()
+            """Wrap sync commit to be awaitable.
+
+            After commit, expire all session state to force fresh queries.
+            This ensures data committed in one request is visible in the next.
+            """
+            result = self.session.commit()
+            # Expire all objects in session to force refresh on next access
+            self.session.expire_all()
+            return result
 
         async def rollback(self):
             """Wrap sync rollback to be awaitable."""
@@ -170,8 +205,14 @@ def client(db: Session) -> Generator[TestClient, None, None]:
 
     # Override async database session with wrapped sync session
     async def override_get_session():
-        """Provide wrapped synchronous session for async endpoints."""
+        """Provide wrapped synchronous session for async endpoints.
+
+        Expires all session objects at start of each request to ensure
+        fresh data is queried (required for CI environment).
+        """
         wrapper = AsyncToSyncWrapper(db)
+        # Expire all cached objects to force fresh queries
+        db.expire_all()
         try:
             yield wrapper
         finally:
@@ -203,7 +244,11 @@ def client_with_mock_auth(db: Session) -> Generator[TestClient, None, None]:
 
     # Create wrapper class to handle async-to-sync conversion
     class AsyncToSyncWrapper:
-        """Wrapper to make sync Session work with async endpoints."""
+        """Wrapper to make sync Session work with async endpoints.
+
+        CRITICAL: Expires session state after commit to ensure fresh data
+        is visible in subsequent requests (required for CI environment).
+        """
 
         def __init__(self, sync_session: Session):
             self.session = sync_session
@@ -213,8 +258,15 @@ def client_with_mock_auth(db: Session) -> Generator[TestClient, None, None]:
             return self.session.execute(*args, **kwargs)
 
         async def commit(self):
-            """Wrap sync commit to be awaitable."""
-            return self.session.commit()
+            """Wrap sync commit to be awaitable.
+
+            After commit, expire all session state to force fresh queries.
+            This ensures data committed in one request is visible in the next.
+            """
+            result = self.session.commit()
+            # Expire all objects in session to force refresh on next access
+            self.session.expire_all()
+            return result
 
         async def rollback(self):
             """Wrap sync rollback to be awaitable."""
@@ -242,8 +294,14 @@ def client_with_mock_auth(db: Session) -> Generator[TestClient, None, None]:
 
     # Override async database session with wrapped sync session
     async def override_get_session():
-        """Provide wrapped synchronous session for async endpoints."""
+        """Provide wrapped synchronous session for async endpoints.
+
+        Expires all session objects at start of each request to ensure
+        fresh data is queried (required for CI environment).
+        """
         wrapper = AsyncToSyncWrapper(db)
+        # Expire all cached objects to force fresh queries
+        db.expire_all()
         try:
             yield wrapper
         finally:

@@ -33,10 +33,12 @@ services:
     networks:
       - dashtam-ci-network
     # CI-specific PostgreSQL configuration for maximum speed
+    # NOTE: synchronous_commit=on is required for test data visibility
+    # We removed synchronous_commit=off because it caused read-after-write
+    # inconsistencies in smoke tests (user not found after registration)
     command: >
       postgres
       -c fsync=off
-      -c synchronous_commit=off
       -c full_page_writes=off
       -c random_page_cost=1.0
       -c shared_buffers=256MB

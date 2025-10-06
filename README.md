@@ -424,14 +424,42 @@ The `development` branch is protected with:
 - ✅ **Timezone-Aware Storage**: All timestamps use PostgreSQL TIMESTAMPTZ
 
 ### Planned Security Enhancements
-- 🔥 **User Authentication**: JWT + refresh tokens (research complete, ready for implementation)
 - 🚧 **Rate Limiting**: API rate limiting and throttling
 - 🚧 **MFA**: Multi-factor authentication support
 - 🚧 **Passkeys**: WebAuthn/FIDO2 passwordless authentication
 
 ## 🌐 API Documentation
 
-For hands-on, HTTPS-first manual testing guides, see: docs/api-flows/
+### Manual Testing & API Flows
+
+For hands-on, HTTPS-first manual testing guides with copy-paste examples, see:
+- **[API Flows Documentation](docs/api-flows/)** - Complete manual testing guides
+- **[Authentication Flows](docs/api-flows/auth/)** - Registration, login, password reset
+- **[Provider Flows](docs/api-flows/providers/)** - Provider onboarding and OAuth
+- **[Complete Auth Flow](docs/api-flows/auth/complete-auth-flow.md)** - End-to-end smoke test
+
+### Development Mode: Email Token Extraction
+
+**Important for development/testing**: In development mode (`DEBUG=True`), emails are **logged to console** instead of sent via AWS SES.
+
+**To extract verification/reset tokens from logs:**
+
+```bash
+# View recent email logs
+docker logs dashtam-dev-app --tail 100 2>&1 | grep -A 20 '📧 EMAIL'
+
+# Look for URLs containing tokens:
+# https://localhost:3000/verify-email?token=YOUR_TOKEN_HERE
+# https://localhost:3000/reset-password?token=YOUR_TOKEN_HERE
+
+# Extract and use the token
+export VERIFICATION_TOKEN="<token-from-logs>"
+export RESET_TOKEN="<token-from-logs>"
+```
+
+**Why this works**: No AWS credentials needed in dev! The `EmailService` automatically detects `DEBUG=True` and logs emails with full content including tokens.
+
+See individual flow guides for detailed examples: [docs/api-flows/auth/](docs/api-flows/auth/)
 
 ### Base URL
 ```
@@ -461,12 +489,19 @@ https://localhost:8000/api/v1
 - `GET /api/v1/auth/{provider_id}/status` - Get token status
 - `DELETE /api/v1/auth/{provider_id}/disconnect` - Disconnect provider
 
-#### User Authentication (Coming Soon)
-- `POST /api/v1/auth/signup` - Create new user account
-- `POST /api/v1/auth/login` - Login with email/password
+#### User Authentication ✅
+- `POST /api/v1/auth/register` - Create new user account
+- `POST /api/v1/auth/verify-email` - Verify email address
+- `POST /api/v1/auth/login` - Login with email/password (returns JWT tokens)
 - `POST /api/v1/auth/refresh` - Refresh access token
-- `POST /api/v1/auth/logout` - Logout and revoke tokens
+- `POST /api/v1/auth/logout` - Logout and revoke refresh token
 - `GET /api/v1/auth/me` - Get current user profile
+- `PATCH /api/v1/auth/me` - Update user profile
+- `POST /api/v1/password-resets` - Request password reset
+- `GET /api/v1/password-resets/{token}` - Verify reset token
+- `PATCH /api/v1/password-resets/{token}` - Complete password reset with new password
+
+**Manual Testing Guides**: See [Authentication Flows](docs/api-flows/auth/) for copy-paste examples
 
 #### Financial Data (Coming Soon)
 - `GET /api/v1/accounts` - Get all connected accounts

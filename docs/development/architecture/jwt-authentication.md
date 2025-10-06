@@ -370,6 +370,95 @@ raise AuthenticationError("Invalid token")
     │  Delete tokens from client storage                  │
 ```
 
+**⚠️ Important: Logout Behavior & Token Revocation**
+
+When a user logs out, **only the refresh token is revoked**. The JWT access token remains valid until its natural expiration (30 minutes). This is by design and consistent with industry-standard JWT implementations.
+
+**What Gets Invalidated:**
+
+| Token Type | Revoked on Logout? | Why? |
+|------------|-------------------|------|
+| **Refresh Token** (Opaque) | ✅ Yes (Immediate) | Stored in database, can be marked as revoked |
+| **Access Token** (JWT) | ❌ No (Expires naturally) | Stateless, no database tracking |
+
+**Why Access Tokens Can't Be Immediately Revoked:**
+
+1. **Stateless by Design**: JWTs are validated by signature only, no database lookup
+2. **Performance**: Checking a revocation list defeats JWT's scalability benefit
+3. **Industry Standard**: Auth0, GitHub, Google, AWS Cognito all work this way
+
+**Security Implications:**
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ After Logout: What Can/Cannot Be Done                       │
+└──────────────────────────────────────────────────────────────┘
+
+✅ CAN (with old access token, for ~30 min):
+  - Access protected API endpoints
+  - Read user profile
+  - Perform authenticated actions
+
+❌ CANNOT (refresh token revoked):
+  - Get new access tokens
+  - Extend session beyond current token expiration
+  - Refresh authentication after 30 minutes
+```
+
+**Why This Is Acceptable:**
+
+1. **Short Window**: 30 minutes is industry-standard (configurable)
+2. **No Session Extension**: Can't get new tokens without refresh token
+3. **Long-term Protection**: Refresh token (30 days) is properly revoked
+4. **Performance vs Security**: Acceptable trade-off for stateless scalability
+
+**Testing Logout:**
+
+```bash
+# 1. Logout revokes refresh token
+curl -k -X POST "$BASE_URL/api/v1/auth/logout" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{"refresh_token": "'$REFRESH_TOKEN'"}'
+# → {"message": "Logged out successfully"}
+
+# 2. Verify refresh token is revoked
+curl -k -X POST "$BASE_URL/api/v1/auth/refresh" \
+  -d '{"refresh_token": "'$REFRESH_TOKEN'"}'
+# → 401 Unauthorized: "Invalid or revoked refresh token" ✅
+
+# 3. Access token STILL WORKS (until expiry)
+curl -k -X GET "$BASE_URL/api/v1/auth/me" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+# → 200 OK: Returns user profile ⚠️ Expected behavior
+```
+
+**If Immediate Revocation Is Required:**
+
+For use cases requiring immediate JWT revocation (rare):
+
+```python
+# Option 1: JWT Blocklist (adds database lookup)
+# - Store revoked JTI (JWT ID) in Redis
+# - Check every JWT against blocklist
+# - Sacrifices stateless benefit
+
+# Option 2: Shorter Access Token TTL
+# - Reduce from 30 min to 5-10 min
+# - More frequent refresh operations
+# - Better security, more API calls
+
+# Option 3: User-level revocation flag
+# - Add database lookup for critical endpoints
+# - Check user.is_active on sensitive operations
+# - Hybrid approach: stateless + selective checks
+```
+
+**Current Implementation: Pattern A (Recommended)**
+
+✅ Refresh tokens: Immediately revocable (opaque, database-backed)  
+⚠️ Access tokens: Valid until expiration (JWT, stateless)  
+📚 Industry standard: 30-minute window is acceptable for most applications
+
 ---
 
 ## Database Schema
@@ -644,6 +733,17 @@ class JWTService:
 ---
 
 ## Security Considerations
+
+### Token Revocation & Logout Behavior
+
+**⚠️ IMPORTANT**: When users logout, only the **refresh token** is immediately revoked. The **JWT access token remains valid** until its natural expiration (30 minutes). This is by design for stateless JWT implementations.
+
+**Key Points:**
+- ✅ Refresh token: Immediately revoked (can't get new access tokens)
+- ⚠️ Access token: Valid until expiry (can still access API for ~30 min)
+- 📚 **See [Flow 5: Logout](#flow-5-logout)** for detailed explanation and testing examples
+
+This is the industry-standard trade-off between performance and immediate revocation. For use cases requiring immediate JWT revocation, see alternative approaches in the logout flow documentation.
 
 ### Token Storage (Client-Side)
 

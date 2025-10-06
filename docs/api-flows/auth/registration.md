@@ -12,38 +12,103 @@ Create a new user account that can later be verified and used to log in.
 ```bash
 make dev-up
 BASE_URL=https://localhost:8000
-TEST_EMAIL="tester+$(date +%s)@example.com"
-TEST_PASSWORD="SecurePass123!"
+TEST_EMAIL='tester+'$(date +%s)'@example.com'
+TEST_PASSWORD='SecurePass123!'
 ```
 
 ## Steps
 
 ### 1) Register
 ```bash
+# Quote-safe JSON via heredoc
+cat <<JSON >/tmp/register.json
+{
+  "email": "$TEST_EMAIL",
+  "password": "$TEST_PASSWORD",
+  "name": "Test User"
+}
+JSON
+
 curl -sk -X POST "$BASE_URL/api/v1/auth/register" \
-  -H "Content-Type: application/json" \
-  -d "{\n    \"email\": \"$TEST_EMAIL\",\n    \"password\": \"$TEST_PASSWORD\",\n    \"name\": \"Test User\"\n  }" | python3 -m json.tool
+  -H 'Content-Type: application/json' \
+  --data-binary @/tmp/register.json | python3 -m json.tool
 ```
-Expected (snippet):
+**Expected Response (HTTP 201 Created):**
 ```json
-{"message": "Registration successful. Please check your email to verify."}
+{
+  "message": "Registration successful. Please check your email to verify your account."
+}
 ```
 
-### 2) Email verification (note)
-- In development, email delivery may be mocked. The verification step uses:
+**Optional: Inline (no heredoc)**
 ```bash
-curl -sk -X POST "$BASE_URL/api/v1/auth/verify-email" \
-  -H "Content-Type: application/json" \
-  -d '{"token": "<verification_token>"}' | python3 -m json.tool
+curl -sk -X POST "$BASE_URL/api/v1/auth/register" \
+  -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\",\"name\":\"Test User\"}" \
+  | python3 -m json.tool
 ```
-- If token delivery is not wired up, you may need to:
-  - Inspect logs/DB for the token (future tooling), or
-  - Temporarily mark the user verified for manual testing (admin action)
+
+### 2) Extract verification token from logs
+
+In development mode (`DEBUG=True`), emails are logged to console instead of being sent via AWS SES. Extract the verification token:
+
+```bash
+# View recent email logs
+docker logs dashtam-dev-app --tail 100 2>&1 | grep -A 20 '📧 EMAIL'
+```
+
+**You'll see output like:**
+```
+📧 EMAIL (Development Mode - Not Sent)
+================================================================================
+From: Dashtam <noreply@dashtam.com>
+To: tester+1234567890@example.com
+Subject: Verify Your Dashtam Account
+--------------------------------------------------------------------------------
+Text Body:
+Hi Test User,
+
+Thank you for signing up for Dashtam...
+
+To complete your registration, please visit:
+https://localhost:3000/verify-email?token=vYaGSkz80Qoi86hR78lPyKt6zIp8LDoj13TiheZzjLk
+================================================================================
+```
+
+**Extract the token:**
+```bash
+# Copy the token from the URL in the logs
+export VERIFICATION_TOKEN="vYaGSkz80Qoi86hR78lPyKt6zIp8LDoj13TiheZzjLk"
+
+# Verify it's set
+echo "Verification token: $VERIFICATION_TOKEN"
+```
+
+**Why this works**: The `EmailService` automatically operates in development mode when `DEBUG=True`, logging all emails with full content including verification tokens.
+
+## Next Step
+
+✅ **Continue to:** [Email Verification Flow](email-verification.md) to verify your email and activate the account.
 
 ## Cleanup (optional)
-- If you created a throwaway user, you can remove it via admin tooling (not included here yet).
+
+```bash
+# Users cannot be deleted via API yet (future admin endpoint)
+# For now, test users remain in the database
+```
 
 ## Troubleshooting
-- 422 errors: ensure email and password meet validation requirements
-- 400 duplicate email: try a fresh TEST_EMAIL value
-- For HTTPS, use `-k` to accept self-signed dev certificates
+
+- **400 Bad Request - "Email already registered"**: Use a fresh email address with timestamp: `TEST_EMAIL='tester+'$(date +%s)'@example.com'`
+- **400 Bad Request - Password validation**: Ensure password has:
+  - At least 8 characters
+  - 1 uppercase letter (A-Z)
+  - 1 lowercase letter (a-z)
+  - 1 digit (0-9)
+  - 1 special character (!@#$%^&*)
+- **422 Validation Error**: Check JSON payload format and required fields (email, password, name)
+- **SSL certificate errors**: Use `-k` flag with curl to accept self-signed dev certificates
+- **Token not appearing in logs**: 
+  - Ensure dev environment is running: `make dev-status`
+  - Check logs are streaming: `make dev-logs`
+  - Verify DEBUG=true in `env/.env.dev`

@@ -73,16 +73,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv venv
-          source .venv/bin/activate
-          uv pip install -r requirements-dev.txt
+          uv sync --frozen
 
       - name: Run ruff linter
         run: |
-          source .venv/bin/activate
-          ruff check src/ tests/
+          uv run ruff check src/ tests/
 
       - name: Check code formatting
         run: |
-          source .venv/bin/activate
-          ruff format --check src/ tests/
+          uv run ruff format --check src/ tests/

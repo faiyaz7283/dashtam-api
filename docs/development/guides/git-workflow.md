@@ -628,6 +628,88 @@ git push origin feature/your-feature
 # Request re-review if needed
 ```
 
+### Creating Pull Requests with GitHub CLI
+
+**Using `gh` CLI** (recommended):
+
+```bash
+# Basic PR creation (interactive prompts)
+gh pr create
+
+# Create PR with all details in one command
+gh pr create \
+  --base development \
+  --title "feat(api): Add transaction filtering API" \
+  --body "Full description here..."
+
+# Create PR from template file
+gh pr create --base development --title "My Feature" --body-file PR_TEMPLATE.md
+
+# Create draft PR (for work in progress)
+gh pr create --base development --draft --title "WIP: New feature"
+
+# Assign reviewers and labels
+gh pr create \
+  --base development \
+  --reviewer username1,username2 \
+  --label "enhancement,needs-review"
+```
+
+**Example: Comprehensive PR Creation**
+
+```bash
+# After pushing your feature branch
+git push -u origin feature/password-reset-session-revocation
+
+# Create detailed PR
+gh pr create --base development --title "feat(security): Password reset with automatic session revocation" --body "
+## Description
+Implements automatic session revocation on password reset for enhanced security.
+When a user resets their password, all active refresh tokens are revoked.
+
+## Type of Change
+- [x] New feature
+- [x] Security enhancement
+- [x] Documentation update
+
+## Testing
+- [x] Unit tests pass
+- [x] Integration tests pass
+- [x] All tests pass (305 tests, 77% coverage)
+- [x] Linting passes
+- [x] Code formatting passes
+
+## Related Issues
+Closes #42
+Related to #38
+"
+```
+
+**Viewing and Managing PRs**:
+
+```bash
+# View PR in browser
+gh pr view 16 --web
+
+# View PR details in terminal
+gh pr view 16
+
+# Check PR status and checks
+gh pr view 16 --json statusCheckRollup
+
+# List all open PRs
+gh pr list
+
+# List PRs by status
+gh pr list --state open
+gh pr list --state closed
+
+# Review PR
+gh pr review 16 --approve --body "LGTM! Great work."
+gh pr review 16 --request-changes --body "Please address X, Y, Z"
+gh pr review 16 --comment --body "Minor feedback: consider..."
+```
+
 ### Merging Pull Requests
 
 **Merge Options**:
@@ -646,6 +728,130 @@ git push origin feature/your-feature
    - Linear history
    - Can complicate history if not careful
 
+**Merging with GitHub CLI**:
+
+```bash
+# Basic merge (uses repository default merge method)
+gh pr merge 16
+
+# Squash merge (recommended for most PRs)
+gh pr merge 16 --squash --delete-branch
+
+# Merge commit (preserves all commits)
+gh pr merge 16 --merge --delete-branch
+
+# Rebase merge (linear history)
+gh pr merge 16 --rebase --delete-branch
+
+# Admin merge (bypass branch protection)
+gh pr merge 16 --squash --delete-branch --admin
+
+# Auto-merge when checks pass
+gh pr merge 16 --squash --auto --delete-branch
+```
+
+**Merge Command Options Explained**:
+
+| Option | Description | Use Case |
+|--------|-------------|----------|
+| `--squash` | Squash all commits into one | Clean history, most PRs |
+| `--merge` | Create merge commit | Preserve feature history |
+| `--rebase` | Rebase and merge | Linear history |
+| `--delete-branch` | Delete branch after merge | Cleanup (recommended) |
+| `--admin` | Bypass branch protection | Admin emergency merge |
+| `--auto` | Auto-merge when checks pass | CI-dependent merge |
+| `--body "text"` | Custom merge commit message | Override default |
+
+**Branch Protection and PR Merging**:
+
+```bash
+# Check if PR is mergeable
+gh pr view 16 --json mergeable,mergeStateStatus
+
+# Example output:
+{
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED"  # Requires approval or checks
+}
+```
+
+**Merge State Status**:
+- `CLEAN` - Ready to merge
+- `BLOCKED` - Cannot merge (missing approvals or failing checks)
+- `BEHIND` - Branch needs to be updated
+- `UNSTABLE` - Checks failing
+- `DRAFT` - PR is in draft state
+
+**Common Merge Scenarios**:
+
+**Scenario 1: Feature PR to Development (Standard)**
+```bash
+# After all checks pass and approval received
+gh pr merge 16 --squash --delete-branch
+```
+
+**Scenario 2: Self-Approval Required (Admin)**
+```bash
+# Review your own PR for documentation
+gh pr review 16 --approve --body "Self-approval: All tests passing, security enhancement thoroughly tested."
+
+# Then merge
+gh pr merge 16 --squash --delete-branch
+```
+
+**Scenario 3: Bypass Review (Admin Emergency)**
+```bash
+# Use --admin flag to bypass branch protection
+gh pr merge 16 --squash --delete-branch --admin
+```
+
+**Scenario 4: Release PR to Main**
+```bash
+# Use merge commit to preserve release history
+gh pr merge 42 --merge --delete-branch
+
+# Tag the release
+git checkout main
+git pull origin main
+git tag -a v1.4.0 -m "Release version 1.4.0"
+git push origin v1.4.0
+```
+
+**Scenario 5: Hotfix PR (Urgent)**
+```bash
+# Squash merge to main
+gh pr merge 99 --squash --delete-branch --admin
+
+# Tag immediately
+git checkout main
+git pull origin main
+git tag -a v1.3.1 -m "Hotfix v1.3.1: Critical security patch"
+git push origin v1.3.1
+
+# Merge back to development
+git checkout development
+git pull origin development
+git merge --no-ff main
+git push origin development
+```
+
+**Customizing Merge Commit Message**:
+
+```bash
+# Squash merge with custom commit message
+gh pr merge 16 --squash --delete-branch --body "feat(security): Password reset with automatic session revocation (#16)
+
+* Core: AuthService.reset_password() revokes all active refresh tokens
+* Security: Forces logout on all devices for breach response
+* Testing: 10 new unit tests, 305 total tests passing
+* Coverage: 77% overall (+0.85%), Services 86.81% (+2.78%)
+* Docs: Architecture, API flows, and improvement guide updated
+* CI: Fixed lint job to use modern UV sync commands
+
+Follows Pattern A (JWT Access + Opaque Refresh) security model.
+Comprehensive test coverage ensures reliable behavior."
+```
+
 **After Merge**:
 ```bash
 # Update local development branch
@@ -655,8 +861,8 @@ git pull origin development
 # Delete local feature branch
 git branch -d feature/your-feature
 
-# Delete remote branch (or use GitHub button)
-git push origin --delete feature/your-feature
+# Verify branch was deleted remotely (if --delete-branch used)
+git fetch --prune
 ```
 
 ---

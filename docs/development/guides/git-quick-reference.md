@@ -233,6 +233,85 @@ git revert <commit-hash>                  # Safe revert (creates new commit)
 
 ---
 
+## 🔄 GitHub CLI PR Management
+
+### Creating Pull Requests
+```bash
+# Interactive PR creation
+gh pr create
+
+# Quick PR creation
+gh pr create --base development --title "feat: my feature" --body "Description"
+
+# With reviewers and labels
+gh pr create --base development --reviewer user1 --label enhancement
+
+# Draft PR
+gh pr create --base development --draft --title "WIP: my feature"
+```
+
+### Viewing PRs
+```bash
+# View PR in browser
+gh pr view 16 --web
+
+# View PR details
+gh pr view 16
+
+# Check PR status
+gh pr view 16 --json mergeable,mergeStateStatus
+
+# List all open PRs
+gh pr list
+```
+
+### Reviewing PRs
+```bash
+# Approve PR
+gh pr review 16 --approve --body "LGTM!"
+
+# Request changes
+gh pr review 16 --request-changes --body "Please fix X"
+
+# Comment only
+gh pr review 16 --comment --body "Minor suggestion"
+```
+
+### Merging PRs
+```bash
+# Squash merge (recommended)
+gh pr merge 16 --squash --delete-branch
+
+# Merge commit (preserve history)
+gh pr merge 16 --merge --delete-branch
+
+# Rebase merge
+gh pr merge 16 --rebase --delete-branch
+
+# Admin merge (bypass protection)
+gh pr merge 16 --squash --delete-branch --admin
+
+# Auto-merge when checks pass
+gh pr merge 16 --squash --auto --delete-branch
+```
+
+**Merge Options:**
+- `--squash` - Combine all commits into one (clean history)
+- `--merge` - Create merge commit (preserve feature commits)
+- `--rebase` - Linear history
+- `--delete-branch` - Auto-delete branch after merge ✅
+- `--admin` - Bypass branch protection rules
+- `--auto` - Merge automatically when checks pass
+
+**Merge State Status:**
+- `CLEAN` ✅ Ready to merge
+- `BLOCKED` ❌ Missing approvals or failing checks
+- `BEHIND` ⚠️ Branch needs update
+- `UNSTABLE` ⚠️ Checks failing
+- `DRAFT` 📝 PR is draft
+
+---
+
 ## 📋 Pull Request Checklist
 
 Before creating PR:

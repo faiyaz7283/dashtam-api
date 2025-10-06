@@ -34,7 +34,6 @@ Implementation approach:
 
 import logging
 import re
-import time
 from datetime import datetime
 
 import pytest

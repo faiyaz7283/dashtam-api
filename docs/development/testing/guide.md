@@ -16,6 +16,7 @@ make test
 # Run specific test category
 make test-unit          # Unit tests only
 make test-integration   # Integration tests only
+make test-smoke         # Smoke tests (end-to-end auth flows)
 
 # Run specific test file
 docker compose -f docker-compose.test.yml exec app uv run pytest tests/unit/services/test_encryption_service.py -v
@@ -93,6 +94,44 @@ def test_create_provider_instance(client: TestClient, test_user: User):
     assert data["provider_key"] == "schwab"
     assert data["alias"] == "My Schwab Account"
 ```
+
+### Smoke Tests (`tests/smoke/`)
+- **Purpose**: Validate critical user journeys are operational
+- **Dependencies**: Full application stack
+- **Speed**: Medium (complete auth flow < 5s)
+- **Database**: Uses test database via TestClient
+- **When to run**: Before deployment, after major changes
+
+**Example**:
+```python
+def test_complete_registration_flow(client: TestClient, caplog):
+    """Smoke: User can register, verify email, and login."""
+    # Register
+    with caplog.at_level(logging.INFO):
+        response = client.post("/api/v1/auth/register", json={
+            "email": "test@example.com",
+            "password": "SecurePass123!",
+            "full_name": "Test User"
+        })
+    assert response.status_code == 201
+    
+    # Extract verification token from logs
+    token = extract_token_from_caplog(caplog, "verify-email?token=")
+    
+    # Verify email
+    response = client.post(f"/api/v1/auth/verify-email/{token}")
+    assert response.status_code == 200
+    
+    # Login
+    response = client.post("/api/v1/auth/login", json={
+        "username": "test@example.com",
+        "password": "SecurePass123!"
+    })
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+```
+
+**Note**: See `tests/smoke/README.md` for complete documentation on smoke tests.
 
 ---
 

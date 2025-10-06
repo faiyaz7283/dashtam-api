@@ -34,6 +34,7 @@ help:
 	@echo "  make test           - Run all tests with coverage"
 	@echo "  make test-unit      - Run unit tests only"
 	@echo "  make test-integration - Run integration tests only"
+	@echo "  make test-smoke     - Run smoke tests"
 	@echo "  make test-coverage  - Run tests with HTML coverage report"
 	@echo "  make test-file      - Run a specific test file"
 	@echo "  make test-clean     - Clean test environment"
@@ -304,6 +305,12 @@ test-integration:
 	@echo "🧪 Running integration tests..."
 	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
 	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v
+
+# Run smoke tests (end-to-end auth flows)
+test-smoke:
+	@echo "🔥 Running smoke tests (end-to-end authentication flows)..."
+	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/test_complete_auth_flow.py -v
 
 # Run tests with HTML coverage report
 test-coverage:

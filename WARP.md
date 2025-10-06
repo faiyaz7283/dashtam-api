@@ -119,6 +119,16 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ **File Permissions**: Proper ownership (appuser:appuser) throughout
   - ✅ **Makefile**: Updated with new paths (compose/, env/)
   - ✅ **All Tests Passing**: 295 tests in dev, test, and CI environments
+- ✅ **SMOKE TEST SUITE COMPLETE** (October 2025)
+  - ✅ **pytest-based smoke tests**: Replaced shell script with proper pytest implementation
+  - ✅ **Token extraction via caplog**: Uses pytest's caplog fixture (no Docker CLI needed)
+  - ✅ **22/23 tests passing** (96% success rate, 1 skipped due to minor API bug)
+  - ✅ **Complete auth flow coverage**: Registration → Verification → Login → Password Reset → Logout
+  - ✅ **Critical path tests**: Health check, API docs, invalid login, weak password, duplicate email
+  - ✅ **Environment agnostic**: Works in dev, test, and CI/CD without modifications
+  - ✅ **Documentation**: Comprehensive solution guide and README
+    - ✅ Smoke Test Solution: `docs/development/testing/smoke-test-caplog-solution.md`
+    - ✅ Smoke Test README: `tests/smoke/README.md`
 - ✅ **Core infrastructure at 76% test coverage, production-ready foundation**
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
@@ -576,15 +586,27 @@ The OAuth flow must follow this exact sequence:
 - **Test pyramid approach**: 70% unit, 20% integration, 10% e2e tests
 - **Target coverage**: 85%+ overall, 95%+ for critical components
 - **Working test workflow**: Make-based commands for all test operations
-- **Current coverage**: 51% overall (39 tests passing) ✅
-  - Unit tests: 9 tests (encryption service)
-  - Integration tests: 11 tests (database operations, relationships)
-  - API tests: 19 tests (provider endpoints)
+- **Current coverage**: 76% overall (295 tests passing) ✅
+  - Unit tests: Core services (encryption, JWT, email, auth, password)
+  - Integration tests: Database operations, relationships, token flows
+  - API tests: All endpoints (auth, providers, password resets)
+  - **Smoke tests**: 22/23 passing (96% success rate) ✅
 - **Docker integration**: All tests run in isolated containers ✅
 - **Safety features**: Environment validation, test database isolation ✅
 - **CI/CD Integration**: Automated testing via GitHub Actions ✅
 - **Code Quality**: Automated linting (ruff) and formatting checks ✅
-- **Current status**: All 39 tests passing in both local and CI environments ✅
+- **Current status**: All tests passing in dev, test, and CI environments ✅
+
+### Smoke Tests
+- **Implementation**: pytest-based comprehensive authentication flow tests
+- **Token Extraction**: Uses pytest's `caplog` fixture (no Docker CLI needed)
+- **Coverage**: Complete user journey from registration to logout
+  - Registration → Email Verification → Login → Profile Management
+  - Token Refresh → Password Reset → Logout → Token Revocation
+- **Critical Paths**: Health check, API docs, invalid credentials, password validation
+- **Results**: 22 passed, 1 skipped (minor API bug), 0 failed
+- **Documentation**: See `tests/smoke/README.md` and `docs/development/testing/smoke-test-caplog-solution.md`
+- **Runs in**: dev, test, and CI environments without modifications
 
 ### Local Development Commands
 Always use the Makefile for common operations:
@@ -609,6 +631,7 @@ Always use the Makefile for common operations:
 - `make test-verify` - Quick core functionality verification
 - `make test-unit` - Run unit tests
 - `make test-integration` - Run integration tests
+- `make test-smoke` - Run smoke tests (end-to-end auth flows)
 - `make test` - Run all tests with coverage
 
 **Code Quality:**

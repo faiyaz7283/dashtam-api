@@ -318,6 +318,7 @@ See: [JWT Authentication - Logout Behavior](../../development/architecture/jwt-a
 - ✅ JWT authentication (access + refresh tokens)
 - ✅ Token refresh (access token rotation, refresh stays same)
 - ✅ Password reset flow with token
+- ✅ **🔒 Password reset session revocation** (security enhancement)
 - ✅ Profile management (GET/PATCH)
 - ✅ Token revocation (logout behavior)
 - ✅ Stateless JWT pattern (access tokens valid after logout)
@@ -407,5 +408,6 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 - **Development Mode:** Emails logged to console (no AWS SES needed)
 - **Token Extraction:** All email tokens available in Docker logs
 - **Logout Behavior:** Only refresh tokens revoked immediately (JWT Pattern A)
+- **🔒 Password Reset Security:** All sessions automatically logged out (Test 13 verifies this)
 - **Test Isolation:** Use unique email per test run to avoid conflicts
 - **Expected Duration:** ~2-3 minutes for complete smoke test

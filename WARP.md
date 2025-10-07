@@ -460,6 +460,57 @@ AWS_REGION=us-east-1  # Not used in CI (mocked)
 - Maintains consistency across environments
 - Follows the idempotent .env.example pattern (can be copied if .env missing)
 
+### CI/CD Docker Compose Configuration
+**CRITICAL RULE**: The CI docker-compose file (`compose/docker-compose.ci.yml`) must NOT automatically run tests on container startup.
+
+**Why This Rule Exists:**
+- GitHub Actions workflow controls test execution via `docker compose exec` commands
+- Auto-running tests causes containers to exit before GitHub Actions can exec into them
+- This creates race conditions and intermittent exit code 137 failures
+- Proper flow: compose up → migrations → keep alive → GitHub Actions execs tests → compose down
+
+**Correct CI App Service Pattern:**
+```yaml
+app:
+  command: >
+    sh -c "
+      set -e &&
+      echo 'Running Alembic migrations...' &&
+      uv run alembic upgrade head &&
+      echo 'Migrations complete. Ready for tests.' &&
+      echo 'Keeping container alive for GitHub Actions...' &&
+      tail -f /dev/null
+    "
+```
+
+**Incorrect Pattern (DO NOT USE):**
+```yaml
+app:
+  command: >
+    sh -c "
+      uv run alembic upgrade head &&
+      uv run pytest tests/ ...  # ❌ NEVER auto-run tests in CI compose
+    "
+```
+
+**GitHub Actions Workflow Pattern:**
+```yaml
+- name: Start test environment
+  run: docker compose -f compose/docker-compose.ci.yml up -d --build
+
+- name: Run tests (controlled by GitHub Actions)
+  run: |
+    docker compose -f compose/docker-compose.ci.yml exec -T app \
+      uv run pytest tests/ -v --cov=src ...
+```
+
+**Key Points:**
+- ✅ CI compose starts services and keeps them alive with `tail -f /dev/null`
+- ✅ GitHub Actions controls when and how tests run via `exec`
+- ✅ This allows separate jobs for main tests and smoke tests
+- ✅ Prevents race conditions between container startup and test execution
+- ❌ Never combine automatic test execution with `docker compose up -d`
+
 ## API Design Rules
 
 ### REST API Compliance - CRITICAL REQUIREMENT

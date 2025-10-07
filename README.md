@@ -258,10 +258,12 @@ make test-rebuild   # Rebuild test images from scratch
 make test-restart   # Restart test environment
 
 # Running Tests
+make test-main      # Run main test suite (305 tests, excludes smoke tests)
+make test-smoke     # Run smoke tests only (5 tests, isolated session)
+make test           # Run all tests (main + smoke) with coverage
+make test-unit      # Run unit tests only
+make test-integration # Run integration tests only
 make test-verify    # Quick core functionality verification
-make test-unit      # Run unit tests
-make test-integration # Run integration tests
-make test           # Run all tests with coverage
 
 # Code Quality (runs in dev environment)
 make lint           # Run code linting (ruff check)
@@ -294,23 +296,39 @@ make auth-schwab    # Start Schwab OAuth flow
 
 ### Running Tests
 
-Tests run in an isolated test environment:
+Tests run in an isolated test environment with three test execution modes:
 
 ```bash
 # Start test environment
 make test-up
 
-# Run all tests
-make test
+# Run all tests (main + smoke in separate sessions)
+make test                # 310 tests total: 305 main + 5 smoke
 
-# Run specific test types
+# Run specific test suites
+make test-main           # Main test suite only (305 tests, excludes smoke)
+make test-smoke          # Smoke tests only (5 tests, isolated session)
 make test-unit           # Unit tests only
 make test-integration    # Integration tests only
-make test-verify         # Quick verification
+make test-verify         # Quick core functionality verification
 
 # Stop test environment
 make test-down
 ```
+
+#### Test Isolation
+
+The test suite uses **pytest markers** for isolation:
+
+- **Main tests** (`make test-main`): Run with `-m "not smoke"` to exclude smoke tests
+- **Smoke tests** (`make test-smoke`): Run with `-m smoke` in isolated pytest session
+- **All tests** (`make test`): Runs main tests first, then smoke tests separately
+
+**Why separate sessions?**
+- Smoke tests validate end-to-end auth flows with persistent state
+- Running in separate sessions prevents database state conflicts
+- Provides clearer test output and better debugging
+- CI/CD shows progress for both suites independently
 
 ### Code Quality
 

@@ -333,7 +333,7 @@ class TestProviderValidation:
         """Test creating provider with invalid JSON."""
         response = client_with_mock_auth.post(
             "/api/v1/providers",
-            data="not valid json",
+            content="not valid json",  # Use content= instead of data= for raw bytes/text
             headers={"Content-Type": "application/json"},
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

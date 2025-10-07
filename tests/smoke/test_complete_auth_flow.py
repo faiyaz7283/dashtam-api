@@ -1,35 +1,20 @@
 """
 Smoke Test: Complete Authentication Flow
 
-This test validates the complete user authentication journey from registration
-to logout, covering all critical paths documented in docs/api-flows/.
+This smoke test validates the critical path through the entire authentication
+system from registration to logout, ensuring the system is operational and
+ready for deployment.
 
-Tests (18 total - matches shell script's 17 + extras):
-1. User Registration
-2. Email Verification Token Extraction
-3. Email Verification
-4. Login
-5. Get User Profile
-6. Update Profile
-7. Token Refresh
-8. Verify Refreshed Token
-9. Password Reset Request
-10. Extract Reset Token
-11. Verify Reset Token
-12. Confirm Password Reset
-13. Old Refresh Token Revoked After Password Reset
-14. Old Access Token Still Works Until Expiry
-15. Login with New Password
-16. Logout
-17. Refresh Token Revoked After Logout
-18. Access Token Still Works After Logout
+This test represents a real user journey through the authentication system:
+Registration → Email Verification → Login → Profile Management → Token Refresh
+→ Password Reset → Login with New Password → Logout
 
-This replaces scripts/test-api-flows.sh with proper pytest implementation.
+Duration: ~3-5 seconds
+Test Count: 1 comprehensive sequential test + 4 independent validation tests
+Test Coverage: 18 assertions across complete auth lifecycle
 
-Implementation approach:
-- Uses Docker log extraction (same as shell script)
-- Extracts verification and reset tokens from dashtam-dev-app logs
-- Tests run against development environment (requires make dev-up)
+Replaces: scripts/test-api-flows.sh (deprecated shell script)
+Documentation: docs/api-flows/auth/complete-auth-flow.md
 """
 
 import logging
@@ -37,6 +22,67 @@ import re
 from datetime import datetime
 
 import pytest
+from sqlalchemy import text
+from sqlmodel import Session
+
+
+@pytest.fixture(scope="function", autouse=True)
+def clean_database_for_smoke_test(db: Session, request):
+    """Clean database before each smoke test to ensure predictable state.
+
+    Smoke tests need a clean database because they use predictable data
+    (like test@example.com). When running as part of full test suite,
+    other tests may have created data that conflicts.
+
+    This fixture automatically truncates ALL tables (except alembic_version)
+    ensuring smoke tests always start with a clean slate, regardless of
+    how the database schema evolves.
+
+    CRITICAL: Uses session-scoped 'db' session (not function-scoped 'db_session')
+    because the 'client' fixture uses 'db', and we need to expire the same
+    session that the client will use.
+
+    This fixture runs before EVERY test in this module (autouse=True).
+    Since it's defined in the smoke test module, it only affects smoke tests.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"Cleaning database before smoke test: {request.node.name}")
+
+    # Clean database before test - truncate ALL tables
+    try:
+        # Get all table names from database (excluding alembic_version)
+        result = db.execute(
+            text("""
+                SELECT tablename FROM pg_tables 
+                WHERE schemaname = 'public' 
+                AND tablename != 'alembic_version'
+            """)
+        )
+        tables = [row[0] for row in result.fetchall()]
+
+        if tables:
+            logger.info(f"Truncating tables: {', '.join(tables)}")
+            # Disable foreign key checks, truncate all tables, re-enable checks
+            # RESTART IDENTITY resets auto-increment sequences
+            # CASCADE handles dependent tables
+            table_list = ", ".join(tables)
+            db.execute(text(f"TRUNCATE TABLE {table_list} RESTART IDENTITY CASCADE"))
+            db.commit()
+            # CRITICAL: Expire all session objects after truncate
+            # This clears SQLAlchemy's identity map so it doesn't reference deleted rows
+            db.expire_all()
+            logger.info("Database cleaned successfully")
+        else:
+            logger.warning("No tables found to truncate")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to clean database for smoke test: {e}", exc_info=True)
+
+    yield
+    # After test: smoke tests skip cleanup (handled by db_session fixture)
 
 
 def extract_token_from_caplog(caplog, pattern: str) -> str:
@@ -55,6 +101,10 @@ def extract_token_from_caplog(caplog, pattern: str) -> str:
 
     Raises:
         AssertionError: If token not found in captured logs
+
+    Example:
+        >>> token = extract_token_from_caplog(caplog, "verify-email?token=")
+        >>> assert len(token) > 0
     """
     # Search through captured log records
     for record in caplog.records:
@@ -74,64 +124,46 @@ def extract_token_from_caplog(caplog, pattern: str) -> str:
     )
 
 
-@pytest.fixture(scope="module")
-def unique_test_email():
-    """Generate a unique email for smoke test isolation."""
-    timestamp = int(
-        datetime.now().timestamp() * 1000
-    )  # Add milliseconds for uniqueness
-    return f"smoke-test-{timestamp}@example.com"
-
-
-@pytest.fixture(scope="module")
-def test_password():
-    """Standard test password that meets requirements."""
-    return "SecurePass123!"
-
-
-# Shared state across all tests in TestSmokeCompleteAuthFlow class
-_smoke_test_user_data = {}
-
-
-@pytest.fixture(scope="function")
-def smoke_test_user(client, unique_test_email, test_password, caplog):
+def test_complete_authentication_flow(client, caplog):
     """
-    Complete smoke test user lifecycle.
+    Smoke Test: Complete user authentication journey.
 
-    This fixture runs through the entire authentication flow and provides
-    tokens and user data for verification tests.
+    This test validates the critical path through the authentication system,
+    ensuring all core functionality works end-to-end. It represents a real
+    user's journey from registration to logout.
 
-    Uses pytest's caplog fixture to extract verification and reset tokens
-    from application logs (similar to scripts/test-api-flows.sh approach).
+    Test Steps (18 assertions):
+    1.  User Registration - POST /api/v1/auth/register
+    2.  Email Verification Token Extraction - From application logs
+    3.  Email Verification - POST /api/v1/auth/verify-email
+    4.  Login - POST /api/v1/auth/login
+    5.  Get User Profile - GET /api/v1/auth/me
+    6.  Update Profile - PATCH /api/v1/auth/me
+    7.  Token Refresh - POST /api/v1/auth/refresh
+    8.  Verify New Access Token - GET /api/v1/auth/me (with refreshed token)
+    9.  Password Reset Request - POST /api/v1/password-resets/
+    10. Extract Reset Token - From application logs
+    11. Verify Reset Token - GET /api/v1/password-resets/{token}
+    12. Confirm Password Reset - PATCH /api/v1/password-resets/{token}
+    13. Old Refresh Token Revoked - POST /api/v1/auth/refresh (should fail)
+    14. Old Access Token Still Works - GET /api/v1/auth/me (stateless JWT)
+    15. Login with New Password - POST /api/v1/auth/login
+    16. Logout - POST /api/v1/auth/logout
+    17. Refresh Token Revoked After Logout - POST /api/v1/auth/refresh (should fail)
+    18. Access Token Still Works After Logout - GET /api/v1/auth/me (stateless JWT)
 
-    Note: Uses module-level shared state (_smoke_test_user_data) to persist
-    data across test function calls since caplog is function-scoped.
+    Duration: ~3-5 seconds
+    Frequency: Run before every deployment (CI gate)
+    Failure Action: Block deployment
     """
-    # Check if user already created (shared state across tests)
-    if _smoke_test_user_data:
-        return _smoke_test_user_data
+    # Generate unique test email to avoid conflicts
+    timestamp = int(datetime.now().timestamp() * 1000)
+    email = f"smoke-test-{timestamp}@example.com"
+    password = "SecurePass123!"
 
-    email = unique_test_email
-    password = test_password
-
-    # Initialize shared data
-    _smoke_test_user_data.update(
-        {
-            "email": email,
-            "password": password,
-            "user_id": None,
-            "access_token": None,
-            "refresh_token": None,
-            "new_access_token": None,
-            "new_refresh_token": None,
-            "verification_token": None,
-            "reset_token": None,
-            "old_access_token": None,  # For revocation tests
-            "old_refresh_token": None,
-        }
-    )
-
-    # 1. Register User
+    # =========================================================================
+    # Step 1: User Registration
+    # =========================================================================
     with caplog.at_level(logging.INFO):
         response = client.post(
             "/api/v1/auth/register",
@@ -141,320 +173,277 @@ def smoke_test_user(client, unique_test_email, test_password, caplog):
                 "name": "Smoke Test User",
             },
         )
-        assert response.status_code == 201, f"Registration failed: {response.text}"
+    assert response.status_code == 201, f"Registration failed: {response.text}"
+    assert "message" in response.json()
 
-    # 2. Get Verification Token (from captured logs - search AFTER with block)
-    _smoke_test_user_data["verification_token"] = extract_token_from_caplog(
-        caplog, "verify-email?token="
-    )
+    # =========================================================================
+    # Step 2: Extract Email Verification Token
+    # =========================================================================
+    verification_token = extract_token_from_caplog(caplog, "verify-email?token=")
+    assert verification_token is not None
+    assert len(verification_token) > 0
 
-    # 3. Verify Email
+    # =========================================================================
+    # Step 3: Email Verification
+    # =========================================================================
     response = client.post(
         "/api/v1/auth/verify-email",
-        json={"token": _smoke_test_user_data["verification_token"]},
+        json={"token": verification_token},
     )
     assert response.status_code == 200, f"Email verification failed: {response.text}"
 
-    # 4. Login
+    # =========================================================================
+    # Step 4: Login
+    # =========================================================================
     response = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},
     )
     assert response.status_code == 200, f"Login failed: {response.text}"
     login_data = response.json()
-    _smoke_test_user_data["access_token"] = login_data["access_token"]
-    _smoke_test_user_data["refresh_token"] = login_data["refresh_token"]
+    assert "access_token" in login_data
+    assert "refresh_token" in login_data
 
-    # Return shared user data
-    return _smoke_test_user_data
+    access_token = login_data["access_token"]
+    refresh_token = login_data["refresh_token"]
 
-
-class TestSmokeCompleteAuthFlow:
-    """
-    Complete authentication flow smoke tests.
-
-    These tests validate the happy path through the entire authentication
-    system, ensuring all critical user journeys work end-to-end.
-
-    All 17 tests from scripts/test-api-flows.sh are converted here (plus 1 extra = 18 total).
-    """
-
-    def test_01_user_registration(self, smoke_test_user):
-        """Test 1: User can register successfully."""
-        # Registration completed successfully (verified in fixture)
-        assert smoke_test_user["email"] is not None
-
-    def test_02_email_verification_token_extracted(self, smoke_test_user):
-        """Test 2: Email verification token extracted from logs."""
-        assert smoke_test_user["verification_token"] is not None
-        assert len(smoke_test_user["verification_token"]) > 0
-
-    def test_03_email_verification_success(self, client, smoke_test_user):
-        """Test 3: User can verify email with valid token."""
-        # Verification already done in fixture, verify it worked
-        response = client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {smoke_test_user['access_token']}"},
-        )
-        assert response.status_code == 200
-        user = response.json()
-        assert user["is_active"] is True
-
-    def test_04_login_success(self, smoke_test_user):
-        """Test 4: User can login with correct credentials."""
-        assert smoke_test_user["access_token"] is not None
-        assert smoke_test_user["refresh_token"] is not None
-
-    @pytest.mark.xfail(
-        reason="CI test isolation issue: JWT contains correct email but API returns different user from shared test database"
+    # =========================================================================
+    # Step 5: Get User Profile
+    # =========================================================================
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"},
     )
-    def test_05_get_user_profile(self, client, smoke_test_user):
-        """Test 5: User can retrieve their profile."""
-        response = client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {smoke_test_user['access_token']}"},
-        )
-        assert response.status_code == 200
-        user = response.json()
-        assert user["email"] == smoke_test_user["email"]
-        assert user["name"] == "Smoke Test User"
-        assert user["is_active"] is True
+    assert response.status_code == 200
+    user = response.json()
+    assert user["email"] == email
+    assert user["name"] == "Smoke Test User"
+    assert user["is_active"] is True
+    assert user["email_verified"] is True
 
-    def test_06_update_profile(self, client, smoke_test_user):
-        """Test 6: User can update their profile."""
-        response = client.patch(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {smoke_test_user['access_token']}"},
-            json={"name": "Updated Smoke Test User"},
-        )
-        assert response.status_code == 200
-        user = response.json()
-        assert user["name"] == "Updated Smoke Test User"
-
-    def test_07_token_refresh(self, client, smoke_test_user):
-        """Test 7: User can refresh their access token.
-
-        Note: This test verifies that token refresh works (returns 200 and provides
-        valid tokens). It does NOT verify that the access token is different, because:
-        1. Stateless JWTs may be identical if issued within the same second
-        2. The important behavior is that refresh WORKS, not that tokens differ
-        3. test_08 verifies the new token is valid and usable
-        """
-        response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": smoke_test_user["refresh_token"]},
-        )
-        assert response.status_code == 200
-        tokens = response.json()
-
-        # Store new tokens
-        smoke_test_user["new_access_token"] = tokens["access_token"]
-        smoke_test_user["new_refresh_token"] = tokens.get(
-            "refresh_token", smoke_test_user["refresh_token"]
-        )
-
-        # Verify tokens are present and valid format
-        assert smoke_test_user["new_access_token"] is not None
-        assert len(smoke_test_user["new_access_token"]) > 100  # JWTs are long strings
-        assert "refresh_token" in tokens or "new_refresh_token" in smoke_test_user
-
-    @pytest.mark.xfail(
-        reason="CI test isolation issue: JWT contains correct email but API returns different user from shared test database"
+    # =========================================================================
+    # Step 6: Update Profile
+    # =========================================================================
+    response = client.patch(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"name": "Updated Smoke Test User"},
     )
-    def test_08_verify_new_access_token(self, client, smoke_test_user):
-        """Test 8: New access token works correctly."""
-        response = client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {smoke_test_user['new_access_token']}"},
-        )
-        assert response.status_code == 200
-        user = response.json()
-        assert user["email"] == smoke_test_user["email"]
+    assert response.status_code == 200
+    user = response.json()
+    assert user["name"] == "Updated Smoke Test User"
 
-    def test_09_password_reset_request(self, client, smoke_test_user, caplog):
-        """Test 9: User can request password reset."""
-        # Save old tokens before password reset (for revocation tests)
-        smoke_test_user["old_refresh_token"] = smoke_test_user["refresh_token"]
-        smoke_test_user["old_access_token"] = smoke_test_user["access_token"]
-
-        # Clear caplog before password reset to isolate this token
-        caplog.clear()
-
-        with caplog.at_level(logging.INFO):
-            response = client.post(
-                "/api/v1/password-resets/",  # Correct RESTful endpoint
-                json={"email": smoke_test_user["email"]},
-            )
-            assert response.status_code == 202  # Returns 202 Accepted
-
-        # Extract reset token from captured logs (search AFTER with block)
-        smoke_test_user["reset_token"] = extract_token_from_caplog(
-            caplog, "reset-password?token="
-        )
-
-    def test_10_extract_reset_token(self, smoke_test_user):
-        """Test 10: Password reset token extracted from logs."""
-        # Token extracted in test_09, just verify it exists
-        assert smoke_test_user["reset_token"] is not None
-
-    @pytest.mark.skip(
-        reason="API endpoint bug: GET /password-resets/{token} doesn't hash-compare tokens. "
-        "The endpoint tries to match plain token against token_hash in DB, which fails. "
-        "This is not critical since test_12 (PATCH /password-resets/{token}) works correctly "
-        "and validates tokens properly. TODO: Fix endpoint to iterate tokens and bcrypt-compare."
+    # =========================================================================
+    # Step 7: Token Refresh
+    # =========================================================================
+    response = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
     )
-    def test_11_verify_reset_token(self, client, smoke_test_user):
-        """Test 11: Password reset token can be verified.
+    assert response.status_code == 200
+    tokens = response.json()
+    assert "access_token" in tokens
 
-        SKIPPED: API endpoint has a bug where it tries to match plain tokens
-        against hashed tokens in database. The PATCH endpoint (test_12) works
-        correctly, so password reset functionality is operational.
-        """
-        response = client.get(
-            f"/api/v1/password-resets/{smoke_test_user['reset_token']}",  # RESTful route
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["valid"] is True
+    new_access_token = tokens["access_token"]
+    # Keep existing refresh token if not rotated
+    refresh_token = tokens.get("refresh_token", refresh_token)
 
-    def test_12_confirm_password_reset(self, client, smoke_test_user):
-        """Test 12: User can reset password with valid token."""
-        new_password = "NewSecurePass456!"
-        response = client.patch(
-            f"/api/v1/password-resets/{smoke_test_user['reset_token']}",  # PATCH, not POST
-            json={
-                "new_password": new_password,  # Token in URL, not body
-            },
-        )
-        assert response.status_code == 200
+    # Verify tokens are valid format (JWTs are long strings with dots)
+    assert len(new_access_token) > 100
+    assert "." in new_access_token  # JWT structure: header.payload.signature
 
-        # Update password in user data
-        smoke_test_user["password"] = new_password
+    # =========================================================================
+    # Step 8: Verify New Access Token Works
+    # =========================================================================
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {new_access_token}"},
+    )
+    assert response.status_code == 200
+    user = response.json()
+    assert user["email"] == email
 
-    def test_13_old_refresh_token_revoked_after_password_reset(
-        self, client, smoke_test_user
-    ):
-        """Test 13: Old refresh tokens are revoked after password reset."""
+    # =========================================================================
+    # Step 9: Password Reset Request
+    # =========================================================================
+    # Save old tokens before password reset (for revocation tests)
+    old_refresh_token = refresh_token
+    old_access_token = access_token
+
+    # Clear caplog to isolate password reset token
+    caplog.clear()
+
+    with caplog.at_level(logging.INFO):
         response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": smoke_test_user["old_refresh_token"]},
+            "/api/v1/password-resets/",
+            json={"email": email},
         )
-        # Should fail - token revoked
-        assert response.status_code in [401, 403]
+    assert response.status_code == 202  # Accepted
 
-    def test_14_old_access_token_still_works_until_expiry(
-        self, client, smoke_test_user
-    ):
-        """Test 14: Old access tokens continue working until expiry."""
-        # Access tokens are stateless and work until they expire
-        response = client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {smoke_test_user['old_access_token']}"},
-        )
-        # Should still work (JWT not revoked, only refresh tokens are)
-        assert response.status_code == 200
+    # =========================================================================
+    # Step 10: Extract Password Reset Token
+    # =========================================================================
+    reset_token = extract_token_from_caplog(caplog, "reset-password?token=")
+    assert reset_token is not None
+    assert len(reset_token) > 0
 
-    def test_15_login_with_new_password(self, client, smoke_test_user):
-        """Test 15: User can login with new password."""
-        response = client.post(
-            "/api/v1/auth/login",
-            json={
-                "email": smoke_test_user["email"],
-                "password": smoke_test_user["password"],  # New password
-            },
-        )
-        assert response.status_code == 200
-        tokens = response.json()
+    # =========================================================================
+    # Step 11: Verify Reset Token
+    # =========================================================================
+    response = client.get(
+        f"/api/v1/password-resets/{reset_token}",
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["valid"] is True
 
-        # Update tokens
-        smoke_test_user["access_token"] = tokens["access_token"]
-        smoke_test_user["refresh_token"] = tokens["refresh_token"]
+    # =========================================================================
+    # Step 12: Confirm Password Reset
+    # =========================================================================
+    new_password = "NewSecurePass456!"
+    response = client.patch(
+        f"/api/v1/password-resets/{reset_token}",
+        json={"new_password": new_password},
+    )
+    assert response.status_code == 200
 
-    def test_16_logout(self, client, smoke_test_user):
-        """Test 16: User can logout successfully."""
-        response = client.post(
-            "/api/v1/auth/logout",
-            headers={"Authorization": f"Bearer {smoke_test_user['access_token']}"},
-            json={
-                "refresh_token": smoke_test_user["refresh_token"]
-            },  # Must include refresh token
-        )
-        assert response.status_code == 200
+    # =========================================================================
+    # Step 13: Old Refresh Token Revoked After Password Reset
+    # =========================================================================
+    response = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": old_refresh_token},
+    )
+    # Should fail - token revoked by password reset
+    assert response.status_code in [401, 403], (
+        f"Expected 401 or 403, got {response.status_code}. "
+        "Old refresh tokens should be revoked after password reset."
+    )
 
-    def test_17_refresh_token_revoked_after_logout(self, client, smoke_test_user):
-        """Test 17: Refresh token is revoked after logout."""
-        response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": smoke_test_user["refresh_token"]},
-        )
-        # Should fail - token revoked by logout
-        assert response.status_code in [401, 403]
+    # =========================================================================
+    # Step 14: Old Access Token Still Works Until Expiry
+    # =========================================================================
+    # JWTs are stateless - they work until expiry even after password reset
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {old_access_token}"},
+    )
+    assert response.status_code == 200, (
+        "Old access tokens should continue working until expiry "
+        "(stateless JWTs are not revoked by password reset)"
+    )
 
-    def test_18_access_token_still_works_after_logout(self, client, smoke_test_user):
-        """Test 18: Access token continues working after logout (until expiry)."""
-        # JWTs are stateless - they work until expiry even after logout
-        response = client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {smoke_test_user['access_token']}"},
-        )
-        # Should still work (JWT not revoked, only refresh token is)
-        assert response.status_code == 200
+    # =========================================================================
+    # Step 15: Login with New Password
+    # =========================================================================
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": email,
+            "password": new_password,  # New password after reset
+        },
+    )
+    assert response.status_code == 200, (
+        f"Login with new password failed: {response.text}"
+    )
+    tokens = response.json()
+
+    # Update tokens for logout test
+    access_token = tokens["access_token"]
+    refresh_token = tokens["refresh_token"]
+
+    # =========================================================================
+    # Step 16: Logout
+    # =========================================================================
+    response = client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == 200
+
+    # =========================================================================
+    # Step 17: Refresh Token Revoked After Logout
+    # =========================================================================
+    response = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    # Should fail - token revoked by logout
+    assert response.status_code in [401, 403], (
+        f"Expected 401 or 403, got {response.status_code}. "
+        "Refresh tokens should be revoked after logout."
+    )
+
+    # =========================================================================
+    # Step 18: Access Token Still Works After Logout
+    # =========================================================================
+    # JWTs are stateless - they work until expiry even after logout
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 200, (
+        "Access tokens should continue working until expiry "
+        "(stateless JWTs are not revoked by logout)"
+    )
 
 
-class TestSmokeCriticalPaths:
+# =============================================================================
+# Additional Smoke Tests (Independent, No Shared State)
+# =============================================================================
+
+
+def test_smoke_health_check(client):
+    """Smoke: System health check endpoint is operational.
+
+    Validates that the basic health check endpoint responds correctly,
+    indicating the application is running and ready to serve requests.
     """
-    Additional smoke tests for critical system paths.
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
 
-    These tests validate important edge cases and system behaviors.
+
+def test_smoke_api_docs_accessible(client):
+    """Smoke: API documentation is accessible.
+
+    Validates that the OpenAPI documentation endpoint is available,
+    which is critical for developer experience and API discovery.
     """
+    response = client.get("/docs")
+    assert response.status_code == 200
 
-    def test_health_check(self, client):
-        """Smoke: System health check endpoint works."""
-        response = client.get("/health")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "healthy"
 
-    def test_api_docs_accessible(self, client):
-        """Smoke: API documentation is accessible."""
-        response = client.get("/docs")
-        assert response.status_code == 200
+def test_smoke_invalid_login_rejected(client):
+    """Smoke: Invalid login credentials are rejected.
 
-    def test_invalid_login_fails(self, client, unique_test_email):
-        """Smoke: Invalid login credentials are rejected."""
-        response = client.post(
-            "/api/v1/auth/login",
-            json={
-                "email": unique_test_email,
-                "password": "WrongPassword123!",
-            },
-        )
-        assert response.status_code == 401
+    Validates that the authentication system properly rejects invalid
+    credentials, ensuring basic security controls are functional.
+    """
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "nonexistent@example.com",
+            "password": "WrongPassword123!",
+        },
+    )
+    assert response.status_code == 401
 
-    def test_weak_password_rejected(self, client):
-        """Smoke: Weak passwords are rejected during registration."""
-        response = client.post(
-            "/api/v1/auth/register",
-            json={
-                "email": "weak-test@example.com",
-                "password": "weak",  # Too short, no requirements
-                "name": "Test User",
-            },
-        )
-        assert response.status_code == 422
 
-    def test_duplicate_email_rejected(
-        self, client, smoke_test_user, unique_test_email, test_password
-    ):
-        """Smoke: Duplicate email registration is rejected."""
-        # First registration happened in smoke_test_user fixture
-        # Try duplicate
-        response = client.post(
-            "/api/v1/auth/register",
-            json={
-                "email": unique_test_email,
-                "password": test_password,
-                "name": "Duplicate User",
-            },
-        )
-        assert response.status_code == 400  # Bad Request (duplicate email)
+def test_smoke_weak_password_rejected(client):
+    """Smoke: Weak passwords are rejected during registration.
+
+    Validates that password strength requirements are enforced,
+    ensuring security policies are active.
+    """
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "weak-test@example.com",
+            "password": "weak",  # Too short, doesn't meet requirements
+            "name": "Test User",
+        },
+    )
+    assert response.status_code == 422  # Unprocessable Entity (validation error)

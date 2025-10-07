@@ -288,11 +288,26 @@ clean:
 # TESTING COMMANDS
 # ============================================================================
 
-# Run all tests with coverage (auto-starts test env if needed)
-test:
-	@echo "🧪 Running all tests with coverage..."
+# Run main test suite (unit, integration, API - excludes smoke tests)
+test-main:
+	@echo "🧪 Running main test suite (excluding smoke tests)..."
 	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing -m "not smoke"
+
+# Run smoke tests only (end-to-end auth flows in isolated session)
+test-smoke:
+	@echo "🔥 Running smoke tests (end-to-end authentication flows)..."
+	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest -m smoke -v
+
+# Run all tests (main suite + smoke tests) with coverage
+test:
+	@echo "🧪 Running all tests (main suite + smoke tests)..."
+	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@echo "  → Running main test suite..."
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing -m "not smoke"
+	@echo "  → Running smoke tests..."
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest -m smoke -v
 
 # Run unit tests only
 test-unit:
@@ -305,12 +320,6 @@ test-integration:
 	@echo "🧪 Running integration tests..."
 	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
 	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v
-
-# Run smoke tests (end-to-end auth flows)
-test-smoke:
-	@echo "🔥 Running smoke tests (end-to-end authentication flows)..."
-	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/test_complete_auth_flow.py -v
 
 # Run tests with HTML coverage report
 test-coverage:

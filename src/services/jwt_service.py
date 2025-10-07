@@ -11,7 +11,7 @@ because JWT operations are pure CPU-bound work with no I/O.
 See docs/development/architecture/async-vs-sync-patterns.md for details.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional, Dict, Any
 from uuid import UUID
 
@@ -82,7 +82,7 @@ class JWTService:
             >>> len(token) > 0
             True
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         expire = now + timedelta(minutes=self.access_token_expire_minutes)
 
         # Base claims for access token
@@ -124,7 +124,7 @@ class JWTService:
             DO NOT use this for production authentication flows.
             Use AuthService._create_refresh_token() instead.
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         expire = now + timedelta(days=self.refresh_token_expire_days)
 
         claims = {
@@ -315,8 +315,8 @@ class JWTService:
                 return True
 
             # Compare expiration time with current time
-            exp_datetime = datetime.utcfromtimestamp(exp)
-            return datetime.utcnow() >= exp_datetime
+            exp_datetime = datetime.fromtimestamp(exp, UTC)
+            return datetime.now(UTC) >= exp_datetime
 
         except JWTError:
             # Treat any decode error as expired
@@ -345,7 +345,7 @@ class JWTService:
             exp = payload.get("exp")
 
             if exp:
-                return datetime.utcfromtimestamp(exp)
+                return datetime.fromtimestamp(exp, UTC)
             return None
 
         except JWTError:

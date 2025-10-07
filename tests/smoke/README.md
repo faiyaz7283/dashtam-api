@@ -12,67 +12,79 @@ Smoke tests are a subset of tests that:
 
 ## Tests in this Directory
 
-### `test_complete_auth_flow.py` (22 tests)
+### `test_complete_auth_flow.py` (5 tests)
 
 Comprehensive authentication flow validation covering:
 
-**Main Flow (17 tests)**:
+**Complete Auth Flow (1 test with 18 steps)**:
 1. User Registration
-2. Email Verification Token Generation
+2. Email Verification Token Extraction
 3. Email Verification
 4. Login
 5. Get User Profile
 6. Update Profile
 7. Token Refresh
-8. Verify Refreshed Token
+8. Verify New Access Token
 9. Password Reset Request
-10. Verify Reset Token
-11. Confirm Password Reset
-12. Old Refresh Token Revoked After Password Reset
-13. Old Access Token Still Works Until Expiry
-14. Login with New Password
-15. Logout
-16. Refresh Token Revoked After Logout
-17. Access Token Still Works After Logout
+10. Extract Reset Token
+11. Verify Reset Token
+12. Confirm Password Reset
+13. Old Refresh Token Revoked
+14. Old Access Token Still Works
+15. Login with New Password
+16. Logout
+17. Refresh Token Revoked After Logout
+18. Access Token Still Works After Logout
 
-**Critical Paths (5 tests)**:
+**Independent Validation Tests (4 tests)**:
 - System health check
 - API documentation accessibility
 - Invalid login rejection
 - Weak password rejection
-- Duplicate email rejection
+
+**Note**: All tests run in **isolated pytest session** using `@pytest.mark.smoke` marker.
 
 ## Running Smoke Tests
 
-**IMPORTANT**: Smoke tests run inside Docker containers using pytest's `caplog` fixture to extract tokens from application logs.
+**CRITICAL**: Smoke tests run in **isolated pytest sessions** to prevent database state conflicts with main tests.
 
 ### Run All Smoke Tests
 
-**Recommended** (uses project Makefile):
+**Recommended** (uses project Makefile with isolation):
 ```bash
-make test-smoke
+make test-smoke  # Runs: pytest -m smoke -v
 ```
 
-**Manual docker-compose commands** (if needed):
+This automatically:
+- ✅ Starts test environment if not running
+- ✅ Runs ONLY tests marked with `@pytest.mark.smoke`
+- ✅ Isolates from main test suite (no state conflicts)
+- ✅ Provides clear test output
+
+**Manual pytest commands** (inside container):
 ```bash
 # Using test environment (recommended)
-docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/ -v
+docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest -m smoke -v
 
-# Or using development environment
-docker compose -f compose/docker-compose.dev.yml exec app uv run pytest tests/smoke/ -v
+# Run specific smoke test
+docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest -m smoke -k test_complete_authentication_flow -v
 ```
 
-### Run Specific Tests
-```bash
-# Run specific file
-docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/test_complete_auth_flow.py -v
+### Test Isolation
 
-# Run specific test
-docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/test_complete_auth_flow.py::TestSmokeCompleteAuthFlow::test_01_user_registration -v
+**Why isolated sessions?**
 
-# Run specific test class
-docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/test_complete_auth_flow.py::TestSmokeCompleteAuthFlow -v
-```
+Smoke tests run in a **separate pytest session** from main tests because:
+1. **State persistence**: Auth flow needs state to persist across API calls
+2. **Database isolation**: Prevents conflicts with main test fixtures
+3. **Clear output**: Shows smoke test progress independently
+4. **CI visibility**: GitHub Actions displays smoke tests separately
+
+**Implementation**:
+- All smoke tests marked with `@pytest.mark.smoke`
+- Main tests excluded with `-m "not smoke"`
+- Smoke tests selected with `-m smoke`
+- `make test` runs both suites sequentially
 
 ### How Token Extraction Works
 
@@ -126,19 +138,22 @@ These pytest-based smoke tests replace the previous `scripts/test-api-flows.sh` 
 
 When adding new smoke tests:
 
-1. **Keep them fast** - Smoke tests should complete quickly
-2. **Test critical paths** - Focus on essential functionality
-3. **Use descriptive names** - `test_user_can_register_successfully` not `test_1`
-4. **Follow existing patterns** - Use the same fixture structure
-5. **Document the test** - Include docstring explaining what's being tested
+1. **Mark with `@pytest.mark.smoke`** - REQUIRED for isolation
+2. **Keep them fast** - Smoke tests should complete quickly (< 5 min total)
+3. **Test critical paths** - Focus on essential functionality
+4. **Use descriptive names** - `test_smoke_api_endpoint_works` not `test_1`
+5. **Follow existing patterns** - Use the same fixture structure
+6. **Document the test** - Include docstring explaining what's being tested
 
 Example:
 ```python
-def test_user_can_view_dashboard(self, client, smoke_test_user):
+@pytest.mark.smoke  # REQUIRED: Marks test for isolated session
+def test_smoke_user_can_view_dashboard(client):
     \"\"\"Smoke: User can access their dashboard after login.\"\"\"
+    # Smoke tests should be independent or use shared fixtures
     response = client.get(
         "/api/v1/dashboard",
-        headers={"Authorization": f"Bearer {smoke_test_user['access_token']}"},
+        headers={"Authorization": "Bearer <token>"},
     )
     assert response.status_code == 200
     assert "accounts" in response.json()

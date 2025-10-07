@@ -152,6 +152,8 @@ class TestJWTService:
 
     def test_get_token_expiration(self):
         """Test getting token expiration time."""
+        from datetime import UTC
+
         token = self.service.create_access_token(
             user_id=self.test_user_id, email=self.test_email
         )
@@ -159,7 +161,7 @@ class TestJWTService:
         expiration = self.service.get_token_expiration(token)
 
         assert expiration is not None
-        assert expiration.tzinfo is None  # UTC naive datetime
+        assert expiration.tzinfo == UTC  # UTC timezone-aware datetime
 
     def test_get_token_expiration_invalid_token(self):
         """Test getting expiration from invalid token returns None."""

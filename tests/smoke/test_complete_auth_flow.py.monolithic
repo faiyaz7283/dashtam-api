@@ -22,67 +22,6 @@ import re
 from datetime import datetime
 
 import pytest
-from sqlalchemy import text
-from sqlmodel import Session
-
-
-@pytest.fixture(scope="function", autouse=True)
-def clean_database_for_smoke_test(db: Session, request):
-    """Clean database before each smoke test to ensure predictable state.
-
-    Smoke tests need a clean database because they use predictable data
-    (like test@example.com). When running as part of full test suite,
-    other tests may have created data that conflicts.
-
-    This fixture automatically truncates ALL tables (except alembic_version)
-    ensuring smoke tests always start with a clean slate, regardless of
-    how the database schema evolves.
-
-    CRITICAL: Uses session-scoped 'db' session (not function-scoped 'db_session')
-    because the 'client' fixture uses 'db', and we need to expire the same
-    session that the client will use.
-
-    This fixture runs before EVERY test in this module (autouse=True).
-    Since it's defined in the smoke test module, it only affects smoke tests.
-    """
-    import logging
-
-    logger = logging.getLogger(__name__)
-
-    logger.info(f"Cleaning database before smoke test: {request.node.name}")
-
-    # Clean database before test - truncate ALL tables
-    try:
-        # Get all table names from database (excluding alembic_version)
-        result = db.execute(
-            text("""
-                SELECT tablename FROM pg_tables 
-                WHERE schemaname = 'public' 
-                AND tablename != 'alembic_version'
-            """)
-        )
-        tables = [row[0] for row in result.fetchall()]
-
-        if tables:
-            logger.info(f"Truncating tables: {', '.join(tables)}")
-            # Disable foreign key checks, truncate all tables, re-enable checks
-            # RESTART IDENTITY resets auto-increment sequences
-            # CASCADE handles dependent tables
-            table_list = ", ".join(tables)
-            db.execute(text(f"TRUNCATE TABLE {table_list} RESTART IDENTITY CASCADE"))
-            db.commit()
-            # CRITICAL: Expire all session objects after truncate
-            # This clears SQLAlchemy's identity map so it doesn't reference deleted rows
-            db.expire_all()
-            logger.info("Database cleaned successfully")
-        else:
-            logger.warning("No tables found to truncate")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to clean database for smoke test: {e}", exc_info=True)
-
-    yield
-    # After test: smoke tests skip cleanup (handled by db_session fixture)
 
 
 def extract_token_from_caplog(caplog, pattern: str) -> str:
@@ -124,6 +63,7 @@ def extract_token_from_caplog(caplog, pattern: str) -> str:
     )
 
 
+@pytest.mark.smoke
 def test_complete_authentication_flow(client, caplog):
     """
     Smoke Test: Complete user authentication journey.
@@ -394,6 +334,7 @@ def test_complete_authentication_flow(client, caplog):
 # =============================================================================
 
 
+@pytest.mark.smoke
 def test_smoke_health_check(client):
     """Smoke: System health check endpoint is operational.
 
@@ -406,6 +347,7 @@ def test_smoke_health_check(client):
     assert data["status"] == "healthy"
 
 
+@pytest.mark.smoke
 def test_smoke_api_docs_accessible(client):
     """Smoke: API documentation is accessible.
 
@@ -416,6 +358,7 @@ def test_smoke_api_docs_accessible(client):
     assert response.status_code == 200
 
 
+@pytest.mark.smoke
 def test_smoke_invalid_login_rejected(client):
     """Smoke: Invalid login credentials are rejected.
 
@@ -432,6 +375,7 @@ def test_smoke_invalid_login_rejected(client):
     assert response.status_code == 401
 
 
+@pytest.mark.smoke
 def test_smoke_weak_password_rejected(client):
     """Smoke: Weak passwords are rejected during registration.
 

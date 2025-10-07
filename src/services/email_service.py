@@ -13,7 +13,7 @@ See docs/development/architecture/async-vs-sync-patterns.md for details.
 
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 
 import boto3
 from botocore.exceptions import ClientError
@@ -252,7 +252,7 @@ class EmailService:
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         
         <p style="color: #999; font-size: 12px; text-align: center;">
-            © {datetime.utcnow().year} Dashtam. All rights reserved.
+            © {datetime.now(UTC).year} Dashtam. All rights reserved.
         </p>
     </div>
 </body>
@@ -271,7 +271,7 @@ This verification link will expire in {settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_
 
 If you didn't create a Dashtam account, please ignore this email.
 
-© {datetime.utcnow().year} Dashtam. All rights reserved.
+© {datetime.now(UTC).year} Dashtam. All rights reserved.
 """
 
         return await self.send_email(
@@ -352,7 +352,7 @@ If you didn't create a Dashtam account, please ignore this email.
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         
         <p style="color: #999; font-size: 12px; text-align: center;">
-            © {datetime.utcnow().year} Dashtam. All rights reserved.
+            © {datetime.now(UTC).year} Dashtam. All rights reserved.
         </p>
     </div>
 </body>
@@ -371,7 +371,7 @@ This password reset link will expire in {settings.PASSWORD_RESET_TOKEN_EXPIRE_HO
 
 If you didn't request a password reset, please ignore this email and your password will remain unchanged.
 
-© {datetime.utcnow().year} Dashtam. All rights reserved.
+© {datetime.now(UTC).year} Dashtam. All rights reserved.
 """
 
         return await self.send_email(
@@ -443,7 +443,7 @@ If you didn't request a password reset, please ignore this email and your passwo
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         
         <p style="color: #999; font-size: 12px; text-align: center;">
-            © {datetime.utcnow().year} Dashtam. All rights reserved.
+            © {datetime.now(UTC).year} Dashtam. All rights reserved.
         </p>
     </div>
 </body>
@@ -466,7 +466,7 @@ https://localhost:3000/login
 
 If you have any questions or need assistance, feel free to reach out to our support team.
 
-© {datetime.utcnow().year} Dashtam. All rights reserved.
+© {datetime.now(UTC).year} Dashtam. All rights reserved.
 """
 
         return await self.send_email(
@@ -528,13 +528,13 @@ If you have any questions or need assistance, feel free to reach out to our supp
         </div>
         
         <p style="color: #666; font-size: 14px;">
-            Changed at: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC
+            Changed at: {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")} UTC
         </p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         
         <p style="color: #999; font-size: 12px; text-align: center;">
-            © {datetime.utcnow().year} Dashtam. All rights reserved.
+            © {datetime.now(UTC).year} Dashtam. All rights reserved.
         </p>
     </div>
 </body>
@@ -548,9 +548,9 @@ This is a confirmation that the password for your Dashtam account was successful
 
 If you did not make this change, please contact our support team immediately at support@dashtam.com
 
-Changed at: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC
+Changed at: {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")} UTC
 
-© {datetime.utcnow().year} Dashtam. All rights reserved.
+© {datetime.now(UTC).year} Dashtam. All rights reserved.
 """
 
         return await self.send_email(

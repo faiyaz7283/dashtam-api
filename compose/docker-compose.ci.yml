@@ -93,7 +93,7 @@ services:
         condition: service_healthy
     networks:
       - dashtam-ci-network
-    # Run migrations, then tests, and exit with proper status code
+    # Run migrations and keep container alive for GitHub Actions to exec tests
     command: >
       sh -c "
         set -e && 
@@ -104,13 +104,10 @@ services:
         echo 'Running Alembic migrations...' && 
         uv run alembic upgrade head && 
         echo '' && 
-        echo 'Running test suite...' && 
+        echo 'Migrations complete. Ready for tests.' && 
+        echo 'Keeping container alive for GitHub Actions...' && 
         echo '' && 
-        uv run pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing --junit-xml=test-results.xml --maxfail=5 || exit 1 && 
-        echo '' && 
-        echo '=============================================='  && 
-        echo 'All tests passed!' && 
-        echo '=============================================='  
+        tail -f /dev/null
       "
 
   # OAuth Callback Server (CI) - Required for OAuth tests

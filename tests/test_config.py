@@ -11,8 +11,10 @@ from pydantic import Field
 from src.core.config import Settings
 
 
-class TestSettings(Settings):
+class _TestSettings(Settings):
     """Test-specific settings that extend the main Settings class.
+
+    Note: Prefixed with _ to avoid pytest trying to collect it as a test class.
 
     This class inherits all configuration patterns from the main Settings class
     but loads from .env.test file and adds test-specific settings.
@@ -59,7 +61,7 @@ class TestSettings(Settings):
         )
 
 
-def get_test_settings() -> TestSettings:
+def get_test_settings() -> _TestSettings:
     """Get test settings singleton.
 
     Returns:
@@ -78,7 +80,7 @@ def get_test_settings() -> TestSettings:
         >>> print(test_settings.test_database_url)
         'postgresql+asyncpg://test:test@localhost:5432/dashtam_test'
     """
-    return TestSettings()
+    return _TestSettings()
 
 
 # Export singleton instance for convenience

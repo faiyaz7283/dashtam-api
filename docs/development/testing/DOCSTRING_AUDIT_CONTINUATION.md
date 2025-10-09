@@ -4,9 +4,9 @@ This document tracks progress on adding comprehensive Google-style docstrings to
 
 ## 📊 Current Status
 
-**Commit**: `f31f90e` - docs(tests): add comprehensive Google-style docstrings (Phase 1-2 partial)
+**Commit**: `cdf8edf` - docs(tests): complete Phase 2 - comprehensive docstrings for service tests (108 functions)
 
-### ✅ Completed (5 files, 118 test functions)
+### ✅ Completed (11 files, 206 test functions)
 
 1. **tests/api/test_auth_jwt_endpoints.py** ✅
    - 42 test functions fully documented
@@ -26,10 +26,22 @@ This document tracks progress on adding comprehensive Google-style docstrings to
    - Coverage: AES-256 Fernet encryption, unicode, dictionaries, singleton, error handling
 
 5. **tests/unit/services/test_email_service.py** ✅
-   - 20 test functions fully documented
+   - 19 test functions fully documented
    - Coverage: AWS SES integration, email templates, dev/prod modes, error handling
 
-5. **docs/development/testing/test-docstring-standards.md** ✅
+6. **tests/unit/services/test_auth_service_password_reset.py** ✅
+   - 10 test functions fully documented
+   - Coverage: Password reset security, session revocation, token validation
+
+7. **tests/unit/services/test_token_service.py** ✅
+   - 16 test functions fully documented
+   - Coverage: Token storage, retrieval, refresh, revocation, audit logging
+
+8. **tests/unit/services/test_token_rotation.py** ✅
+   - 8 test functions fully documented
+   - Coverage: Token rotation scenarios (new, none, same), edge cases, error handling
+
+9. **docs/development/testing/test-docstring-standards.md** ✅
    - 407 lines of comprehensive reference guide
    - Examples for all test patterns
    - Anti-patterns to avoid
@@ -37,32 +49,13 @@ This document tracks progress on adding comprehensive Google-style docstrings to
 
 ## 📋 Remaining Work
 
-### Phase 2: Service Tests (3 files remaining, ~34 tests)
+### ✅ Phase 2: Service Tests - COMPLETE
 
-Priority order for completion:
+All 7 service test files have comprehensive docstrings (108 test functions total).
 
-1. ✅ **tests/unit/services/test_email_service.py** COMPLETE (~20 tests)
-   - Email sending with AWS SES mocking
-   - Verification, password reset, welcome emails
-   - Development vs production mode
-   - Template rendering
+### Phase 3: Model and Core Tests (5 files, ~20 tests) 🚧 NEXT
 
-2. **tests/unit/services/test_auth_service_password_reset.py** (~10 tests)
-   - Password reset flow with session revocation
-   - Multiple mock services (password, email)
-   - Complex async mocking patterns
-
-3. **tests/unit/services/test_token_service.py** (~16 tests)
-   - Token management and storage
-   - Complex async operations
-   - Database integration patterns
-
-4. **tests/unit/services/test_token_rotation.py** (~8 tests)
-   - OAuth token rotation scenarios
-   - Universal rotation detection
-   - Complex mock setup
-
-### Phase 3: Model and Core Tests (5 files, ~30-40 tests)
+**Models** (3 files, ~15 tests):
 
 1. **tests/unit/models/test_user_auth.py**
    - User authentication model validation
@@ -77,6 +70,8 @@ Priority order for completion:
 3. **tests/unit/models/test_timezone_aware_datetimes.py**
    - TIMESTAMPTZ compliance
    - Timezone handling
+
+**Core** (2 files, ~5 tests):
 
 4. **tests/unit/core/test_database.py**
    - Database connection and sessions
@@ -115,7 +110,26 @@ Priority order for completion:
    - Provider type listing
    - Provider metadata
 
-### Phase 6: Final Review and Quality (verification)
+### Phase 6: Smoke Tests (3 files, ~23 tests)
+
+**End-to-end authentication flow tests:**
+
+1. **tests/smoke/test_auth_flow.py**
+   - Complete registration → verification → login → logout flow
+   - Token refresh and password reset flows
+   - Real HTTP requests to running services
+
+2. **tests/smoke/test_auth_validation.py**
+   - Invalid credentials, weak passwords
+   - Duplicate emails, missing fields
+   - Edge cases and error paths
+
+3. **tests/smoke/test_system_health.py**
+   - Health check endpoints
+   - API documentation availability
+   - Service connectivity
+
+### Phase 7: Final Review and Quality (verification)
 
 - [ ] Verify all test functions have docstrings
 - [ ] Check all test classes have docstrings
@@ -213,15 +227,15 @@ Testing: All [N] tests passing
 
 | Phase | Files | Tests | Status |
 |-------|-------|-------|--------|
-| Phase 1 | 1 | 42 | ✅ Complete |
-| Phase 2 (partial) | 4 | 76 | ✅ Complete |
-| Phase 2 (remaining) | 3 | ~34 | ⏳ Pending |
-| Phase 3 | 5 | ~35 | ⏳ Pending |
+| Phase 1 | 4 | 98 | ✅ Complete |
+| Phase 2 | 7 | 108 | ✅ Complete |
+| Phase 3 | 5 | ~20 | 🚧 In Progress |
 | Phase 4 | 2 | ~20 | ⏳ Pending |
 | Phase 5 | 3 | ~40 | ⏳ Pending |
-| Phase 6 | Review | N/A | ⏳ Pending |
+| Phase 6 | 3 | ~23 | ⏳ Pending |
+| Phase 7 | Review | N/A | ⏳ Pending |
 
-**Total Progress**: 5 of ~18 files (28%), 118 of ~250+ test functions (~47%)
+**Total Progress**: 11 of ~23 files (48%), 206 of ~309 test functions (67%)
 
 ## 🎯 Estimated Completion
 
@@ -249,6 +263,6 @@ Based on current pace (~25 tests/hour):
 
 ---
 
-**Last Updated**: 2025-10-09  
+**Last Updated**: 2025-10-09 02:30 UTC  
 **Branch**: `chore/codebase-cleanup-docstrings-makefiles-docs`  
-**Commit**: `f31f90e`
+**Commit**: `cdf8edf` - Phase 2 complete (11 files, 206 tests)

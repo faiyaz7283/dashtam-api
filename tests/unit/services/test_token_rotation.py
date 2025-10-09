@@ -107,7 +107,23 @@ class TestTokenRotationScenarios:
     def test_token_rotation_with_new_refresh_token(
         self, mock_session, mock_encryption, mock_provider_registry
     ):
-        """Test that rotation is detected when provider sends NEW refresh token."""
+        """Test token rotation detection when provider sends new refresh token.
+        
+        Verifies that:
+        - Provider returns new refresh token in response
+        - New refresh token is encrypted before storage
+        - Both access and refresh tokens are stored
+        - Audit log entry created
+        - Database flush() called
+        
+        Args:
+            mock_session: Mocked database session
+            mock_encryption: Mocked encryption service
+            mock_provider_registry: Mocked provider registry
+        
+        Note:
+            Scenario 1 - Charles Schwab pattern: sends new refresh token on each refresh.
+        """
         # Arrange
         data = self.create_test_provider_with_token()
         provider = data["provider"]
@@ -150,7 +166,23 @@ class TestTokenRotationScenarios:
     def test_no_rotation_refresh_token_not_included(
         self, mock_session, mock_encryption, mock_provider_registry
     ):
-        """Test that no rotation occurs when provider omits refresh_token key."""
+        """Test no rotation when provider omits refresh_token key in response.
+        
+        Verifies that:
+        - Provider response missing 'refresh_token' key
+        - Only access token is encrypted and stored
+        - Original refresh token is preserved
+        - No errors raised for missing refresh_token
+        - Audit log still created
+        
+        Args:
+            mock_session: Mocked database session
+            mock_encryption: Mocked encryption service
+            mock_provider_registry: Mocked provider registry
+        
+        Note:
+            Scenario 2 - Most common: provider doesn't rotate refresh tokens.
+        """
         # Arrange
         data = self.create_test_provider_with_token()
         provider = data["provider"]
@@ -189,7 +221,23 @@ class TestTokenRotationScenarios:
     def test_same_refresh_token_returned(
         self, mock_session, mock_encryption, mock_provider_registry
     ):
-        """Test edge case where provider returns SAME refresh token."""
+        """Test edge case when provider returns unchanged refresh token.
+        
+        Verifies that:
+        - Provider returns same refresh token value
+        - Token is re-encrypted (even though same value)
+        - No errors raised for duplicate token
+        - Database flush() called
+        - Graceful handling of edge case
+        
+        Args:
+            mock_session: Mocked database session
+            mock_encryption: Mocked encryption service
+            mock_provider_registry: Mocked provider registry
+        
+        Note:
+            Scenario 3 - Rare edge case: provider sends same token back.
+        """
         # Arrange
         data = self.create_test_provider_with_token()
         provider = data["provider"]
@@ -227,7 +275,23 @@ class TestTokenRotationScenarios:
     def test_rotation_persistence_across_multiple_refreshes(
         self, mock_session, mock_encryption, mock_provider_registry
     ):
-        """Test that rotated tokens persist correctly across multiple refreshes."""
+        """Test token rotation persistence across multiple consecutive refreshes.
+        
+        Verifies that:
+        - First refresh increments refresh_count to 1
+        - Second refresh increments refresh_count to 2
+        - Each rotation persists correctly
+        - No state corruption between refreshes
+        - Token history maintained accurately
+        
+        Args:
+            mock_session: Mocked database session
+            mock_encryption: Mocked encryption service
+            mock_provider_registry: Mocked provider registry
+        
+        Note:
+            Tests token chain: initial → refresh_1 → refresh_2.
+        """
         # Arrange
         data = self.create_test_provider_with_token()
         provider = data["provider"]
@@ -277,7 +341,22 @@ class TestTokenRotationScenarios:
     def test_rotation_updates_access_token_expiry(
         self, mock_session, mock_encryption, mock_provider_registry
     ):
-        """Test that token refresh updates access token expiry correctly."""
+        """Test access token expiry calculation after refresh.
+        
+        Verifies that:
+        - expires_at timestamp updated after refresh
+        - New expiry calculated from current time + expires_in
+        - Expiry within 10 seconds of expected value
+        - 2-hour TTL (7200 seconds) respected
+        
+        Args:
+            mock_session: Mocked database session
+            mock_encryption: Mocked encryption service
+            mock_provider_registry: Mocked provider registry
+        
+        Note:
+            Critical for automatic token refresh logic.
+        """
         # Arrange
         data = self.create_test_provider_with_token()
         provider = data["provider"]
@@ -318,7 +397,23 @@ class TestTokenRotationScenarios:
     def test_rotation_audit_log_includes_all_details(
         self, mock_session, mock_encryption, mock_provider_registry
     ):
-        """Test that audit log captures comprehensive rotation details."""
+        """Test comprehensive audit logging for token rotation.
+        
+        Verifies that:
+        - ProviderAuditLog entry created on rotation
+        - Audit log action is "token_refreshed"
+        - User ID captured
+        - Rotation details included: provider_key, alias, refresh_count
+        - Token rotation detected and logged (token_rotated, rotation_type)
+        
+        Args:
+            mock_session: Mocked database session
+            mock_encryption: Mocked encryption service
+            mock_provider_registry: Mocked provider registry
+        
+        Note:
+            Audit logs critical for security monitoring and compliance.
+        """
         # Arrange
         data = self.create_test_provider_with_token()
         provider = data["provider"]
@@ -397,7 +492,28 @@ class TestTokenRotationEdgeCases:
     def test_rotation_fails_gracefully_on_provider_error(
         self, mock_session, mock_encryption, mock_provider_registry
     ):
-        """Test that rotation failure is handled properly."""
+        """Test graceful error handling when provider API fails.
+        
+        Verifies that:
+        - Exception raised when provider refresh_authentication fails
+        - Error message mentions "Token refresh failed"
+        - Connection error_count incremented
+        - Connection error_message updated
+        - Failure audit log created
+        - Audit log action is "token_refresh_failed"
+        - Error details captured in audit log
+        
+        Args:
+            mock_session: Mocked database session
+            mock_encryption: Mocked encryption service
+            mock_provider_registry: Mocked provider registry
+        
+        Raises:
+            Exception: Expected error for provider API failure
+        
+        Note:
+            Error tracking for incident investigation and alerting.
+        """
         # Arrange
         user = User(
             id=uuid4(),
@@ -467,7 +583,24 @@ class TestTokenRotationEdgeCases:
     def test_rotation_without_initial_refresh_token_fails(
         self, mock_session, mock_encryption
     ):
-        """Test that rotation fails gracefully if no refresh token exists."""
+        """Test error when attempting refresh without refresh token.
+        
+        Verifies that:
+        - ValueError raised if refresh_token_encrypted is None
+        - Error message mentions "No refresh token available"
+        - Cannot refresh without refresh token
+        - Prevents invalid API call to provider
+        
+        Args:
+            mock_session: Mocked database session
+            mock_encryption: Mocked encryption service
+        
+        Raises:
+            ValueError: Expected error for missing refresh token
+        
+        Note:
+            Prevents API errors when provider never issued refresh token.
+        """
         # Arrange
         user = User(
             id=uuid4(),

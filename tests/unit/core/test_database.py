@@ -93,7 +93,10 @@ class TestGetEngine:
 
 
 class TestGetSessionMaker:
-    """Tests for get_session_maker() function."""
+    """Tests for get_session_maker() function.
+    
+    Tests singleton pattern for async_sessionmaker creation.
+    """
 
     def setup_method(self):
         """Reset global session maker before each test."""
@@ -101,21 +104,39 @@ class TestGetSessionMaker:
         database._async_session_maker = None
 
     def test_get_session_maker_creates_new_maker(self):
-        """Test that get_session_maker creates a new session maker if none exists."""
+        """Test get_session_maker creates new async_sessionmaker on first call.
+        
+        Verifies that:
+        - New async_sessionmaker instance created
+        - Session maker stored in module-level singleton
+        - Session maker is not None
+        """
         session_maker = database.get_session_maker()
 
         assert session_maker is not None
         assert database._async_session_maker is session_maker
 
     def test_get_session_maker_returns_existing_maker(self):
-        """Test that get_session_maker returns the same maker on subsequent calls."""
+        """Test get_session_maker returns same instance (singleton pattern).
+        
+        Verifies that:
+        - Second call returns same instance
+        - No duplicate session makers created
+        - Singleton pattern working correctly
+        """
         maker1 = database.get_session_maker()
         maker2 = database.get_session_maker()
 
         assert maker1 is maker2
 
     def test_get_session_maker_uses_existing_engine(self):
-        """Test that session maker uses the existing engine."""
+        """Test session maker uses existing engine instance.
+        
+        Verifies that:
+        - Session maker uses already-created engine
+        - Engine singleton shared across session maker
+        - No duplicate engine creation
+        """
         engine = database.get_engine()
         session_maker = database.get_session_maker()
 
@@ -130,7 +151,11 @@ class TestGetSessionMaker:
 
 @pytest.mark.asyncio
 class TestGetSession:
-    """Tests for get_session() dependency injection function."""
+    """Tests for get_session() dependency injection function.
+    
+    Tests FastAPI dependency for database session management.
+    Validates async generator pattern with proper cleanup.
+    """
 
     def setup_method(self):
         """Reset global state before each test."""
@@ -138,7 +163,16 @@ class TestGetSession:
         database._async_session_maker = None
 
     async def test_get_session_yields_session(self):
-        """Test that get_session yields a valid AsyncSession."""
+        """Test get_session yields valid AsyncSession for FastAPI endpoints.
+        
+        Verifies that:
+        - Async generator yields AsyncSession
+        - Session is valid AsyncSession instance
+        - Can be used for database operations
+        
+        Note:
+            Used as FastAPI Depends() dependency.
+        """
         session_gen = database.get_session()
         session = await session_gen.__anext__()
 
@@ -152,7 +186,17 @@ class TestGetSession:
             pass
 
     async def test_get_session_closes_session_on_exit(self):
-        """Test that get_session properly closes the session."""
+        """Test get_session closes session after request completes.
+        
+        Verifies that:
+        - Session close() method called on exit
+        - Cleanup happens automatically
+        - No connection leaks
+        - Close called at least once (may be twice due to context manager)
+        
+        Note:
+            Critical for connection pool management.
+        """
         session_gen = database.get_session()
         session = await session_gen.__anext__()
 
@@ -178,10 +222,25 @@ class TestGetSession:
 
 @pytest.mark.asyncio
 class TestInitDb:
-    """Tests for init_db() function."""
+    """Tests for init_db() function.
+    
+    Tests database table creation during application startup.
+    """
 
     async def test_init_db_creates_tables(self, capsys):
-        """Test that init_db creates tables and prints success message."""
+        """Test init_db creates database tables and prints success message.
+        
+        Verifies that:
+        - Database tables created successfully
+        - Success message printed to stdout
+        - No errors during table creation
+        
+        Args:
+            capsys: Pytest fixture to capture stdout/stderr
+        
+        Note:
+            Called during application startup (main.py).
+        """
         # Reset engine to ensure clean state
         database._engine = None
 
@@ -193,10 +252,26 @@ class TestInitDb:
 
 @pytest.mark.asyncio
 class TestCloseDb:
-    """Tests for close_db() function."""
+    """Tests for close_db() function.
+    
+    Tests database connection cleanup during application shutdown.
+    """
 
     async def test_close_db_disposes_engine(self, capsys):
-        """Test that close_db properly disposes of the engine."""
+        """Test close_db disposes engine and clears singletons.
+        
+        Verifies that:
+        - Engine disposed properly
+        - Module-level _engine set to None
+        - Module-level _async_session_maker set to None
+        - Success message printed to stdout
+        
+        Args:
+            capsys: Pytest fixture to capture stdout/stderr
+        
+        Note:
+            Called during application shutdown (lifespan event).
+        """
         # Create an engine first
         database.get_engine()
         assert database._engine is not None
@@ -210,7 +285,19 @@ class TestCloseDb:
         assert "✅ Database connections closed" in captured.out
 
     async def test_close_db_handles_no_engine(self, capsys):
-        """Test that close_db handles the case when no engine exists."""
+        """Test close_db handles case when no engine exists (idempotent).
+        
+        Verifies that:
+        - No errors if engine is None
+        - Graceful handling of already-closed state
+        - No success message printed (nothing to close)
+        
+        Args:
+            capsys: Pytest fixture to capture stdout/stderr
+        
+        Note:
+            Idempotent operation - safe to call multiple times.
+        """
         database._engine = None
         database._async_session_maker = None
 
@@ -223,17 +310,42 @@ class TestCloseDb:
 
 @pytest.mark.asyncio
 class TestCheckDbConnection:
-    """Tests for check_db_connection() function."""
+    """Tests for check_db_connection() function.
+    
+    Tests database connection health check for monitoring and startup validation.
+    """
 
     async def test_check_db_connection_success(self):
-        """Test successful database connection check."""
+        """Test successful database connection health check.
+        
+        Verifies that:
+        - Returns True for working connection
+        - Can connect to test database
+        - No errors during health check
+        
+        Note:
+            Used for /health endpoint and startup validation.
+        """
         result = await database.check_db_connection()
 
         # Should return True for a working test database
         assert result is True
 
     async def test_check_db_connection_failure(self, capsys):
-        """Test database connection check failure handling."""
+        """Test database connection check failure handling.
+        
+        Verifies that:
+        - Returns False on connection failure
+        - Error message printed to stdout
+        - Exception caught and handled gracefully
+        - No uncaught exceptions raised
+        
+        Args:
+            capsys: Pytest fixture to capture stdout/stderr
+        
+        Note:
+            Allows graceful degradation when database unavailable.
+        """
         # Mock the engine to simulate connection failure
         with patch.object(database, "get_engine") as mock_get_engine:
             mock_engine = Mock()
@@ -249,16 +361,39 @@ class TestCheckDbConnection:
 
 @pytest.mark.asyncio
 class TestGetDbContext:
-    """Tests for get_db_context() context manager."""
+    """Tests for get_db_context() context manager.
+    
+    Tests async context manager for database session lifecycle.
+    Alternative to FastAPI dependency injection for non-endpoint code.
+    """
 
     async def test_get_db_context_yields_session(self):
-        """Test that get_db_context yields a valid session."""
+        """Test get_db_context yields valid session in async with block.
+        
+        Verifies that:
+        - Context manager yields AsyncSession
+        - Session is valid for database operations
+        - Can be used in service layer
+        
+        Note:
+            Used for background tasks and service methods.
+        """
         async with database.get_db_context() as session:
             assert session is not None
             assert isinstance(session, AsyncSession)
 
     async def test_get_db_context_closes_session(self):
-        """Test that get_db_context closes session on exit."""
+        """Test get_db_context closes session on normal exit.
+        
+        Verifies that:
+        - Session close() called on context exit
+        - Cleanup happens automatically
+        - No connection leaks
+        - Close called at least once
+        
+        Note:
+            Ensures proper resource cleanup.
+        """
         session_ref = None
 
         async with database.get_db_context() as session:
@@ -272,7 +407,20 @@ class TestGetDbContext:
         assert session_ref.close.call_count >= 1
 
     async def test_get_db_context_closes_session_on_exception(self):
-        """Test that get_db_context closes session even when exception occurs."""
+        """Test get_db_context closes session even on exception.
+        
+        Verifies that:
+        - Session close() called even if exception raised
+        - Cleanup happens in finally block
+        - No connection leaks on errors
+        - Exception still propagates to caller
+        
+        Raises:
+            ValueError: Test exception (expected)
+        
+        Note:
+            Critical: ensures cleanup even on errors.
+        """
         session_ref = None
 
         with pytest.raises(ValueError, match="Test exception"):

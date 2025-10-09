@@ -17,7 +17,10 @@ from src.core.config import settings
 
 
 class TestGetEngine:
-    """Tests for get_engine() function."""
+    """Tests for get_engine() function.
+    
+    Tests singleton pattern for AsyncEngine creation and configuration.
+    """
 
     def setup_method(self):
         """Reset global engine before each test."""
@@ -25,7 +28,13 @@ class TestGetEngine:
         database._async_session_maker = None
 
     def test_get_engine_creates_new_engine(self):
-        """Test that get_engine creates a new engine if none exists."""
+        """Test get_engine creates new AsyncEngine on first call.
+        
+        Verifies that:
+        - New AsyncEngine instance created
+        - Engine stored in module-level singleton
+        - Engine is AsyncEngine type
+        """
         engine = database.get_engine()
 
         assert engine is not None
@@ -33,14 +42,29 @@ class TestGetEngine:
         assert database._engine is engine
 
     def test_get_engine_returns_existing_engine(self):
-        """Test that get_engine returns the same engine on subsequent calls."""
+        """Test get_engine returns same engine instance (singleton pattern).
+        
+        Verifies that:
+        - Second call returns same instance
+        - No duplicate engines created
+        - Singleton pattern working correctly
+        """
         engine1 = database.get_engine()
         engine2 = database.get_engine()
 
         assert engine1 is engine2
 
     def test_get_engine_raises_if_no_database_url(self):
-        """Test that get_engine raises RuntimeError if DATABASE_URL is not set."""
+        """Test get_engine raises RuntimeError for missing DATABASE_URL.
+        
+        Verifies that:
+        - RuntimeError raised if DATABASE_URL not configured
+        - Error message mentions "DATABASE_URL is not configured"
+        - Prevents engine creation without database URL
+        
+        Raises:
+            RuntimeError: Expected error for missing config
+        """
         database._engine = None
 
         with patch.object(settings, "DATABASE_URL", None):
@@ -48,7 +72,13 @@ class TestGetEngine:
                 database.get_engine()
 
     def test_get_engine_configuration(self):
-        """Test that engine is created with correct configuration."""
+        """Test engine created with proper PostgreSQL configuration.
+        
+        Verifies that:
+        - Engine has connection pool configured
+        - Engine URL is set
+        - Engine attributes exist and configured
+        """
         database._engine = None
         engine = database.get_engine()
 

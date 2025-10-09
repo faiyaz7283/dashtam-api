@@ -10,10 +10,24 @@ from src.core.config import Settings
 
 
 class TestHttpTimeoutConfiguration:
-    """Tests for HTTP timeout configuration and helper methods."""
+    """Tests for HTTP timeout configuration and helper methods.
+    
+    Validates P1 requirement: HTTP connection timeouts prevent indefinite hangs.
+    Tests configurable timeouts for all provider API calls.
+    """
 
     def test_default_timeout_values(self):
-        """Test that default timeout values are set correctly."""
+        """Test default HTTP timeout values.
+        
+        Verifies that:
+        - HTTP_TIMEOUT_TOTAL defaults to 30.0 seconds
+        - HTTP_TIMEOUT_CONNECT defaults to 10.0 seconds
+        - HTTP_TIMEOUT_READ defaults to 30.0 seconds
+        - HTTP_TIMEOUT_POOL defaults to 5.0 seconds
+        
+        Note:
+            P1 requirement: prevents indefinite hangs on provider API calls.
+        """
         settings = Settings()
 
         assert settings.HTTP_TIMEOUT_TOTAL == 30.0
@@ -22,7 +36,18 @@ class TestHttpTimeoutConfiguration:
         assert settings.HTTP_TIMEOUT_POOL == 5.0
 
     def test_get_http_timeout_returns_httpx_timeout(self):
-        """Test that get_http_timeout() returns a valid httpx.Timeout object."""
+        """Test get_http_timeout() returns configured httpx.Timeout object.
+        
+        Verifies that:
+        - Returns httpx.Timeout instance
+        - connect timeout set to 10.0 seconds
+        - read timeout set to 30.0 seconds
+        - pool timeout set to 5.0 seconds
+        - write timeout defaults to read timeout (30.0)
+        
+        Note:
+            Used for all httpx HTTP client requests to providers.
+        """
         settings = Settings()
         timeout = settings.get_http_timeout()
 
@@ -34,7 +59,18 @@ class TestHttpTimeoutConfiguration:
         assert timeout.write == 30.0
 
     def test_custom_timeout_values(self, monkeypatch):
-        """Test that custom timeout values can be configured via environment."""
+        """Test custom timeout values via environment variables.
+        
+        Verifies that:
+        - HTTP_TIMEOUT_TOTAL env var overrides default (60.0)
+        - HTTP_TIMEOUT_CONNECT env var overrides default (15.0)
+        - HTTP_TIMEOUT_READ env var overrides default (45.0)
+        - HTTP_TIMEOUT_POOL env var overrides default (10.0)
+        - Environment configuration works correctly
+        
+        Args:
+            monkeypatch: Pytest fixture for environment variables
+        """
         monkeypatch.setenv("HTTP_TIMEOUT_TOTAL", "60.0")
         monkeypatch.setenv("HTTP_TIMEOUT_CONNECT", "15.0")
         monkeypatch.setenv("HTTP_TIMEOUT_READ", "45.0")
@@ -48,7 +84,17 @@ class TestHttpTimeoutConfiguration:
         assert settings.HTTP_TIMEOUT_POOL == 10.0
 
     def test_get_http_timeout_with_custom_values(self, monkeypatch):
-        """Test that get_http_timeout() uses custom timeout values."""
+        """Test get_http_timeout() respects custom environment values.
+        
+        Verifies that:
+        - httpx.Timeout created with custom values
+        - connect timeout uses custom 15.0 seconds
+        - read timeout uses custom 45.0 seconds
+        - Environment overrides applied correctly
+        
+        Args:
+            monkeypatch: Pytest fixture for environment variables
+        """
         monkeypatch.setenv("HTTP_TIMEOUT_TOTAL", "60.0")
         monkeypatch.setenv("HTTP_TIMEOUT_CONNECT", "15.0")
         monkeypatch.setenv("HTTP_TIMEOUT_READ", "45.0")
@@ -60,7 +106,17 @@ class TestHttpTimeoutConfiguration:
         assert timeout.read == 45.0
 
     def test_timeout_prevents_indefinite_hang(self):
-        """Test that timeout configuration prevents indefinite hangs."""
+        """Test timeout configuration prevents indefinite hangs (P1 requirement).
+        
+        Verifies that:
+        - All timeout values are non-None (no indefinite waits)
+        - connect, read, write, pool all configured
+        - All timeout values are positive numbers
+        - Critical safety check for production
+        
+        Note:
+            P1 CRITICAL: Prevents hanging requests that never time out.
+        """
         settings = Settings()
         timeout = settings.get_http_timeout()
 

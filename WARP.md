@@ -1326,40 +1326,57 @@ When working on this project:
 - Provide context for future AI agents
 - Document architectural decisions and rationale
 
-**When to Create/Update Session Entries:**
-1. **At start of significant work** - Create new timestamped session file
-2. **During work** - Update with progress, decisions, and blockers
-3. **At end of session** - Summarize what was accomplished
-4. **After critical errors** - Document error context for recovery
+**Three-Phase Workflow:** All sessions must follow this structured approach:
 
-**Session File Naming:** `YYYY-MM-DD_HHMMSS_brief-description.md`
+**Phase 1: Session Initialization** 🎯 (Start of session)
+1. Create timestamped session file: `YYYY-MM-DD_HHMMSS_brief-description.md`
+2. Document session goals and objectives
+3. List planned tasks with checkboxes for tracking
+4. Identify research areas needed
+5. Note current branch and starting commit
+6. Document known blockers or concerns
+7. Define success criteria
 
-**What to Capture:**
-- Current branch and commit state
-- Goals and tasks for the session
-- Progress updates (completed/in-progress/blocked)
-- Key decisions made and why
-- Important commands used
-- Lessons learned and gotchas
-- Next steps for continuation
+**Phase 2: Progressive Updates** 📝 (During work)
+1. Check off completed tasks as you finish them
+2. Document key decisions and rationale
+3. Note unexpected issues and how resolved
+4. Record important commits and commands
+5. Add new tasks as discovered
+6. Update blockers and their status
+
+**Phase 3: Final Summary** ✅ (End of session)
+1. Summarize what was accomplished
+2. Document what changed from original plan (and why)
+3. List key achievements and their impact
+4. Record lessons learned and gotchas
+5. Note metrics (tests, coverage, commits, etc.)
+6. Document PR details if applicable
+7. Provide recommendations for next session
 
 **Session Retention:**
 - Default: Keep 10 most recent sessions per project
 - Configured in `~/ai_dev_sessions/Dashtam/.session_config`
 - Older sessions automatically DELETED (not archived) to prevent unbounded growth
 
-**Template:** See `~/ai_dev_sessions/templates/session-template.md`
+**Template Selection:**
+- **`session-comprehensive.md`** - For complex multi-task work, research, architecture changes
+- **`session-template.md`** - For quick fixes, single-focus tasks, routine updates
+- Both templates available at: `~/ai_dev_sessions/templates/`
 
 **Workflow:**
 ```bash
-# Check for existing sessions at start
+# 1. Check for existing sessions at start
 ls -t ~/ai_dev_sessions/Dashtam/ | head -5
 
-# Create new session
+# 2. Create new session file (Phase 1)
 cd ~/ai_dev_sessions/Dashtam
-touch $(date +%Y-%m-%d_%H%M%S)_task-description.md
+cp ~/ai_dev_sessions/templates/session-comprehensive.md \
+   $(date +%Y-%m-%d_%H%M%S)_task-description.md
 
-# Update throughout work using edit_files or create_file tools
+# 3. Update throughout work using edit_files or create_file tools (Phase 2)
+
+# 4. Complete final summary at end of session (Phase 3)
 ```
 
 **Critical Rule:** NEVER commit session journal files to the Dashtam project repository. They belong in the separate `~/ai_dev_sessions/` directory.

@@ -428,6 +428,7 @@ check:
 # ============================================================================
 # CI/CD COMMANDS
 # ============================================================================
+# Note: For workflow chains (e.g., ci-test-local, fix-and-watch), see Makefile.workflows
 
 # Run CI test suite (simulates GitHub Actions locally)
 ci-test:
@@ -442,7 +443,8 @@ ci-build:
 	@docker compose -f compose/docker-compose.ci.yml build
 	@echo "✅ CI images built"
 
-# Clean CI environment
+# Clean CI environment (comprehensive cleanup with image removal)
+# Note: For lightweight cleanup in workflows, see 'ci-down' in Makefile.workflows
 ci-clean:
 	@echo "🧹 Cleaning CI environment..."
 	@docker compose -f compose/docker-compose.ci.yml down -v --remove-orphans

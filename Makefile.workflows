@@ -5,6 +5,9 @@
 # Commands are organized both as:
 # 1. Individual atomic commands
 # 2. Workflow chains that combine commonly sequential commands
+#
+# Note: This file complements the main Makefile. For basic commands,
+#       see Makefile. This file focuses on workflow chains.
 # ============================================================================
 
 # ============================================================================
@@ -52,11 +55,13 @@ gh-logs-id:
 	fi
 
 # CI Docker Operations
+# Note: This is a lightweight cleanup for use in workflow chains.
+# For comprehensive cleanup (with image removal), use 'ci-clean' in main Makefile.
 ci-down:
 	@docker compose -f compose/docker-compose.ci.yml down -v
 
-# Note: Primary ci-build is in main Makefile
-# This provides a clean build variant
+# Note: Primary ci-build is in main Makefile (uses cache)
+# This variant provides a clean build with --no-cache for troubleshooting
 ci-build-clean:
 	@docker compose -f compose/docker-compose.ci.yml build --no-cache
 

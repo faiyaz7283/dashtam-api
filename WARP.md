@@ -370,6 +370,64 @@ This ensures:
 - No dependency conflicts with host system
 - Production-identical development environment
 
+### AI Agent File Operations
+**CRITICAL RULE**: When working with files as an AI agent, follow these strict guidelines to avoid shell quoting and heredoc errors:
+
+**For editing existing files:**
+- ✅ **ALWAYS use `edit_files` tool** - Diff-based search/replace blocks
+- ✅ Precise, surgical edits to specific sections
+- ✅ Can make multiple edits across multiple files in one operation
+
+**For creating new files:**
+- ✅ **ALWAYS use `create_file` tool** - Provides complete file content
+- ✅ Reliable for multi-line files with complex content
+- ✅ No issues with quotes, heredocs, or special characters
+
+**For simple one-liners:**
+- ✅ **Use `echo 'line' >` for first line** - Single quotes, redirect to file
+- ✅ **Use `echo 'line' >>` for appending** - Single quotes, append to file
+- ✅ Chain multiple echo commands with `&&`
+
+**FORBIDDEN patterns in terminal commands:**
+- ❌ **NEVER use heredoc syntax** (`<< EOF`) - Gets mangled in transmission
+- ❌ **NEVER use multi-line strings in double quotes** - Causes `dquote>` prompt
+- ❌ **NEVER use `cat > file << EOF`** - Unreliable, causes heredoc issues
+- ❌ **NEVER use Python `-c` with multi-line code** - Quote escaping problems
+
+**Example - Correct approach:**
+```bash
+# ✅ Simple one-liner
+echo 'MAX_SESSIONS=10' > .session_config
+
+# ✅ Multiple lines with echo
+echo '# Title' > README.md && echo '' >> README.md && echo 'Content' >> README.md
+```
+
+**For multi-line content in commands (e.g., git commit messages):**
+- ✅ **ALWAYS use temp file approach** - Create file with `create_file`, then reference it
+- ✅ Example: Create `/tmp/commit_msg.txt` with `create_file`, then `git commit -F /tmp/commit_msg.txt`
+- ✅ Works for any tool requiring multi-line input (git, curl, etc.)
+
+**Example - Multi-line commit message:**
+```bash
+# ✅ Create temp file with create_file tool
+# /tmp/commit_msg.txt contains:
+# feat(auth): add JWT authentication
+# 
+# - Implement JWT token generation
+# - Add refresh token rotation
+# - Update API endpoints
+
+# Then use it:
+git commit -F /tmp/commit_msg.txt
+```
+
+**Why this matters:**
+- Terminal commands with heredoc/complex quotes fail transmission
+- The shell waits indefinitely at `heredoc>` or `dquote>` prompts
+- Proper file tools (`edit_files`, `create_file`) are reliable and safe
+- Temp file approach works for ANY multi-line content needs
+
 ### Docker Service Names
 Environment-specific container names with suffixes:
 
@@ -1257,5 +1315,53 @@ When working on this project:
 9. Always use HTTPS/SSL for all communications
 10. Create audit log entries for significant operations
 11. **ALWAYS follow the Phase Completion Workflow after finishing any phase**
+12. **ALWAYS maintain the AI Session Journal** for session continuity
+
+### AI Session Journal System
+**CRITICAL**: Maintain session journal at `~/ai_dev_sessions/Dashtam/` for continuity between AI interactions.
+
+**Purpose:**
+- Resume work after critical errors or interruptions
+- Track progress and decisions across sessions
+- Provide context for future AI agents
+- Document architectural decisions and rationale
+
+**When to Create/Update Session Entries:**
+1. **At start of significant work** - Create new timestamped session file
+2. **During work** - Update with progress, decisions, and blockers
+3. **At end of session** - Summarize what was accomplished
+4. **After critical errors** - Document error context for recovery
+
+**Session File Naming:** `YYYY-MM-DD_HHMMSS_brief-description.md`
+
+**What to Capture:**
+- Current branch and commit state
+- Goals and tasks for the session
+- Progress updates (completed/in-progress/blocked)
+- Key decisions made and why
+- Important commands used
+- Lessons learned and gotchas
+- Next steps for continuation
+
+**Session Retention:**
+- Default: Keep 10 most recent sessions per project
+- Configured in `~/ai_dev_sessions/Dashtam/.session_config`
+- Older sessions automatically DELETED (not archived) to prevent unbounded growth
+
+**Template:** See `~/ai_dev_sessions/templates/session-template.md`
+
+**Workflow:**
+```bash
+# Check for existing sessions at start
+ls -t ~/ai_dev_sessions/Dashtam/ | head -5
+
+# Create new session
+cd ~/ai_dev_sessions/Dashtam
+touch $(date +%Y-%m-%d_%H%M%S)_task-description.md
+
+# Update throughout work using edit_files or create_file tools
+```
+
+**Critical Rule:** NEVER commit session journal files to the Dashtam project repository. They belong in the separate `~/ai_dev_sessions/` directory.
 
 Remember: This is a financial data platform where security and reliability are paramount. Every decision should prioritize data protection and system stability.

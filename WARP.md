@@ -403,10 +403,30 @@ echo 'MAX_SESSIONS=10' > .session_config
 echo '# Title' > README.md && echo '' >> README.md && echo 'Content' >> README.md
 ```
 
+**For multi-line content in commands (e.g., git commit messages):**
+- ✅ **ALWAYS use temp file approach** - Create file with `create_file`, then reference it
+- ✅ Example: Create `/tmp/commit_msg.txt` with `create_file`, then `git commit -F /tmp/commit_msg.txt`
+- ✅ Works for any tool requiring multi-line input (git, curl, etc.)
+
+**Example - Multi-line commit message:**
+```bash
+# ✅ Create temp file with create_file tool
+# /tmp/commit_msg.txt contains:
+# feat(auth): add JWT authentication
+# 
+# - Implement JWT token generation
+# - Add refresh token rotation
+# - Update API endpoints
+
+# Then use it:
+git commit -F /tmp/commit_msg.txt
+```
+
 **Why this matters:**
 - Terminal commands with heredoc/complex quotes fail transmission
 - The shell waits indefinitely at `heredoc>` or `dquote>` prompts
 - Proper file tools (`edit_files`, `create_file`) are reliable and safe
+- Temp file approach works for ANY multi-line content needs
 
 ### Docker Service Names
 Environment-specific container names with suffixes:

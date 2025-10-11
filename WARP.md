@@ -1315,5 +1315,53 @@ When working on this project:
 9. Always use HTTPS/SSL for all communications
 10. Create audit log entries for significant operations
 11. **ALWAYS follow the Phase Completion Workflow after finishing any phase**
+12. **ALWAYS maintain the AI Session Journal** for session continuity
+
+### AI Session Journal System
+**CRITICAL**: Maintain session journal at `~/ai_dev_sessions/Dashtam/` for continuity between AI interactions.
+
+**Purpose:**
+- Resume work after critical errors or interruptions
+- Track progress and decisions across sessions
+- Provide context for future AI agents
+- Document architectural decisions and rationale
+
+**When to Create/Update Session Entries:**
+1. **At start of significant work** - Create new timestamped session file
+2. **During work** - Update with progress, decisions, and blockers
+3. **At end of session** - Summarize what was accomplished
+4. **After critical errors** - Document error context for recovery
+
+**Session File Naming:** `YYYY-MM-DD_HHMMSS_brief-description.md`
+
+**What to Capture:**
+- Current branch and commit state
+- Goals and tasks for the session
+- Progress updates (completed/in-progress/blocked)
+- Key decisions made and why
+- Important commands used
+- Lessons learned and gotchas
+- Next steps for continuation
+
+**Session Retention:**
+- Default: Keep 10 most recent sessions per project
+- Configured in `~/ai_dev_sessions/Dashtam/.session_config`
+- Older sessions automatically DELETED (not archived) to prevent unbounded growth
+
+**Template:** See `~/ai_dev_sessions/templates/session-template.md`
+
+**Workflow:**
+```bash
+# Check for existing sessions at start
+ls -t ~/ai_dev_sessions/Dashtam/ | head -5
+
+# Create new session
+cd ~/ai_dev_sessions/Dashtam
+touch $(date +%Y-%m-%d_%H%M%S)_task-description.md
+
+# Update throughout work using edit_files or create_file tools
+```
+
+**Critical Rule:** NEVER commit session journal files to the Dashtam project repository. They belong in the separate `~/ai_dev_sessions/` directory.
 
 Remember: This is a financial data platform where security and reliability are paramount. Every decision should prioritize data protection and system stability.

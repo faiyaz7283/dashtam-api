@@ -253,10 +253,10 @@ def register_provider(
 
     def decorator(provider_class: Type[BaseProvider]) -> Type[BaseProvider]:
         """Inner decorator function that performs the registration.
-        
+
         Args:
             provider_class: The provider class to register.
-            
+
         Returns:
             The unmodified provider class.
         """

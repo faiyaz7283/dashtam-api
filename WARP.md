@@ -370,6 +370,44 @@ This ensures:
 - No dependency conflicts with host system
 - Production-identical development environment
 
+### AI Agent File Operations
+**CRITICAL RULE**: When working with files as an AI agent, follow these strict guidelines to avoid shell quoting and heredoc errors:
+
+**For editing existing files:**
+- ✅ **ALWAYS use `edit_files` tool** - Diff-based search/replace blocks
+- ✅ Precise, surgical edits to specific sections
+- ✅ Can make multiple edits across multiple files in one operation
+
+**For creating new files:**
+- ✅ **ALWAYS use `create_file` tool** - Provides complete file content
+- ✅ Reliable for multi-line files with complex content
+- ✅ No issues with quotes, heredocs, or special characters
+
+**For simple one-liners:**
+- ✅ **Use `echo 'line' >` for first line** - Single quotes, redirect to file
+- ✅ **Use `echo 'line' >>` for appending** - Single quotes, append to file
+- ✅ Chain multiple echo commands with `&&`
+
+**FORBIDDEN patterns in terminal commands:**
+- ❌ **NEVER use heredoc syntax** (`<< EOF`) - Gets mangled in transmission
+- ❌ **NEVER use multi-line strings in double quotes** - Causes `dquote>` prompt
+- ❌ **NEVER use `cat > file << EOF`** - Unreliable, causes heredoc issues
+- ❌ **NEVER use Python `-c` with multi-line code** - Quote escaping problems
+
+**Example - Correct approach:**
+```bash
+# ✅ Simple one-liner
+echo 'MAX_SESSIONS=10' > .session_config
+
+# ✅ Multiple lines with echo
+echo '# Title' > README.md && echo '' >> README.md && echo 'Content' >> README.md
+```
+
+**Why this matters:**
+- Terminal commands with heredoc/complex quotes fail transmission
+- The shell waits indefinitely at `heredoc>` or `dquote>` prompts
+- Proper file tools (`edit_files`, `create_file`) are reliable and safe
+
 ### Docker Service Names
 Environment-specific container names with suffixes:
 

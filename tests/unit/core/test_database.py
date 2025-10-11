@@ -18,7 +18,7 @@ from src.core.config import settings
 
 class TestGetEngine:
     """Tests for get_engine() function.
-    
+
     Tests singleton pattern for AsyncEngine creation and configuration.
     """
 
@@ -29,7 +29,7 @@ class TestGetEngine:
 
     def test_get_engine_creates_new_engine(self):
         """Test get_engine creates new AsyncEngine on first call.
-        
+
         Verifies that:
         - New AsyncEngine instance created
         - Engine stored in module-level singleton
@@ -43,7 +43,7 @@ class TestGetEngine:
 
     def test_get_engine_returns_existing_engine(self):
         """Test get_engine returns same engine instance (singleton pattern).
-        
+
         Verifies that:
         - Second call returns same instance
         - No duplicate engines created
@@ -56,12 +56,12 @@ class TestGetEngine:
 
     def test_get_engine_raises_if_no_database_url(self):
         """Test get_engine raises RuntimeError for missing DATABASE_URL.
-        
+
         Verifies that:
         - RuntimeError raised if DATABASE_URL not configured
         - Error message mentions "DATABASE_URL is not configured"
         - Prevents engine creation without database URL
-        
+
         Raises:
             RuntimeError: Expected error for missing config
         """
@@ -73,7 +73,7 @@ class TestGetEngine:
 
     def test_get_engine_configuration(self):
         """Test engine created with proper PostgreSQL configuration.
-        
+
         Verifies that:
         - Engine has connection pool configured
         - Engine URL is set
@@ -94,7 +94,7 @@ class TestGetEngine:
 
 class TestGetSessionMaker:
     """Tests for get_session_maker() function.
-    
+
     Tests singleton pattern for async_sessionmaker creation.
     """
 
@@ -105,7 +105,7 @@ class TestGetSessionMaker:
 
     def test_get_session_maker_creates_new_maker(self):
         """Test get_session_maker creates new async_sessionmaker on first call.
-        
+
         Verifies that:
         - New async_sessionmaker instance created
         - Session maker stored in module-level singleton
@@ -118,7 +118,7 @@ class TestGetSessionMaker:
 
     def test_get_session_maker_returns_existing_maker(self):
         """Test get_session_maker returns same instance (singleton pattern).
-        
+
         Verifies that:
         - Second call returns same instance
         - No duplicate session makers created
@@ -131,7 +131,7 @@ class TestGetSessionMaker:
 
     def test_get_session_maker_uses_existing_engine(self):
         """Test session maker uses existing engine instance.
-        
+
         Verifies that:
         - Session maker uses already-created engine
         - Engine singleton shared across session maker
@@ -152,7 +152,7 @@ class TestGetSessionMaker:
 @pytest.mark.asyncio
 class TestGetSession:
     """Tests for get_session() dependency injection function.
-    
+
     Tests FastAPI dependency for database session management.
     Validates async generator pattern with proper cleanup.
     """
@@ -164,12 +164,12 @@ class TestGetSession:
 
     async def test_get_session_yields_session(self):
         """Test get_session yields valid AsyncSession for FastAPI endpoints.
-        
+
         Verifies that:
         - Async generator yields AsyncSession
         - Session is valid AsyncSession instance
         - Can be used for database operations
-        
+
         Note:
             Used as FastAPI Depends() dependency.
         """
@@ -187,13 +187,13 @@ class TestGetSession:
 
     async def test_get_session_closes_session_on_exit(self):
         """Test get_session closes session after request completes.
-        
+
         Verifies that:
         - Session close() method called on exit
         - Cleanup happens automatically
         - No connection leaks
         - Close called at least once (may be twice due to context manager)
-        
+
         Note:
             Critical for connection pool management.
         """
@@ -223,21 +223,21 @@ class TestGetSession:
 @pytest.mark.asyncio
 class TestInitDb:
     """Tests for init_db() function.
-    
+
     Tests database table creation during application startup.
     """
 
     async def test_init_db_creates_tables(self, capsys):
         """Test init_db creates database tables and prints success message.
-        
+
         Verifies that:
         - Database tables created successfully
         - Success message printed to stdout
         - No errors during table creation
-        
+
         Args:
             capsys: Pytest fixture to capture stdout/stderr
-        
+
         Note:
             Called during application startup (main.py).
         """
@@ -253,22 +253,22 @@ class TestInitDb:
 @pytest.mark.asyncio
 class TestCloseDb:
     """Tests for close_db() function.
-    
+
     Tests database connection cleanup during application shutdown.
     """
 
     async def test_close_db_disposes_engine(self, capsys):
         """Test close_db disposes engine and clears singletons.
-        
+
         Verifies that:
         - Engine disposed properly
         - Module-level _engine set to None
         - Module-level _async_session_maker set to None
         - Success message printed to stdout
-        
+
         Args:
             capsys: Pytest fixture to capture stdout/stderr
-        
+
         Note:
             Called during application shutdown (lifespan event).
         """
@@ -286,15 +286,15 @@ class TestCloseDb:
 
     async def test_close_db_handles_no_engine(self, capsys):
         """Test close_db handles case when no engine exists (idempotent).
-        
+
         Verifies that:
         - No errors if engine is None
         - Graceful handling of already-closed state
         - No success message printed (nothing to close)
-        
+
         Args:
             capsys: Pytest fixture to capture stdout/stderr
-        
+
         Note:
             Idempotent operation - safe to call multiple times.
         """
@@ -311,18 +311,18 @@ class TestCloseDb:
 @pytest.mark.asyncio
 class TestCheckDbConnection:
     """Tests for check_db_connection() function.
-    
+
     Tests database connection health check for monitoring and startup validation.
     """
 
     async def test_check_db_connection_success(self):
         """Test successful database connection health check.
-        
+
         Verifies that:
         - Returns True for working connection
         - Can connect to test database
         - No errors during health check
-        
+
         Note:
             Used for /health endpoint and startup validation.
         """
@@ -333,16 +333,16 @@ class TestCheckDbConnection:
 
     async def test_check_db_connection_failure(self, capsys):
         """Test database connection check failure handling.
-        
+
         Verifies that:
         - Returns False on connection failure
         - Error message printed to stdout
         - Exception caught and handled gracefully
         - No uncaught exceptions raised
-        
+
         Args:
             capsys: Pytest fixture to capture stdout/stderr
-        
+
         Note:
             Allows graceful degradation when database unavailable.
         """
@@ -362,19 +362,19 @@ class TestCheckDbConnection:
 @pytest.mark.asyncio
 class TestGetDbContext:
     """Tests for get_db_context() context manager.
-    
+
     Tests async context manager for database session lifecycle.
     Alternative to FastAPI dependency injection for non-endpoint code.
     """
 
     async def test_get_db_context_yields_session(self):
         """Test get_db_context yields valid session in async with block.
-        
+
         Verifies that:
         - Context manager yields AsyncSession
         - Session is valid for database operations
         - Can be used in service layer
-        
+
         Note:
             Used for background tasks and service methods.
         """
@@ -384,13 +384,13 @@ class TestGetDbContext:
 
     async def test_get_db_context_closes_session(self):
         """Test get_db_context closes session on normal exit.
-        
+
         Verifies that:
         - Session close() called on context exit
         - Cleanup happens automatically
         - No connection leaks
         - Close called at least once
-        
+
         Note:
             Ensures proper resource cleanup.
         """
@@ -408,16 +408,16 @@ class TestGetDbContext:
 
     async def test_get_db_context_closes_session_on_exception(self):
         """Test get_db_context closes session even on exception.
-        
+
         Verifies that:
         - Session close() called even if exception raised
         - Cleanup happens in finally block
         - No connection leaks on errors
         - Exception still propagates to caller
-        
+
         Raises:
             ValueError: Test exception (expected)
-        
+
         Note:
             Critical: ensures cleanup even on errors.
         """

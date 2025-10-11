@@ -10,23 +10,23 @@ from fastapi.testclient import TestClient
 
 class TestProviderTypeListingEndpoints:
     """Test suite for provider type catalog endpoints.
-    
+
     Tests read-only catalog endpoints for available provider types (templates),
     separate from user-specific provider instances.
     """
 
     def test_list_all_provider_types(self, client: TestClient):
         """Test GET /api/v1/provider-types returns all provider type templates.
-        
+
         Verifies that:
         - Endpoint returns 200 OK
         - Response is a list of provider types
         - At least one provider type returned
         - Each type has required fields (key, name, provider_type, is_configured, supported_features)
-        
+
         Args:
             client: Authenticated test client fixture
-        
+
         Note:
             Provider types are templates/catalog, not user instances.
         """
@@ -49,15 +49,15 @@ class TestProviderTypeListingEndpoints:
 
     def test_list_configured_provider_types(self, client: TestClient):
         """Test GET /api/v1/provider-types?configured=true filters configured providers.
-        
+
         Verifies that:
         - Query parameter configured=true works
         - All returned providers have is_configured=True
         - Only providers with API credentials configured returned
-        
+
         Args:
             client: Authenticated test client fixture
-        
+
         Note:
             Configured means API keys/secrets set in environment.
         """
@@ -72,15 +72,15 @@ class TestProviderTypeListingEndpoints:
 
     def test_list_unconfigured_provider_types(self, client: TestClient):
         """Test GET /api/v1/provider-types?configured=false filters unconfigured.
-        
+
         Verifies that:
         - Query parameter configured=false works
         - All returned providers have is_configured=False
         - Only providers without API credentials returned
-        
+
         Args:
             client: Authenticated test client fixture
-        
+
         Note:
             Shows providers user cannot connect to yet.
         """
@@ -95,16 +95,16 @@ class TestProviderTypeListingEndpoints:
 
     def test_get_specific_provider_type(self, client: TestClient):
         """Test GET /api/v1/provider-types/{key} returns specific provider type.
-        
+
         Verifies that:
         - Endpoint returns 200 OK for valid provider key
         - Response contains provider type details
         - key matches requested provider
         - All standard fields included
-        
+
         Args:
             client: Authenticated test client fixture
-        
+
         Note:
             Gets catalog info for one provider type.
         """
@@ -129,12 +129,12 @@ class TestProviderTypeListingEndpoints:
 
     def test_get_nonexistent_provider_type(self, client: TestClient):
         """Test GET /api/v1/provider-types/{invalid_key} returns 404.
-        
+
         Verifies that:
         - Endpoint returns 404 Not Found
         - Error message mentions "not found"
         - Invalid provider key handled gracefully
-        
+
         Args:
             client: Authenticated test client fixture
         """
@@ -146,21 +146,21 @@ class TestProviderTypeListingEndpoints:
 
 class TestProviderTypeResponseStructure:
     """Test suite for provider type response structure validation.
-    
+
     Validates response schemas match expected structure for provider type catalog.
     """
 
     def test_provider_type_has_all_required_fields(self, client: TestClient):
         """Test provider type response schema includes all required fields.
-        
+
         Verifies that:
         - All required fields present (key, name, provider_type, description, is_configured, supported_features)
         - Optional field icon_url included (may be None)
         - Response conforms to ProviderType schema
-        
+
         Args:
             client: Authenticated test client fixture
-        
+
         Note:
             Schema validation for consistency.
         """
@@ -189,15 +189,15 @@ class TestProviderTypeResponseStructure:
 
     def test_supported_features_is_list(self, client: TestClient):
         """Test supported_features field is always a list type.
-        
+
         Verifies that:
         - supported_features is Python list type
         - Field type consistent across all provider types
         - No null or invalid values
-        
+
         Args:
             client: Authenticated test client fixture
-        
+
         Note:
             Type safety validation for API contract.
         """
@@ -214,21 +214,21 @@ class TestProviderTypeResponseStructure:
 
 class TestProviderTypeNoAuthRequired:
     """Test suite to verify provider type endpoints don't require authentication.
-    
+
     Provider type catalog is public information - no user auth required.
     """
 
     def test_list_provider_types_no_auth(self, client_no_auth: TestClient):
         """Test GET /api/v1/provider-types works without authentication.
-        
+
         Verifies that:
         - Endpoint returns 200 OK without auth
         - Provider catalog is public
         - No authentication required to browse
-        
+
         Args:
             client_no_auth: Unauthenticated test client fixture
-        
+
         Note:
             Public endpoint for discovery.
         """
@@ -239,15 +239,15 @@ class TestProviderTypeNoAuthRequired:
 
     def test_get_provider_type_no_auth(self, client_no_auth: TestClient):
         """Test GET /api/v1/provider-types/{key} works without authentication.
-        
+
         Verifies that:
         - Endpoint returns 200 OK without auth
         - Specific provider details are public
         - No authentication required
-        
+
         Args:
             client_no_auth: Unauthenticated test client fixture
-        
+
         Note:
             Public endpoint for provider info.
         """

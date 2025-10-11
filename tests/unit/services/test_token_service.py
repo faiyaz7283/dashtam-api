@@ -55,19 +55,19 @@ class TestTokenServiceStoreInitialTokens:
         self, token_service, mock_session, mock_encryption
     ):
         """Test initial token storage for first-time OAuth authentication.
-        
+
         Verifies that:
         - New ProviderToken created when no existing token
         - Access and refresh tokens encrypted before storage
         - Token metadata stored (id_token, scope, expires_at)
         - Token type set to "Bearer" by default
         - Database session.add() and flush() called
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
             mock_encryption: Mocked encryption service
-        
+
         Note:
             First OAuth callback flow - provider transitions from PENDING to ACTIVE.
         """
@@ -122,18 +122,18 @@ class TestTokenServiceStoreInitialTokens:
         self, token_service, mock_session, mock_encryption
     ):
         """Test token update when re-authenticating existing connection.
-        
+
         Verifies that:
         - Existing ProviderToken is updated (not replaced)
         - Old encrypted tokens are overwritten
         - New tokens encrypted with new values
         - Expiry time updated based on new expires_in
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
             mock_encryption: Mocked encryption service
-        
+
         Note:
             Handles re-authentication or manual token refresh by user.
         """
@@ -188,18 +188,18 @@ class TestTokenServiceStoreInitialTokens:
         self, token_service, mock_session, mock_encryption
     ):
         """Test token storage when provider doesn't issue refresh token.
-        
+
         Verifies that:
         - Access token stored even without refresh token
         - refresh_token_encrypted field remains None
         - Token still valid for immediate use
         - No errors raised for missing refresh token
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
             mock_encryption: Mocked encryption service
-        
+
         Note:
             Some OAuth providers only issue access tokens (no refresh capability).
         """
@@ -243,20 +243,20 @@ class TestTokenServiceStoreInitialTokens:
 
     def test_store_initial_tokens_provider_not_found(self, token_service, mock_session):
         """Test error handling for non-existent provider.
-        
+
         Verifies that:
         - ValueError raised if provider_id not found
         - Error message includes provider ID
         - No database changes committed
         - Prevents storing tokens for invalid provider
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Raises:
             ValueError: Expected error for missing provider
-        
+
         Note:
             Safety check: prevents orphaned tokens without provider.
         """
@@ -281,18 +281,18 @@ class TestTokenServiceStoreInitialTokens:
         self, token_service, mock_session, mock_encryption
     ):
         """Test audit logging for token creation (compliance requirement).
-        
+
         Verifies that:
         - ProviderAuditLog entry created on token storage
         - Audit log action is "token_created"
         - User ID, IP address, and user agent captured
         - Audit trail for security and compliance
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
             mock_encryption: Mocked encryption service
-        
+
         Note:
             Audit logs are critical for PCI-DSS and SOC 2 compliance.
         """
@@ -369,18 +369,18 @@ class TestTokenServiceGetValidAccessToken:
         self, token_service, mock_session, mock_encryption
     ):
         """Test retrieval of valid unexpired access token.
-        
+
         Verifies that:
         - Valid access token is decrypted and returned
         - Token not expired (expires_at in future)
         - No refresh triggered (token still valid)
         - Encryption service decrypt() called
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
             mock_encryption: Mocked encryption service
-        
+
         Note:
             Optimized path: no external API call if token still valid.
         """
@@ -427,17 +427,17 @@ class TestTokenServiceGetValidAccessToken:
         self, token_service, mock_session
     ):
         """Test error handling when accessing non-existent provider.
-        
+
         Verifies that:
         - ValueError raised if provider not found
         - Error message includes provider ID
         - No token retrieval attempted
         - Prevents unauthorized access attempts
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Raises:
             ValueError: Expected error for missing provider
         """
@@ -457,20 +457,20 @@ class TestTokenServiceGetValidAccessToken:
 
     def test_get_valid_access_token_not_connected(self, token_service, mock_session):
         """Test error for provider without active connection.
-        
+
         Verifies that:
         - ValueError raised if provider.connection is None
         - Error message mentions "not connected"
         - Prevents token access for disconnected providers
         - User must reconnect via OAuth flow
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Raises:
             ValueError: Expected error for unconnected provider
-        
+
         Note:
             Connection required before token operations.
         """
@@ -498,20 +498,20 @@ class TestTokenServiceGetValidAccessToken:
 
     def test_get_valid_access_token_no_token(self, token_service, mock_session):
         """Test error when connection exists but no token stored.
-        
+
         Verifies that:
         - ValueError raised if connection.token is None
         - Error message mentions "No tokens found"
         - Connection exists but token missing (edge case)
         - User must re-authenticate to store tokens
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Raises:
             ValueError: Expected error for missing token
-        
+
         Note:
             Edge case: connection without tokens (incomplete OAuth flow).
         """
@@ -589,7 +589,7 @@ class TestTokenServiceRefreshToken:
         self, token_service, mock_session, mock_encryption, mock_provider_registry
     ):
         """Test successful token refresh via provider API.
-        
+
         Verifies that:
         - Expired token triggers refresh flow
         - Provider refresh_authentication() called
@@ -598,13 +598,13 @@ class TestTokenServiceRefreshToken:
         - last_refreshed_at timestamp updated
         - Audit log entry created
         - Database flush() called
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
             mock_encryption: Mocked encryption service
             mock_provider_registry: Mocked provider registry
-        
+
         Note:
             Automatic token refresh maintains seamless user experience.
         """
@@ -659,20 +659,20 @@ class TestTokenServiceRefreshToken:
         self, token_service, mock_session
     ):
         """Test error when refresh needed but no refresh token available.
-        
+
         Verifies that:
         - ValueError raised if refresh_token_encrypted is None
         - Error message mentions "No refresh token available"
         - Cannot refresh access token without refresh token
         - User must re-authenticate via OAuth flow
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Raises:
             ValueError: Expected error for missing refresh token
-        
+
         Note:
             Some providers don't issue refresh tokens (short-lived access only).
         """
@@ -716,19 +716,19 @@ class TestTokenServiceRefreshToken:
         self, token_service, mock_session, mock_encryption
     ):
         """Test token refresh with refresh token rotation (security feature).
-        
+
         Verifies that:
         - Provider issues new refresh token on refresh
         - Old refresh token replaced with new one
         - Both access and refresh tokens updated
         - Token rotation handled correctly (no errors)
         - refresh_count incremented
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
             mock_encryption: Mocked encryption service
-        
+
         Note:
             Token rotation prevents replay attacks (e.g., Charles Schwab, GitHub).
         """
@@ -814,18 +814,18 @@ class TestTokenServiceRevokeTokens:
 
     def test_revoke_tokens_success(self, token_service, mock_session):
         """Test successful token revocation and connection status update.
-        
+
         Verifies that:
         - ProviderToken deleted from database
         - ProviderConnection status changed to REVOKED
         - Audit log entry created
         - Database flush() called
         - User disconnected from provider
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Note:
             Revocation triggered by user disconnection or security events.
         """
@@ -871,17 +871,17 @@ class TestTokenServiceRevokeTokens:
 
     def test_revoke_tokens_with_request_info(self, token_service, mock_session):
         """Test audit logging includes request metadata on revocation.
-        
+
         Verifies that:
         - ProviderAuditLog entry created with request info
         - IP address captured in audit log
         - User agent captured in audit log
         - Audit trail for compliance and security
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Note:
             Request metadata critical for security incident investigation.
         """
@@ -945,7 +945,7 @@ class TestTokenServiceGetTokenInfo:
 
     def test_get_token_info_returns_metadata(self, token_service, mock_session):
         """Test retrieval of token metadata without decrypting secrets.
-        
+
         Verifies that:
         - Token metadata returned (not actual token values)
         - has_access_token boolean flag set
@@ -953,11 +953,11 @@ class TestTokenServiceGetTokenInfo:
         - has_id_token boolean flag set
         - Scope and refresh_count included
         - No decryption performed (safe for non-sensitive operations)
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Note:
             Safe for UI display - no sensitive data exposed.
         """
@@ -1012,17 +1012,17 @@ class TestTokenServiceGetTokenInfo:
         self, token_service, mock_session
     ):
         """Test token info returns None for unconnected provider.
-        
+
         Verifies that:
         - None returned if connection.token is None
         - No errors raised for missing token
         - Caller can check for None to detect unconnected state
         - Graceful handling of edge case
-        
+
         Args:
             token_service: TokenService with mocked dependencies
             mock_session: Mocked database session
-        
+
         Note:
             Used by UI to show "Connect Provider" button.
         """

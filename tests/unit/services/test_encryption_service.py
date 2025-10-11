@@ -27,20 +27,20 @@ from src.services.encryption import (
 
 class TestEncryptionService:
     """Test suite for EncryptionService encryption operations.
-    
+
     Validates AES-256 Fernet encryption/decryption for token security.
     Tests cover basic operations, edge cases, singleton behavior, and error handling.
     """
 
     def test_encrypt_decrypt_string(self):
         """Test basic string encryption and decryption roundtrip.
-        
+
         Verifies that:
         - Encrypted string differs from plaintext
         - Encrypted string starts with Fernet prefix "gAAAAA"
         - Decryption returns original plaintext
         - Roundtrip encryption maintains data integrity
-        
+
         Note:
             Fernet uses AES-256-CBC with HMAC authentication.
         """
@@ -61,12 +61,12 @@ class TestEncryptionService:
 
     def test_encrypt_empty_string(self):
         """Test empty string handling (special case).
-        
+
         Verifies that:
         - Empty string encrypts to empty string (optimization)
         - Empty string decrypts to empty string
         - No encryption overhead for empty values
-        
+
         Note:
             Empty strings are not encrypted (performance optimization).
         """
@@ -80,13 +80,13 @@ class TestEncryptionService:
 
     def test_encrypt_unicode_string(self):
         """Test encryption of unicode characters (international support).
-        
+
         Verifies that:
         - Unicode characters are properly encrypted
         - UTF-8 encoding is handled correctly
         - Decryption preserves unicode characters
         - Emojis and special characters work correctly
-        
+
         Note:
             Tests characters from multiple scripts: Chinese, emoji, accented.
         """
@@ -100,13 +100,13 @@ class TestEncryptionService:
 
     def test_encrypt_long_string(self):
         """Test encryption of long strings (10,000 characters).
-        
+
         Verifies that:
         - Long strings are encrypted without errors
         - Decryption works for large payloads
         - Encrypted size is larger than plaintext (overhead)
         - No length limitations in practice
-        
+
         Note:
             Tests with 10,000 char string to validate large token handling.
         """
@@ -121,13 +121,13 @@ class TestEncryptionService:
 
     def test_encrypt_dict(self):
         """Test selective encryption of dictionary string fields.
-        
+
         Verifies that:
         - String values are encrypted (access_token, refresh_token, etc.)
         - Non-string values remain unencrypted (expires_in, counts)
         - Decryption restores original dictionary
         - Mixed data types handled correctly
-        
+
         Note:
             Only string fields are encrypted; integers, booleans preserved.
             Used for OAuth token response encryption.
@@ -156,13 +156,13 @@ class TestEncryptionService:
 
     def test_is_encrypted(self):
         """Test encryption detection by Fernet format.
-        
+
         Verifies that:
         - Plaintext returns False for is_encrypted
         - Encrypted string returns True
         - Empty string returns False
         - Fernet prefix "gAAAAA" is recognized
-        
+
         Note:
             Detection based on Fernet token format prefix.
         """
@@ -177,13 +177,13 @@ class TestEncryptionService:
 
     def test_singleton_pattern(self):
         """Test EncryptionService singleton pattern implementation.
-        
+
         Verifies that:
         - Multiple instantiations return same instance
         - All instances share same cipher key
         - Encryption by one instance can be decrypted by another
         - Single encryption key across application
-        
+
         Note:
             Singleton ensures consistent encryption key from ENCRYPTION_KEY env var.
         """
@@ -202,16 +202,16 @@ class TestEncryptionService:
 
     def test_decrypt_invalid_data_raises_exception(self):
         """Test decryption error handling for invalid ciphertext.
-        
+
         Verifies that:
         - Invalid encrypted string raises exception
         - Error message mentions "Failed to decrypt data"
         - Malformed Fernet tokens are rejected
         - No silent failures or corrupted output
-        
+
         Raises:
             Exception: Expected exception with "Failed to decrypt data" message
-        
+
         Note:
             Fernet validates HMAC before decryption, preventing tampering.
         """
@@ -222,13 +222,13 @@ class TestEncryptionService:
 
     def test_different_encryptions_same_plaintext(self):
         """Test encryption uniqueness due to random IV/nonce.
-        
+
         Verifies that:
         - Same plaintext produces different ciphertexts each time
         - Randomization prevents pattern analysis
         - Both ciphertexts decrypt to same plaintext
         - IV/nonce is included in Fernet token
-        
+
         Note:
             Critical security property: prevents ciphertext pattern analysis.
             Fernet includes random IV in token for uniqueness.
@@ -248,14 +248,14 @@ class TestEncryptionService:
 
     def test_decrypt_dict_with_non_string_values(self):
         """Test dictionary decryption with mixed value types.
-        
+
         Verifies that:
         - Encrypted strings are decrypted correctly
         - Integers remain unchanged (not decrypted)
         - Booleans remain unchanged
         - Empty strings are handled correctly
         - Mixed types coexist in same dictionary
-        
+
         Note:
             Only string fields are decrypted; other types passed through.
         """
@@ -280,13 +280,13 @@ class TestEncryptionService:
 
     def test_decrypt_dict_with_invalid_encrypted_values(self):
         """Test graceful handling of invalid encrypted values in dictionary.
-        
+
         Verifies that:
         - Valid encrypted strings are decrypted
         - Invalid encrypted strings remain unchanged (no exception)
         - Graceful degradation for corrupted data
         - Partial decryption succeeds for mixed valid/invalid data
-        
+
         Note:
             Prevents one corrupted field from breaking entire dictionary.
         """
@@ -305,13 +305,13 @@ class TestEncryptionService:
 
     def test_get_instance_classmethod(self):
         """Test get_instance() class method for singleton access.
-        
+
         Verifies that:
         - get_instance() returns singleton instance
         - Multiple calls return same instance
         - Instance is properly initialized
         - Class method provides alternative access pattern
-        
+
         Note:
             Both __init__() and get_instance() return same singleton.
         """
@@ -326,12 +326,12 @@ class TestEncryptionService:
 
     def test_is_encrypted_with_fernet_prefix(self):
         """Test Fernet token format recognition by prefix.
-        
+
         Verifies that:
         - Encrypted tokens start with "gAAAAA" prefix
         - is_encrypted correctly identifies Fernet format
         - Prefix detection is reliable
-        
+
         Note:
             "gAAAAA" is base64 encoding of Fernet version byte (0x80).
         """
@@ -345,19 +345,19 @@ class TestEncryptionService:
 
 class TestEncryptionConvenienceFunctions:
     """Test suite for module-level convenience functions.
-    
+
     Tests convenience wrappers: get_encryption_service(), encrypt_token(),
     and decrypt_token() for simplified token encryption API.
     """
 
     def test_get_encryption_service(self):
         """Test get_encryption_service() module-level function.
-        
+
         Verifies that:
         - Function returns EncryptionService instance
         - Multiple calls return same instance (singleton)
         - Global service variable is properly managed
-        
+
         Note:
             Convenience function for accessing singleton without instantiation.
         """
@@ -374,12 +374,12 @@ class TestEncryptionConvenienceFunctions:
 
     def test_encrypt_token_convenience_function(self):
         """Test encrypt_token() convenience wrapper function.
-        
+
         Verifies that:
         - Function encrypts plaintext token
         - Returns Fernet-formatted ciphertext
         - Simplifies encryption API (no service instantiation)
-        
+
         Note:
             Wrapper around EncryptionService.encrypt() for common use case.
         """
@@ -391,12 +391,12 @@ class TestEncryptionConvenienceFunctions:
 
     def test_decrypt_token_convenience_function(self):
         """Test decrypt_token() convenience wrapper function.
-        
+
         Verifies that:
         - Function decrypts Fernet ciphertext
         - Returns original plaintext
         - Roundtrip works with encrypt_token()
-        
+
         Note:
             Wrapper around EncryptionService.decrypt() for common use case.
         """
@@ -408,13 +408,13 @@ class TestEncryptionConvenienceFunctions:
 
     def test_encrypt_decrypt_token_roundtrip(self):
         """Test full encryption/decryption roundtrip via convenience API.
-        
+
         Verifies that:
         - encrypt_token() and decrypt_token() work together
         - Original plaintext is recovered
         - Ciphertext differs from plaintext
         - Complete workflow functions correctly
-        
+
         Note:
             Tests the simplified API most developers will use.
         """

@@ -22,12 +22,12 @@ from src.services.jwt_service import JWTService
 
 class TestJWTService:
     """Test suite for JWTService token operations.
-    
+
     Validates all JWT creation, validation, and decoding scenarios including
     error handling and edge cases. Tests Pattern A authentication design:
     - JWT access tokens (stateless, 30 min TTL)
     - JWT refresh tokens (temporary, used for Pattern A before opaque implementation)
-    
+
     Attributes:
         service: JWTService instance created in setup_method
         test_user_id: UUID for test user
@@ -36,12 +36,12 @@ class TestJWTService:
 
     def setup_method(self):
         """Set up test fixtures before each test method.
-        
+
         Initializes:
             - JWTService instance (fresh for each test)
             - Test user ID (UUID)
             - Test email address
-        
+
         Note:
             Called automatically by pytest before each test method in the class.
         """
@@ -51,13 +51,13 @@ class TestJWTService:
 
     def test_create_access_token(self):
         """Test JWT access token creation with user claims.
-        
+
         Verifies that:
         - Token is generated as a valid JWT string
         - Token is non-empty
         - Token has standard JWT structure (3 parts: header.payload.signature)
         - Token contains user_id and email claims
-        
+
         Note:
             JWT format: base64(header).base64(payload).signature
             Access tokens have 30 minute TTL by default.
@@ -72,13 +72,13 @@ class TestJWTService:
 
     def test_create_refresh_token(self):
         """Test JWT refresh token creation with JTI claim.
-        
+
         Verifies that:
         - Token is generated as a valid JWT string
         - Token is non-empty
         - Token has standard JWT structure (3 parts)
         - Token contains JTI (JWT ID) for tracking
-        
+
         Note:
             JTI is used to track and revoke specific refresh tokens.
             This tests JWT refresh tokens (Pattern A uses opaque refresh tokens).
@@ -93,7 +93,7 @@ class TestJWTService:
 
     def test_decode_token_valid(self):
         """Test decoding and extracting claims from valid JWT.
-        
+
         Verifies that:
         - Token payload is successfully decoded
         - Subject (sub) claim matches user ID
@@ -101,7 +101,7 @@ class TestJWTService:
         - Type claim is "access"
         - Expiration (exp) timestamp is present
         - Issued-at (iat) timestamp is present
-        
+
         Note:
             All standard JWT claims are validated for presence and correctness.
         """
@@ -119,15 +119,15 @@ class TestJWTService:
 
     def test_decode_token_invalid(self):
         """Test that decoding invalid JWT raises JWTError.
-        
+
         Verifies that:
         - Invalid JWT format raises JWTError
         - Malformed token is rejected
         - No partial decoding occurs
-        
+
         Raises:
             JWTError: Expected exception for invalid token format
-        
+
         Note:
             Invalid tokens include malformed structure, bad signature, etc.
         """
@@ -138,15 +138,15 @@ class TestJWTService:
 
     def test_decode_token_expired(self):
         """Test that decoding expired JWT raises JWTError.
-        
+
         Verifies that:
         - Expired token is rejected during decode
         - JWTError is raised for expired tokens
         - Expiration claim (exp) is validated
-        
+
         Raises:
             JWTError: Expected exception for expired token
-        
+
         Note:
             Uses pre-crafted expired JWT (exp=1) for testing.
             In production, access tokens expire after 30 minutes.
@@ -160,12 +160,12 @@ class TestJWTService:
 
     def test_verify_token_type_access(self):
         """Test token type verification for access token.
-        
+
         Verifies that:
         - Access token passes type verification with "access"
         - Payload is returned after successful verification
         - Type claim is correctly set to "access"
-        
+
         Note:
             Token type verification prevents using access tokens where
             refresh tokens are expected and vice versa.
@@ -180,12 +180,12 @@ class TestJWTService:
 
     def test_verify_token_type_refresh(self):
         """Test token type verification for refresh token.
-        
+
         Verifies that:
         - Refresh token passes type verification with "refresh"
         - Payload is returned after successful verification
         - Type claim is correctly set to "refresh"
-        
+
         Note:
             Refresh tokens should only be accepted at /auth/refresh endpoint.
         """
@@ -198,15 +198,15 @@ class TestJWTService:
 
     def test_verify_token_type_mismatch(self):
         """Test token type verification rejection on type mismatch.
-        
+
         Verifies that:
         - Using access token where refresh expected raises JWTError
         - Error message indicates "Invalid token type"
         - Type mismatch is caught before processing
-        
+
         Raises:
             JWTError: Expected exception with "Invalid token type" message
-        
+
         Note:
             Security measure: prevents token type confusion attacks.
         """
@@ -219,12 +219,12 @@ class TestJWTService:
 
     def test_get_user_id_from_token(self):
         """Test extracting user ID from JWT subject claim.
-        
+
         Verifies that:
         - User ID is correctly extracted from token
         - Subject (sub) claim is parsed as UUID
         - Extracted UUID matches original user ID
-        
+
         Note:
             Subject claim contains user_id as string (UUID converted to string).
         """
@@ -238,15 +238,15 @@ class TestJWTService:
 
     def test_get_user_id_from_token_invalid(self):
         """Test user ID extraction rejection from invalid JWT.
-        
+
         Verifies that:
         - Invalid token raises JWTError
         - No user ID is returned
         - Token must be valid before extracting claims
-        
+
         Raises:
             JWTError: Expected exception for invalid token
-        
+
         Note:
             Token validation happens before claim extraction.
         """
@@ -257,12 +257,12 @@ class TestJWTService:
 
     def test_get_token_jti(self):
         """Test extracting JTI (JWT ID) from refresh token.
-        
+
         Verifies that:
         - JTI claim is correctly extracted from refresh token
         - Extracted UUID matches original JTI
         - JTI is used for refresh token tracking
-        
+
         Note:
             JTI (JWT ID) uniquely identifies each refresh token instance.
             Used for token revocation and tracking in database.
@@ -276,16 +276,16 @@ class TestJWTService:
 
     def test_get_token_jti_from_access_token_fails(self):
         """Test JTI extraction rejection from access token (wrong type).
-        
+
         Verifies that:
         - Access tokens don't have JTI claim
         - Attempting to extract JTI raises JWTError
         - Error message indicates "Invalid token type"
         - Type validation prevents misuse
-        
+
         Raises:
             JWTError: Expected exception with "Invalid token type" message
-        
+
         Note:
             Only refresh tokens contain JTI claim.
         """
@@ -298,12 +298,12 @@ class TestJWTService:
 
     def test_is_token_expired_fresh_token(self):
         """Test expiration check for freshly created token.
-        
+
         Verifies that:
         - Newly created token is not expired
         - is_token_expired returns False
         - Expiration check compares exp claim with current time
-        
+
         Note:
             Fresh access tokens have 30 minutes until expiration.
         """
@@ -317,12 +317,12 @@ class TestJWTService:
 
     def test_is_token_expired_invalid_token(self):
         """Test that invalid token is treated as expired (security).
-        
+
         Verifies that:
         - Invalid tokens return True for is_expired
         - Unparseable tokens are considered expired
         - Graceful handling of malformed tokens
-        
+
         Note:
             Security practice: treat any invalid token as expired
             rather than exposing internal errors.
@@ -335,12 +335,12 @@ class TestJWTService:
 
     def test_get_token_expiration(self):
         """Test extracting expiration timestamp from JWT.
-        
+
         Verifies that:
         - Expiration time is successfully extracted
         - Returned datetime is timezone-aware (UTC)
         - exp claim is converted to datetime object
-        
+
         Note:
             Expiration is stored as Unix timestamp in exp claim.
             Returned as timezone-aware datetime in UTC.
@@ -358,12 +358,12 @@ class TestJWTService:
 
     def test_get_token_expiration_invalid_token(self):
         """Test expiration extraction from invalid token returns None.
-        
+
         Verifies that:
         - Invalid token returns None (not exception)
         - Graceful error handling
         - Caller can check for None to detect invalid tokens
-        
+
         Note:
             Returns None instead of raising exception for convenience.
         """
@@ -375,12 +375,12 @@ class TestJWTService:
 
     def test_access_token_contains_email(self):
         """Test that access tokens include email claim.
-        
+
         Verifies that:
         - Email claim is present in access token payload
         - Email value matches provided email
         - Access tokens contain user profile data
-        
+
         Note:
             Access tokens include email for user identification without
             requiring additional database lookups.
@@ -395,12 +395,12 @@ class TestJWTService:
 
     def test_refresh_token_no_email(self):
         """Test that refresh tokens exclude email claim (minimal claims).
-        
+
         Verifies that:
         - Email claim is NOT in refresh token payload
         - Refresh tokens only contain essential claims (sub, type, jti)
         - Minimal data exposure in refresh tokens
-        
+
         Note:
             Refresh tokens use minimal claims for security (less data leaked
             if token is compromised).
@@ -415,13 +415,13 @@ class TestJWTService:
 
     def test_access_token_with_additional_claims(self):
         """Test adding custom claims to access token payload.
-        
+
         Verifies that:
         - Additional claims are included in token payload
         - Custom role claim is present and correct
         - Custom permissions claim is present and correct
         - Claims are preserved through encode/decode cycle
-        
+
         Note:
             Allows extending tokens with application-specific data
             (roles, permissions, metadata, etc.).
@@ -441,12 +441,12 @@ class TestJWTService:
 
     def test_tokens_are_unique(self):
         """Test that multiple tokens for same user have unique values.
-        
+
         Verifies that:
         - Two tokens for same user are different strings
         - Tokens differ due to different iat (issued-at) timestamps
         - Each token issuance creates unique token
-        
+
         Note:
             Even with identical claims, tokens differ due to timestamp.
             Ensures replay attack protection.

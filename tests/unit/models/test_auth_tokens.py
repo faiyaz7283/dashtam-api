@@ -16,21 +16,21 @@ from src.models.auth import (
 
 class TestRefreshToken:
     """Test suite for RefreshToken model.
-    
+
     Tests opaque refresh token model used in JWT authentication (Pattern A).
     Tokens are hashed (bcrypt) before storage for security.
     """
 
     def test_refresh_token_creation(self):
         """Test RefreshToken model instantiation with all fields.
-        
+
         Verifies that:
         - Model created with user_id, token_hash, expires_at
         - Tracking fields captured: ip_address, user_agent
         - is_revoked defaults to False
         - revoked_at defaults to None
         - Secure device/session tracking enabled
-        
+
         Note:
             Refresh tokens are opaque (hashed) and device-specific (30-day TTL).
         """
@@ -55,7 +55,7 @@ class TestRefreshToken:
 
     def test_is_expired_property_when_not_expired(self):
         """Test is_expired property returns False for valid token.
-        
+
         Verifies that:
         - is_expired returns False
         - expires_at in future
@@ -72,7 +72,7 @@ class TestRefreshToken:
 
     def test_is_expired_property_when_expired(self):
         """Test is_expired property returns True for expired token.
-        
+
         Verifies that:
         - is_expired returns True
         - expires_at in past
@@ -89,7 +89,7 @@ class TestRefreshToken:
 
     def test_is_valid_property_when_valid(self):
         """Test is_valid property for usable token.
-        
+
         Verifies that:
         - is_valid returns True
         - Token not expired and not revoked
@@ -107,7 +107,7 @@ class TestRefreshToken:
 
     def test_is_valid_property_when_expired(self):
         """Test is_valid property rejects expired token.
-        
+
         Verifies that:
         - is_valid returns False
         - Expiry invalidates token even if not revoked
@@ -124,7 +124,7 @@ class TestRefreshToken:
 
     def test_is_valid_property_when_revoked(self):
         """Test is_valid property rejects revoked token.
-        
+
         Verifies that:
         - is_valid returns False
         - Revocation invalidates token even if not expired
@@ -142,12 +142,12 @@ class TestRefreshToken:
 
     def test_revoke_method(self):
         """Test revoke() method marks token as revoked.
-        
+
         Verifies that:
         - is_revoked set to True
         - revoked_at timestamp set to current time
         - Token becomes invalid
-        
+
         Note:
             Called on logout or security events (e.g., password change).
         """
@@ -167,7 +167,7 @@ class TestRefreshToken:
 
     def test_timezone_aware_datetime_fields(self):
         """Test datetime fields are timezone-aware (TIMESTAMPTZ).
-        
+
         Verifies that:
         - expires_at has tzinfo
         - revoked_at has tzinfo
@@ -190,19 +190,19 @@ class TestRefreshToken:
 
 class TestEmailVerificationToken:
     """Test suite for EmailVerificationToken model.
-    
+
     Tests single-use tokens for email verification (24-hour TTL).
     Tokens are hashed before storage and marked as used after verification.
     """
 
     def test_email_verification_token_creation(self):
         """Test EmailVerificationToken model instantiation.
-        
+
         Verifies that:
         - Model created with user_id, token_hash, expires_at
         - used_at defaults to None (not yet used)
         - 24-hour TTL for verification
-        
+
         Note:
             Email verification required before login per security policy.
         """
@@ -222,7 +222,7 @@ class TestEmailVerificationToken:
 
     def test_is_expired_property_when_not_expired(self):
         """Test is_expired property returns False for valid token.
-        
+
         Verifies that:
         - is_expired returns False
         - expires_at in future
@@ -239,7 +239,7 @@ class TestEmailVerificationToken:
 
     def test_is_expired_property_when_expired(self):
         """Test is_expired property returns True for expired token.
-        
+
         Verifies that:
         - is_expired returns True
         - expires_at in past
@@ -256,7 +256,7 @@ class TestEmailVerificationToken:
 
     def test_is_used_property_when_not_used(self):
         """Test is_used property returns False for unused token.
-        
+
         Verifies that:
         - is_used returns False
         - used_at is None
@@ -273,7 +273,7 @@ class TestEmailVerificationToken:
 
     def test_is_used_property_when_used(self):
         """Test is_used property returns True for used token.
-        
+
         Verifies that:
         - is_used returns True
         - used_at timestamp set
@@ -290,7 +290,7 @@ class TestEmailVerificationToken:
 
     def test_is_valid_property_when_valid(self):
         """Test is_valid property for usable token.
-        
+
         Verifies that:
         - is_valid returns True
         - Token not expired and not used
@@ -308,7 +308,7 @@ class TestEmailVerificationToken:
 
     def test_is_valid_property_when_expired(self):
         """Test is_valid property rejects expired token.
-        
+
         Verifies that:
         - is_valid returns False
         - Expiry invalidates token even if not used
@@ -325,7 +325,7 @@ class TestEmailVerificationToken:
 
     def test_is_valid_property_when_used(self):
         """Test is_valid property rejects used token.
-        
+
         Verifies that:
         - is_valid returns False
         - Usage invalidates token even if not expired
@@ -343,12 +343,12 @@ class TestEmailVerificationToken:
 
     def test_mark_as_used_method(self):
         """Test mark_as_used() method marks token as consumed.
-        
+
         Verifies that:
         - used_at timestamp set to current time
         - is_used returns True
         - Token becomes invalid
-        
+
         Note:
             Called after successful email verification.
         """
@@ -368,7 +368,7 @@ class TestEmailVerificationToken:
 
     def test_timezone_aware_datetime_fields(self):
         """Test datetime fields are timezone-aware (TIMESTAMPTZ).
-        
+
         Verifies that:
         - expires_at has tzinfo
         - used_at has tzinfo
@@ -388,20 +388,20 @@ class TestEmailVerificationToken:
 
 class TestPasswordResetToken:
     """Test suite for PasswordResetToken model.
-    
+
     Tests single-use tokens for password reset (1-hour TTL).
     Tokens are hashed before storage, tracked with IP/user agent for security.
     """
 
     def test_password_reset_token_creation(self):
         """Test PasswordResetToken model instantiation.
-        
+
         Verifies that:
         - Model created with user_id, token_hash, expires_at
         - Tracking fields captured: ip_address, user_agent
         - used_at defaults to None (not yet used)
         - Short 1-hour TTL for security
-        
+
         Note:
             Short expiry window reduces exposure if token intercepted.
         """
@@ -425,7 +425,7 @@ class TestPasswordResetToken:
 
     def test_is_expired_property_when_not_expired(self):
         """Test is_expired property returns False for valid token.
-        
+
         Verifies that:
         - is_expired returns False
         - expires_at in future
@@ -442,7 +442,7 @@ class TestPasswordResetToken:
 
     def test_is_expired_property_when_expired(self):
         """Test is_expired property returns True for expired token.
-        
+
         Verifies that:
         - is_expired returns True
         - expires_at in past
@@ -459,7 +459,7 @@ class TestPasswordResetToken:
 
     def test_is_used_property_when_not_used(self):
         """Test is_used property returns False for unused token.
-        
+
         Verifies that:
         - is_used returns False
         - used_at is None
@@ -476,7 +476,7 @@ class TestPasswordResetToken:
 
     def test_is_used_property_when_used(self):
         """Test is_used property returns True for used token.
-        
+
         Verifies that:
         - is_used returns True
         - used_at timestamp set
@@ -493,7 +493,7 @@ class TestPasswordResetToken:
 
     def test_is_valid_property_when_valid(self):
         """Test is_valid property for usable token.
-        
+
         Verifies that:
         - is_valid returns True
         - Token not expired and not used
@@ -511,7 +511,7 @@ class TestPasswordResetToken:
 
     def test_is_valid_property_when_expired(self):
         """Test is_valid property rejects expired token.
-        
+
         Verifies that:
         - is_valid returns False
         - Expiry invalidates token even if not used
@@ -528,7 +528,7 @@ class TestPasswordResetToken:
 
     def test_is_valid_property_when_used(self):
         """Test is_valid property rejects used token.
-        
+
         Verifies that:
         - is_valid returns False
         - Usage invalidates token even if not expired
@@ -546,12 +546,12 @@ class TestPasswordResetToken:
 
     def test_mark_as_used_method(self):
         """Test mark_as_used() method marks token as consumed.
-        
+
         Verifies that:
         - used_at timestamp set to current time
         - is_used returns True
         - Token becomes invalid
-        
+
         Note:
             Called after successful password reset.
         """
@@ -571,7 +571,7 @@ class TestPasswordResetToken:
 
     def test_timezone_aware_datetime_fields(self):
         """Test datetime fields are timezone-aware (TIMESTAMPTZ).
-        
+
         Verifies that:
         - expires_at has tzinfo
         - used_at has tzinfo

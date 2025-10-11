@@ -24,7 +24,7 @@ from src.services.encryption import EncryptionService
 
 class TestTokenStorageIntegration:
     """Integration tests for token storage with real database and encryption.
-    
+
     Tests OAuth token CRUD operations with real PostgreSQL database,
     encryption service, and database relationships. Uses synchronous
     SQLModel sessions for test isolation.
@@ -32,18 +32,18 @@ class TestTokenStorageIntegration:
 
     def test_create_and_encrypt_token(self, db_session: Session, test_user: User):
         """Test end-to-end token creation with AES-256 encryption.
-        
+
         Verifies that:
         - Provider, connection, and token created in database
         - Access and refresh tokens encrypted before storage
         - Encrypted values stored correctly (not plaintext)
         - Decryption returns original token values
         - Timezone-aware expiry timestamp stored
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Integration test: real database + real encryption service.
         """
@@ -93,17 +93,17 @@ class TestTokenStorageIntegration:
 
     def test_token_without_refresh_token(self, db_session: Session, test_user: User):
         """Test token storage when provider doesn't issue refresh token.
-        
+
         Verifies that:
         - Token stored with only access token
         - refresh_token_encrypted field is None
         - No errors for missing refresh token
         - Expiry timestamp stored correctly
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Some OAuth providers only issue access tokens.
         """
@@ -143,18 +143,18 @@ class TestTokenStorageIntegration:
 
     def test_token_expiry_detection(self, db_session: Session, test_user: User):
         """Test token expiry detection with timezone-aware datetimes (TIMESTAMPTZ).
-        
+
         Verifies that:
         - Expired token (past datetime) detected correctly
         - needs_refresh property returns True
         - is_expired property returns True
         - Timezone-aware comparison works (UTC)
         - Database TIMESTAMPTZ compliance validated
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             P0 requirement: timezone-aware datetimes for PCI-DSS compliance.
         """
@@ -191,18 +191,18 @@ class TestTokenStorageIntegration:
 
     def test_token_update_mechanism(self, db_session: Session, test_user: User):
         """Test token update via update_tokens() method (rotation).
-        
+
         Verifies that:
         - update_tokens() method updates encrypted tokens
         - New access and refresh tokens stored
         - expires_at updated based on expires_in
         - refresh_count incremented
         - Old tokens replaced with new encrypted values
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Simulates OAuth token refresh/rotation flow.
         """
@@ -256,17 +256,17 @@ class TestTokenStorageIntegration:
         self, db_session: Session, test_user: User
     ):
         """Test SQLModel relationship between ProviderConnection and ProviderToken.
-        
+
         Verifies that:
         - One-to-one relationship loaded correctly
         - selectinload() eager loading works
         - connection.token relationship populated
         - Foreign key relationship intact
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Tests database relationship integrity.
         """
@@ -309,17 +309,17 @@ class TestTokenStorageIntegration:
 
     def test_token_cascade_delete(self, db_session: Session, test_user: User):
         """Test cascade delete from ProviderConnection to ProviderToken.
-        
+
         Verifies that:
         - Deleting connection also deletes token (CASCADE)
         - Foreign key constraint enforced
         - No orphaned tokens remain
         - Database referential integrity maintained
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Critical: prevents orphaned tokens in database.
         """
@@ -368,18 +368,18 @@ class TestTokenStorageIntegration:
         self, db_session: Session, test_user: User
     ):
         """Test ProviderAuditLog creation for token operations (compliance).
-        
+
         Verifies that:
         - Audit log entry created for token operations
         - action field set correctly ("token_created")
         - user_id captured for accountability
         - details JSONB field stores metadata
         - Audit trail for security/compliance
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Required for PCI-DSS and SOC 2 compliance.
         """
@@ -426,17 +426,17 @@ class TestTokenStorageIntegration:
 
     def test_encryption_consistency(self, db_session: Session, test_user: User):
         """Test encryption/decryption consistency (AES-256 Fernet).
-        
+
         Verifies that:
         - Encrypt → store → retrieve → decrypt returns original value
         - Encrypted value != plaintext (encryption working)
         - Decrypted value == original plaintext (decryption working)
         - No data corruption in roundtrip
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Critical security test: encryption must be reversible.
         """
@@ -474,17 +474,17 @@ class TestTokenStorageIntegration:
 
     def test_query_tokens_by_connection(self, db_session: Session, test_user: User):
         """Test querying tokens by connection_id (database indexing).
-        
+
         Verifies that:
         - Multiple tokens created for different connections
         - Query by connection_id returns correct token
         - No cross-contamination between connections
         - Database index on connection_id working
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Tests database query performance and correctness.
         """
@@ -534,17 +534,17 @@ class TestTokenStorageIntegration:
 
     def test_token_refresh_count_increments(self, db_session: Session, test_user: User):
         """Test refresh_count field increments on token updates.
-        
+
         Verifies that:
         - refresh_count starts at 0
         - update_tokens() increments refresh_count
         - Multiple updates increment sequentially (0 → 1 → 2)
         - Audit trail for token refresh operations
-        
+
         Args:
             db_session: Synchronous database session fixture
             test_user: Test user fixture
-        
+
         Note:
             Tracking metric for token refresh operations.
         """

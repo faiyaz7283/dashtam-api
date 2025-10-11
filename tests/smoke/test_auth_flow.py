@@ -100,10 +100,10 @@ def unique_test_email():
 @pytest.fixture(scope="module")
 def test_password():
     """Generate standard test password meeting security requirements.
-    
+
     Returns:
         str: Password with uppercase, lowercase, digit, and special char
-    
+
     Note:
         Meets password policy: min 8 chars, uppercase, lowercase, digit, special.
     """
@@ -222,16 +222,16 @@ class TestSmokeCompleteAuthFlow:
 
     def test_01_user_registration(self, smoke_test_user):
         """Step 1: User can register successfully with POST /api/v1/auth/register.
-        
+
         Verifies that:
         - Registration endpoint accepts valid credentials
         - User account created in database
         - Email verification email sent
         - Fixture setup completed successfully
-        
+
         Args:
             smoke_test_user: Smoke test user fixture with registration data
-        
+
         Note:
             Actual registration happens in fixture, this validates it worked.
         """
@@ -240,16 +240,16 @@ class TestSmokeCompleteAuthFlow:
 
     def test_02_email_verification_token_extracted(self, smoke_test_user):
         """Step 2: Email verification token extracted from pytest caplog.
-        
+
         Verifies that:
         - EmailService logs verification token in development mode
         - extract_token_from_caplog() successfully finds token
         - Token is non-empty string
         - Token available for next step
-        
+
         Args:
             smoke_test_user: Smoke test user fixture with verification token
-        
+
         Note:
             Uses caplog fixture, no Docker CLI needed.
         """
@@ -258,17 +258,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_03_email_verification_success(self, client, smoke_test_user):
         """Step 3: User verifies email with POST /api/v1/auth/verify-email.
-        
+
         Verifies that:
         - Email verification endpoint accepts valid token
         - User account activated (email_verified=True)
         - User can now authenticate
         - email_verified field set correctly
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with verification token
-        
+
         Note:
             Verification happens in fixture, this validates email_verified=True.
         """
@@ -283,16 +283,16 @@ class TestSmokeCompleteAuthFlow:
 
     def test_04_login_success(self, smoke_test_user):
         """Step 4: User logs in with POST /api/v1/auth/login.
-        
+
         Verifies that:
         - Login endpoint accepts verified user credentials
         - Returns both access and refresh tokens
         - Tokens are valid JWT format (>100 chars)
         - Tokens stored for subsequent tests
-        
+
         Args:
             smoke_test_user: Smoke test user with login tokens
-        
+
         Note:
             Login happens in fixture, this validates tokens present.
         """
@@ -303,17 +303,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_05_get_user_profile(self, client, smoke_test_user):
         """Step 5: User retrieves profile with GET /api/v1/auth/me.
-        
+
         Verifies that:
         - Authenticated GET /auth/me endpoint works
         - Returns correct user data (email, name, is_active)
         - JWT bearer token authentication works
         - User data matches registration info
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with access token
-        
+
         Note:
             Tests JWT authentication with access token.
         """
@@ -329,17 +329,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_06_update_profile(self, client, smoke_test_user):
         """Step 6: User updates profile with PATCH /api/v1/auth/me.
-        
+
         Verifies that:
         - PATCH /auth/me endpoint works
         - Profile changes persisted to database
         - Returns updated user data
         - Name field successfully updated
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with access token
-        
+
         Note:
             Tests profile update functionality.
         """
@@ -354,17 +354,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_07_token_refresh(self, client, smoke_test_user):
         """Step 7: User refreshes access token with POST /api/v1/auth/refresh.
-        
+
         Verifies that:
         - Token refresh endpoint works (returns 200 OK)
         - Returns new access token
         - Optionally returns new refresh token (token rotation)
         - New tokens valid format (>100 chars)
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with refresh token
-        
+
         Note:
             Does not verify tokens are different (JWTs may be identical if issued
             within same second). test_08 verifies new token works.
@@ -388,17 +388,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_08_verify_new_access_token(self, client, smoke_test_user):
         """Step 8: Verify refreshed access token works with GET /api/v1/auth/me.
-        
+
         Verifies that:
         - Refreshed access token is valid JWT
         - Can authenticate with new token
         - Returns correct user data
         - Token refresh flow complete
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with new_access_token
-        
+
         Note:
             Confirms token refresh produced usable token.
         """
@@ -412,18 +412,18 @@ class TestSmokeCompleteAuthFlow:
 
     def test_09_password_reset_request(self, client, smoke_test_user, caplog):
         """Step 9: User requests password reset with POST /api/v1/password-resets/.
-        
+
         Verifies that:
         - Password reset request endpoint works (returns 202 Accepted)
         - Reset email sent to user
         - Reset token logged by EmailService (development mode)
         - Token extracted from caplog for next step
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user data
             caplog: pytest log capture fixture for token extraction
-        
+
         Note:
             Saves old tokens for revocation testing.
         """
@@ -448,15 +448,15 @@ class TestSmokeCompleteAuthFlow:
 
     def test_10_extract_reset_token(self, smoke_test_user):
         """Step 10: Password reset token extracted from pytest caplog.
-        
+
         Verifies that:
         - extract_token_from_caplog() found reset token
         - Token is non-empty string
         - Token available for verification step
-        
+
         Args:
             smoke_test_user: Smoke test user with reset_token
-        
+
         Note:
             Token extraction happened in test_09, this validates it.
         """
@@ -466,17 +466,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_11_verify_reset_token(self, client, smoke_test_user):
         """Step 11: Verify reset token with GET /api/v1/password-resets/{token}.
-        
+
         Verifies that:
         - Token verification endpoint works
         - Token validation uses bcrypt hash comparison (secure)
         - Returns valid=True for correct token
         - Token not expired
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with reset_token
-        
+
         Note:
             Validates token before allowing password reset.
         """
@@ -489,17 +489,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_12_confirm_password_reset(self, client, smoke_test_user):
         """Step 12: Confirm password reset with PATCH /api/v1/password-resets/{token}.
-        
+
         Verifies that:
         - Password reset confirmation endpoint works
         - Password updated in database (bcrypt hash)
         - Returns 200 OK
         - Old password no longer valid
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with reset_token
-        
+
         Note:
             Updates smoke_test_user password for subsequent tests.
         """
@@ -517,17 +517,17 @@ class TestSmokeCompleteAuthFlow:
         self, client, smoke_test_user
     ):
         """Step 13: Old refresh tokens revoked after password reset (security).
-        
+
         Verifies that:
         - Password reset revokes ALL refresh tokens for user
         - Old refresh token cannot be used (returns 401/403)
         - Security measure prevents token reuse after password change
         - Automatic session revocation works
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with old_refresh_token
-        
+
         Note:
             Critical security test - password reset must revoke all sessions.
         """
@@ -542,17 +542,17 @@ class TestSmokeCompleteAuthFlow:
         self, client, smoke_test_user
     ):
         """Step 14: Old access tokens work until expiry (stateless JWT behavior).
-        
+
         Verifies that:
         - Old access tokens still work after password reset
         - JWTs are stateless (cannot be revoked server-side)
         - Only refresh tokens (database-stored) are revoked
         - Access tokens expire naturally (TTL)
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with old_access_token
-        
+
         Note:
             This is EXPECTED behavior - stateless JWTs can't be instantly revoked.
             They expire after 30 min TTL.
@@ -567,17 +567,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_15_login_with_new_password(self, client, smoke_test_user):
         """Step 15: User logs in with new password after reset.
-        
+
         Verifies that:
         - Login works with updated password
         - Old password no longer valid (implicit)
         - New access and refresh tokens issued
         - Password reset complete
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with new password
-        
+
         Note:
             Confirms password reset flow fully functional.
         """
@@ -597,17 +597,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_16_logout(self, client, smoke_test_user):
         """Step 16: User logs out with POST /api/v1/auth/logout.
-        
+
         Verifies that:
         - Logout endpoint works (returns 200 OK)
         - Refresh token revoked in database
         - User session terminated
         - Success message returned
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with access/refresh tokens
-        
+
         Note:
             Logout revokes refresh token but not access token (stateless JWT).
         """
@@ -620,17 +620,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_17_refresh_token_revoked_after_logout(self, client, smoke_test_user):
         """Step 17: Refresh token revoked after logout (security validation).
-        
+
         Verifies that:
         - Logout revokes refresh token in database
         - Revoked token cannot be used (returns 401/403)
         - Security measure prevents token reuse
         - Session properly terminated
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with revoked refresh_token
-        
+
         Note:
             Critical security test - logout must prevent token reuse.
         """
@@ -643,17 +643,17 @@ class TestSmokeCompleteAuthFlow:
 
     def test_18_access_token_still_works_after_logout(self, client, smoke_test_user):
         """Step 18: Access token works after logout until expiry (stateless JWT).
-        
+
         Verifies that:
         - Access tokens still work after logout
         - JWTs are stateless (cannot be server-side revoked)
         - Only refresh tokens (database-stored) are revoked
         - Access tokens expire naturally (TTL)
-        
+
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with access_token
-        
+
         Note:
             This is EXPECTED behavior - stateless JWTs can't be instantly revoked.
             They expire after 30 min TTL. Logout only revokes refresh tokens.

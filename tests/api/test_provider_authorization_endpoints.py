@@ -19,12 +19,30 @@ from src.models.provider import Provider, ProviderConnection, ProviderToken
 
 
 class TestGetAuthorizationURL:
-    """Test suite for get_authorization_url endpoint."""
+    """Test suite for OAuth authorization URL generation and callback handling.
+
+    Tests POST /api/v1/providers/{id}/authorization and GET .../callback endpoints.
+    """
 
     def test_get_authorization_url_success(
         self, client_with_mock_auth: TestClient, test_provider: Provider
     ):
-        """Test successfully getting authorization URL."""
+        """Test POST /api/v1/providers/{id}/authorization returns OAuth URL.
+
+        Verifies that:
+        - Endpoint returns 200 OK
+        - auth_url field contains provider OAuth URL
+        - message field included
+        - Provider registry creates provider instance
+        - get_auth_url() called on provider
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider: Test provider fixture
+
+        Note:
+            Mocks provider registry for testing.
+        """
         with patch(
             "src.api.v1.provider_authorization.ProviderRegistry.create_provider_instance"
         ) as mock_registry:
@@ -49,7 +67,18 @@ class TestGetAuthorizationURL:
     def test_get_authorization_url_provider_not_found(
         self, client_with_mock_auth: TestClient
     ):
-        """Test getting authorization URL for non-existent provider."""
+        """Test POST /api/v1/providers/{invalid_id}/authorization returns 404.
+
+        Verifies that:
+        - Non-existent provider ID returns 404 Not Found
+        - Error message mentions "Provider not found"
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses random UUID for testing.
+        """
         fake_uuid = uuid4()
         response = client_with_mock_auth.post(
             f"/api/v1/providers/{fake_uuid}/authorization"
@@ -61,7 +90,20 @@ class TestGetAuthorizationURL:
     def test_get_authorization_url_invalid_provider_key(
         self, client_with_mock_auth: TestClient, test_provider: Provider
     ):
-        """Test handling of invalid provider key."""
+        """Test POST /api/v1/providers/{id}/authorization handles invalid provider key.
+
+        Verifies that:
+        - Invalid provider key returns 400 Bad Request
+        - Registry raises ValueError for invalid key
+        - Error handled gracefully
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider: Test provider fixture
+
+        Note:
+            Tests provider registry validation.
+        """
         with patch(
             "src.api.v1.provider_authorization.ProviderRegistry.create_provider_instance"
         ) as mock_registry:
@@ -73,15 +115,24 @@ class TestGetAuthorizationURL:
 
             assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    """Test suite for handle_oauth_callback endpoint."""
-
     def test_callback_success(
         self, client_with_mock_auth: TestClient, test_provider: Provider, db_session
     ):
-        """Test successful OAuth callback with token exchange.
+        """Test GET /api/v1/providers/{id}/authorization/callback handles OAuth success.
 
-        Note: Due to async/sync test infrastructure, this tests the flow
-        but may encounter session issues in the test environment.
+        Verifies that:
+        - Callback with code and state processed
+        - Provider authenticate() method called
+        - Token exchange attempted
+        - Response returns 200 OK or 500 (session handling)
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider: Test provider with connection
+            db_session: Database session for setup
+
+        Note:
+            May return 500 due to async/sync test infrastructure limitations.
         """
         # Create connection for provider
         connection = ProviderConnection(provider_id=test_provider.id)
@@ -123,7 +174,20 @@ class TestGetAuthorizationURL:
     def test_callback_with_error(
         self, client_with_mock_auth: TestClient, test_provider: Provider
     ):
-        """Test callback with OAuth error."""
+        """Test GET callback with OAuth error parameter returns 400.
+
+        Verifies that:
+        - Callback with error parameter returns 400 Bad Request
+        - Error message mentions "Authorization failed"
+        - OAuth errors handled gracefully
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider: Test provider fixture
+
+        Note:
+            Tests OAuth provider error responses (access_denied, etc.).
+        """
         response = client_with_mock_auth.get(
             f"/api/v1/providers/{test_provider.id}/authorization/callback",
             params={
@@ -138,7 +202,20 @@ class TestGetAuthorizationURL:
     def test_callback_missing_code(
         self, client_with_mock_auth: TestClient, test_provider: Provider
     ):
-        """Test callback without authorization code."""
+        """Test GET callback without code parameter returns 400.
+
+        Verifies that:
+        - Callback without code returns 400 Bad Request
+        - Error message mentions "No authorization code received"
+        - Required parameter validation enforced
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider: Test provider fixture
+
+        Note:
+            Code parameter is required for OAuth flow.
+        """
         response = client_with_mock_auth.get(
             f"/api/v1/providers/{test_provider.id}/authorization/callback"
         )
@@ -149,10 +226,21 @@ class TestGetAuthorizationURL:
     def test_callback_state_mismatch(
         self, client_with_mock_auth: TestClient, test_provider: Provider, db_session
     ):
-        """Test callback with mismatched state parameter.
+        """Test GET callback with mismatched state returns 400 (CSRF protection).
 
-        The API now properly validates state parameter and rejects
-        mismatches for security (CSRF protection).
+        Verifies that:
+        - Callback with incorrect state returns 400 Bad Request
+        - State must match provider_id for security
+        - Error message mentions "State parameter mismatch"
+        - CSRF protection enforced
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider: Test provider with connection
+            db_session: Database session for setup
+
+        Note:
+            State parameter prevents CSRF attacks in OAuth flow.
         """
         connection = ProviderConnection(provider_id=test_provider.id)
         db_session.add(connection)
@@ -172,7 +260,18 @@ class TestGetAuthorizationURL:
         assert "State parameter mismatch" in response.json()["detail"]
 
     def test_callback_provider_not_found(self, client_with_mock_auth: TestClient):
-        """Test callback for non-existent provider."""
+        """Test GET callback for non-existent provider returns 404.
+
+        Verifies that:
+        - Callback for invalid provider ID returns 404 Not Found
+        - Missing provider handled gracefully
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses random UUID for testing.
+        """
         fake_uuid = uuid4()
         response = client_with_mock_auth.get(
             f"/api/v1/providers/{fake_uuid}/authorization/callback",
@@ -184,7 +283,21 @@ class TestGetAuthorizationURL:
     def test_callback_authentication_failure(
         self, client_with_mock_auth: TestClient, test_provider: Provider, db_session
     ):
-        """Test callback when token exchange fails."""
+        """Test GET callback returns 500 when token exchange fails.
+
+        Verifies that:
+        - Token exchange failure returns 500 Internal Server Error
+        - authenticate() exception handled
+        - Error message mentions "Failed to exchange authorization code"
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider: Test provider with connection
+            db_session: Database session for setup
+
+        Note:
+            Tests provider-side authentication failures.
+        """
         connection = ProviderConnection(provider_id=test_provider.id)
         db_session.add(connection)
         db_session.commit()
@@ -208,7 +321,10 @@ class TestGetAuthorizationURL:
 
 
 class TestRefreshTokens:
-    """Test suite for refresh_provider_tokens endpoint."""
+    """Test suite for token refresh endpoint.
+
+    Tests PATCH /api/v1/providers/{id}/authorization for token refresh.
+    """
 
     def test_refresh_tokens_success(
         self,
@@ -216,7 +332,22 @@ class TestRefreshTokens:
         test_provider_with_connection: Provider,
         db_session,
     ):
-        """Test successful token refresh."""
+        """Test PATCH /api/v1/providers/{id}/authorization refreshes tokens.
+
+        Verifies that:
+        - Endpoint returns 200 OK
+        - TokenService.refresh_token() called
+        - Success message included
+        - Existing tokens with refresh_token can be refreshed
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Provider with active connection
+            db_session: Database session to create tokens
+
+        Note:
+            Mocks TokenService for testing.
+        """
         provider = test_provider_with_connection
 
         # Create token with refresh token
@@ -248,7 +379,18 @@ class TestRefreshTokens:
             mock_refresh.assert_called_once()
 
     def test_refresh_tokens_provider_not_found(self, client_with_mock_auth: TestClient):
-        """Test refreshing tokens for non-existent provider."""
+        """Test PATCH /api/v1/providers/{invalid_id}/authorization returns 404.
+
+        Verifies that:
+        - Non-existent provider ID returns 404 Not Found
+        - Token refresh handles missing provider gracefully
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses random UUID for testing.
+        """
         fake_uuid = uuid4()
         response = client_with_mock_auth.patch(
             f"/api/v1/providers/{fake_uuid}/authorization"
@@ -259,7 +401,20 @@ class TestRefreshTokens:
     def test_refresh_tokens_failure(
         self, client_with_mock_auth: TestClient, test_provider_with_connection: Provider
     ):
-        """Test handling of token refresh failure."""
+        """Test PATCH /api/v1/providers/{id}/authorization returns 500 on refresh failure.
+
+        Verifies that:
+        - Token refresh failure returns 500 Internal Server Error
+        - TokenService exceptions handled
+        - Error message mentions "Failed to refresh tokens"
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Provider with active connection
+
+        Note:
+            Mocks TokenService to simulate failure.
+        """
         with patch(
             "src.services.token_service.TokenService.refresh_token"
         ) as mock_refresh:
@@ -274,7 +429,10 @@ class TestRefreshTokens:
 
 
 class TestTokenStatus:
-    """Test suite for get_token_status endpoint."""
+    """Test suite for token status endpoint.
+
+    Tests GET /api/v1/providers/{id}/authorization for connection status.
+    """
 
     def test_get_token_status_with_tokens(
         self,
@@ -282,7 +440,22 @@ class TestTokenStatus:
         test_provider_with_connection: Provider,
         db_session,
     ):
-        """Test getting token status when tokens exist."""
+        """Test GET /api/v1/providers/{id}/authorization returns connected status.
+
+        Verifies that:
+        - Endpoint returns 200 OK
+        - status='connected' when tokens exist
+        - provider_id included
+        - expires_at timestamp included
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Provider with active connection
+            db_session: Database session to create tokens
+
+        Note:
+            Tests status when provider has valid tokens.
+        """
         provider = test_provider_with_connection
 
         # Create token
@@ -312,7 +485,20 @@ class TestTokenStatus:
     def test_get_token_status_no_tokens(
         self, client_with_mock_auth: TestClient, test_provider_with_connection: Provider
     ):
-        """Test getting token status when no tokens exist."""
+        """Test GET /api/v1/providers/{id}/authorization returns not_connected status.
+
+        Verifies that:
+        - Endpoint returns 200 OK
+        - status='not_connected' when no tokens
+        - message mentions "No tokens found"
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Provider without tokens
+
+        Note:
+            Tests status when provider exists but not authorized yet.
+        """
         response = client_with_mock_auth.get(
             f"/api/v1/providers/{test_provider_with_connection.id}/authorization"
         )
@@ -325,7 +511,18 @@ class TestTokenStatus:
     def test_get_token_status_provider_not_found(
         self, client_with_mock_auth: TestClient
     ):
-        """Test getting token status for non-existent provider."""
+        """Test GET /api/v1/providers/{invalid_id}/authorization returns 404.
+
+        Verifies that:
+        - Non-existent provider ID returns 404 Not Found
+        - Status check handles missing provider gracefully
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses random UUID for testing.
+        """
         fake_uuid = uuid4()
         response = client_with_mock_auth.get(
             f"/api/v1/providers/{fake_uuid}/authorization"
@@ -335,7 +532,10 @@ class TestTokenStatus:
 
 
 class TestDisconnectProvider:
-    """Test suite for disconnect_provider endpoint."""
+    """Test suite for provider disconnection endpoint.
+
+    Tests DELETE /api/v1/providers/{id}/authorization to revoke tokens.
+    """
 
     def test_disconnect_success(
         self,
@@ -343,9 +543,20 @@ class TestDisconnectProvider:
         test_provider_with_connection: Provider,
         db_session,
     ):
-        """Test provider disconnection endpoint.
+        """Test DELETE /api/v1/providers/{id}/authorization disconnects provider.
 
-        Returns 204 No Content on successful disconnect.
+        Verifies that:
+        - Endpoint returns 204 No Content
+        - Tokens revoked successfully
+        - No response body (204 standard)
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Provider with active connection
+            db_session: Database session to create tokens
+
+        Note:
+            204 No Content is proper response for successful delete.
         """
         provider = test_provider_with_connection
 
@@ -369,7 +580,18 @@ class TestDisconnectProvider:
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
     def test_disconnect_provider_not_found(self, client_with_mock_auth: TestClient):
-        """Test disconnecting non-existent provider."""
+        """Test DELETE /api/v1/providers/{invalid_id}/authorization returns 404.
+
+        Verifies that:
+        - Non-existent provider ID returns 404 Not Found
+        - Disconnect handles missing provider gracefully
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses random UUID for testing.
+        """
         fake_uuid = uuid4()
         response = client_with_mock_auth.delete(
             f"/api/v1/providers/{fake_uuid}/authorization"
@@ -380,7 +602,20 @@ class TestDisconnectProvider:
     def test_disconnect_failure(
         self, client_with_mock_auth: TestClient, test_provider_with_connection: Provider
     ):
-        """Test handling of disconnection failure."""
+        """Test DELETE /api/v1/providers/{id}/authorization returns 500 on failure.
+
+        Verifies that:
+        - Token revocation failure returns 500 Internal Server Error
+        - TokenService exceptions handled
+        - Error message mentions "Failed to disconnect provider"
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Provider with active connection
+
+        Note:
+            Mocks TokenService to simulate revocation failure.
+        """
         with patch(
             "src.services.token_service.TokenService.revoke_tokens"
         ) as mock_revoke:
@@ -395,10 +630,25 @@ class TestDisconnectProvider:
 
 
 class TestGetCurrentUser:
-    """Test suite for get_current_user dependency."""
+    """Test suite for get_current_user authentication dependency.
+
+    Tests that authentication dependency works in endpoints.
+    """
 
     def test_get_current_user_creates_user(self, client_with_mock_auth: TestClient):
-        """Test that get_current_user creates a test user in development."""
+        """Test get_current_user dependency creates test user for authenticated requests.
+
+        Verifies that:
+        - Authenticated request succeeds
+        - get_current_user dependency works
+        - Test user created/retrieved correctly
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Dependency is called for every authenticated request.
+        """
         # The dependency is called for every request
         # Just verify it works by making any authenticated request
         response = client_with_mock_auth.get("/api/v1/provider-types")

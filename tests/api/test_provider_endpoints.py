@@ -13,12 +13,30 @@ from src.models.user import User
 
 
 class TestProviderInstanceEndpoints:
-    """Test suite for provider instance management."""
+    """Test suite for provider instance management.
+
+    Tests CRUD operations for user-specific provider instances
+    (not provider type templates).
+    """
 
     def test_create_provider_instance(
         self, client_with_mock_auth: TestClient, test_user: User
     ):
-        """Test creating a new provider instance."""
+        """Test POST /api/v1/providers creates new provider instance.
+
+        Verifies that:
+        - Endpoint returns 201 Created
+        - Provider created with pending status
+        - Response includes all required fields (id, provider_key, alias, status)
+        - Connection not established yet (is_connected=False, needs_reconnection=True)
+
+        Args:
+            client_with_mock_auth: Authenticated test client with user fixture
+            test_user: Test user fixture for authentication context
+
+        Note:
+            Provider instance is user-specific, not a template.
+        """
         payload = {"provider_key": "schwab", "alias": "My Schwab Account"}
 
         response = client_with_mock_auth.post("/api/v1/providers", json=payload)
@@ -35,7 +53,19 @@ class TestProviderInstanceEndpoints:
         assert data["needs_reconnection"] is True
 
     def test_create_provider_invalid_key(self, client_with_mock_auth: TestClient):
-        """Test creating a provider with invalid provider_key."""
+        """Test POST /api/v1/providers rejects invalid provider_key.
+
+        Verifies that:
+        - Endpoint returns 400 Bad Request
+        - Invalid/unknown provider_key rejected
+        - Error message mentions provider not available
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Validates against provider registry (schwab, etc.).
+        """
         payload = {"provider_key": "nonexistent_provider", "alias": "Test"}
 
         response = client_with_mock_auth.post("/api/v1/providers", json=payload)
@@ -46,7 +76,22 @@ class TestProviderInstanceEndpoints:
     def test_create_provider_duplicate_alias(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test creating a provider with duplicate alias fails."""
+        """Test POST /api/v1/providers rejects duplicate alias per user.
+
+        Verifies that:
+        - First provider with alias created successfully
+        - Second provider with same alias returns 409 Conflict
+        - unique_user_provider_alias constraint enforced
+        - Error message mentions duplicate provider
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session for test data setup
+
+        Note:
+            Unique constraint is per-user, not global.
+        """
         # Create first provider
         provider1 = Provider(
             user_id=test_user.id, provider_key="schwab", alias="My Account"
@@ -65,7 +110,22 @@ class TestProviderInstanceEndpoints:
     def test_list_user_providers(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test listing all providers for the current user."""
+        """Test GET /api/v1/providers/ lists user's providers with pagination.
+
+        Verifies that:
+        - Endpoint returns 200 OK
+        - Response includes pagination fields (items, total, page, per_page, pages, has_next, has_prev)
+        - All created providers returned in items array
+        - Only current user's providers shown
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session for test data setup
+
+        Note:
+            Paginated response structure for list endpoints.
+        """
         # Create test providers
         providers = [
             Provider(user_id=test_user.id, provider_key="schwab", alias=f"Schwab {i}")
@@ -99,7 +159,23 @@ class TestProviderInstanceEndpoints:
     def test_list_providers_pagination(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test provider list pagination."""
+        """Test GET /api/v1/providers/ pagination parameters work correctly.
+
+        Verifies that:
+        - page and per_page query parameters accepted
+        - Page 1 returns first 10 items
+        - Page 2 returns remaining items
+        - has_next and has_prev flags correct
+        - Pagination metadata accurate (page, per_page, total)
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session to create 15 test providers
+
+        Note:
+            Tests pagination across multiple pages.
+        """
         # Create 15 test providers
         providers = [
             Provider(user_id=test_user.id, provider_key="schwab", alias=f"Provider {i}")
@@ -135,7 +211,21 @@ class TestProviderInstanceEndpoints:
     def test_list_providers_filtering_by_provider_key(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test filtering providers by provider_key."""
+        """Test GET /api/v1/providers?provider_key= filters by provider type.
+
+        Verifies that:
+        - provider_key query parameter works
+        - Only providers matching key returned
+        - Filter applied to user's providers only
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session for test data setup
+
+        Note:
+            Filters by provider type (schwab, etc.).
+        """
         # Create providers of different types
         schwab_provider = Provider(
             user_id=test_user.id, provider_key="schwab", alias="Schwab Account"
@@ -155,7 +245,21 @@ class TestProviderInstanceEndpoints:
     def test_list_providers_sorting(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test sorting providers by alias."""
+        """Test GET /api/v1/providers?sort=alias&order=asc sorts results.
+
+        Verifies that:
+        - sort and order query parameters work
+        - Results sorted alphabetically by alias (ascending)
+        - Sorting applied correctly
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session to create test data
+
+        Note:
+            Tests ascending sort by alias field.
+        """
         # Create providers with specific aliases
         providers = [
             Provider(user_id=test_user.id, provider_key="schwab", alias="Zebra"),
@@ -177,7 +281,19 @@ class TestProviderInstanceEndpoints:
         assert aliases == sorted(aliases)
 
     def test_list_providers_invalid_sort_field(self, client_with_mock_auth: TestClient):
-        """Test that invalid sort field returns 400."""
+        """Test GET /api/v1/providers?sort=invalid_field returns 400.
+
+        Verifies that:
+        - Invalid sort field rejected
+        - Endpoint returns 400 Bad Request
+        - Error message mentions invalid sort field
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Validates sort parameter against allowed fields.
+        """
         response = client_with_mock_auth.get("/api/v1/providers?sort=invalid_field")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -186,7 +302,21 @@ class TestProviderInstanceEndpoints:
     def test_get_provider_by_id(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test getting a specific provider by ID."""
+        """Test GET /api/v1/providers/{id} returns specific provider.
+
+        Verifies that:
+        - Endpoint returns 200 OK
+        - Provider data matches created instance
+        - All fields present (id, alias, provider_key)
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session for test data setup
+
+        Note:
+            Tests single provider retrieval by UUID.
+        """
         # Create test provider
         provider = Provider(
             user_id=test_user.id, provider_key="schwab", alias="Test Provider"
@@ -205,7 +335,18 @@ class TestProviderInstanceEndpoints:
         assert data["provider_key"] == "schwab"
 
     def test_get_provider_not_found(self, client_with_mock_auth: TestClient):
-        """Test getting a non-existent provider returns 404."""
+        """Test GET /api/v1/providers/{invalid_id} returns 404.
+
+        Verifies that:
+        - Non-existent provider ID returns 404 Not Found
+        - Proper error handling for missing resources
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses all-zeros UUID for testing.
+        """
         fake_uuid = "00000000-0000-0000-0000-000000000000"
         response = client_with_mock_auth.get(f"/api/v1/providers/{fake_uuid}")
 
@@ -214,7 +355,22 @@ class TestProviderInstanceEndpoints:
     def test_delete_provider(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test deleting a provider instance."""
+        """Test DELETE /api/v1/providers/{id} removes provider.
+
+        Verifies that:
+        - Endpoint returns 200 OK
+        - Success message included
+        - Provider actually deleted from database
+        - No orphaned data remains
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session to verify deletion
+
+        Note:
+            Also cascades to connections and tokens.
+        """
         # Create test provider
         provider = Provider(
             user_id=test_user.id, provider_key="schwab", alias="To Delete"
@@ -237,7 +393,18 @@ class TestProviderInstanceEndpoints:
         assert result.scalar_one_or_none() is None
 
     def test_delete_provider_not_found(self, client_with_mock_auth: TestClient):
-        """Test deleting a non-existent provider returns 404."""
+        """Test DELETE /api/v1/providers/{invalid_id} returns 404.
+
+        Verifies that:
+        - Non-existent provider ID returns 404 Not Found
+        - Delete handles missing resources gracefully
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses all-zeros UUID for testing.
+        """
         fake_uuid = "00000000-0000-0000-0000-000000000000"
         response = client_with_mock_auth.delete(f"/api/v1/providers/{fake_uuid}")
 
@@ -245,12 +412,29 @@ class TestProviderInstanceEndpoints:
 
 
 class TestProviderConnectionStatus:
-    """Test suite for provider connection status."""
+    """Test suite for provider connection status.
+
+    Tests connection lifecycle and status reporting in API responses.
+    """
 
     def test_provider_with_pending_connection(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test provider with pending connection shows correct status."""
+        """Test provider response shows pending connection status correctly.
+
+        Verifies that:
+        - Provider with ProviderConnection (status=PENDING) shows status='pending'
+        - is_connected=False for pending connections
+        - Connection status reflected in API response
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session to create connection
+
+        Note:
+            PENDING status means OAuth not completed yet.
+        """
         provider = Provider(
             user_id=test_user.id, provider_key="schwab", alias="Pending Connection"
         )
@@ -274,7 +458,20 @@ class TestProviderConnectionStatus:
     def test_provider_with_active_connection(
         self, client_with_mock_auth: TestClient, test_provider_with_connection
     ):
-        """Test provider with active connection shows correct status."""
+        """Test provider response shows active connection status correctly.
+
+        Verifies that:
+        - Provider with ACTIVE connection shows status='active'
+        - is_connected=True for active connections
+        - needs_reconnection=False (OAuth complete)
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Fixture with active connection
+
+        Note:
+            ACTIVE status means OAuth completed successfully.
+        """
         provider = test_provider_with_connection
 
         response = client_with_mock_auth.get(f"/api/v1/providers/{provider.id}")
@@ -289,7 +486,20 @@ class TestProviderConnectionStatus:
     def test_list_providers_includes_connection_info(
         self, client_with_mock_auth: TestClient, test_provider_with_connection
     ):
-        """Test that listing providers includes connection information."""
+        """Test GET /api/v1/providers/ includes connection info for each provider.
+
+        Verifies that:
+        - List response includes connection fields
+        - Each provider has status, is_connected, needs_reconnection, connected_at
+        - Connection data properly serialized in list view
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Provider fixture to find in list
+
+        Note:
+            Tests connection info in paginated list response.
+        """
         response = client_with_mock_auth.get("/api/v1/providers/")
 
         assert response.status_code == status.HTTP_200_OK
@@ -313,10 +523,25 @@ class TestProviderConnectionStatus:
 
 
 class TestProviderValidation:
-    """Test suite for request validation."""
+    """Test suite for request validation.
+
+    Tests Pydantic schema validation for provider endpoints.
+    """
 
     def test_create_provider_missing_fields(self, client_with_mock_auth: TestClient):
-        """Test creating provider with missing required fields."""
+        """Test POST /api/v1/providers rejects requests with missing required fields.
+
+        Verifies that:
+        - Missing alias returns 422 Unprocessable Entity
+        - Missing provider_key returns 422 Unprocessable Entity
+        - Pydantic validation enforced
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Tests both alias and provider_key as required fields.
+        """
         # Missing alias
         response = client_with_mock_auth.post(
             "/api/v1/providers", json={"provider_key": "schwab"}
@@ -330,7 +555,18 @@ class TestProviderValidation:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_provider_invalid_json(self, client_with_mock_auth: TestClient):
-        """Test creating provider with invalid JSON."""
+        """Test POST /api/v1/providers rejects malformed JSON.
+
+        Verifies that:
+        - Invalid JSON content returns 422 Unprocessable Entity
+        - Request body parsing errors handled
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses raw text instead of JSON for testing.
+        """
         response = client_with_mock_auth.post(
             "/api/v1/providers",
             content="not valid json",  # Use content= instead of data= for raw bytes/text
@@ -339,13 +575,35 @@ class TestProviderValidation:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_get_provider_invalid_uuid(self, client_with_mock_auth: TestClient):
-        """Test getting provider with invalid UUID format."""
+        """Test GET /api/v1/providers/{invalid_uuid} rejects malformed UUID.
+
+        Verifies that:
+        - Invalid UUID format returns 422 Unprocessable Entity
+        - Path parameter validation enforced
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            UUID path parameter must be valid UUID4 format.
+        """
         response = client_with_mock_auth.get("/api/v1/providers/not-a-uuid")
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_provider_empty_alias(self, client_with_mock_auth: TestClient):
-        """Test creating provider with empty alias is rejected."""
+        """Test POST /api/v1/providers rejects empty alias string.
+
+        Verifies that:
+        - Empty alias (empty string) returns 422 Unprocessable Entity
+        - min_length=1 validation enforced on alias field
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Alias must have at least 1 character.
+        """
         payload = {"provider_key": "schwab", "alias": ""}
 
         response = client_with_mock_auth.post("/api/v1/providers", json=payload)
@@ -355,12 +613,28 @@ class TestProviderValidation:
 
 
 class TestProviderResponseStructure:
-    """Test suite for response structure validation."""
+    """Test suite for response structure validation.
+
+    Validates API response schemas for provider endpoints.
+    """
 
     def test_provider_response_has_all_fields(
         self, client_with_mock_auth: TestClient, test_provider_with_connection
     ):
-        """Test that provider response includes all expected fields."""
+        """Test GET /api/v1/providers/{id} response schema includes all required fields.
+
+        Verifies that:
+        - All required fields present (id, provider_key, alias, status, is_connected, needs_reconnection, accounts_count)
+        - Optional fields included (connected_at, last_sync_at - may be None)
+        - Response conforms to ProviderDetail schema
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_provider_with_connection: Provider fixture with connection
+
+        Note:
+            Schema validation for consistency.
+        """
         response = client_with_mock_auth.get(
             f"/api/v1/providers/{test_provider_with_connection.id}"
         )
@@ -387,7 +661,20 @@ class TestProviderResponseStructure:
             assert field in data, f"Missing field: {field}"
 
     def test_provider_list_response_structure(self, client_with_mock_auth: TestClient):
-        """Test that provider list returns correctly structured paginated data."""
+        """Test GET /api/v1/providers/ returns paginated response with correct structure.
+
+        Verifies that:
+        - Response is dict with pagination keys
+        - items, total, page, per_page, pages, has_next, has_prev all present
+        - Each item in items has provider fields (id, provider_key, alias, status)
+        - Paginated response schema enforced
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Tests pagination metadata structure.
+        """
         response = client_with_mock_auth.get("/api/v1/providers/")
 
         assert response.status_code == status.HTTP_200_OK
@@ -413,12 +700,30 @@ class TestProviderResponseStructure:
 
 
 class TestProviderUpdate:
-    """Test suite for PATCH /providers/{id} endpoint."""
+    """Test suite for PATCH /providers/{id} endpoint.
+
+    Tests provider alias update functionality with validation.
+    """
 
     def test_update_provider_alias(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test successfully updating provider alias."""
+        """Test PATCH /api/v1/providers/{id} successfully updates alias.
+
+        Verifies that:
+        - Endpoint returns 200 OK
+        - Alias updated to new value
+        - Other fields unchanged (id, provider_key)
+        - Change persisted to database
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session for test data setup
+
+        Note:
+            Alias is only updateable field for providers.
+        """
         # Create test provider
         provider = Provider(
             user_id=test_user.id, provider_key="schwab", alias="Original Name"
@@ -443,7 +748,21 @@ class TestProviderUpdate:
     def test_update_provider_same_alias(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test updating provider with same alias (no-op)."""
+        """Test PATCH /api/v1/providers/{id} with unchanged alias is allowed (no-op).
+
+        Verifies that:
+        - Updating with same alias returns 200 OK
+        - No error raised for unchanged value
+        - Alias remains the same
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session for test data setup
+
+        Note:
+            Idempotent operation - safe to repeat.
+        """
         # Create test provider
         provider = Provider(
             user_id=test_user.id, provider_key="schwab", alias="My Account"
@@ -465,7 +784,21 @@ class TestProviderUpdate:
     def test_update_provider_duplicate_alias(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test updating provider with alias that already exists."""
+        """Test PATCH /api/v1/providers/{id} rejects duplicate alias.
+
+        Verifies that:
+        - Updating to another provider's alias returns 409 Conflict
+        - unique_user_provider_alias constraint enforced
+        - Error message mentions duplicate
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session to create two providers
+
+        Note:
+            Unique constraint prevents alias conflicts per user.
+        """
         # Create two providers
         provider1 = Provider(
             user_id=test_user.id, provider_key="schwab", alias="Account 1"
@@ -487,7 +820,18 @@ class TestProviderUpdate:
         assert "already have a provider" in response.json()["detail"]
 
     def test_update_provider_not_found(self, client_with_mock_auth: TestClient):
-        """Test updating non-existent provider returns 404."""
+        """Test PATCH /api/v1/providers/{invalid_id} returns 404.
+
+        Verifies that:
+        - Non-existent provider ID returns 404 Not Found
+        - Update handles missing resources gracefully
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            Uses all-zeros UUID for testing.
+        """
         fake_uuid = "00000000-0000-0000-0000-000000000000"
         payload = {"alias": "New Name"}
         response = client_with_mock_auth.patch(
@@ -499,7 +843,20 @@ class TestProviderUpdate:
     def test_update_provider_empty_alias(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test updating provider with empty alias is rejected."""
+        """Test PATCH /api/v1/providers/{id} rejects empty alias.
+
+        Verifies that:
+        - Empty alias (empty string) returns 422 Unprocessable Entity
+        - min_length=1 validation enforced
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session for test data setup
+
+        Note:
+            Alias must have at least 1 character.
+        """
         # Create test provider
         provider = Provider(
             user_id=test_user.id, provider_key="schwab", alias="Original"
@@ -518,7 +875,21 @@ class TestProviderUpdate:
     def test_update_provider_missing_alias(
         self, client_with_mock_auth: TestClient, test_user: User, db_session
     ):
-        """Test updating provider without alias field is rejected."""
+        """Test PATCH /api/v1/providers/{id} rejects request with no alias field.
+
+        Verifies that:
+        - Empty JSON payload returns 422 Unprocessable Entity
+        - Alias field required for update
+        - Validation enforced
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+            test_user: Test user fixture for ownership
+            db_session: Database session for test data setup
+
+        Note:
+            PATCH requires at least alias field.
+        """
         # Create test provider
         provider = Provider(
             user_id=test_user.id, provider_key="schwab", alias="Original"
@@ -534,7 +905,18 @@ class TestProviderUpdate:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_update_provider_invalid_uuid(self, client_with_mock_auth: TestClient):
-        """Test updating provider with invalid UUID format."""
+        """Test PATCH /api/v1/providers/{invalid_uuid} rejects malformed UUID.
+
+        Verifies that:
+        - Invalid UUID format returns 422 Unprocessable Entity
+        - Path parameter validation enforced
+
+        Args:
+            client_with_mock_auth: Authenticated test client fixture
+
+        Note:
+            UUID path parameter must be valid UUID4 format.
+        """
         payload = {"alias": "New Name"}
         response = client_with_mock_auth.patch(
             "/api/v1/providers/not-a-uuid", json=payload

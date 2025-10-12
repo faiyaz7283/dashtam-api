@@ -331,6 +331,197 @@ git commit -m "docs(guides): add new development guide"
 - [ ] No time-based estimates in task lists or plans
 - [ ] Followed project documentation structure (`docs/` hierarchy)
 
+### AI Agent: Markdown Creation Standards
+**CRITICAL FOR AI AGENTS**: When creating or editing markdown files, ALWAYS follow these standards to prevent linting violations.
+
+**Root Cause Analysis**: The project has 60+ markdown files with 300+ linting violations because markdown was created without following proper standards. We must prevent this at the source.
+
+**Mandatory Standards When Creating/Editing Markdown:**
+
+1. **Headings Must Be Surrounded by Blank Lines** ✅
+   ```markdown
+   ✅ CORRECT:
+   Some text here.
+   
+   ## Heading
+   
+   More text here.
+   
+   ❌ WRONG:
+   Some text here.
+   ## Heading
+   More text here.
+   ```
+
+2. **Lists Must Be Surrounded by Blank Lines** ✅
+   ```markdown
+   ✅ CORRECT:
+   Paragraph before list.
+   
+   - List item 1
+   - List item 2
+   - List item 3
+   
+   Paragraph after list.
+   
+   ❌ WRONG:
+   Paragraph before list.
+   - List item 1
+   - List item 2
+   Paragraph after list.
+   ```
+
+3. **Code Blocks Must Have Language Specified** ✅
+   ```markdown
+   ✅ CORRECT:
+   ```bash
+   echo "Hello"
+   ```
+   
+   ```python
+   print("Hello")
+   ```
+   
+   ❌ WRONG:
+   ```
+   echo "Hello"
+   ```
+   ```
+
+4. **Code Blocks Must Be Surrounded by Blank Lines** ✅
+   ```markdown
+   ✅ CORRECT:
+   Paragraph before code.
+   
+   ```bash
+   echo "Hello"
+   ```
+   
+   Paragraph after code.
+   
+   ❌ WRONG:
+   Paragraph before code.
+   ```bash
+   echo "Hello"
+   ```
+   Paragraph after code.
+   ```
+
+5. **Use Proper Headings, Not Bold Text** ✅
+   ```markdown
+   ✅ CORRECT:
+   ### Configuration Steps
+   
+   Follow these steps...
+   
+   ❌ WRONG:
+   **Configuration Steps**
+   
+   Follow these steps...
+   ```
+
+6. **Nested List Indentation Must Be Correct** ✅
+   - Use 2 spaces for nested list items (not 4)
+   ```markdown
+   ✅ CORRECT:
+   - Parent item
+     - Child item (2 spaces)
+     - Another child
+   
+   ❌ WRONG:
+   - Parent item
+       - Child item (4 spaces)
+   ```
+
+7. **No Hard Tabs (Use Spaces)** ✅
+   - Always use spaces, never tab characters
+   - This is especially important in code blocks and lists
+
+8. **Line Length Considerations** ✅
+   - Keep lines under 80 characters when possible
+   - Exception: Long URLs, code examples can exceed
+   - Markdown will wrap naturally in rendered view
+
+**AI Agent Workflow When Creating Markdown:**
+
+1. **Plan the structure** - Outline headings and sections first
+2. **Write with standards** - Apply the rules above as you write
+3. **Add blank lines** - Generously use blank lines (always around headings, lists, code blocks)
+4. **Specify code languages** - Always add language identifier to code blocks
+5. **Use proper headings** - Use `##`, `###`, `####` not bold text
+6. **Lint immediately** - Run `make lint-md-file FILE="path"` after creation
+7. **Fix any violations** - Address issues before showing to user
+8. **Verify clean** - Ensure exit code 0 before proceeding
+
+**Common Violations to Avoid:**
+
+| Violation | Rule | Fix |
+|-----------|------|-----|
+| MD022 | Headings without blank lines | Add blank line before AND after headings |
+| MD032 | Lists without blank lines | Add blank line before AND after lists |
+| MD031 | Code blocks without blank lines | Add blank line before AND after code blocks |
+| MD040 | Code blocks without language | Add language identifier: ```bash, ```python, ```json |
+| MD036 | Bold text instead of heading | Use `###` heading instead of `**bold**` |
+| MD007 | Wrong list indentation | Use 2 spaces (not 4) for nested lists |
+| MD010 | Hard tabs | Use spaces only, never tabs |
+
+**Why This Matters:**
+- **Prevention > Cure**: Creating lint-clean markdown from the start prevents technical debt
+- **60+ files affected**: Past markdown has 300+ violations - we must not repeat this
+- **Professional quality**: Consistent formatting improves readability and maintainability  
+- **Workflow efficiency**: Fixing violations after creation wastes time
+
+**Enforcement:**
+- ✅ All AI agents MUST follow these standards when creating markdown
+- ✅ All markdown MUST be linted immediately after creation
+- ✅ Zero tolerance for violations in new markdown files
+- ✅ Existing violations will be addressed in separate cleanup PR
+
+**Template Example (Lint-Clean Markdown):**
+```markdown
+# Document Title
+
+Brief introduction paragraph.
+
+## Section 1
+
+Content for section 1.
+
+### Subsection 1.1
+
+Some details here.
+
+**Key points**:
+
+- First point
+- Second point
+- Third point
+
+Example code:
+
+```bash
+echo "Hello World"
+```
+
+More content here.
+
+## Section 2
+
+Content for section 2.
+
+### Steps to Follow
+
+1. First step
+2. Second step
+   - Nested item (2 spaces)
+   - Another nested item
+3. Third step
+
+Conclusion paragraph.
+```
+
+**This template passes all linting checks!** Use it as a reference when creating new markdown files.
+
 ### Python Code Style
 - **Type Hints**: ALWAYS use type hints for function parameters and return values
 - **Docstrings**: Use Google-style docstrings for all functions and classes

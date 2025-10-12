@@ -11,9 +11,12 @@ Documentation for working **on** the Dashtam project:
 
 - **[Development Guide](development/)** - Architecture, infrastructure, and testing
   - [Architecture Overview](development/architecture/overview.md)
+  - [Improvement Guide](development/architecture/improvement-guide.md) - Design improvements and roadmap
   - [Docker Setup](development/infrastructure/docker-setup.md)
   - [Testing Strategy](development/testing/strategy.md)
   - [Testing Guide](development/testing/guide.md)
+  - [Docstring Standards](development/guides/docstring-standards.md) - Comprehensive Python documentation guide
+  - [Documentation Implementation](development/guides/documentation-implementation-guide.md) - MkDocs setup guide
 
 ### Research & Decisions
 Historical research, architectural decisions, and migration notes:

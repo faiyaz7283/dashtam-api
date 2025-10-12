@@ -1,5 +1,9 @@
 # Test Docstring Standards
 
+> **Note**: This document is now part of the comprehensive [Docstring Standards Guide](../guides/docstring-standards.md). 
+> Please refer to that guide for complete Python documentation standards covering all code types.
+> This document is maintained for backward compatibility and focuses on test-specific patterns.
+
 This document provides the standard for writing comprehensive Google-style docstrings in test files, following the project's WARP.md requirements.
 
 ## Why Comprehensive Docstrings in Tests?

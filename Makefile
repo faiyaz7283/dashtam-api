@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format migrate migrate-down migrate-create migrate-history migrate-current migrate-show certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-pr git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
+.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format lint-md lint-md-fix lint-md-file md-check migrate migrate-down migrate-create migrate-history migrate-current migrate-show certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-pr git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
 
 # Default target - show help
 help:
@@ -45,8 +45,11 @@ help:
 	@echo "  make ci-clean       - Clean CI environment"
 	@echo ""
 	@echo "✨ Code Quality (uses dev environment):"
-	@echo "  make lint           - Run linters"
-	@echo "  make format         - Format code"
+	@echo "  make lint           - Run Python linters (ruff)"
+	@echo "  make format         - Format Python code (ruff)"
+	@echo "  make lint-md        - Lint all markdown files"
+	@echo "  make lint-md-fix    - Fix auto-fixable markdown issues (careful!)"
+	@echo "  make lint-md-file FILE=path/to/file.md - Lint specific markdown file(s)"
 	@echo ""
 	@echo "📦 Database Migrations (uses dev environment):"
 	@echo "  make migrate          - Apply all pending migrations (upgrade to head)"
@@ -355,6 +358,64 @@ format:
 	@echo "✨ Formatting code..."
 	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff format src/ tests/
 	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff check --fix src/ tests/
+
+# Markdown linting commands (uses one-off Node.js container)
+MARKDOWN_LINT_IMAGE := node:24-alpine
+MARKDOWN_LINT_CMD := npx markdownlint-cli2
+
+# Lint all markdown files (non-destructive check)
+lint-md:
+	@echo "🔍 Linting markdown files..."
+	@docker run --rm \
+		-v $(PWD):/workspace:ro \
+		-w /workspace \
+		$(MARKDOWN_LINT_IMAGE) \
+		$(MARKDOWN_LINT_CMD) "**/*.md" "#node_modules"
+
+# Fix auto-fixable markdown issues (with warning prompt)
+lint-md-fix:
+	@echo "⚠️  WARNING: This will modify markdown files!"
+	@echo "   - Review changes carefully after running"
+	@echo "   - Test visual presentation on GitHub"
+	@echo "   - Commit changes separately"
+	@echo ""
+	@read -p "Continue? (yes/no): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		echo "🔧 Fixing markdown files..."; \
+		docker run --rm \
+			-v $(PWD):/workspace \
+			-w /workspace \
+			$(MARKDOWN_LINT_IMAGE) \
+			$(MARKDOWN_LINT_CMD) --fix "**/*.md" "#node_modules"; \
+		echo "✅ Auto-fix complete. Please review all changes!"; \
+	else \
+		echo "❌ Operation cancelled"; \
+	fi
+
+# Lint specific markdown file(s)
+# Usage: make lint-md-file FILE="path/to/file.md" (relative or absolute)
+# Usage: make lint-md-file FILE="docs/**/*.md" (glob pattern)
+lint-md-file:
+	@if [ -z "$(FILE)" ]; then \
+		echo "🔍 Linting specific markdown file(s)..."; \
+		read -p "Enter file path(s) (e.g., README.md or 'docs/**/*.md'): " files; \
+	else \
+		echo "🔍 Linting: $(FILE)"; \
+		files="$(FILE)"; \
+		if echo "$$files" | grep -q "^/"; then \
+			project_root="$(PWD)"; \
+			files=$${files#$$project_root/}; \
+			echo "   (converted to relative: $$files)"; \
+		fi; \
+	fi; \
+	docker run --rm \
+		-v $(PWD):/workspace:ro \
+		-w /workspace \
+		$(MARKDOWN_LINT_IMAGE) \
+		$(MARKDOWN_LINT_CMD) "$$files"
+
+# Alias for convenience
+md-check: lint-md
 
 # ============================================================================
 # DATABASE MIGRATION COMMANDS (Alembic)

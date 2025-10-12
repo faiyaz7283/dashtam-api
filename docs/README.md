@@ -85,6 +85,27 @@ For API flows, use kebab-case filenames and keep each flow focused on a single u
 
 ## 📝 Contributing to Documentation
 
+### Markdown Quality Standards
+
+All markdown files **must pass linting** before commit:
+
+```bash
+# Lint specific file
+make lint-md-file FILE="docs/path/to/file.md"
+
+# Lint all markdown files
+make lint-md
+
+# Auto-fix issues (review changes carefully)
+make lint-md-fix
+```
+
+**Workflow**: Create/edit → Lint → Fix violations → Visual inspection → Commit
+
+See [WARP.md](../WARP.md) section "Documentation: Markdown Quality" for complete workflow and rules.
+
+### Structure Guidelines
+
 When adding new documentation, follow this structure:
 
 - **Development docs** → `docs/development/[category]/`

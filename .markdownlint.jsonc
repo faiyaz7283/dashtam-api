@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
+  
+  // Default: all rules enabled
+  "default": true,
+  
+  // Disable or customize specific rules for Dashtam project
+  
+  // MD013: Line length (disabled - we have long lines in code examples and commands)
+  "MD013": false,
+  
+  // MD024: Multiple headings with same content (siblings only - allow if different levels)
+  "MD024": {
+    "siblings_only": true
+  },
+  
+  // MD033: Inline HTML (allow - needed for custom formatting in some docs)
+  "MD033": false,
+  
+  // MD034: Bare URLs (disabled - acceptable in certain contexts like references)
+  "MD034": false,
+  
+  // MD041: First line should be top-level heading (disabled - some files have metadata)
+  "MD041": false,
+  
+  // MD046: Code block style (enforce fenced code blocks with ```)
+  "MD046": {
+    "style": "fenced"
+  },
+  
+  // MD048: Code fence style (enforce backticks, not tildes)
+  "MD048": {
+    "style": "backtick"
+  },
+  
+  // MD049: Emphasis style (enforce asterisks for *italic*)
+  "MD049": {
+    "style": "asterisk"
+  },
+  
+  // MD050: Strong style (enforce asterisks for **bold**)
+  "MD050": {
+    "style": "asterisk"
+  }
+}

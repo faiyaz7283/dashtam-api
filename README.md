@@ -268,6 +268,9 @@ make test-verify    # Quick core functionality verification
 # Code Quality (runs in dev environment)
 make lint           # Run code linting (ruff check)
 make format         # Format code (ruff format)
+make lint-md        # Lint all markdown files
+make lint-md-fix    # Fix auto-fixable markdown issues
+make lint-md-file FILE="path/to/file.md"  # Lint specific markdown file
 
 # CI/CD (run tests as they run in GitHub Actions)
 make ci-test        # Run CI tests locally
@@ -332,6 +335,8 @@ The test suite uses **pytest markers** for isolation:
 
 ### Code Quality
 
+#### Python Code
+
 ```bash
 # Format code
 make format
@@ -342,6 +347,25 @@ make lint
 # Run both in CI mode locally
 make ci-test
 ```
+
+#### Markdown Documentation
+
+All markdown files must pass linting before commit:
+
+```bash
+# Lint all markdown files
+make lint-md
+
+# Lint specific file (relative or absolute path)
+make lint-md-file FILE="docs/development/guides/my-guide.md"
+
+# Auto-fix issues (careful! review changes)
+make lint-md-fix
+```
+
+**Workflow**: Create/edit markdown → Lint → Fix violations → Commit
+
+See [WARP.md](WARP.md) section "Documentation: Markdown Quality" for complete workflow.
 
 ### Development Workflow
 

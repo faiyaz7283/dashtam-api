@@ -262,6 +262,75 @@ PR checklist additions (for any API endpoint change):
 - [ ] Kept examples free of real secrets and used variables/placeholders
 - [ ] Updated docs/README.md navigation if structure changed
 
+### Documentation: Markdown Quality (All Documentation Files)
+**CRITICAL RULE**: All markdown files (guides, docs, READMEs, etc.) must pass markdown linting before commit.
+
+**Workflow for Creating/Updating Markdown Files:**
+1. **Create or edit** markdown file using `create_file` or `edit_files` tool
+2. **Lint immediately** after creation/edit:
+   ```bash
+   docker compose -f compose/docker-compose.dev.yml exec app \
+     uv run markdownlint-cli2 "path/to/file.md"
+   ```
+3. **Fix all violations** - Zero tolerance for linting errors
+4. **Re-lint** until clean (exit code 0)
+5. **Then commit** - Only commit lint-clean markdown files
+
+**Why This Matters:**
+- Ensures consistent markdown formatting across all documentation
+- Catches formatting issues (headings, lists, links) early
+- Prevents accumulation of technical debt in docs
+- Maintains professional documentation quality
+- Follows project rule: "Always verify with the user that all requirements have been satisfied and properly handled before marking any task as complete"
+
+**Forbidden Patterns:**
+- ❌ **NEVER commit markdown files without linting first**
+- ❌ **NEVER skip linting because "it's just docs"**
+- ❌ **NEVER assume markdown is correctly formatted**
+- ❌ **NEVER use time-based estimates** ("Week 1-2", "2-3 hours") - Violates WARP.md flexible development rule
+
+**Quick Lint Command:**
+```bash
+# Lint single file
+make lint-md FILE=path/to/file.md
+
+# Lint all markdown files in project
+make lint-md
+```
+
+**Integration with Phase Completion Workflow:**
+This markdown linting step is part of the **Code Quality** phase:
+- Create/edit markdown → Lint markdown → Fix violations → Commit
+- Follows same discipline as Python linting (`make lint`) and formatting (`make format`)
+
+**Example Workflow:**
+```bash
+# 1. Create new guide
+vim docs/development/guides/new-guide.md
+
+# 2. Lint immediately
+docker compose -f compose/docker-compose.dev.yml exec app \
+  uv run markdownlint-cli2 "docs/development/guides/new-guide.md"
+
+# 3. Fix violations, re-lint until clean
+# ... edit file to fix issues ...
+
+# 4. Verify clean
+docker compose -f compose/docker-compose.dev.yml exec app \
+  uv run markdownlint-cli2 "docs/development/guides/new-guide.md"
+# ✅ Output: no errors (exit 0)
+
+# 5. Now safe to commit
+git add docs/development/guides/new-guide.md
+git commit -m "docs(guides): add new development guide"
+```
+
+**PR Checklist Additions (for any documentation change):**
+- [ ] All markdown files linted with `markdownlint-cli2`
+- [ ] All linting violations fixed (zero errors)
+- [ ] No time-based estimates in task lists or plans
+- [ ] Followed project documentation structure (`docs/` hierarchy)
+
 ### Python Code Style
 - **Type Hints**: ALWAYS use type hints for function parameters and return values
 - **Docstrings**: Use Google-style docstrings for all functions and classes

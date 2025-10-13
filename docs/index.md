@@ -53,6 +53,8 @@ docs/
 │   ├── testing-template.md
 │   ├── research-template.md
 │   ├── api-flow-template.md
+│   ├── index-template.md
+│   ├── readme-template.md
 │   └── MERMAID_GUIDELINES.md  # REQUIRED: Diagram standards
 │
 ├── api-flows/          # Manual API flows (HTTPS-first, dev TLS)
@@ -96,6 +98,8 @@ docs/
 | [testing-template.md](templates/testing-template.md) | Testing strategies and guides |
 | [research-template.md](templates/research-template.md) | Research documents and ADRs |
 | [api-flow-template.md](templates/api-flow-template.md) | API manual testing flows |
+| [index-template.md](templates/index-template.md) | Directory navigation pages (docs/index.md, docs/development/index.md) |
+| [readme-template.md](templates/readme-template.md) | Feature/component READMEs (env/README.md, tests/smoke/README.md) |
 
 **Diagram Standards:**
 

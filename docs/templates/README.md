@@ -15,6 +15,8 @@ This directory contains standardized templates for all Dashtam documentation. Us
 | [testing-template.md](testing-template.md) | Testing documentation | Test strategies, testing guides, QA documentation |
 | [research-template.md](research-template.md) | Research and ADR documents | Technical research, decision records, options analysis |
 | [api-flow-template.md](api-flow-template.md) | API manual testing flows | User-centric API workflows for manual testing |
+| [index-template.md](index-template.md) | Directory navigation pages | Navigation/index pages (docs/index.md, docs/development/index.md) |
+| [readme-template.md](readme-template.md) | Feature/component READMEs | Feature documentation (env/README.md, tests/smoke/README.md) |
 | [MERMAID_GUIDELINES.md](MERMAID_GUIDELINES.md) | **Diagram standards** | **REQUIRED: All diagrams MUST use Mermaid** |
 
 ---
@@ -31,6 +33,8 @@ This directory contains standardized templates for all Dashtam documentation. Us
 - **Writing test documentation?** → Use `testing-template.md`
 - **Researching options/decisions?** → Use `research-template.md`
 - **Creating API flow?** → Use `api-flow-template.md`
+- **Creating directory index/navigation?** → Use `index-template.md`
+- **Documenting a feature/component?** → Use `readme-template.md`
 - **Not sure?** → Use `general-template.md`
 
 ### 2. Copy the Template

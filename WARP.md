@@ -270,14 +270,14 @@ provider = result.scalar_one_or_none()
 - Naming: kebab-case file names (e.g., `provider-onboarding.md`). Keep titles concise and descriptive.
 - Keep docs in sync with behavior: when request/response shapes or status codes change, update affected flows.
 - Deprecations/removals: if an endpoint is removed, delete or deprecate the related flow and add a pointer to the replacement (if any).
-- Cross-reference: ensure `docs/README.md` structure stays aligned and links are updated when you add or move flows.
+- Cross-reference: ensure `docs/index.md` structure stays aligned and links are updated when you add or move flows.
 
 PR checklist additions (for any API endpoint change):
 
 - [ ] Updated/added/removed relevant flow(s) in `docs/api-flows/`
 - [ ] Verified flows end-to-end against dev HTTPS
 - [ ] Kept examples free of real secrets and used variables/placeholders
-- [ ] Updated docs/README.md navigation if structure changed
+- [ ] Updated docs/index.md navigation if structure changed
 
 ### Documentation: Markdown Quality (All Documentation Files)
 
@@ -1492,7 +1492,7 @@ flowchart TD
 
 ```bash
 docs/
-├── README.md                  # Documentation index
+├── index.md                   # Documentation index (navigation)
 ├── templates/                 # Documentation templates (START HERE!)
 │   ├── README.md              # Template system guide
 │   ├── MERMAID_GUIDELINES.md  # Diagram standards (REQUIRED)
@@ -1549,9 +1549,9 @@ docs/
 3. ✅ **Metadata at bottom** - Templates have metadata section at end for user-first reading
 4. ✅ **Keep root directory clean** - Only README.md and WARP.md
 5. ✅ **Use descriptive filenames** - kebab-case (e.g., `oauth-flow.md`)
-6. ✅ **Create README.md** - In each major directory as an index
+6. ✅ **Create index.md** - For navigation pages in directories (docs/, docs/development/, etc.)
 7. ✅ **Link between documents** - Cross-reference related docs
-8. ✅ **Update docs/README.md** - When adding new sections
+8. ✅ **Update docs/index.md** - When adding new sections
 9. ✅ **Archive completed work** - Move to `docs/research/archived/`
 10. ✅ **Lint before commit** - Run `make lint-md` to verify quality
 11. ❌ **NEVER scatter documentation** - Follow established directory structure

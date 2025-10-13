@@ -1,6 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
   
+  // Markdownlint rules configuration
+  // Used by: VS Code extension, markdownlint-cli2 (via .markdownlint-cli2.jsonc)
+  
   // Default: all rules enabled
   "default": true,
   

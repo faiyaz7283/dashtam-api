@@ -1,10 +1,6 @@
 # Dashtam - Financial Data Aggregation Platform
 
-[![Test Suite](https://github.com/faiyaz7283/Dashtam/workflows/Test%20Suite/badge.svg)](https://github.com/faiyaz7283/Dashtam/actions)
-[![codecov](https://codecov.io/gh/faiyaz7283/Dashtam/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/Dashtam)
-[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com)
-[![Code Coverage](https://img.shields.io/badge/coverage-76%25-yellowgreen.svg)](https://codecov.io/gh/faiyaz7283/Dashtam)
+[![Test Suite](https://github.com/faiyaz7283/Dashtam/workflows/Test%20Suite/badge.svg)](https://github.com/faiyaz7283/Dashtam/actions) [![codecov](https://codecov.io/gh/faiyaz7283/Dashtam/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/Dashtam) [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com) [![Code Coverage](https://img.shields.io/badge/coverage-76%25-yellowgreen.svg)](https://codecov.io/gh/faiyaz7283/Dashtam)
 
 A secure, modern financial data aggregation platform that connects to multiple financial institutions through OAuth2, providing a unified API for accessing accounts, transactions, and financial data.
 
@@ -13,6 +9,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 ## 🚀 Features
 
 ### Core Infrastructure
+
 - ✅ **Multi-Provider Support**: Connect to multiple financial institutions (Charles Schwab implemented)
 - ✅ **OAuth2 Authentication**: Secure authentication with financial providers
 - ✅ **Token Encryption**: All OAuth tokens encrypted at rest with AES-256
@@ -29,6 +26,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 - ✅ **Test Coverage**: 76% coverage with 295 passing tests
 
 ### Authentication & Security
+
 - ✅ **JWT Authentication**: Stateless JWT access tokens (30 min TTL)
 - ✅ **Refresh Tokens**: Opaque refresh tokens with rotation support (30 day TTL)
 - ✅ **Password Security**: bcrypt hashing with complexity requirements
@@ -38,6 +36,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 - ✅ **User Profile Management**: GET/PATCH /auth/me endpoints
 
 ### API Design
+
 - ✅ **RESTful Compliance**: 100% REST-compliant API (10/10 audit score)
 - ✅ **Resource-Oriented**: All endpoints follow REST principles
 - ✅ **Schema Separation**: Complete Pydantic schema organization
@@ -46,6 +45,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 - ✅ **API Documentation**: Auto-generated OpenAPI/Swagger docs
 
 ### Next Phase
+
 - 🚧 **Financial Data API**: Account and transaction endpoints
 - 🚧 **Rate Limiting**: API rate limiting and throttling
 - 🚧 **Additional Providers**: Plaid, Chase, Bank of America integrations
@@ -53,16 +53,19 @@ A secure, modern financial data aggregation platform that connects to multiple f
 ## 🎉 Recent Accomplishments (October 2025)
 
 ### P0 Critical Items ✅
+
 - **Timezone-Aware Datetimes** (PR #5): Full PostgreSQL TIMESTAMPTZ implementation
 - **Database Migrations** (PR #6): Alembic integration with automatic migrations in all environments
 
 ### P1 High-Priority Items ✅
+
 - **HTTP Connection Timeouts** (PR #7): Configurable timeouts for all provider API calls
 - **OAuth Token Rotation** (PR #8): Universal token rotation detection supporting both rotating and non-rotating providers
 - **JWT User Authentication** (PRs #9-13): Complete JWT authentication with refresh tokens, email verification, password reset
 - **REST API Compliance** (PRs #10-14): Achieved 10/10 REST compliance score with comprehensive audit
 
 ### Architecture & Documentation 📚
+
 - **Authentication Architecture**: Comprehensive JWT authentication design (828 lines)
 - **RESTful API Design**: Complete REST API architecture guide (981 lines)
 - **Schema Design**: Pydantic schema organization patterns (1,133 lines)
@@ -72,6 +75,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 ## 🗺️ Roadmap
 
 ### Phase 1: Enhanced Security (Next) 🔥
+
 - Rate limiting (Redis-based)
 - Token breach detection and rotation
 - Audit log enhancements
@@ -79,6 +83,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 - **Complexity**: Moderate
 
 ### Phase 2: Financial Data API
+
 - Account aggregation endpoints
 - Transaction history API
 - Balance tracking and analytics
@@ -87,6 +92,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 - **Complexity**: Moderate-High
 
 ### Phase 3: Provider Expansion
+
 - Plaid integration (broad bank support)
 - Chase direct integration
 - Bank of America integration
@@ -94,6 +100,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 - **Complexity**: High
 
 ### Phase 4: Advanced Authentication
+
 - Social authentication (Google, Apple)
 - Passkeys / WebAuthn (passwordless)
 - Multi-factor authentication (TOTP, SMS)
@@ -101,6 +108,7 @@ A secure, modern financial data aggregation platform that connects to multiple f
 - **Complexity**: Moderate (per feature)
 
 ### Phase 5: Advanced Features
+
 - Budget tracking and forecasting
 - Investment portfolio analysis
 - Bill pay integrations
@@ -134,6 +142,7 @@ make setup
 ```
 
 This will:
+
 - Generate self-signed SSL certificates for HTTPS
 - Create secure encryption keys for token storage
 - Create `env/.env.dev` file with secure defaults
@@ -158,6 +167,7 @@ make dev-up
 ```
 
 The development environment will be available at:
+
 - **Main API**: https://localhost:8000
 - **API Documentation**: https://localhost:8000/docs (Swagger UI)
 - **Alternative API Docs**: https://localhost:8000/redoc (ReDoc)
@@ -166,66 +176,66 @@ The development environment will be available at:
 
 ## 📦 Project Structure
 
-```
+```bash
 Dashtam/
-├── compose/                 # Docker Compose configurations
-│   ├── docker-compose.dev.yml    # Development environment
-│   ├── docker-compose.test.yml   # Test environment
-│   ├── docker-compose.ci.yml     # CI/CD environment
-│   └── docker-compose.prod.yml.example  # Production template
-├── docker/                  # Docker configuration
-│   ├── Dockerfile           # Multi-stage Dockerfile (dev, builder, production, callback)
-│   └── .dockerignore        # Docker build context exclusions
-├── env/                     # Environment configurations
-│   ├── .env.dev             # Development variables (gitignored)
-│   ├── .env.test            # Test variables (gitignored)
-│   ├── .env.ci              # CI variables (committed)
-│   ├── .env.example         # Template for non-production
-│   ├── .env.prod.example    # Template for production
-│   └── README.md            # Environment configuration guide
-├── src/                     # Application source code
-│   ├── api/                 # API endpoints
-│   │   └── v1/              # API version 1
-│   ├── core/                # Core functionality
-│   │   ├── config.py        # Application configuration
-│   │   ├── database.py      # Database setup
-│   │   └── init_db.py       # Database initialization
-│   ├── models/              # SQLModel database models
-│   │   ├── base.py          # Base model classes
-│   │   ├── user.py          # User model
-│   │   ├── auth.py          # Authentication models
-│   │   └── provider.py      # Provider models
-│   ├── providers/           # Financial provider implementations
-│   │   ├── base.py          # Base provider interface
-│   │   ├── registry.py      # Provider registry
-│   │   └── schwab.py        # Schwab implementation
-│   ├── services/            # Business logic services
-│   │   ├── encryption.py    # Token encryption
-│   │   ├── token_service.py # Token management
-│   │   ├── jwt_service.py   # JWT authentication
-│   │   ├── auth_service.py  # User authentication
-│   │   └── email_service.py # Email notifications
-│   ├── schemas/             # Pydantic schemas
-│   │   ├── auth.py          # Authentication schemas
-│   │   ├── provider.py      # Provider schemas
-│   │   └── common.py        # Common schemas
-│   └── main.py              # FastAPI application
-├── scripts/                 # Utility scripts
-│   ├── generate-certs.sh    # SSL certificate generation
-│   └── generate-keys.sh     # Security key generation
-├── tests/                   # Test suite (295 tests, 76% coverage)
-│   ├── unit/                # Unit tests
-│   ├── integration/         # Integration tests
-│   └── api/                 # API endpoint tests
-├── alembic/                 # Database migrations
-├── docs/                    # Documentation
-│   ├── development/         # Development guides
-│   └── research/            # Architecture research
-├── pyproject.toml           # Project dependencies (UV)
-├── uv.lock                  # Locked dependency versions
-├── Makefile                 # Convenience commands
-├── Makefile.workflows       # Workflow commands
-└── README.md                # This file
+├── compose/                              # Docker Compose configurations
+│   ├── docker-compose.dev.yml            # Development environment
+│   ├── docker-compose.test.yml           # Test environment
+│   ├── docker-compose.ci.yml             # CI/CD environment
+│   └── docker-compose.prod.yml.example   # Production template
+├── docker/                               # Docker configuration
+│   ├── Dockerfile                        # Multi-stage Dockerfile (dev, builder, production, callback)
+│   └── .dockerignore                     # Docker build context exclusions
+├── env/                                  # Environment configurations
+│   ├── .env.dev                          # Development variables (gitignored)
+│   ├── .env.test                         # Test variables (gitignored)
+│   ├── .env.ci                           # CI variables (committed)
+│   ├── .env.example                      # Template for non-production
+│   ├── .env.prod.example                 # Template for production
+│   └── README.md                         # Environment configuration guide
+├── src/                                  # Application source code
+│   ├── api/                              # API endpoints
+│   │   └── v1/                           # API version 1
+│   ├── core/                             # Core functionality
+│   │   ├── config.py                     # Application configuration
+│   │   ├── database.py                   # Database setup
+│   │   └── init_db.py                    # Database initialization
+│   ├── models/                           # SQLModel database models
+│   │   ├── base.py                       # Base model classes
+│   │   ├── user.py                       # User model
+│   │   ├── auth.py                       # Authentication models
+│   │   └── provider.py                   # Provider models
+│   ├── providers/                        # Financial provider implementations
+│   │   ├── base.py                       # Base provider interface
+│   │   ├── registry.py                   # Provider registry
+│   │   └── schwab.py                     # Schwab implementation
+│   ├── services/                         # Business logic services
+│   │   ├── encryption.py                 # Token encryption
+│   │   ├── token_service.py              # Token management
+│   │   ├── jwt_service.py                # JWT authentication
+│   │   ├── auth_service.py               # User authentication
+│   │   └── email_service.py              # Email notifications
+│   ├── schemas/                          # Pydantic schemas
+│   │   ├── auth.py                       # Authentication schemas
+│   │   ├── provider.py                   # Provider schemas
+│   │   └── common.py                     # Common schemas
+│   └── main.py                           # FastAPI application
+├── scripts/                              # Utility scripts
+│   ├── generate-certs.sh                 # SSL certificate generation
+│   └── generate-keys.sh                  # Security key generation
+├── tests/                                # Test suite (295 tests, 76% coverage)
+│   ├── unit/                             # Unit tests
+│   ├── integration/                      # Integration tests
+│   └── api/                              # API endpoint tests
+├── alembic/                              # Database migrations
+├── docs/                                 # Documentation
+│   ├── development/                      # Development guides
+│   └── research/                         # Architecture research
+├── pyproject.toml                        # Project dependencies (UV)
+├── uv.lock                               # Locked dependency versions
+├── Makefile                              # Convenience commands
+├── Makefile.workflows                    # Workflow commands
+└── README.md                             # This file
 ```
 
 ## 🔧 Development
@@ -328,6 +338,7 @@ The test suite uses **pytest markers** for isolation:
 - **All tests** (`make test`): Runs main tests first, then smoke tests separately
 
 **Why separate sessions?**
+
 - Smoke tests validate end-to-end auth flows with persistent state
 - Running in separate sessions prevents database state conflicts
 - Provides clearer test output and better debugging
@@ -410,6 +421,7 @@ make test-down
 ### Database Schema
 
 The platform uses the following main tables:
+
 - `users`: Application users
 - `providers`: User's provider connections
 - `provider_connections`: Connection status and sync tracking
@@ -449,6 +461,7 @@ make ci-down
 ### Branch Protection
 
 The `development` branch is protected with:
+
 - Required status checks (Code Quality must pass)
 - Pull request reviews recommended
 - Branch must be up to date before merging
@@ -456,6 +469,7 @@ The `development` branch is protected with:
 ## 🔐 Security
 
 ### Current Security Features
+
 - ✅ **HTTPS Everywhere**: All services use SSL/TLS (self-signed in dev, proper certs in prod)
 - ✅ **Token Encryption**: OAuth tokens encrypted using AES-256 before storage
 - ✅ **Secure Key Generation**: Cryptographically secure key generation scripts
@@ -466,6 +480,7 @@ The `development` branch is protected with:
 - ✅ **Timezone-Aware Storage**: All timestamps use PostgreSQL TIMESTAMPTZ
 
 ### Planned Security Enhancements
+
 - 🚧 **Rate Limiting**: API rate limiting and throttling
 - 🚧 **MFA**: Multi-factor authentication support
 - 🚧 **Passkeys**: WebAuthn/FIDO2 passwordless authentication
@@ -475,6 +490,7 @@ The `development` branch is protected with:
 ### Manual Testing & API Flows
 
 For hands-on, HTTPS-first manual testing guides with copy-paste examples, see:
+
 - **[API Flows Documentation](docs/api-flows/)** - Complete manual testing guides
 - **[Authentication Flows](docs/api-flows/auth/)** - Registration, login, password reset
 - **[Provider Flows](docs/api-flows/providers/)** - Provider onboarding and OAuth
@@ -504,18 +520,21 @@ export RESET_TOKEN="<token-from-logs>"
 See individual flow guides for detailed examples: [docs/api-flows/auth/](docs/api-flows/auth/)
 
 ### Base URL
-```
+
+```bash
 https://localhost:8000/api/v1
 ```
 
 ### Available Endpoints
 
 #### System & Health
+
 - `GET /` - Root endpoint with API information
 - `GET /health` - Health check endpoint
 - `GET /api/v1/health` - API version health check
 
 #### Provider Management
+
 - `GET /api/v1/providers/available` - List all available provider types
 - `GET /api/v1/providers/configured` - List configured providers ready to use
 - `POST /api/v1/providers/create` - Create a new provider instance
@@ -524,6 +543,7 @@ https://localhost:8000/api/v1
 - `DELETE /api/v1/providers/{provider_id}` - Delete a provider instance
 
 #### OAuth Authentication
+
 - `GET /api/v1/auth/{provider_id}/authorize` - Get OAuth authorization URL
 - `GET /api/v1/auth/{provider_id}/authorize/redirect` - Redirect to OAuth page
 - `GET /api/v1/auth/{provider_id}/callback` - Handle OAuth callback (internal)
@@ -532,6 +552,7 @@ https://localhost:8000/api/v1
 - `DELETE /api/v1/auth/{provider_id}/disconnect` - Disconnect provider
 
 #### User Authentication ✅
+
 - `POST /api/v1/auth/register` - Create new user account
 - `POST /api/v1/auth/verify-email` - Verify email address
 - `POST /api/v1/auth/login` - Login with email/password (returns JWT tokens)
@@ -546,6 +567,7 @@ https://localhost:8000/api/v1
 **Manual Testing Guides**: See [Authentication Flows](docs/api-flows/auth/) for copy-paste examples
 
 #### Financial Data (Coming Soon)
+
 - `GET /api/v1/accounts` - Get all connected accounts
 - `GET /api/v1/accounts/{account_id}` - Get specific account details
 - `GET /api/v1/transactions` - Get transactions across all accounts
@@ -568,6 +590,7 @@ curl -X POST https://localhost:8000/api/v1/providers/create \
 ```
 
 **Response:**
+
 ```json
 {
   "id": "81f8773a-3e63-4003-8206-d1e0fb1dba6c",
@@ -596,6 +619,7 @@ curl https://localhost:8000/api/v1/auth/{provider_id}/authorize \
 Replace `{provider_id}` with the ID from Step 1.
 
 **Response:**
+
 ```json
 {
   "auth_url": "https://api.schwabapi.com/v1/oauth/authorize?...",
@@ -616,6 +640,7 @@ Replace `{provider_id}` with the ID from Step 1.
 #### Step 4: OAuth Callback
 
 The callback server automatically:
+
 1. Receives the authorization code from Schwab
 2. Forwards it to the main API
 3. Exchanges the code for access/refresh tokens
@@ -632,6 +657,7 @@ curl https://localhost:8000/api/v1/providers/{provider_id} \
 ```
 
 **Response:**
+
 ```json
 {
   "id": "81f8773a-3e63-4003-8206-d1e0fb1dba6c",
@@ -654,6 +680,7 @@ FastAPI provides automatic interactive API documentation. When running in develo
 - **ReDoc**: https://localhost:8000/redoc
 
 These interfaces allow you to:
+
 - Browse all available endpoints
 - See request/response schemas
 - Test endpoints directly from the browser
@@ -662,36 +689,42 @@ These interfaces allow you to:
 ### 📝 API Examples
 
 #### List Available Providers
+
 ```bash
 curl https://localhost:8000/api/v1/providers/available \
   --insecure | python3 -m json.tool
 ```
 
 #### List Your Connected Providers
+
 ```bash
 curl https://localhost:8000/api/v1/providers/ \
   --insecure | python3 -m json.tool
 ```
 
 #### Check Token Status
+
 ```bash
 curl https://localhost:8000/api/v1/auth/{provider_id}/status \
   --insecure | python3 -m json.tool
 ```
 
 #### Manually Refresh Tokens
+
 ```bash
 curl -X POST https://localhost:8000/api/v1/auth/{provider_id}/refresh \
   --insecure
 ```
 
 #### Disconnect a Provider
+
 ```bash
 curl -X DELETE https://localhost:8000/api/v1/auth/{provider_id}/disconnect \
   --insecure
 ```
 
 #### Delete a Provider Instance
+
 ```bash
 curl -X DELETE https://localhost:8000/api/v1/providers/{provider_id} \
   --insecure
@@ -759,44 +792,57 @@ Key environment variables (see `.env.example` for full list):
 
 ### OAuth Flow Issues
 
-**"Invalid host header" Error**
+#### "Invalid host header" Error
+
 - This occurs when the TrustedHostMiddleware blocks requests
 - Solution: Ensure Docker services are running properly
 - The fix is already applied in the codebase
 
-**"greenlet_spawn has not been called" Error**
+#### "greenlet_spawn has not been called" Error
+
 - This is an async SQLAlchemy error
 - Happens when relationships aren't properly loaded
 - Solution: Restart the backend service
+
   ```bash
   docker restart dashtam-app
   ```
 
-**Callback Server Not Receiving OAuth Callback**
+#### Callback Server Not Receiving OAuth Callback
+
 - Check if callback server is running:
+
   ```bash
   docker logs dashtam-callback
   ```
+
 - Ensure SSL certificates exist:
+
   ```bash
   ls -la certs/
   ```
+
 - Verify redirect URI matches exactly: `https://127.0.0.1:8182`
 
-**"Connection Error" from Callback Server**
+#### "Connection Error" from Callback Server
+
 - This means the callback server can't reach the backend
 - Check both services are running:
+
   ```bash
   docker ps | grep dashtam
   ```
+  
 - Check backend logs:
+
   ```bash
   docker logs dashtam-app --tail 50
   ```
 
 ### Common Issues
 
-**Port Already in Use**
+#### Port Already in Use
+
 ```bash
 # Check what's using the ports
 lsof -i :5432  # PostgreSQL
@@ -808,14 +854,16 @@ lsof -i :8182  # Callback server
 make clean
 ```
 
-**SSL Certificate Issues**
+#### SSL Certificate Issues
+
 ```bash
 # Regenerate certificates
 rm -rf certs/*.pem
 make certs
 ```
 
-**Database Connection Issues**
+#### Database Connection Issues
+
 ```bash
 # Check database logs
 docker logs dashtam-postgres
@@ -825,23 +873,30 @@ make clean
 make up
 ```
 
-**Token Encryption Issues**
+#### Token Encryption Issues
+
 ```bash
 # Regenerate encryption keys (WARNING: will invalidate existing tokens)
 make keys
 make restart
 ```
 
-**Provider Not Showing as Connected**
-1. Check the provider status:
+#### Provider Not Showing as Connected
+
+- Check the provider status:
+
    ```bash
    curl https://localhost:8000/api/v1/providers/{provider_id} --insecure
    ```
-2. Check token status:
+
+- Check token status:
+
    ```bash
    curl https://localhost:8000/api/v1/auth/{provider_id}/status --insecure
    ```
-3. Try manually refreshing tokens:
+
+- Try manually refreshing tokens:
+
    ```bash
    curl -X POST https://localhost:8000/api/v1/auth/{provider_id}/refresh --insecure
    ```

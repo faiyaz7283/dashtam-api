@@ -3,9 +3,11 @@
 Log in as a verified user, capture tokens, call a protected endpoint, refresh, and logout.
 
 ## Purpose
+
 Authenticate a user and validate token-based access to protected resources.
 
 ## Prerequisites
+
 - Dev environment running with TLS
 - An existing, verified user (see [Registration](registration.md) + [Email Verification](email-verification.md) flows)
 
@@ -36,6 +38,7 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/login" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4NzA2...",
@@ -82,6 +85,7 @@ curl -sk "$BASE_URL/api/v1/auth/me" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "id": "87068e4d-1c72-4e14-a444-654f7162f7a4",
@@ -109,6 +113,7 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/refresh" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4NzA2...",
@@ -121,6 +126,7 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/refresh" \
 **⚠️ Note about refresh tokens**: The `refresh_token` in the response is the **same** as before. Dashtam uses **reusable refresh tokens** (not rotated). This is Pattern A (industry standard) - see [JWT Authentication Docs](../../development/architecture/jwt-authentication.md#flow-5-logout) for details.
 
 **Update access token:**
+
 ```bash
 # If you need to use the new access token
 export ACCESS_TOKEN=$(curl -sk -X POST "$BASE_URL/api/v1/auth/refresh" \
@@ -144,6 +150,7 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/logout" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "message": "Logged out successfully"
@@ -152,26 +159,33 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/logout" \
 
 ### 5) Verify logout behavior
 
-**Test 1: Refresh token is revoked**
+**Test 1: Refresh token is revoked:**
+
 ```bash
 curl -sk -X POST "$BASE_URL/api/v1/auth/refresh" \
   -H 'Content-Type: application/json' \
   --data-binary @/tmp/refresh.json | python3 -m json.tool
 ```
+
 **Expected Response (HTTP 401 Unauthorized):**
+
 ```json
 {
   "detail": "Invalid or revoked refresh token"
 }
 ```
+
 ✅ **This is correct** - the refresh token has been revoked.
 
-**Test 2: Access token STILL WORKS (expected behavior)**
+**Test 2: Access token STILL WORKS (expected behavior):**
+
 ```bash
 curl -sk "$BASE_URL/api/v1/auth/me" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | python3 -m json.tool
 ```
+
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "id": "87068e4d-1c72-4e14-a444-654f7162f7a4",
@@ -185,6 +199,7 @@ curl -sk "$BASE_URL/api/v1/auth/me" \
 **Why this happens**: See [JWT Authentication - Logout Behavior](../../development/architecture/jwt-authentication.md#flow-5-logout) for detailed explanation of what gets invalidated during logout.
 
 ## Troubleshooting
-- 401 Unauthorized: access token expired/invalid → refresh or re-login
-- 403 Forbidden: missing/invalid Authorization header (Bearer prefix required)
-- SSL: use `-k` in dev to accept self-signed certificate
+
+- **401 Unauthorized:** access token expired/invalid → refresh or re-login
+- **403 Forbidden:** missing/invalid Authorization header (Bearer prefix required)
+- **SSL:** use `-k` in dev to accept self-signed certificate

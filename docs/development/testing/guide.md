@@ -30,12 +30,14 @@ docker compose -f docker-compose.test.yml exec app uv run pytest tests/ --cov=sr
 ## Test Categories
 
 ### Unit Tests (`tests/unit/`)
-- **Purpose**: Test business logic in isolation
-- **Dependencies**: None (or mocked)
-- **Speed**: Very fast (< 0.01s per test)
-- **Database**: No database access
 
-**Example**:
+- **Purpose:** Test business logic in isolation
+- **Dependencies:** None (or mocked)
+- **Speed:** Very fast (< 0.01s per test)
+- **Database:** No database access
+
+**Example:**
+
 ```python
 def test_encrypt_decrypt_string():
     """Test basic encryption/decryption."""
@@ -50,12 +52,14 @@ def test_encrypt_decrypt_string():
 ```
 
 ### Integration Tests (`tests/integration/`)
-- **Purpose**: Test database operations and relationships
-- **Dependencies**: Real PostgreSQL database
-- **Speed**: Fast (< 0.1s per test)
-- **Database**: Uses test database with cleanup
 
-**Example**:
+- **Purpose:** Test database operations and relationships
+- **Dependencies:** Real PostgreSQL database
+- **Speed:** Fast (< 0.1s per test)
+- **Database:** Uses test database with cleanup
+
+**Example:**
+
 ```python
 def test_create_provider(db_session: Session, test_user: User):
     """Test creating a provider instance."""
@@ -73,12 +77,14 @@ def test_create_provider(db_session: Session, test_user: User):
 ```
 
 ### API Tests (`tests/api/`)
-- **Purpose**: Test HTTP endpoints end-to-end
-- **Dependencies**: Full application stack
-- **Speed**: Medium (< 0.2s per test)
-- **Database**: Uses test database via TestClient
 
-**Example**:
+- **Purpose:** Test HTTP endpoints end-to-end
+- **Dependencies:** Full application stack
+- **Speed:** Medium (< 0.2s per test)
+- **Database:** Uses test database via TestClient
+
+**Example:**
+
 ```python
 def test_create_provider_instance(client: TestClient, test_user: User):
     """Test POST /api/v1/providers/create endpoint."""
@@ -96,13 +102,15 @@ def test_create_provider_instance(client: TestClient, test_user: User):
 ```
 
 ### Smoke Tests (`tests/smoke/`)
-- **Purpose**: Validate critical user journeys are operational
-- **Dependencies**: Full application stack
-- **Speed**: Medium (complete auth flow < 5s)
-- **Database**: Uses test database via TestClient
-- **When to run**: Before deployment, after major changes
 
-**Example**:
+- **Purpose:** Validate critical user journeys are operational
+- **Dependencies:** Full application stack
+- **Speed:** Medium (complete auth flow < 5s)
+- **Database:** Uses test database via TestClient
+- **When to run:** Before deployment, after major changes
+
+**Example:**
+
 ```python
 def test_complete_registration_flow(client: TestClient, caplog):
     """Smoke: User can register, verify email, and login."""
@@ -131,7 +139,7 @@ def test_complete_registration_flow(client: TestClient, caplog):
     assert "access_token" in response.json()
 ```
 
-**Note**: See `tests/smoke/README.md` for complete documentation on smoke tests.
+**Note:** See `tests/smoke/README.md` for complete documentation on smoke tests.
 
 ---
 
@@ -347,6 +355,7 @@ class Test[EndpointGroup]:
 ## Best Practices
 
 ### 1. Test Naming
+
 ```python
 # ✅ Good - Descriptive, action-oriented
 def test_create_provider_with_valid_data():
@@ -360,6 +369,7 @@ def test_api():
 ```
 
 ### 2. Test Structure (AAA Pattern)
+
 ```python
 def test_example():
     # Arrange - Set up test data
@@ -373,6 +383,7 @@ def test_example():
 ```
 
 ### 3. Test Isolation
+
 ```python
 # ✅ Good - Each test is independent
 def test_create_provider(db_session, test_user):
@@ -389,6 +400,7 @@ def test_create_provider():
 ```
 
 ### 4. Assertions
+
 ```python
 # ✅ Good - Clear, specific assertions
 assert provider.id is not None
@@ -401,6 +413,7 @@ assert provider  # What are we checking?
 ```
 
 ### 5. Error Testing
+
 ```python
 # ✅ Good - Test specific error conditions
 def test_invalid_provider_key_raises_error():
@@ -420,6 +433,7 @@ def test_create_provider_with_invalid_key(client):
 ## Common Patterns
 
 ### Testing with Database Relationships
+
 ```python
 def test_provider_with_connection(db_session, test_user):
     # Create parent
@@ -439,6 +453,7 @@ def test_provider_with_connection(db_session, test_user):
 ```
 
 ### Testing API with Authentication
+
 ```python
 def test_protected_endpoint(client, normal_user_token_headers):
     headers = normal_user_token_headers
@@ -449,6 +464,7 @@ def test_protected_endpoint(client, normal_user_token_headers):
 ```
 
 ### Testing Pagination
+
 ```python
 def test_list_with_pagination(client, db_session, test_user):
     # Create test data
@@ -467,6 +483,7 @@ def test_list_with_pagination(client, db_session, test_user):
 ```
 
 ### Testing Error Scenarios
+
 ```python
 def test_concurrent_updates_handled_correctly(db_session, test_user):
     # Create initial record
@@ -496,16 +513,19 @@ def test_concurrent_updates_handled_correctly(db_session, test_user):
 ## Debugging Tests
 
 ### Run Single Test
+
 ```bash
 pytest tests/unit/services/test_encryption_service.py::TestEncryptionService::test_encrypt_decrypt_string -v
 ```
 
 ### Run with Print Statements
+
 ```bash
 pytest tests/unit/services/test_encryption_service.py -v -s
 ```
 
 ### Run with Debugger
+
 ```python
 def test_example():
     import pdb; pdb.set_trace()  # Breakpoint
@@ -514,11 +534,13 @@ def test_example():
 ```
 
 ### View Full Traceback
+
 ```bash
 pytest tests/unit/services/test_encryption_service.py -v --tb=long
 ```
 
 ### Run Failed Tests Only
+
 ```bash
 pytest --lf  # Last failed
 pytest --ff  # Failed first
@@ -528,7 +550,7 @@ pytest --ff  # Failed first
 
 ## Useful Test Utilities
 
-### Available in `tests/utils/utils.py`:
+### Available in `tests/utils/utils.py`
 
 ```python
 from tests.utils.utils import (
@@ -577,6 +599,7 @@ def test_performance():
 ```
 
 Run by marker:
+
 ```bash
 pytest -m unit           # Unit tests only
 pytest -m integration    # Integration tests only
@@ -588,6 +611,7 @@ pytest -m "not slow"     # Skip slow tests
 ## Coverage
 
 ### Generate Coverage Report
+
 ```bash
 # Terminal report
 pytest tests/ --cov=src --cov-report=term-missing
@@ -598,10 +622,11 @@ pytest tests/ --cov=src --cov-report=html
 ```
 
 ### Target Coverage
-- **Overall**: 85%+
+
+- **Overall:** 85%+
 - **Critical modules** (encryption, auth): 95%+
-- **API endpoints**: 90%+
-- **Models**: 80%+
+- **API endpoints:** 90%+
+- **Models:** 80%+
 
 ---
 
@@ -626,15 +651,15 @@ Tests run automatically in CI/CD:
 
 ## Getting Help
 
-1. **Check existing tests**: Look at `tests/unit/services/test_encryption_service.py`, `tests/integration/test_provider_operations.py`, or `tests/api/test_provider_endpoints.py` for examples
+1. **Check existing tests:** Look at `tests/unit/services/test_encryption_service.py`, `tests/integration/test_provider_operations.py`, or `tests/api/test_provider_endpoints.py` for examples
 
-2. **Read documentation**: 
+2. **Read documentation:**
    - `TESTING_STRATEGY.md` - Testing approach
    - `TESTING_MIGRATION_SUMMARY.md` - Migration details
 
-3. **FastAPI testing docs**: https://fastapi.tiangolo.com/tutorial/testing/
+3. **FastAPI testing docs:** https://fastapi.tiangolo.com/tutorial/testing/
 
-4. **pytest docs**: https://docs.pytest.org/
+4. **pytest docs:** https://docs.pytest.org/
 
 ---
 

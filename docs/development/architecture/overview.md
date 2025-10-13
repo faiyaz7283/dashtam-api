@@ -9,40 +9,46 @@ Dashtam uses a **dual-environment architecture** with complete isolation between
 ## 1. Environment Architecture
 
 ### Development Environment
-**Purpose**: Active development, debugging, and manual testing
 
-**Containers**:
+**Purpose:** Active development, debugging, and manual testing
+
+**Containers:**
+
 - `dashtam-app` (port 8000) - FastAPI application
 - `dashtam-callback` (port 8182) - OAuth callback server
 - `dashtam-postgres` - PostgreSQL database
 - `dashtam-redis` - Redis cache
 
-**Configuration**:
+**Configuration:**
+
 - Uses `.env` file
 - Database: `dashtam` with user `dashtam_user`
 - Auto-runs `init_db.py` on startup
 - Hot reload enabled (code changes auto-restart)
 - HTTPS with self-signed certs
 
-**Startup Command**: `make up`
+**Startup Command:** `make up`
 
 ### Test Environment
-**Purpose**: Automated testing with isolated data
+
+**Purpose:** Automated testing with isolated data
 
 **Containers** (overlays dev):
+
 - Same container names but with test config overlay
 - `dashtam-app` runs `sleep infinity` (no auto-start)
 - `dashtam-postgres` with test database
 - `dashtam-redis` (different database index)
 
-**Configuration**:
+**Configuration:**
+
 - Uses `.env.test` (mounted as `.env`)
 - Database: `dashtam_test` with user `dashtam_test_user`
 - Runs `init_test_db.py` on demand
 - No SSL/auto-reload
 - Clean database state for each test run
 
-**Startup Command**: `make test-setup`
+**Startup Command:** `make test-setup`
 
 ---
 
@@ -50,15 +56,18 @@ Dashtam uses a **dual-environment architecture** with complete isolation between
 
 ### How Environments Interact
 
-**Key Point**: The environments **share the same Docker containers** but with different configurations!
+**Key Point:** The environments **share the same Docker containers** but with different configurations!
 
 When you run tests:
+
 ```bash
 make test-setup  # or make test-unit
 ```
 
-**What happens**:
+**What happens:**
+
 1. Docker Compose uses file overlays:
+
    ```bash
    docker-compose --env-file .env.test \
      -f docker-compose.yml \
@@ -66,20 +75,20 @@ make test-setup  # or make test-unit
      up -d postgres redis app
    ```
 
-2. **PostgreSQL container**:
+2. **PostgreSQL container:**
    - Still running the same instance
    - Now has BOTH databases: `dashtam` AND `dashtam_test`
    - Has BOTH users: `dashtam_user` AND `dashtam_test_user`
    - Dev data remains untouched in `dashtam` database
    - Test data is isolated in `dashtam_test` database
 
-3. **App container**:
+3. **App container:**
    - Gets restarted with test configuration
    - `.env.test` mounted as `.env`
    - Environment variables overridden (DATABASE_URL, ENVIRONMENT)
    - Command changed to `sleep infinity` (doesn't auto-start the app)
 
-4. **Dev environment**:
+4. **Dev environment:**
    - Dev containers stop when test containers start
    - Dev database data persists in volumes
    - Can be restarted with `make up` after testing
@@ -90,12 +99,13 @@ make test-setup  # or make test-unit
 
 ### Development Database Initialization
 
-**File**: `src/core/init_db.py`
+**File:** `src/core/init_db.py`
 
-**When it runs**: Automatically on app container startup
+**When it runs:** Automatically on app container startup
 
-**Process**:
-```
+**Process:**
+
+```text
 1. Container starts
 2. Command: "uv run python src/core/init_db.py && uv run uvicorn..."
 3. init_db.py executes:
@@ -114,7 +124,8 @@ make test-setup  # or make test-unit
 4. App starts (uvicorn)
 ```
 
-**Key Points**:
+**Key Points:**
+
 - Idempotent (safe to run multiple times)
 - Only creates tables, no seed data
 - Runs in DEBUG mode (from .env)
@@ -122,12 +133,13 @@ make test-setup  # or make test-unit
 
 ### Test Database Initialization
 
-**File**: `src/core/init_test_db.py`
+**File:** `src/core/init_test_db.py`
 
-**When it runs**: On-demand via `make test-setup`
+**When it runs:** On-demand via `make test-setup`
 
-**Process**:
-```
+**Process:**
+
+```text
 1. make test-setup called
 2. Start postgres/redis containers with test config
 3. PostgreSQL init script runs (docker/init-test-db.sh):
@@ -151,7 +163,8 @@ make test-setup  # or make test-unit
    └── Log success
 ```
 
-**Key Points**:
+**Key Points:**
+
 - **Always drops tables first** (clean state)
 - Has safety checks to prevent running on prod database
 - Optimized for speed (no fsync, no synchronous commits)
@@ -164,7 +177,8 @@ make test-setup  # or make test-unit
 
 Both initialization scripts must import all models BEFORE calling `SQLModel.metadata.create_all()`. This is because SQLModel uses a metadata registry.
 
-**Why this matters**:
+**Why this matters:**
+
 ```python
 # ❌ WRONG - Tables won't be created
 from sqlmodel import SQLModel
@@ -177,7 +191,8 @@ from sqlmodel import SQLModel
 SQLModel.metadata.create_all()  # Now creates all tables!
 ```
 
-**Model Registration**:
+**Model Registration:**
+
 - Each model class that inherits from `SQLModel` auto-registers with `SQLModel.metadata`
 - The `table=True` parameter marks it as a database table
 - Relationships are established via foreign keys
@@ -188,8 +203,9 @@ SQLModel.metadata.create_all()  # Now creates all tables!
 
 ### Settings Hierarchy
 
-**Development**:
-```
+**Development:**
+
+```text
 Environment Variables (docker-compose.yml)
     ↓
 .env file
@@ -199,8 +215,9 @@ Settings class defaults (src/core/config.py)
 Final Settings object
 ```
 
-**Testing**:
-```
+**Testing:**
+
+```text
 Environment Variables (docker-compose.test.yml override)
     ↓
 .env.test file (mounted as .env)
@@ -213,23 +230,27 @@ Final TestSettings object
 ### Key Configuration Files
 
 **`.env`** (Development):
+
 - DATABASE_URL: `postgresql+asyncpg://dashtam_user:...@postgres:5432/dashtam`
 - ENVIRONMENT: `development`
 - DEBUG: `true`
 - Schwab API credentials
 
 **`.env.test`** (Testing):
+
 - DATABASE_URL: `postgresql+asyncpg://dashtam_test_user:...@postgres:5432/dashtam_test`
 - ENVIRONMENT: `testing`
 - TESTING: `true`
 - Mock provider credentials
 
 **`docker-compose.yml`** (Base):
+
 - Defines all services
 - Uses variables from `.env`
 - Sets up networks and volumes
 
 **`docker-compose.test.yml`** (Override):
+
 - Overrides app command to `sleep infinity`
 - Overrides database credentials
 - Mounts .env.test as .env
@@ -293,6 +314,7 @@ You **cannot** run dev and test simultaneously with current setup because they s
 
 1. Run tests in one terminal
 2. Switch back to dev without losing data:
+
 ```bash
 # Terminal 1
 make test           # Tests running...
@@ -308,21 +330,24 @@ make up             # Resume development
 
 ### Development Database State
 
-**Location**: Docker volume `dashtam_postgres_data`
+**Location:** Docker volume `dashtam_postgres_data`
 
-**Persistence**:
+**Persistence:**
+
 - Survives container restarts
 - Survives `make down`
 - Lost with `make clean`
 
-**Tables**:
+**Tables:**
+
 - users
 - providers
 - provider_connections
 - provider_tokens
 - provider_audit_logs
 
-**When to reset**:
+**When to reset:**
+
 ```bash
 make clean          # Remove all data and containers
 make build          # Rebuild
@@ -331,14 +356,16 @@ make up             # Fresh start
 
 ### Test Database State
 
-**Location**: Same PostgreSQL instance, different database
+**Location:** Same PostgreSQL instance, different database
 
-**Persistence**:
+**Persistence:**
+
 - **Intentionally destroyed** on each `make test-setup`
 - `init_test_db.py` drops all tables
 - Always starts with clean slate
 
-**Why this matters**:
+**Why this matters:**
+
 - Tests are isolated from each other
 - No test data pollution
 - Predictable test environment
@@ -348,25 +375,31 @@ make up             # Fresh start
 ## 8. Common Issues and Solutions
 
 ### Issue: Tests fail with "database does not exist"
-**Solution**: Run `make test-setup` first to initialize test database
+
+**Solution:** Run `make test-setup` first to initialize test database
 
 ### Issue: Dev database lost after testing
-**Solution**: Dev database is in a different database (`dashtam` vs `dashtam_test`). Use `make up` to restart dev environment.
+
+**Solution:** Dev database is in a different database (`dashtam` vs `dashtam_test`). Use `make up` to restart dev environment.
 
 ### Issue: Environment variables not loading in tests
-**Solution**: Ensure `docker-compose.test.yml` properly overrides and `.env.test` is mounted as `.env`
+
+**Solution:** Ensure `docker-compose.test.yml` properly overrides and `.env.test` is mounted as `.env`
 
 ### Issue: Tables not created in test database
-**Solution**: Verify all models are imported in `init_test_db.py` before `create_all()`
+
+**Solution:** Verify all models are imported in `init_test_db.py` before `create_all()`
 
 ### Issue: Can't run dev and tests simultaneously
-**Solution**: By design. Use `make test-clean` then `make up` to switch back to dev.
+
+**Solution:** By design. Use `make test-clean` then `make up` to switch back to dev.
 
 ---
 
 ## 9. File Reference
 
 ### Core Application Files
+
 - `src/core/config.py` - Settings management
 - `src/core/database.py` - Database connection and session management
 - `src/core/init_db.py` - Development database initialization
@@ -374,6 +407,7 @@ make up             # Fresh start
 - `src/main.py` - FastAPI application entry point
 
 ### Configuration Files
+
 - `.env` - Development environment variables
 - `.env.test` - Test environment variables
 - `docker-compose.yml` - Base Docker configuration
@@ -381,10 +415,12 @@ make up             # Fresh start
 - `Makefile` - Command shortcuts
 
 ### Database Models
+
 - `src/models/user.py` - User model
 - `src/models/provider.py` - Provider, Connection, Token, AuditLog models
 
 ### Test Files
+
 - `tests/test_config.py` - Test configuration
 - `tests/conftest.py` - Pytest fixtures
 - `tests/unit/` - Unit tests
@@ -404,6 +440,7 @@ The Dashtam application uses a sophisticated **dual-environment architecture** w
 6. **Switching between environments** is seamless with Make commands
 
 This architecture ensures:
+
 - ✅ No test data pollution
 - ✅ Safe, repeatable testing
 - ✅ Dev environment stability

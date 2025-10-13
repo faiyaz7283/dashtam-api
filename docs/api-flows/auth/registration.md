@@ -3,9 +3,11 @@
 Register a new user using the HTTPS-enabled development environment.
 
 ## Purpose
+
 Create a new user account that can later be verified and used to log in.
 
 ## Prerequisites
+
 - Dev environment is running with TLS
 - Shell variables exported
 
@@ -19,6 +21,7 @@ TEST_PASSWORD='SecurePass123!'
 ## Steps
 
 ### 1) Register
+
 ```bash
 # Quote-safe JSON via heredoc
 cat <<JSON >/tmp/register.json
@@ -33,14 +36,17 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/register" \
   -H 'Content-Type: application/json' \
   --data-binary @/tmp/register.json | python3 -m json.tool
 ```
+
 **Expected Response (HTTP 201 Created):**
+
 ```json
 {
   "message": "Registration successful. Please check your email to verify your account."
 }
 ```
 
-**Optional: Inline (no heredoc)**
+**Optional: Inline (no heredoc):**
+
 ```bash
 curl -sk -X POST "$BASE_URL/api/v1/auth/register" \
   -H 'Content-Type: application/json' \
@@ -58,7 +64,8 @@ docker logs dashtam-dev-app --tail 100 2>&1 | grep -A 20 '📧 EMAIL'
 ```
 
 **You'll see output like:**
-```
+
+```log
 📧 EMAIL (Development Mode - Not Sent)
 ================================================================================
 From: Dashtam <noreply@dashtam.com>
@@ -76,6 +83,7 @@ https://localhost:3000/verify-email?token=vYaGSkz80Qoi86hR78lPyKt6zIp8LDoj13Tihe
 ```
 
 **Extract the token:**
+
 ```bash
 # Copy the token from the URL in the logs
 export VERIFICATION_TOKEN="vYaGSkz80Qoi86hR78lPyKt6zIp8LDoj13TiheZzjLk"
@@ -99,16 +107,17 @@ echo "Verification token: $VERIFICATION_TOKEN"
 
 ## Troubleshooting
 
-- **400 Bad Request - "Email already registered"**: Use a fresh email address with timestamp: `TEST_EMAIL='tester+'$(date +%s)'@example.com'`
-- **400 Bad Request - Password validation**: Ensure password has:
+- **400 Bad Request - "Email already registered":**
+  - Use a fresh email address with timestamp: `TEST_EMAIL='tester+'$(date +%s)'@example.com'`
+- **400 Bad Request - Password validation:** Ensure password has:
   - At least 8 characters
   - 1 uppercase letter (A-Z)
   - 1 lowercase letter (a-z)
   - 1 digit (0-9)
   - 1 special character (!@#$%^&*)
-- **422 Validation Error**: Check JSON payload format and required fields (email, password, name)
-- **SSL certificate errors**: Use `-k` flag with curl to accept self-signed dev certificates
-- **Token not appearing in logs**: 
+- **422 Validation Error:** Check JSON payload format and required fields (email, password, name)
+- **SSL certificate errors:** Use `-k` flag with curl to accept self-signed dev certificates
+- **Token not appearing in logs:**
   - Ensure dev environment is running: `make dev-status`
   - Check logs are streaming: `make dev-logs`
   - Verify DEBUG=true in `env/.env.dev`

@@ -1,29 +1,31 @@
 # SSL/TLS in Test and CI Environments - Implementation Plan
 
-**Date**: 2025-10-06  
-**Status**: ✅ **COMPLETE**  
-**Priority**: P0 (High Impact)  
-**Completed**: 2025-10-06
+**Date:** 2025-10-06  
+**Status:** ✅ **COMPLETE**  
+**Priority:** P0 (High Impact)  
+**Completed:** 2025-10-06
 
 ---
 
 ## Table of Contents
+
 - [Executive Summary](#executive-summary)
 - [Current State](#current-state)
 - [Implementation Strategy](#implementation-strategy)
 - [Step-by-Step Implementation](#step-by-step-implementation)
-- [Testing & Verification](#testing--verification)
+- [Testing & Verification Checklist](#testing--verification-checklist)
 - [Rollback Plan](#rollback-plan)
 
 ---
 
 ## Executive Summary
 
-**Objective**: Enable SSL/TLS (HTTPS) in test and CI environments to match development environment configuration, achieving **production parity** across all environments.
+**Objective:** Enable SSL/TLS (HTTPS) in test and CI environments to match development environment configuration, achieving **production parity** across all environments.
 
-**Status**: ✅ **COMPLETE - All environments now use HTTPS with self-signed certificates**
+**Status:** ✅ **COMPLETE - All environments now use HTTPS with self-signed certificates**
 
-**Scope**:
+**Scope:**
+
 - ✅ Test environment (`docker-compose.test.yml`) - **ENABLED** ✅
 - ✅ CI environment (`docker-compose.ci.yml`) - **ENABLED** ✅
 - ✅ Update environment configurations (`.env.test`, `.env.ci`) - **DONE** ✅
@@ -32,21 +34,23 @@
 - ✅ Fix PostgreSQL health check errors - **FIXED** ✅
 - ✅ Commit self-signed certificates to git - **DONE** ✅
 
-**Impact Achieved**:
+**Impact Achieved:**
+
 - 🔒 Production parity: All environments use HTTPS ✅
 - 🐛 Catch SSL-specific bugs earlier ✅
 - ✅ Test realistic HTTPS scenarios ✅
 - 🚀 OAuth providers work correctly (some require HTTPS) ✅
 
-**Actual Effort**: 2 hours  
-**Risk**: Low (self-signed certs, existing infrastructure)  
-**Result**: ✅ Success - All tests passing in all environments
+**Actual Effort:** 2 hours  
+**Risk:** Low (self-signed certs, existing infrastructure)  
+**Result:** ✅ Success - All tests passing in all environments
 
 ---
 
 ## Current State
 
 ### Development Environment (dev) ✅
+
 ```yaml
 # compose/docker-compose.dev.yml
 services:
@@ -64,11 +68,12 @@ SSL_KEY_FILE=certs/key.pem    # ✅ Configured
 API_BASE_URL=https://localhost:8000  # ✅ HTTPS
 ```
 
-**Status**: ✅ **HTTPS Enabled and Working**
+**Status:** ✅ **HTTPS Enabled and Working**
 
 ---
 
 ### Test Environment (test) ⚠️
+
 ```yaml
 # compose/docker-compose.test.yml
 services:
@@ -87,9 +92,10 @@ CORS_ORIGINS=http://localhost:3000  # ❌ HTTP only
 SCHWAB_REDIRECT_URI=http://localhost:8183/callback  # ❌ HTTP only
 ```
 
-**Status**: ⚠️ **SSL Available but Using HTTP**
+**Status:** ⚠️ **SSL Available but Using HTTP**
 
-**Issues**:
+**Issues:**
+
 - Certs are mounted and configured
 - But URLs are HTTP (not HTTPS)
 - CORS origins list HTTP only
@@ -98,6 +104,7 @@ SCHWAB_REDIRECT_URI=http://localhost:8183/callback  # ❌ HTTP only
 ---
 
 ### CI Environment (ci) ❌
+
 ```yaml
 # compose/docker-compose.ci.yml
 services:
@@ -113,9 +120,10 @@ CALLBACK_BASE_URL=http://callback:8182  # ❌ HTTP only
 # ❌ No SSL cert/key configuration
 ```
 
-**Status**: ❌ **No SSL Support**
+**Status:** ❌ **No SSL Support**
 
-**Issues**:
+**Issues:**
+
 - No SSL certificate volumes mounted
 - No SSL configuration in env file
 - All URLs use HTTP
@@ -128,13 +136,15 @@ CALLBACK_BASE_URL=http://callback:8182  # ❌ HTTP only
 ### Approach: Enable SSL with Self-Signed Certificates
 
 **Why Self-Signed Certs?**
+
 - ✅ Already used in dev environment
 - ✅ Already generated (`make certs`)
 - ✅ No external dependencies
 - ✅ Fast and simple
 - ✅ Perfect for test/CI environments
 
-**Production Parity**:
+**Production Parity:**
+
 - Dev: HTTPS with self-signed certs ✅
 - Test: HTTPS with self-signed certs ← **Enable this**
 - CI: HTTPS with self-signed certs ← **Enable this**
@@ -146,16 +156,19 @@ CALLBACK_BASE_URL=http://callback:8182  # ❌ HTTP only
 ### Changes Required
 
 #### 1. Test Environment
+
 - ✅ Update `.env.test` - Change HTTP URLs to HTTPS
 - ✅ Update CORS origins to HTTPS
 - ✅ No docker-compose changes needed (certs already mounted)
 
 #### 2. CI Environment
+
 - ✅ Update `.env.ci` - Add SSL configuration, change URLs to HTTPS
 - ✅ Update `docker-compose.ci.yml` - Mount SSL certs
 - ✅ Update GitHub Actions workflow - Ensure certs available
 
 #### 3. Test Configuration
+
 - ✅ Update pytest fixtures to use HTTPS
 - ✅ Configure test client to accept self-signed certs
 - ✅ Verify all 305 tests still pass
@@ -183,7 +196,8 @@ CALLBACK_SSL_KEY_FILE=certs/callback_key.pem
 SCHWAB_REDIRECT_URI=https://localhost:8183/callback
 ```
 
-**File Changes**:
+**File Changes:**
+
 ```diff
 --- a/env/.env.test
 +++ b/env/.env.test
@@ -204,7 +218,7 @@ SCHWAB_REDIRECT_URI=https://localhost:8183/callback
 
 #### Step 1.2: Update pytest fixtures for HTTPS
 
-**File**: `tests/conftest.py`
+**File:** `tests/conftest.py`
 
 ```python
 # Add or update base_url fixture to use HTTPS
@@ -270,7 +284,8 @@ CALLBACK_BASE_URL=https://callback:8182
 CORS_ORIGINS=https://app:8000,https://localhost:8000
 ```
 
-**File Changes**:
+**File Changes:**
+
 ```diff
 --- a/env/.env.ci
 +++ b/env/.env.ci
@@ -311,7 +326,8 @@ services:
       - ../uv.lock:/app/uv.lock:ro
 ```
 
-**File Changes**:
+**File Changes:**
+
 ```diff
 --- a/compose/docker-compose.ci.yml
 +++ b/compose/docker-compose.ci.yml
@@ -337,7 +353,8 @@ services:
       - ../certs:/app/certs:ro  # ← ADD THIS LINE
 ```
 
-**File Changes**:
+**File Changes:**
+
 ```diff
 --- a/compose/docker-compose.ci.yml
 +++ b/compose/docker-compose.ci.yml
@@ -354,11 +371,12 @@ services:
 
 #### Step 2.4: Verify GitHub Actions has certs
 
-**Check**: `.github/workflows/test.yml`
+**Check:** `.github/workflows/test.yml`
 
 The workflow already checks out the code, which includes the `certs/` directory. No changes needed unless certs are in `.gitignore`.
 
-**Verify certs are committed**:
+**Verify certs are committed:**
+
 ```bash
 git ls-files certs/
 # Should show:
@@ -369,6 +387,7 @@ git ls-files certs/
 ```
 
 **If certs are not committed** (they should be for dev/test):
+
 ```bash
 # Check .gitignore
 cat .gitignore | grep certs
@@ -674,7 +693,8 @@ echo "  git push origin development"
 
 ### Local Testing
 
-- [ ] **Test Environment**:
+- [ ] **Test Environment:**
+
   ```bash
   make test-up
   curl -k https://localhost:8001/health  # Should work
@@ -682,7 +702,8 @@ echo "  git push origin development"
   make test-down
   ```
 
-- [ ] **CI Environment (Local)**:
+- [ ] **CI Environment (Local):**
+
   ```bash
   make ci-build
   make ci-test  # All 305 tests should pass
@@ -691,17 +712,18 @@ echo "  git push origin development"
 
 ### CI/CD Testing
 
-- [ ] **Push to GitHub**:
+- [ ] **Push to GitHub:**
+
   ```bash
   git push origin development
   ```
 
-- [ ] **Monitor GitHub Actions**:
+- [ ] **Monitor GitHub Actions:**
   - Check "Test Suite / Run Tests" passes
   - Check "Code Quality / lint" passes
   - Verify no SSL-related errors in logs
 
-- [ ] **Review Logs**:
+- [ ] **Review Logs:**
   - Search for "SSL" or "https" in CI logs
   - Verify uvicorn starts with HTTPS
   - Check for SSL warnings (should be minimal)
@@ -723,23 +745,26 @@ git checkout origin/development -- env/.env.test env/.env.ci compose/docker-comp
 git push origin development
 ```
 
-**Low Risk**: Changes are configuration-only, no code logic changes.
+**Low Risk:** Changes are configuration-only, no code logic changes.
 
 ---
 
 ## Success Criteria
 
-✅ **Test environment uses HTTPS**:
+✅ **Test environment uses HTTPS:**
+
 - `curl -k https://localhost:8001/health` works
 - All 305 tests pass with HTTPS
 - No SSL-related errors
 
-✅ **CI environment uses HTTPS**:
+✅ **CI environment uses HTTPS:**
+
 - GitHub Actions tests pass
 - CI logs show "Uvicorn running on https://..."
 - No SSL-related failures
 
-✅ **Production Parity Achieved**:
+✅ **Production Parity Achieved:**
+
 - Dev: HTTPS ✅
 - Test: HTTPS ✅
 - CI: HTTPS ✅
@@ -752,7 +777,3 @@ git push origin development
 2. ⏭️ **Move smoke tests to tests/smoke/** - Next task
 3. ⏭️ **Add smoke tests to CI/CD** - Future task
 4. ⏭️ **Convert smoke tests to pytest** - Future task (optional)
-
----
-
-**END OF IMPLEMENTATION PLAN**

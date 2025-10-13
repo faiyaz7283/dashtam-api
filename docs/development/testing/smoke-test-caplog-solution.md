@@ -1,8 +1,8 @@
 # Smoke Test Token Extraction Solution
 
-**Date**: 2025-10-06  
-**Author**: AI Assistant  
-**Status**: ✅ Implemented
+**Date:** 2025-10-06  
+**Author:** AI Assistant  
+**Status:** ✅ Implemented
 
 ## Problem Statement
 
@@ -20,17 +20,20 @@ We replaced Docker log extraction with **pytest's `caplog` fixture**, which capt
 ### How It Works
 
 1. **EmailService logs tokens** in development mode:
+
    ```python
    logger.info(f"Verification URL: https://localhost:3000/verify-email?token={token}")
    ```
 
 2. **pytest captures logs** during test execution:
+
    ```python
    with caplog.at_level(logging.INFO):
        response = client.post("/api/v1/auth/register", json={...})
    ```
 
 3. **Extract tokens** from captured log records:
+
    ```python
    def extract_token_from_caplog(caplog, pattern: str) -> str:
        for record in caplog.records:
@@ -49,9 +52,9 @@ We replaced Docker log extraction with **pytest's `caplog` fixture**, which capt
 
 #### 1. Fixture Scope Challenge
 
-**Problem**: `caplog` is function-scoped, but tests need to share state across multiple test methods.
+**Problem:** `caplog` is function-scoped, but tests need to share state across multiple test methods.
 
-**Solution**: Use module-level shared dictionary with function-scoped fixture:
+**Solution:** Use module-level shared dictionary with function-scoped fixture:
 
 ```python
 # Module-level shared state
@@ -80,7 +83,7 @@ def smoke_test_user(client, unique_test_email, test_password, caplog):
 
 #### 2. Token Extraction Timing
 
-**Critical**: Token extraction must happen **AFTER** the `with caplog.at_level()` block closes:
+**Critical:** Token extraction must happen **AFTER** the `with caplog.at_level()` block closes:
 
 ```python
 # ✅ CORRECT
@@ -135,6 +138,7 @@ if "verify-email?token=" in record.message:
 **Final Status: 22 passed, 1 skipped, 0 failed** ✅
 
 ### Main Auth Flow Tests (18)
+
 1. ✅ User Registration
 2. ✅ Email Verification Token Extraction
 3. ✅ Email Verification
@@ -155,6 +159,7 @@ if "verify-email?token=" in record.message:
 18. ✅ Access Token Still Works After Logout
 
 ### Critical Path Tests (5)
+
 - ✅ Health Check
 - ✅ API Docs Accessible
 - ✅ Invalid Login Fails
@@ -165,7 +170,7 @@ if "verify-email?token=" in record.message:
 
 ### test_11_verify_reset_token (Skipped)
 
-**Issue**: The GET `/password-resets/{token}` endpoint has a bug where it tries to match plain tokens directly against `token_hash` in the database:
+**Issue:** The GET `/password-resets/{token}` endpoint has a bug where it tries to match plain tokens directly against `token_hash` in the database:
 
 ```python
 # Current (buggy) implementation
@@ -176,7 +181,7 @@ result = await session.execute(
 
 Since tokens are stored as bcrypt hashes, this will never match.
 
-**Fix Required**: The endpoint should iterate through all unused tokens and use bcrypt to compare, similar to how `verify_email` works:
+**Fix Required:** The endpoint should iterate through all unused tokens and use bcrypt to compare, similar to how `verify_email` works:
 
 ```python
 # Correct implementation needed
@@ -190,7 +195,7 @@ for token_record in tokens:
         break
 ```
 
-**Impact**: Low - The PATCH endpoint (test_12) works correctly and validates tokens properly, so password reset functionality is fully operational. This endpoint is optional (for UX only).
+**Impact:** Low - The PATCH endpoint (test_12) works correctly and validates tokens properly, so password reset functionality is fully operational. This endpoint is optional (for UX only).
 
 ## Running Smoke Tests
 
@@ -206,7 +211,8 @@ make test-smoke
 docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/test_complete_auth_flow.py -v
 ```
 
-**What the Command Does**:
+**What the Command Does:**
+
 1. Automatically starts test environment if not running
 2. Executes comprehensive authentication flow tests
 3. Verifies critical user journeys (registration → login → password reset → logout)

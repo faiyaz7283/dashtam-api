@@ -16,7 +16,8 @@ Docker Compose supports **merging multiple compose files** to create layered con
 docker-compose -f docker-compose.yml -f docker-compose.test.yml up
 ```
 
-**What happens**:
+**What happens:**
+
 1. Docker Compose reads `docker-compose.yml` (base configuration)
 2. Then reads `docker-compose.test.yml` (overlay)
 3. **Merges** them according to specific rules:
@@ -58,7 +59,8 @@ services:
 
 ### Our Current Implementation
 
-**Problems with current approach**:
+**Problems with current approach:**
+
 1. **Container name conflicts** - Same container names mean we can't run dev and test simultaneously
 2. **Restart overhead** - Stopping dev containers just to run tests is inefficient
 3. **Shared volumes** - PostgreSQL data volume is shared (risky)
@@ -77,15 +79,17 @@ command: uv run python src/core/init_db.py && uv run uvicorn src.main:app
 command: sleep infinity
 ```
 
-**Purpose**: Keeps the container running without starting the application.
+**Purpose:** Keeps the container running without starting the application.
 
-**Why we need this**:
+**Why we need this:**
+
 - Tests need the container alive to execute commands inside it
 - We don't want the FastAPI app running during tests
 - Allows us to run `docker exec` commands for test setup
 - Container stays in "waiting" mode
 
-**How it works**:
+**How it works:**
+
 ```bash
 # Container starts and runs:
 sleep infinity
@@ -95,20 +99,21 @@ sleep infinity
 docker exec dashtam-app uv run pytest tests/
 ```
 
-**The Problem**:
+**The Problem:**
 This is a **workaround**, not a proper solution. Better approaches exist (see recommendations).
 
 ---
 
 ## 3. SSL in Test Environment - Critical Gap! ⚠️
 
-### Your Concern is Valid!
+### Your Concern is Valid
 
 You're absolutely right to question this. **We SHOULD test SSL** in certain scenarios.
 
 ### Current State (No SSL in tests)
 
-**Problems**:
+**Problems:**
+
 1. SSL configuration errors won't be caught until production
 2. Certificate loading issues won't be detected
 3. HTTPS-specific code paths untested
@@ -116,20 +121,22 @@ You're absolutely right to question this. **We SHOULD test SSL** in certain scen
 
 ### When SSL Testing Matters
 
-**YES, test SSL if**:
+**YES, test SSL if:**
+
 - Your app has SSL-specific middleware
 - Certificate validation logic exists
 - HTTPS redirects are implemented
 - Security headers depend on HTTPS
 - OAuth callbacks use HTTPS (like Schwab!)
 
-**NO SSL needed if**:
+**NO SSL needed if:**
+
 - Pure business logic tests
 - Database operations
 - Internal API calls (non-HTTPS)
 - Unit tests of isolated functions
 
-### **Recommendation**: Hybrid Approach
+### **Recommendation:** Hybrid Approach
 
 ```yaml
 # docker-compose.test.yml
@@ -150,7 +157,8 @@ services:
     command: uv run uvicorn src.main:app --ssl-keyfile=certs/key.pem --ssl-certfile=certs/cert.pem
 ```
 
-**This allows**:
+**This allows:**
+
 - Unit tests: No SSL overhead
 - Integration tests: Full SSL testing
 - OAuth tests: Real HTTPS behavior
@@ -161,7 +169,8 @@ services:
 
 ### Current Approach Issues
 
-**Problems**:
+**Problems:**
+
 1. **Developer friction** - Manual switching is error-prone
 2. **Lost context** - Can't debug dev while tests run
 3. **Slow feedback** - Stop dev → run tests → restart dev
@@ -170,9 +179,9 @@ services:
 
 ### Industry Best Practices
 
-**Modern approach**: Separate, parallel environments
+**Modern approach:** Separate, parallel environments
 
-```
+```text
 Development Environment (Always Running)
 ├─ docker-compose.dev.yml
 ├─ Containers: dashtam-dev-app, dashtam-dev-postgres
@@ -203,7 +212,8 @@ Production Environment
 
 ### Will Current Setup Work? **No, not well.**
 
-**Blockers for CI/CD**:
+**Blockers for CI/CD:**
+
 1. Container name conflicts
 2. Manual intervention required
 3. Shared database instance
@@ -212,7 +222,8 @@ Production Environment
 
 ### CI/CD Requirements
 
-**What CI/CD needs**:
+**What CI/CD needs:**
+
 ```yaml
 ✓ Completely isolated test environment
 ✓ No manual steps
@@ -224,7 +235,8 @@ Production Environment
 ✓ Easy to reproduce locally
 ```
 
-**Current setup violations**:
+**Current setup violations:**
+
 ```yaml
 ✗ Shared containers (name conflicts)
 ✗ Manual switching (make test-setup)
@@ -242,9 +254,9 @@ Production Environment
 
 ### Proposal: Multi-Environment Architecture
 
-I recommend we **refactor to a proper multi-environment setup**:
+I recommend we **refactor to a proper multi-environment setup:**
 
-```
+```bash
 dashtam/
 ├── docker/
 │   ├── Dockerfile.app          # Base app image
@@ -280,7 +292,7 @@ services:
     container_name: dashtam-test-db    # Note: -test
 ```
 
-**Benefit**: Dev and test can run simultaneously!
+**Benefit:** Dev and test can run simultaneously!
 
 #### 2. Separate Port Mappings
 
@@ -304,7 +316,7 @@ services:
       - "5433:5432"  # Test DB on 5433 (mapped from internal 5432)
 ```
 
-**Benefit**: No port conflicts, run both simultaneously!
+**Benefit:** No port conflicts, run both simultaneously!
 
 #### 3. Separate Networks
 
@@ -320,7 +332,7 @@ networks:
     name: dashtam-test-network
 ```
 
-**Benefit**: Complete network isolation!
+**Benefit:** Complete network isolation!
 
 #### 4. Ephemeral Test Containers (No Volumes)
 
@@ -333,7 +345,7 @@ services:
       - /var/lib/postgresql/data  # In-memory for speed
 ```
 
-**Benefit**: Fast, clean, no state persistence needed!
+**Benefit:** Fast, clean, no state persistence needed!
 
 #### 5. Test-Specific Init
 
@@ -355,7 +367,7 @@ services:
       - test-setup  # Wait for DB to be ready
 ```
 
-**Benefit**: Automatic initialization, no manual steps!
+**Benefit:** Automatic initialization, no manual steps!
 
 ---
 
@@ -365,41 +377,42 @@ services:
 # Development (always available)
 .PHONY: dev-up dev-down dev-logs dev-shell
 dev-up:
-	docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d
+  docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d
 
 dev-down:
-	docker-compose -f docker-compose.dev.yml down
+  docker-compose -f docker-compose.dev.yml down
 
 dev-logs:
-	docker-compose -f docker-compose.dev.yml logs -f
+  docker-compose -f docker-compose.dev.yml logs -f
 
 dev-shell:
-	docker-compose -f docker-compose.dev.yml exec app bash
+  docker-compose -f docker-compose.dev.yml exec app bash
 
 # Testing (parallel to dev)
 .PHONY: test-up test-down test-unit test-integration test-all
 test-up:
-	docker-compose -f docker-compose.test.yml --env-file .env.test up -d
+  docker-compose -f docker-compose.test.yml --env-file .env.test up -d
 
 test-down:
-	docker-compose -f docker-compose.test.yml down -v
+  docker-compose -f docker-compose.test.yml down -v
 
 test-unit:
-	docker-compose -f docker-compose.test.yml --env-file .env.test run --rm app pytest tests/unit/ -v
+  docker-compose -f docker-compose.test.yml --env-file .env.test run --rm app pytest tests/unit/ -v
 
 test-integration:
-	docker-compose -f docker-compose.test.yml --env-file .env.test run --rm app pytest tests/integration/ -v
+  docker-compose -f docker-compose.test.yml --env-file .env.test run --rm app pytest tests/integration/ -v
 
 test-all:
-	docker-compose -f docker-compose.test.yml --env-file .env.test run --rm app pytest tests/ -v --cov=src
+  docker-compose -f docker-compose.test.yml --env-file .env.test run --rm app pytest tests/ -v --cov=src
 
 # CI/CD (for GitHub Actions, etc.)
 .PHONY: ci-test
 ci-test:
-	docker-compose -f docker-compose.ci.yml --env-file .env.ci up --abort-on-container-exit
+  docker-compose -f docker-compose.ci.yml --env-file .env.ci up --abort-on-container-exit
 ```
 
-**Benefits**:
+**Benefits:**
+
 - ✅ Run dev and tests simultaneously
 - ✅ No manual switching
 - ✅ Clean CI/CD integration
@@ -490,31 +503,33 @@ jobs:
 
 ### 1. Container Overlays
 
-**Current**: Overlays merge configs, causing conflicts
-**Solution**: Separate standalone files with unique names
+**Current:** Overlays merge configs, causing conflicts
+**Solution:** Separate standalone files with unique names
 
 ### 2. `sleep infinity`
 
-**Current**: Workaround to keep container alive
-**Solution**: Use `docker-compose run` instead of `exec`, no need for sleep
+**Current:** Workaround to keep container alive
+**Solution:** Use `docker-compose run` instead of `exec`, no need for sleep
 
 ### 3. SSL Testing
 
-**Current**: No SSL in tests (gap!)
-**Solution**: 
+**Current:** No SSL in tests (gap!)
+
+**Solution:**
+
 - Add SSL to integration tests
 - Keep unit tests SSL-free (faster)
 - Test OAuth with real HTTPS
 
 ### 4. Dev/Test Switching
 
-**Current**: Manual, slow, error-prone
-**Solution**: Parallel environments, no switching needed
+**Current:** Manual, slow, error-prone
+**Solution:** Parallel environments, no switching needed
 
 ### 5. CI/CD Readiness
 
-**Current**: Not ready for CI/CD
-**Solution**: Follow migration plan above
+**Current:** Not ready for CI/CD
+**Solution:** Follow migration plan above
 
 ---
 
@@ -539,22 +554,22 @@ jobs:
 
 ### Critical (Do First)
 
-1. **Separate compose files** with unique container names
-2. **Add SSL to integration tests** (security gap!)
-3. **Change test command** from `sleep infinity` to proper `run` commands
+- **Separate compose files** with unique container names
+- **Add SSL to integration tests** (security gap!)
+- **Change test command** from `sleep infinity` to proper `run` commands
 
 ### Important (Do Soon)
 
-4. **Implement parallel execution** (dev + test simultaneously)
-5. **Add CI/CD workflow** (GitHub Actions)
-6. **Document new workflow** (update README)
+- **Implement parallel execution** (dev + test simultaneously)
+- **Add CI/CD workflow** (GitHub Actions)
+- **Document new workflow** (update README)
 
 ### Nice to Have (Do Later)
 
-7. Add staging environment
-8. Implement Docker health checks
-9. Add monitoring/observability
-10. Performance optimizations
+- Add staging environment
+- Implement Docker health checks
+- Add monitoring/observability
+- Performance optimizations
 
 ---
 
@@ -562,7 +577,8 @@ jobs:
 
 ### Current Assessment: **Not Production-Ready** ⚠️
 
-**Why**:
+**Why:**
+
 - Container overlay conflicts prevent parallel execution
 - Manual intervention required
 - No SSL testing (security concern)
@@ -571,7 +587,8 @@ jobs:
 
 ### Recommended Path Forward: **Refactor Now** ✅
 
-**Benefits**:
+**Benefits:**
+
 - Future-proof architecture
 - CI/CD ready
 - Proper isolation
@@ -579,18 +596,17 @@ jobs:
 - Scales to staging/production
 - Industry best practices
 
-**Effort**: ~1-2 weeks
-**Risk**: Low (incremental migration)
-**Value**: High (prevents future tech debt)
+**Risk:** Low (incremental migration)
+**Value:** High (prevents future tech debt)
 
 ---
 
 ## Questions for Discussion
 
-1. **Timeline**: When should we implement these changes?
-2. **Priority**: Which improvements are most critical for your workflow?
-3. **CI/CD**: Are you planning GitHub Actions, GitLab CI, or other?
-4. **Staging**: Do you need a staging environment soon?
-5. **SSL**: Should we prioritize SSL testing for OAuth flows?
+1. **Timeline:** When should we implement these changes?
+2. **Priority:** Which improvements are most critical for your workflow?
+3. **CI/CD:** Are you planning GitHub Actions, GitLab CI, or other?
+4. **Staging:** Do you need a staging environment soon?
+5. **SSL:** Should we prioritize SSL testing for OAuth flows?
 
-**My recommendation**: Implement Phases 1-2 immediately (separate files, unique names) before building more features. This prevents accumulating technical debt.
+**My recommendation:** Implement Phases 1-2 immediately (separate files, unique names) before building more features. This prevents accumulating technical debt.

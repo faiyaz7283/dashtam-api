@@ -1,11 +1,11 @@
 # Modern Documentation Implementation Guide
 
-**Implementing MkDocs + Material Theme for Dashtam Project**
+**Implementing MkDocs + Material Theme for Dashtam Project:**
 
-**Last Updated**: 2025-10-11  
-**Status**: Implementation Ready  
-**Priority**: P3 (Enhancement)  
-**Estimated Effort**: 3-4 days
+**Last Updated:** 2025-10-11  
+**Status:** Implementation Ready  
+**Priority:** P3 (Enhancement)  
+**Estimated Effort:** 3-4 days
 
 ---
 
@@ -37,7 +37,8 @@ This guide provides step-by-step instructions for implementing a modern, automat
 - **Support diagrams and visuals** with Mermaid.js
 - **Deploy to GitHub Pages** for free, public hosting
 
-**Benefits**:
+**Benefits:**
+
 - ✅ Professional documentation site matching modern standards
 - ✅ Automatic API reference generation from source code
 - ✅ Single source of truth (code docstrings → docs)
@@ -58,7 +59,8 @@ This guide provides step-by-step instructions for implementing a modern, automat
 | Docusaurus | Modern UI, versioning, multilingual | Node.js dependency, heavier | Large-scale docs |
 | GitHub Pages (plain) | Simple, built-in | No search, limited styling | Simple static sites |
 
-**Why We Chose MkDocs + Material**:
+**Why We Chose MkDocs + Material:**
+
 1. **Perfect fit for Python projects** with FastAPI
 2. **Simple Markdown** - Easy to write and maintain
 3. **Material theme** - Professional, modern design
@@ -80,7 +82,8 @@ Before starting implementation, ensure you have:
 - ✅ Existing `docs/` directory with Markdown files
 - ✅ Google-style docstrings in `src/` codebase
 
-**Familiarity with**:
+**Familiarity with:**
+
 - Markdown syntax
 - YAML configuration
 - Docker basics
@@ -92,7 +95,7 @@ Before starting implementation, ensure you have:
 
 ### Phase 1: MkDocs Setup
 
-**Goal**: Install MkDocs and create basic configuration
+**Goal:** Install MkDocs and create basic configuration
 
 #### Step 1.1: Add Dependencies
 
@@ -131,6 +134,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs new .
 ```
 
 This creates:
+
 - `mkdocs.yml` - Main configuration file
 - `docs/index.md` - Homepage (we already have docs/)
 
@@ -184,7 +188,8 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --
 # Open in browser: http://localhost:8080
 ```
 
-**Verify**:
+**Verify:**
+
 - ✅ Documentation builds without errors
 - ✅ Can navigate to http://localhost:8080
 - ✅ Basic theme renders correctly
@@ -194,7 +199,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --
 
 ### Phase 2: Material Theme Configuration
 
-**Goal**: Configure Material theme with professional design and features
+**Goal:** Configure Material theme with professional design and features
 
 #### Step 2.1: Complete Theme Configuration
 
@@ -364,7 +369,8 @@ Rebuild and verify enhancements:
 docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --dev-addr 0.0.0.0:8080
 ```
 
-**Verify**:
+**Verify:**
+
 - ✅ Dark/light mode toggle works
 - ✅ Search is functional
 - ✅ Navigation tabs display correctly
@@ -375,7 +381,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --
 
 ### Phase 3: API Documentation Auto-Generation
 
-**Goal**: Auto-generate API reference from Python docstrings
+**Goal:** Auto-generate API reference from Python docstrings
 
 #### Step 3.1: Configure mkdocstrings Plugin
 
@@ -500,7 +506,7 @@ Complete list of REST API endpoints organized by domain.
 
 ## Authentication Endpoints
 
-**Base Path**: `/api/v1/auth`
+**Base Path:** `/api/v1/auth`
 
 ### User Registration
 
@@ -524,7 +530,7 @@ Complete list of REST API endpoints organized by domain.
 
 ## Provider Endpoints
 
-**Base Path**: `/api/v1/providers`
+**Base Path:** `/api/v1/providers`
 
 ### List Providers
 
@@ -548,7 +554,8 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build
 docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --dev-addr 0.0.0.0:8080
 ```
 
-**Verify**:
+**Verify:**
+
 - ✅ API reference pages render correctly
 - ✅ Docstrings are properly formatted (Google-style)
 - ✅ Type hints display correctly
@@ -559,7 +566,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --
 
 ### Phase 4: Diagrams & Visuals
 
-**Goal**: Add architecture diagrams and visual documentation
+**Goal:** Add architecture diagrams and visual documentation
 
 #### Step 4.1: Configure Mermaid Plugin
 
@@ -579,100 +586,101 @@ plugins:
 Create `docs/development/architecture/diagrams.md`:
 
 ```markdown
-# Architecture Diagrams
+    
+    # Architecture Diagrams
 
-Visual documentation of Dashtam's system architecture.
+    Visual documentation of Dashtam's system architecture.
 
-## System Overview
+    ## System Overview
 
-```mermaid
-graph TD
-    A[Client] -->|HTTPS| B(FastAPI Backend)
-    B -->|Async| C{PostgreSQL}
-    B -->|Cache| D{Redis}
-    B -->|OAuth| E[Financial Providers]
-    B -->|Email| F[AWS SES]
-    
-    C -->|User Data| G[Users Table]
-    C -->|Auth Data| H[Refresh Tokens]
-    C -->|Provider Data| I[Providers Table]
-    
-    style B fill:#4051b5
-    style C fill:#336791
-    style D fill:#dc382d
-```
+    ```mermaid
+    graph TD
+        A[Client] -->|HTTPS| B(FastAPI Backend)
+        B -->|Async| C{PostgreSQL}
+        B -->|Cache| D{Redis}
+        B -->|OAuth| E[Financial Providers]
+        B -->|Email| F[AWS SES]
+        
+        C -->|User Data| G[Users Table]
+        C -->|Auth Data| H[Refresh Tokens]
+        C -->|Provider Data| I[Providers Table]
+        
+        style B fill:#4051b5
+        style C fill:#336791
+        style D fill:#dc382d
+    ```
 
-## Authentication Flow
+    ## Authentication Flow
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant API as FastAPI
-    participant Auth as AuthService
-    participant DB as PostgreSQL
-    participant Email as EmailService
-    
-    C->>API: POST /auth/register
-    API->>Auth: register_user()
-    Auth->>DB: Create user (email_verified=False)
-    Auth->>Email: Send verification email
-    Email-->>C: Verification email
-    
-    C->>API: POST /auth/verify-email
-    API->>Auth: verify_email(token)
-    Auth->>DB: Update user (email_verified=True)
-    Auth-->>C: Email verified
-    
-    C->>API: POST /auth/login
-    API->>Auth: login(email, password)
-    Auth->>DB: Validate credentials
-    Auth-->>C: Access token + Refresh token
-```
+    ```mermaid
+    sequenceDiagram
+        participant C as Client
+        participant API as FastAPI
+        participant Auth as AuthService
+        participant DB as PostgreSQL
+        participant Email as EmailService
+        
+        C->>API: POST /auth/register
+        API->>Auth: register_user()
+        Auth->>DB: Create user (email_verified=False)
+        Auth->>Email: Send verification email
+        Email-->>C: Verification email
+        
+        C->>API: POST /auth/verify-email
+        API->>Auth: verify_email(token)
+        Auth->>DB: Update user (email_verified=True)
+        Auth-->>C: Email verified
+        
+        C->>API: POST /auth/login
+        API->>Auth: login(email, password)
+        Auth->>DB: Validate credentials
+        Auth-->>C: Access token + Refresh token
+    ```
 
-## Database Schema
+    ## Database Schema
 
-```mermaid
-erDiagram
-    USERS ||--o{ PROVIDERS : owns
-    USERS ||--o{ REFRESH_TOKENS : has
-    USERS ||--o{ EMAIL_VERIFICATION_TOKENS : has
-    USERS ||--o{ PASSWORD_RESET_TOKENS : has
-    PROVIDERS ||--|| OAUTH_TOKENS : stores
-    PROVIDERS ||--o{ AUDIT_LOGS : generates
-    
-    USERS {
-        uuid id PK
-        string email UK
-        string password_hash
-        boolean email_verified
-        int failed_login_attempts
-        timestamptz locked_until
-        timestamptz created_at
-        timestamptz updated_at
-        timestamptz deleted_at
-    }
-    
-    REFRESH_TOKENS {
-        uuid id PK
-        uuid user_id FK
-        string token_hash
-        string device_info
-        string ip_address
-        boolean revoked
-        timestamptz expires_at
-        timestamptz created_at
-    }
-    
-    PROVIDERS {
-        uuid id PK
-        uuid user_id FK
-        string name
-        string provider_type
-        boolean connected
-        timestamptz connected_at
-        timestamptz created_at
-    }
-```
+    ```mermaid
+    erDiagram
+        USERS ||--o{ PROVIDERS : owns
+        USERS ||--o{ REFRESH_TOKENS : has
+        USERS ||--o{ EMAIL_VERIFICATION_TOKENS : has
+        USERS ||--o{ PASSWORD_RESET_TOKENS : has
+        PROVIDERS ||--|| OAUTH_TOKENS : stores
+        PROVIDERS ||--o{ AUDIT_LOGS : generates
+        
+        USERS {
+            uuid id PK
+            string email UK
+            string password_hash
+            boolean email_verified
+            int failed_login_attempts
+            timestamptz locked_until
+            timestamptz created_at
+            timestamptz updated_at
+            timestamptz deleted_at
+        }
+        
+        REFRESH_TOKENS {
+            uuid id PK
+            uuid user_id FK
+            string token_hash
+            string device_info
+            string ip_address
+            boolean revoked
+            timestamptz expires_at
+            timestamptz created_at
+        }
+        
+        PROVIDERS {
+            uuid id PK
+            uuid user_id FK
+            string name
+            string provider_type
+            boolean connected
+            timestamptz connected_at
+            timestamptz created_at
+        }
+    ```
 ```
 
 #### Step 4.3: Add Component Diagrams
@@ -682,31 +690,34 @@ Create diagrams for key components in their respective docs.
 **Example - Token Rotation Flow** (`docs/development/guides/token-rotation.md`):
 
 ```markdown
-## Token Rotation Process
 
-```mermaid
-flowchart TD
-    A[Client Request] --> B{Check Access Token}
-    B -->|Expired| C[Use Refresh Token]
-    B -->|Valid| D[Process Request]
-    
-    C --> E{Validate Refresh Token}
-    E -->|Invalid/Expired| F[Reject 401]
-    E -->|Valid| G[Generate New Tokens]
-    
-    G --> H[Revoke Old Refresh Token]
-    H --> I[Hash New Refresh Token]
-    I --> J[Store in Database]
-    J --> K[Return Tokens to Client]
-    
-    K --> L{Client Updates?}
-    L -->|Yes| M[Success]
-    L -->|No| N[Potential Token Theft]
-    
-    style G fill:#4caf50
-    style H fill:#ff9800
-    style N fill:#f44336
-```
+
+    ## Token Rotation Process
+
+    ```mermaid
+    flowchart TD
+        A[Client Request] --> B{Check Access Token}
+        B -->|Expired| C[Use Refresh Token]
+        B -->|Valid| D[Process Request]
+        
+        C --> E{Validate Refresh Token}
+        E -->|Invalid/Expired| F[Reject 401]
+        E -->|Valid| G[Generate New Tokens]
+        
+        G --> H[Revoke Old Refresh Token]
+        H --> I[Hash New Refresh Token]
+        I --> J[Store in Database]
+        J --> K[Return Tokens to Client]
+        
+        K --> L{Client Updates?}
+        L -->|Yes| M[Success]
+        L -->|No| N[Potential Token Theft]
+        
+        style G fill:#4caf50
+        style H fill:#ff9800
+        style N fill:#f44336
+    ```
+
 ```
 
 #### Step 4.4: Test Diagrams
@@ -718,7 +729,8 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build
 docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --dev-addr 0.0.0.0:8080
 ```
 
-**Verify**:
+**Verify:**
+
 - ✅ Mermaid diagrams render correctly
 - ✅ Diagrams are interactive (zoom, pan)
 - ✅ Diagram syntax is correct
@@ -728,7 +740,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --
 
 ### Phase 5: GitHub Actions CI/CD
 
-**Goal**: Automate documentation builds and deployment
+**Goal:** Automate documentation builds and deployment
 
 #### Step 5.1: Create Documentation Workflow
 
@@ -802,20 +814,20 @@ Add documentation commands to `Makefile`:
 .PHONY: docs-build docs-serve docs-deploy docs-clean
 
 docs-build:  ## Build documentation site
-	@echo "Building documentation..."
-	docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build
+  @echo "Building documentation..."
+  docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build
 
 docs-serve:  ## Serve documentation locally (http://localhost:8080)
-	@echo "Serving documentation at http://localhost:8080"
-	docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --dev-addr 0.0.0.0:8080
+  @echo "Serving documentation at http://localhost:8080"
+  docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --dev-addr 0.0.0.0:8080
 
 docs-deploy:  ## Deploy documentation to GitHub Pages
-	@echo "Deploying documentation to GitHub Pages..."
-	docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs gh-deploy --force
+  @echo "Deploying documentation to GitHub Pages..."
+  docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs gh-deploy --force
 
 docs-clean:  ## Clean built documentation
-	@echo "Cleaning documentation build..."
-	rm -rf site/
+  @echo "Cleaning documentation build..."
+  rm -rf site/
 ```
 
 #### Step 5.3: Configure GitHub Pages
@@ -830,7 +842,7 @@ docs-clean:  ## Clean built documentation
    - Settings → Actions → General
    - Workflow permissions: Read and write permissions
 
-3. **Verify deployment URL**:
+3. **Verify deployment URL:**
    - Should be: `https://faiyazhaider.github.io/Dashtam/`
 
 #### Step 5.4: Test CI/CD Pipeline
@@ -843,7 +855,8 @@ git commit -m "docs: add MkDocs CI/CD pipeline"
 git push origin development
 ```
 
-**Verify**:
+**Verify:**
+
 - ✅ GitHub Actions workflow runs successfully
 - ✅ Documentation builds without errors
 - ✅ GitHub Pages site is live
@@ -854,7 +867,7 @@ git push origin development
 
 ### Phase 6: Documentation Organization
 
-**Goal**: Migrate and organize existing documentation
+**Goal:** Migrate and organize existing documentation
 
 #### Step 6.1: Update Navigation Structure
 
@@ -913,7 +926,7 @@ nav:
 
 Create index pages for each major section.
 
-**Example - `docs/development/index.md`**:
+**Example - `docs/development/index.md`:**
 
 ```markdown
 # Developer Documentation
@@ -954,7 +967,7 @@ Step-by-step guides for common development tasks and workflows.
 
 Add navigation links between related documents.
 
-**Example - In architecture docs**:
+**Example - In architecture docs:**
 
 ```markdown
 ## Related Documentation
@@ -1031,9 +1044,9 @@ Dashtam connects to multiple financial institutions through OAuth2, providing a 
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/faiyazhaider/Dashtam/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/faiyazhaider/Dashtam/discussions)
-- **Documentation**: This site!
+- **Issues:** [GitHub Issues](https://github.com/faiyazhaider/Dashtam/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/faiyazhaider/Dashtam/discussions)
+- **Documentation:** This site!
 ```
 
 ---
@@ -1082,19 +1095,22 @@ Before deploying to GitHub Pages, verify locally:
 
 ### Regular Tasks
 
-**Monthly**:
+**Periodically:**
+
 - Review and update outdated documentation
 - Check for broken links
 - Update screenshots if UI changed
 - Review analytics (if enabled) for popular pages
 
-**Per Release**:
+**Per Release:**
+
 - Update version numbers
 - Document new features
 - Update API reference
 - Add release notes
 
-**As Needed**:
+**As Needed:**
+
 - Fix reported documentation issues
 - Add new guides for common questions
 - Improve search keywords
@@ -1102,7 +1118,8 @@ Before deploying to GitHub Pages, verify locally:
 
 ### Updating Documentation
 
-**Edit Existing Pages**:
+**Edit Existing Pages:**
+
 ```bash
 # 1. Edit Markdown files in docs/
 vim docs/development/guides/my-guide.md
@@ -1116,7 +1133,8 @@ git commit -m "docs: update guide for new feature"
 git push origin development
 ```
 
-**Add New API Documentation**:
+**Add New API Documentation:**
+
 ```bash
 # 1. Add Google-style docstrings to code
 # 2. Update docs/api/reference.md with new module
@@ -1127,7 +1145,8 @@ make docs-build
 make docs-serve
 ```
 
-**Add New Diagrams**:
+**Add New Diagrams:**
+
 ```bash
 # 1. Add Mermaid syntax to Markdown file
 # 2. Verify rendering locally
@@ -1136,7 +1155,8 @@ make docs-serve
 
 ### Troubleshooting
 
-**Build Errors**:
+**Build Errors:**
+
 ```bash
 # Clear cache and rebuild
 make docs-clean
@@ -1146,7 +1166,8 @@ make docs-build
 uv run mkdocs build --strict --verbose
 ```
 
-**Plugin Issues**:
+**Plugin Issues:**
+
 ```bash
 # Reinstall dependencies
 uv add --group docs mkdocs mkdocs-material 'mkdocstrings[python]'
@@ -1155,7 +1176,8 @@ uv add --group docs mkdocs mkdocs-material 'mkdocstrings[python]'
 uv pip list | grep mkdocs
 ```
 
-**Deployment Failures**:
+**Deployment Failures:**
+
 ```bash
 # Check GitHub Actions logs
 # Verify GITHUB_TOKEN permissions
@@ -1167,25 +1189,28 @@ uv pip list | grep mkdocs
 ## References
 
 ### Official Documentation
+
 - [MkDocs](https://www.mkdocs.org/) - Static site generator
 - [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) - Theme documentation
 - [mkdocstrings](https://mkdocstrings.github.io/) - API doc generation
 - [Mermaid.js](https://mermaid.js.org/) - Diagram syntax
 
 ### Project Documentation
+
 - [Docstring Standards](docstring-standards.md) - Google-style docstring guide
 - [Documentation Research](../../research/documentation_guide_research.md) - Research notes
 - WARP.md - Project rules and context
 
 ### Related Guides
+
 - [Git Workflow](git-workflow.md) - Contributing documentation changes
 - [Testing Guide](../testing/guide.md) - Testing documentation examples
 - [Docker Setup](../infrastructure/docker-setup.md) - Running docs in Docker
 
 ---
 
-**Last Updated**: 2025-10-11  
-**Maintained By**: Development Team  
-**Status**: Ready for implementation  
-**Priority**: P3 (Enhancement)  
-**Estimated Effort**: 3-4 days
+**Last Updated:** 2025-10-11  
+**Maintained By:** Development Team  
+**Status:** Ready for implementation  
+**Priority:** P3 (Enhancement)  
+**Estimated Effort:** 3-4 days

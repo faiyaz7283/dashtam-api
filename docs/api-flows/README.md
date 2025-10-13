@@ -2,12 +2,14 @@
 
 This section provides end-to-end, HTTPS-first guides for manually testing real user flows against the development environment (TLS-enabled), mirroring production usage as closely as possible.
 
-Goals
+**Goals:**
+
 - Validate user-centric scenarios (not just single endpoints)
 - Enable reproducible, copy-pasteable steps for reviewers and teammates
 - Keep a consistent approach across flows and domains
 
-Conventions
+**Conventions:**
+
 - HTTPS-first with curl -k (dev TLS uses self-signed certs)
 - Organize by domain (auth, providers, etc.), not HTTP verb
 - Each flow document includes:
@@ -19,7 +21,7 @@ Conventions
 - Use shell variables for inputs and never inline secrets in docs
 - Quote-safe commands: prefer heredocs + `--data-binary @file` for JSON payloads to avoid shell quoting issues (no dquote> prompts)
 
-Quick start (dev, HTTPS)
+**Quick start (dev, HTTPS):**
 
 ```bash
 # From repo root
@@ -34,9 +36,9 @@ TEST_EMAIL='tester+'$(date +%s)'@example.com'
 TEST_PASSWORD='SecurePass123!'
 ```
 
-Directory layout
+**Directory layout:**
 
-```
+```bash
 docs/api-flows/
 ├── README.md                     # Overview and conventions
 ├── flow-template.md              # Reusable template for new flows
@@ -73,6 +75,7 @@ export VERIFICATION_TOKEN="<token-from-logs>"
 **Why this works**: No AWS credentials needed in dev! The system automatically detects `DEBUG=True` and logs emails with full content including tokens.
 
 **Applies to**:
+
 - Email verification tokens (registration flow)
 - Password reset tokens (password reset flow)
 
@@ -81,6 +84,7 @@ See individual flows for detailed examples.
 ## Expected HTTP Status Codes
 
 All flows document expected HTTP status codes in responses:
+
 - **200 OK**: Successful GET/PATCH/DELETE
 - **201 Created**: Successful POST (resource created)
 - **202 Accepted**: Async operation accepted (e.g., password reset email)

@@ -4,12 +4,13 @@
 
 Dashtam uses **Alembic** for database schema migrations, providing version-controlled, automated database schema evolution. All environments (development, test, and CI/CD) automatically run migrations on startup, ensuring database schemas are always synchronized with the codebase.
 
-**Migration Philosophy**:
-- ✅ **Automated**: Migrations run automatically on container startup
-- ✅ **Version-controlled**: All schema changes tracked in Git
-- ✅ **Timezone-aware**: All datetime columns use `TIMESTAMPTZ` for UTC compliance
-- ✅ **Async-compatible**: Full support for SQLAlchemy AsyncSession
-- ✅ **Docker-integrated**: All migration operations occur in containers
+**Migration Philosophy:**
+
+- ✅ **Automated:** Migrations run automatically on container startup
+- ✅ **Version-controlled:** All schema changes tracked in Git
+- ✅ **Timezone-aware:** All datetime columns use `TIMESTAMPTZ` for UTC compliance
+- ✅ **Async-compatible:** Full support for SQLAlchemy AsyncSession
+- ✅ **Docker-integrated:** All migration operations occur in containers
 
 ---
 
@@ -55,7 +56,7 @@ make migrate-status
 
 ### Directory Structure
 
-```
+```bash
 Dashtam/
 ├── alembic/                          # Alembic migration directory
 │   ├── versions/                     # Migration scripts
@@ -154,22 +155,25 @@ def run_migrations_online() -> None:
 
 ### Development Environment
 
-**When**: Every time containers start with `make dev-up`
+**When:** Every time containers start with `make dev-up`
 
 **Dockerfile Entrypoint** (`docker/Dockerfile`):
+
 ```dockerfile
 CMD ["sh", "-c", "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000"]
 ```
 
-**What Happens**:
+**What Happens:**
+
 1. Container starts
 2. `alembic upgrade head` runs automatically
 3. All pending migrations apply
 4. FastAPI application starts
 5. Database ready with latest schema
 
-**Logs**:
-```
+**Logs:**
+
+```bash
 dashtam-dev-app | Running Alembic migrations...
 dashtam-dev-app | INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 dashtam-dev-app | INFO  [alembic.runtime.migration] Will assume transactional DDL.
@@ -179,20 +183,22 @@ dashtam-dev-app | Alembic migrations completed successfully
 
 ### Test Environment
 
-**When**: Every time test containers start with `make test-up`
+**When:** Every time test containers start with `make test-up`
 
-**Automatic Migration**: Same as development, migrations run before tests
+**Automatic Migration:** Same as development, migrations run before tests
 
-**Benefits**:
+**Benefits:**
+
 - ✅ Test database always matches production schema
 - ✅ No manual database initialization needed
 - ✅ Clean slate for every test run
 
 ### CI/CD Environment
 
-**When**: During CI pipeline execution
+**When:** During CI pipeline execution
 
-**docker-compose.ci.yml**:
+**docker-compose.ci.yml:**
+
 ```yaml
 services:
   app:
@@ -203,7 +209,8 @@ services:
       "
 ```
 
-**What Happens**:
+**What Happens:**
+
 1. CI container starts
 2. Migrations run automatically
 3. Tests execute against migrated schema
@@ -215,11 +222,12 @@ services:
 
 ### Method 1: Autogeneration (Recommended)
 
-**Use when**: You've modified SQLModel models and want Alembic to detect changes automatically.
+**Use when:** You've modified SQLModel models and want Alembic to detect changes automatically.
 
-**Steps**:
+**Steps:**
 
-1. **Modify your SQLModel**:
+**Modify your SQLModel:**
+
 ```python
 # src/models/user.py
 class User(BaseModel, table=True):
@@ -232,7 +240,8 @@ class User(BaseModel, table=True):
     phone_number: str | None = Field(default=None, max_length=20)
 ```
 
-2. **Generate migration** (inside Docker container):
+**Generate migration** (inside Docker container):
+
 ```bash
 # Use Make target (recommended)
 make migrate-create MESSAGE="add user phone number field"
@@ -242,7 +251,8 @@ docker compose -f docker-compose.dev.yml exec app \
   alembic revision --autogenerate -m "add user phone number field"
 ```
 
-3. **Review generated migration**:
+**Review generated migration:**
+
 ```python
 # alembic/versions/20251003_2315-abc123def456_add_user_phone_number_field.py
 
@@ -257,7 +267,8 @@ def downgrade() -> None:
     # ### end Alembic commands ###
 ```
 
-4. **Test migration**:
+**Test migration:**
+
 ```bash
 # Apply migration
 make migrate-up
@@ -270,7 +281,8 @@ docker compose -f docker-compose.dev.yml exec postgres \
 docker compose -f docker-compose.dev.yml exec app uv run pytest tests/
 ```
 
-5. **Rollback test** (optional but recommended):
+**Rollback test** (optional but recommended):
+
 ```bash
 # Rollback one step
 make migrate-down
@@ -283,7 +295,8 @@ docker compose -f docker-compose.dev.yml exec postgres \
 make migrate-up
 ```
 
-6. **Commit migration**:
+**Commit migration:**
+
 ```bash
 git add alembic/versions/20251003_2315-abc123def456_add_user_phone_number_field.py
 git commit -m "feat(database): add phone_number field to users table"
@@ -291,16 +304,18 @@ git commit -m "feat(database): add phone_number field to users table"
 
 ### Method 2: Empty Migration (Manual)
 
-**Use when**: You need to write custom SQL or perform data migrations.
+**Use when:** You need to write custom SQL or perform data migrations.
 
-**Steps**:
+**Steps:**
 
-1. **Create empty migration**:
+**Create empty migration:**
+
 ```bash
 make migrate-create-manual MESSAGE="migrate user email format"
 ```
 
-2. **Edit migration script manually**:
+**Edit migration script manually:**
+
 ```python
 # alembic/versions/20251003_2320-xyz789_migrate_user_email_format.py
 
@@ -323,7 +338,8 @@ def downgrade() -> None:
     op.drop_constraint("email_lowercase_check", "users", type_="check")
 ```
 
-3. **Test thoroughly** (custom migrations require extra care):
+**Test thoroughly** (custom migrations require extra care):
+
 ```bash
 make migrate-up
 # Verify data transformation
@@ -344,6 +360,7 @@ make migrate-up    # Reapply
    - Check for unintended changes
 
 2. **Use Timezone-Aware Datetimes**
+
    ```python
    # ✅ CORRECT
    op.add_column('table', sa.Column('created_at', sa.TIMESTAMP(timezone=True)))
@@ -358,6 +375,7 @@ make migrate-up    # Reapply
    - Document any irreversible migrations
 
 4. **Use Descriptive Messages**
+
    ```bash
    # ✅ Good
    make migrate-create MESSAGE="add user phone verification fields"
@@ -372,6 +390,7 @@ make migrate-up    # Reapply
    - Improves git history clarity
 
 6. **Document Complex Migrations**
+
    ```python
    def upgrade() -> None:
        """
@@ -391,6 +410,7 @@ make migrate-up    # Reapply
    - Exception: Pre-production migrations not yet deployed
 
 2. **Avoid Direct SQL When Possible**
+
    ```python
    # ❌ Avoid
    op.execute("ALTER TABLE users ADD COLUMN email VARCHAR(255)")
@@ -421,14 +441,16 @@ make migrate-up    # Reapply
 ### Why TIMESTAMPTZ?
 
 Financial applications like Dashtam **must** use timezone-aware datetimes for:
-- ✅ **Regulatory compliance**: Accurate audit trails across timezones
-- ✅ **Data integrity**: Unambiguous temporal ordering
-- ✅ **OAuth token management**: Proper expiration handling
-- ✅ **Financial transaction accuracy**: Correct time-based operations
+
+- ✅ **Regulatory compliance:** Accurate audit trails across timezones
+- ✅ **Data integrity:** Unambiguous temporal ordering
+- ✅ **OAuth token management:** Proper expiration handling
+- ✅ **Financial transaction accuracy:** Correct time-based operations
 
 ### Implementation
 
-**SQLModel Definition**:
+**SQLModel Definition:**
+
 ```python
 from datetime import datetime, timezone
 from sqlmodel import Field
@@ -444,7 +466,8 @@ class BaseModel(SQLModel):
     )
 ```
 
-**Alembic Migration**:
+**Alembic Migration:**
+
 ```python
 def upgrade() -> None:
     op.create_table(
@@ -456,7 +479,8 @@ def upgrade() -> None:
     )
 ```
 
-**Verification**:
+**Verification:**
+
 ```sql
 -- Check column types in PostgreSQL
 \d+ users
@@ -496,14 +520,16 @@ def downgrade() -> None:
 
 ### Issue 1: Migration Fails on Startup
 
-**Symptom**:
-```
+**Symptom:**
+
+```bash
 alembic.util.exc.CommandError: Can't locate revision identified by 'abc123'
 ```
 
-**Cause**: Migration file missing or corrupted
+**Cause:** Migration file missing or corrupted
 
-**Solution**:
+**Solution:**
+
 ```bash
 # Check migration history
 make migrate-history
@@ -519,11 +545,12 @@ make dev-up
 
 ### Issue 2: Autogeneration Misses Changes
 
-**Symptom**: Modified model but autogeneration creates empty migration
+**Symptom:** Modified model but autogeneration creates empty migration
 
-**Cause**: Model not imported in `alembic/env.py`
+**Cause:** Model not imported in `alembic/env.py`
 
-**Solution**:
+**Solution:**
+
 ```python
 # alembic/env.py - Add missing import
 from src.models.your_new_model import YourNewModel
@@ -531,11 +558,12 @@ from src.models.your_new_model import YourNewModel
 
 ### Issue 3: Migration Works Locally, Fails in CI
 
-**Symptom**: Migration passes in dev, fails in CI/CD
+**Symptom:** Migration passes in dev, fails in CI/CD
 
-**Cause**: Different database states or missing migrations
+**Cause:** Different database states or missing migrations
 
-**Solution**:
+**Solution:**
+
 ```bash
 # Ensure clean CI database
 # In docker-compose.ci.yml:
@@ -550,14 +578,16 @@ git add alembic/versions/
 
 ### Issue 4: Downgrade Fails
 
-**Symptom**:
-```
+**Symptom:**
+
+```bash
 sqlalchemy.exc.IntegrityError: (psycopg.errors.NotNullViolation)
 ```
 
-**Cause**: Downgrade doesn't handle data properly
+**Cause:** Downgrade doesn't handle data properly
 
-**Solution**:
+**Solution:**
+
 ```python
 def downgrade() -> None:
     # Handle data before schema change
@@ -567,14 +597,16 @@ def downgrade() -> None:
 
 ### Issue 5: Timezone Comparison Errors
 
-**Symptom**:
-```
+**Symptom:**
+
+```bash
 TypeError: can't compare offset-naive and offset-aware datetimes
 ```
 
-**Cause**: Mixing timezone-naive and timezone-aware datetimes
+**Cause:** Mixing timezone-naive and timezone-aware datetimes
 
-**Solution**:
+**Solution:**
+
 ```python
 # ❌ WRONG
 from datetime import datetime
@@ -593,15 +625,17 @@ now = datetime.now(timezone.utc)  # Timezone-aware
 
 When multiple developers create migrations simultaneously:
 
-**Problem**: Two migrations have same parent revision
+**Problem:** Two migrations have same parent revision
 
-**Detection**:
+**Detection:**
+
 ```bash
 alembic heads
 # Shows: abc123 (head), def456 (head)  # Multiple heads!
 ```
 
-**Solution**: Create merge migration
+**Solution:** Create merge migration
+
 ```bash
 docker compose -f docker-compose.dev.yml exec app \
   alembic merge -m "merge feature branches" abc123 def456
@@ -609,7 +643,7 @@ docker compose -f docker-compose.dev.yml exec app \
 
 ### Data Migrations
 
-**Pattern**: Separate schema and data changes
+**Pattern:** Separate schema and data changes
 
 ```python
 def upgrade() -> None:
@@ -665,7 +699,8 @@ docker compose -f docker-compose.dev.yml exec postgres \
       uv run pytest tests/ --cov=src --cov-report=xml
 ```
 
-**Automatic Checks**:
+**Automatic Checks:**
+
 - ✅ Migration syntax validation
 - ✅ Upgrade path verification
 - ✅ Test suite execution with migrated schema
@@ -699,12 +734,12 @@ Before committing a migration:
 
 ## References
 
-- **Alembic Official Docs**: https://alembic.sqlalchemy.org/
-- **SQLAlchemy Async**: https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html
-- **PostgreSQL TIMESTAMPTZ**: https://www.postgresql.org/docs/current/datatype-datetime.html
-- **UV Package Manager**: https://docs.astral.sh/uv/
+- **Alembic Official Docs:** https://alembic.sqlalchemy.org/
+- **SQLAlchemy Async:** https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html
+- **PostgreSQL TIMESTAMPTZ:** https://www.postgresql.org/docs/current/datatype-datetime.html
+- **UV Package Manager:** https://docs.astral.sh/uv/
 
 ---
 
-**Last Updated**: October 3, 2025  
-**Migration Version**: `bce8c437167b` (Initial schema with timezone-aware datetimes)
+**Last Updated:** October 3, 2025  
+**Migration Version:** `bce8c437167b` (Initial schema with timezone-aware datetimes)

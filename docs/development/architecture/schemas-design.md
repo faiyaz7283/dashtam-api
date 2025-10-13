@@ -1,8 +1,8 @@
 # API Schemas Architecture & Design
 
-**Document Version**: 1.0  
-**Last Updated**: October 2025  
-**Author**: Dashtam Development Team
+**Document Version:** 1.0  
+**Last Updated:** October 2025  
+**Author:** Dashtam Development Team
 
 ---
 
@@ -63,7 +63,7 @@ class LoginRequest(BaseModel):
 
 ### Data Flow
 
-```
+```text
 Client Request (JSON)
     ↓
 FastAPI receives request
@@ -86,6 +86,7 @@ Client receives validated data
 ### Historical Context
 
 **Before** (Inline Approach):
+
 ```python
 # src/api/v1/providers.py
 class ProviderTypeInfo(BaseModel):
@@ -98,7 +99,8 @@ async def get_providers() -> List[ProviderTypeInfo]:
     # ...
 ```
 
-**Problems**:
+**Problems:**
+
 - ❌ Tight coupling between API and schemas
 - ❌ Cannot reuse schemas across modules
 - ❌ Harder to test schemas in isolation
@@ -106,6 +108,7 @@ async def get_providers() -> List[ProviderTypeInfo]:
 - ❌ Difficult to maintain consistency
 
 **After** (Separated Approach):
+
 ```python
 # src/schemas/provider.py
 class ProviderTypeInfo(BaseModel):
@@ -121,7 +124,8 @@ async def get_providers() -> List[ProviderTypeInfo]:
     # Clean, focused endpoint logic
 ```
 
-**Benefits**:
+**Benefits:**
+
 - ✅ Single source of truth for data structures
 - ✅ Reusable across multiple endpoints
 - ✅ Testable independently
@@ -142,19 +146,20 @@ async def get_providers() -> List[ProviderTypeInfo]:
 
 ### Directory Structure
 
-```
+```bash
 src/schemas/
 ├── __init__.py          # Package initialization & documentation
 ├── common.py            # Shared/utility schemas
 ├── auth.py              # Authentication & user management
 ├── provider.py          # Provider management
-└── [future modules]     # Accounts, transactions, etc.
+└── [future-modules]     # Accounts, transactions, etc.
 ```
 
 ### Module Organization
 
 #### common.py
-**Purpose**: Schemas used across multiple domains
+
+**Purpose:** Schemas used across multiple domains
 
 ```python
 """Common schemas shared across API modules."""
@@ -170,14 +175,16 @@ class PaginationParams(BaseModel):
     page_size: int = Field(default=20, ge=1, le=100)
 ```
 
-**When to use**:
+**When to use:**
+
 - Generic responses (success, error messages)
 - Pagination, filtering, sorting
 - Common enums and constants
 - Utility types used everywhere
 
 #### auth.py
-**Purpose**: Authentication and user management schemas
+
+**Purpose:** Authentication and user management schemas
 
 ```python
 """Authentication schemas for JWT-based auth."""
@@ -196,7 +203,8 @@ class LoginResponse(BaseModel):
     user: UserResponse
 ```
 
-**When to use**:
+**When to use:**
+
 - User registration, login, logout
 - Token management (refresh, revoke)
 - Password reset flows
@@ -204,7 +212,8 @@ class LoginResponse(BaseModel):
 - Profile management
 
 #### provider.py
-**Purpose**: Financial provider management schemas
+
+**Purpose:** Financial provider management schemas
 
 ```python
 """Provider management schemas."""
@@ -221,7 +230,8 @@ class CreateProviderRequest(BaseModel):
     alias: str
 ```
 
-**When to use**:
+**When to use:**
+
 - Provider CRUD operations
 - OAuth connection flows
 - Provider status and metadata
@@ -230,6 +240,7 @@ class CreateProviderRequest(BaseModel):
 ### Import Patterns
 
 #### Direct Import (Recommended)
+
 ```python
 # In API endpoints
 from src.schemas.auth import LoginRequest, LoginResponse
@@ -241,6 +252,7 @@ async def login(request: LoginRequest):
 ```
 
 #### Package Import (Alternative)
+
 ```python
 # For multiple schemas
 from src.schemas import auth, provider
@@ -256,11 +268,12 @@ async def login(request: auth.LoginRequest):
 
 ### 1. Request Schemas
 
-**Purpose**: Validate incoming data from clients
+**Purpose:** Validate incoming data from clients
 
-**Naming Convention**: `*Request`
+**Naming Convention:** `*Request`
 
-**Example**:
+**Example:**
+
 ```python
 class RegisterRequest(BaseModel):
     """Request to register a new user account.
@@ -278,7 +291,8 @@ class RegisterRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
 ```
 
-**Features**:
+**Features:**
+
 - Required fields marked with `...`
 - Optional fields have defaults
 - Validation constraints (`min_length`, `max_length`, etc.)
@@ -287,11 +301,12 @@ class RegisterRequest(BaseModel):
 
 ### 2. Response Schemas
 
-**Purpose**: Structure and document outgoing data
+**Purpose:** Structure and document outgoing data
 
-**Naming Convention**: `*Response`
+**Naming Convention:** `*Response`
 
-**Example**:
+**Example:**
+
 ```python
 class UserResponse(BaseModel):
     """User profile information returned by API.
@@ -322,7 +337,8 @@ class UserResponse(BaseModel):
     }
 ```
 
-**Features**:
+**Features:**
+
 - Read-only data (ID, timestamps)
 - Computed fields excluded
 - Example data for documentation
@@ -331,9 +347,10 @@ class UserResponse(BaseModel):
 
 ### 3. Shared/Common Schemas
 
-**Purpose**: Reusable components across domains
+**Purpose:** Reusable components across domains
 
-**Example**:
+**Example:**
+
 ```python
 class MessageResponse(BaseModel):
     """Generic message for simple operations.
@@ -346,16 +363,18 @@ class MessageResponse(BaseModel):
     detail: Optional[str] = None
 ```
 
-**Use Cases**:
+**Use Cases:**
+
 - Success messages (`"Registration successful"`)
 - Status updates (`"Email sent"`)
 - Simple confirmations (`"Provider disconnected"`)
 
 ### 4. Nested Schemas
 
-**Purpose**: Complex data structures
+**Purpose:** Complex data structures
 
-**Example**:
+**Example:**
+
 ```python
 class LoginResponse(BaseModel):
     """Login response with tokens and user profile."""
@@ -367,7 +386,8 @@ class LoginResponse(BaseModel):
     user: UserResponse  # Nested schema
 ```
 
-**Benefits**:
+**Benefits:**
+
 - Structured, hierarchical data
 - Reusable nested components
 - Clear data relationships
@@ -379,7 +399,7 @@ class LoginResponse(BaseModel):
 
 ### Pattern 1: Request-Response Pair
 
-**When**: Endpoint has specific input/output structure
+**When:** Endpoint has specific input/output structure
 
 ```python
 # Registration flow
@@ -395,7 +415,7 @@ class RegisterResponse(BaseModel):  # or MessageResponse
 
 ### Pattern 2: Shared Response Type
 
-**When**: Multiple endpoints return same structure
+**When:** Multiple endpoints return same structure
 
 ```python
 # Multiple endpoints return user data
@@ -411,7 +431,7 @@ class UserResponse(BaseModel):
 
 ### Pattern 3: Inheritance for Variations
 
-**When**: Schemas share common fields
+**When:** Schemas share common fields
 
 ```python
 class BaseTokenResponse(BaseModel):
@@ -430,7 +450,7 @@ class RefreshResponse(BaseTokenResponse):
 
 ### Pattern 4: Optional Update Schema
 
-**When**: PATCH endpoints allow partial updates
+**When:** PATCH endpoints allow partial updates
 
 ```python
 class UpdateUserRequest(BaseModel):
@@ -449,7 +469,7 @@ class UpdateUserRequest(BaseModel):
 
 ### Pattern 5: Enum for Constants
 
-**When**: Field has fixed set of values
+**When:** Field has fixed set of values
 
 ```python
 from enum import Enum
@@ -579,7 +599,8 @@ class LoginRequest(BaseModel):
     }
 ```
 
-**Generates**:
+**Generates:**
+
 - Field names and types
 - Field descriptions
 - Required vs optional
@@ -589,8 +610,8 @@ class LoginRequest(BaseModel):
 
 ### Viewing Documentation
 
-1. **Swagger UI**: http://localhost:8000/docs
-2. **ReDoc**: http://localhost:8000/redoc
+1. **Swagger UI:** http://localhost:8000/docs
+2. **ReDoc:** http://localhost:8000/redoc
 
 ### Response Model Declaration
 
@@ -621,7 +642,8 @@ async def login(request: LoginRequest):
 
 ### 1. Comprehensive Documentation
 
-**Always include**:
+**Always include:**
+
 - Class docstring explaining purpose
 - Field descriptions
 - Example data
@@ -671,7 +693,8 @@ List[*]        # List[UserResponse], List[ProviderTypeInfo]
 
 ### 3. Field Ordering
 
-**Logical order**:
+**Logical order:**
+
 1. Required fields first
 2. Optional fields after
 3. Grouped by category
@@ -697,7 +720,7 @@ class UserResponse(BaseModel):
 
 ### 4. Validation Before Database
 
-**Always validate in schemas first**:
+**Always validate in schemas first:**
 
 ```python
 # ❌ BAD: Validation in service layer
@@ -748,7 +771,7 @@ async def find_user(email: str) -> Optional[UserResponse]:
 
 ### 7. Separate DTOs from Database Models
 
-**Don't mix concerns**:
+**Don't mix concerns:**
 
 ```python
 # Database model (SQLModel)
@@ -768,7 +791,7 @@ class UserResponse(BaseModel):
 
 ### 8. Version Your Schemas
 
-**For breaking changes**:
+**For breaking changes:**
 
 ```python
 # src/schemas/auth_v1.py
@@ -788,7 +811,8 @@ class LoginRequestV2(BaseModel):
 
 ### Example 1: User Registration Flow
 
-**Schema Definition**:
+**Schema Definition:**
+
 ```python
 # src/schemas/auth.py
 class RegisterRequest(BaseModel):
@@ -800,7 +824,8 @@ class MessageResponse(BaseModel):
     message: str
 ```
 
-**Endpoint Implementation**:
+**Endpoint Implementation:**
+
 ```python
 # src/api/v1/auth_jwt.py
 from src.schemas.auth import RegisterRequest, MessageResponse
@@ -826,7 +851,8 @@ async def register(
     )
 ```
 
-**Client Usage**:
+**Client Usage:**
+
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -839,7 +865,8 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 
 ### Example 2: Login with Nested Response
 
-**Schema Definition**:
+**Schema Definition:**
+
 ```python
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -859,7 +886,8 @@ class LoginResponse(BaseModel):
     user: UserResponse  # Nested
 ```
 
-**Endpoint Implementation**:
+**Endpoint Implementation:**
+
 ```python
 @router.post("/login", response_model=LoginResponse)
 async def login(
@@ -895,7 +923,8 @@ async def login(
 
 ### Example 3: PATCH with Optional Fields
 
-**Schema Definition**:
+**Schema Definition:**
+
 ```python
 class UpdateUserRequest(BaseModel):
     name: Optional[str] = None
@@ -909,7 +938,8 @@ class UpdateUserRequest(BaseModel):
         return v.strip() if v else v
 ```
 
-**Endpoint Implementation**:
+**Endpoint Implementation:**
+
 ```python
 @router.patch("/me", response_model=UserResponse)
 async def update_profile(
@@ -1026,9 +1056,10 @@ def test_register_invalid_email(client: TestClient):
 
 ### Migrating Inline Schemas to Separate Files
 
-**Step 1: Extract Schema**
+**Step 1: Extract Schema:**
 
 Before:
+
 ```python
 # src/api/v1/providers.py
 class ProviderTypeInfo(BaseModel):
@@ -1041,6 +1072,7 @@ async def get_providers() -> List[ProviderTypeInfo]:
 ```
 
 After:
+
 ```python
 # src/schemas/provider.py
 class ProviderTypeInfo(BaseModel):
@@ -1056,14 +1088,16 @@ async def get_providers() -> List[ProviderTypeInfo]:
     pass
 ```
 
-**Step 2: Update Imports**
+**Step 2: Update Imports:**
 
 Find all usages:
+
 ```bash
 grep -r "ProviderTypeInfo" src/
 ```
 
 Update imports:
+
 ```python
 # Old
 from src.api.v1.providers import ProviderTypeInfo
@@ -1072,7 +1106,7 @@ from src.api.v1.providers import ProviderTypeInfo
 from src.schemas.provider import ProviderTypeInfo
 ```
 
-**Step 3: Test**
+**Step 3: Test:**
 
 ```bash
 # Run tests
@@ -1120,14 +1154,14 @@ def validate_field(cls, v):
 
 ### Additional Resources
 
-- **Pydantic Docs**: https://docs.pydantic.dev/
-- **FastAPI Docs**: https://fastapi.tiangolo.com/
-- **OpenAPI Spec**: https://swagger.io/specification/
-- **Project Schemas**: `src/schemas/`
-- **Schema Tests**: `tests/unit/schemas/`
+- **Pydantic Docs:** https://docs.pydantic.dev/
+- **FastAPI Docs:** https://fastapi.tiangolo.com/
+- **OpenAPI Spec:** https://swagger.io/specification/
+- **Project Schemas:** `src/schemas/`
+- **Schema Tests:** `tests/unit/schemas/`
 
 ---
 
-**Document Status**: ✅ Complete  
-**Next Review**: When adding new schema modules  
-**Questions?**: See team lead or check Pydantic documentation
+**Document Status:** ✅ Complete  
+**Next Review:** When adding new schema modules  
+**Questions?:** See team lead or check Pydantic documentation

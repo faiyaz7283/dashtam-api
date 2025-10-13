@@ -1,6 +1,6 @@
 # RESTful API Quick Reference
 
-**Quick guide for developers building REST APIs in Dashtam**
+**Quick guide for developers building REST APIs in Dashtam:**
 
 ---
 
@@ -19,6 +19,7 @@
 ## Status Code Quick Reference
 
 ### Success (2xx)
+
 ```python
 200  # OK - GET, PUT, PATCH success
 201  # Created - POST success
@@ -27,6 +28,7 @@
 ```
 
 ### Client Errors (4xx)
+
 ```python
 400  # Bad Request - Invalid data
 401  # Unauthorized - No/invalid auth
@@ -38,6 +40,7 @@
 ```
 
 ### Server Errors (5xx)
+
 ```python
 500  # Internal Server Error
 503  # Service Unavailable
@@ -48,7 +51,8 @@
 ## URL Patterns
 
 ### ✅ Good
-```
+
+```text
 GET    /api/v1/providers                    # List all
 GET    /api/v1/providers/{id}               # Get one
 POST   /api/v1/providers                    # Create
@@ -59,7 +63,8 @@ POST   /api/v1/providers/{id}/refresh       # Action (exception)
 ```
 
 ### ❌ Bad
-```
+
+```text
 GET    /api/v1/getProviders                 # Verb in URL
 POST   /api/v1/providers/create             # Redundant verb
 GET    /api/v1/provider                     # Singular for collection
@@ -534,6 +539,7 @@ async def list_providers(
 ## Naming Conventions
 
 ### Resources (URLs)
+
 ```python
 ✅ /providers          # Plural nouns
 ✅ /users
@@ -546,6 +552,7 @@ async def list_providers(
 ```
 
 ### Fields (JSON)
+
 ```python
 ✅ snake_case          # Python convention
 {
@@ -562,12 +569,14 @@ async def list_providers(
 ```
 
 ### Booleans
+
 ```python
 ✅ is_active, has_connection, can_edit
 ❌ active, connection, editable
 ```
 
 ### Dates
+
 ```python
 ✅ created_at, updated_at, deleted_at, expires_at
 ❌ created, creation_date, date_created
@@ -715,6 +724,7 @@ Before deploying a new endpoint, verify:
 ## Common Mistakes to Avoid
 
 ### ❌ Mistake 1: Verbs in URLs
+
 ```python
 # Bad
 @router.get("/getProviders")
@@ -726,6 +736,7 @@ Before deploying a new endpoint, verify:
 ```
 
 ### ❌ Mistake 2: Wrong Status Codes
+
 ```python
 # Bad
 @router.post("/providers")
@@ -739,6 +750,7 @@ async def create_provider(...):
 ```
 
 ### ❌ Mistake 3: No Pagination
+
 ```python
 # Bad
 @router.get("/providers")
@@ -755,6 +767,7 @@ async def list_providers(
 ```
 
 ### ❌ Mistake 4: Exposing Implementation Details
+
 ```python
 # Bad
 {
@@ -772,6 +785,7 @@ async def list_providers(
 ```
 
 ### ❌ Mistake 5: Inconsistent Response Formats
+
 ```python
 # Bad
 @router.get("/providers/{id}")
@@ -796,12 +810,12 @@ async def list_providers() -> PaginatedResponse[ProviderResponse]:
 
 ## Resources
 
-- **Full Architecture Doc**: `docs/development/architecture/restful-api-design.md`
-- **FastAPI Docs**: https://fastapi.tiangolo.com
-- **HTTP Status Codes**: https://httpstatuses.com
-- **REST API Tutorial**: https://restfulapi.net
+- **Full Architecture Doc:** `docs/development/architecture/restful-api-design.md`
+- **FastAPI Docs:** https://fastapi.tiangolo.com
+- **HTTP Status Codes:** https://httpstatuses.com
+- **REST API Tutorial:** https://restfulapi.net
 
 ---
 
-**Last Updated**: 2025-10-04  
-**Version**: 1.0
+**Last Updated:** 2025-10-04  
+**Version:** 1.0

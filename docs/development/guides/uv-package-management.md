@@ -1,10 +1,10 @@
 # Modern UV Package Management Guide
 
-**Document Purpose**: Comprehensive guide for using UV (version 0.8.22+) as the modern Python package manager in Dashtam.
+**Document Purpose:** Comprehensive guide for using UV (version 0.8.22+) as the modern Python package manager in Dashtam.
 
-**Last Updated**: 2025-10-04  
-**UV Version**: 0.8.22+  
-**Status**: Active Standard
+**Last Updated:** 2025-10-04  
+**UV Version:** 0.8.22+  
+**Status:** Active Standard
 
 ---
 
@@ -13,6 +13,7 @@
 UV is an extremely fast Python package manager and resolver, written in Rust. It's designed as a drop-in replacement for pip, pip-tools, poetry, and other Python package management tools.
 
 **Why UV?**
+
 - ⚡ **10-100x faster** than pip
 - 🔒 **Deterministic resolution** with lockfiles
 - 🎯 **Modern Python workflow** (replaces pip, poetry, pipenv)
@@ -76,6 +77,7 @@ pip install uv
 ### Project Initialization
 
 #### Initialize New Project
+
 ```bash
 # Create new project with pyproject.toml
 uv init --app --name myproject --python 3.13
@@ -85,6 +87,7 @@ uv init --app --name dashtam --python 3.13 --no-readme
 ```
 
 **Options:**
+
 - `--app`: Create an application (not a library)
 - `--name`: Project name
 - `--python`: Python version requirement
@@ -93,6 +96,7 @@ uv init --app --name dashtam --python 3.13 --no-readme
 ### Adding Dependencies
 
 #### Add Production Dependencies
+
 ```bash
 # Add single package (latest version)
 uv add boto3
@@ -111,6 +115,7 @@ uv add --requirements requirements.txt
 ```
 
 #### Add Development Dependencies
+
 ```bash
 # Add dev dependencies
 uv add --dev pytest pytest-cov ruff
@@ -120,6 +125,7 @@ uv add --dev --requirements requirements-dev.txt
 ```
 
 #### Add Optional Dependencies
+
 ```bash
 # Add to specific extras group
 uv add --optional docs sphinx sphinx-rtd-theme
@@ -129,6 +135,7 @@ uv add --group test pytest pytest-asyncio
 ```
 
 **Key Points:**
+
 - ✅ **Use `uv add`** - NOT `uv pip install`
 - ✅ Updates `pyproject.toml` and `uv.lock` automatically
 - ✅ Installs immediately into virtual environment
@@ -164,6 +171,7 @@ uv sync --no-install-project
 ```
 
 **When to use `uv sync`:**
+
 - After pulling changes from git
 - After modifying `pyproject.toml` manually
 - After switching branches with different dependencies
@@ -199,6 +207,7 @@ uv run --python 3.13 python script.py
 ```
 
 **Benefits of `uv run`:**
+
 - Ensures correct virtual environment is used
 - No need to activate venv manually
 - Consistent across all environments
@@ -256,6 +265,7 @@ git commit -m "Add boto3 for AWS SES integration"
 ```
 
 **What Happens:**
+
 1. UV resolves dependencies
 2. Updates `pyproject.toml` with new dependency
 3. Updates `uv.lock` with resolved versions
@@ -361,11 +371,13 @@ CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "800
 ### Best Practices for Docker
 
 1. **Copy lockfile first** for better caching:
+
    ```dockerfile
    COPY pyproject.toml uv.lock* ./
    ```
 
 2. **Use multi-stage builds** for smaller production images:
+
    ```dockerfile
    FROM base AS builder
    RUN uv sync --no-dev
@@ -375,6 +387,7 @@ CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "800
    ```
 
 3. **Set UV environment variables** for optimal performance:
+
    ```dockerfile
    ENV UV_COMPILE_BYTECODE=1 \
        UV_LINK_MODE=copy
@@ -503,6 +516,7 @@ rm poetry.lock pyproject.toml  # Backup first!
 **Problem:** Package not installed in virtual environment
 
 **Solution:**
+
 ```bash
 # Sync environment with lockfile
 uv sync
@@ -516,6 +530,7 @@ uv add package-name
 **Problem:** UV not available in Docker container
 
 **Solution:**
+
 ```bash
 # Check UV installation
 docker compose -f docker-compose.dev.yml exec app which uv
@@ -529,6 +544,7 @@ docker compose -f docker-compose.dev.yml build --no-cache
 **Problem:** Lockfile and installed packages don't match
 
 **Solution:**
+
 ```bash
 # Force re-sync
 uv sync --reinstall
@@ -544,6 +560,7 @@ uv sync
 **Problem:** UV can't resolve compatible versions
 
 **Solution:**
+
 ```bash
 # Try loosening version constraints in pyproject.toml
 # Change: "package==1.0.0"

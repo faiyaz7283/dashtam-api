@@ -3,9 +3,11 @@
 Create a provider instance, obtain an authorization URL, complete the OAuth flow, and verify the connection.
 
 ## Purpose
+
 Manually test the end-to-end OAuth onboarding flow for a provider (e.g., Schwab).
 
 ## Prerequisites
+
 - Dev environment running with TLS
 - An authenticated, verified user (have ACCESS_TOKEN from login flow)
 
@@ -37,6 +39,7 @@ curl -sk -X POST "$BASE_URL/api/v1/providers" \
 ```
 
 **Expected Response (HTTP 201 Created):**
+
 ```json
 {
   "id": "a7b3c5d9-e1f2-4a6b-8c9d-0e1f2a3b4c5d",
@@ -75,6 +78,7 @@ curl -sk -X POST "$BASE_URL/api/v1/providers/$PROVIDER_ID/authorization" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "auth_url": "https://api.schwabapi.com/oauth/authorize?client_id=...&redirect_uri=https://127.0.0.1:8182&state=..."
@@ -97,6 +101,7 @@ echo "Open in browser: $AUTH_URL"
 ### 3) Authorize in browser
 
 **Manual step:**
+
 1. Copy the `AUTH_URL` from above
 2. Paste it into your browser
 3. Log in to Schwab (or the provider)
@@ -117,6 +122,7 @@ curl -sk "$BASE_URL/api/v1/providers/$PROVIDER_ID" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "id": "a7b3c5d9-e1f2-4a6b-8c9d-0e1f2a3b4c5d",
@@ -143,6 +149,7 @@ curl -sk -X DELETE "$BASE_URL/api/v1/providers/$PROVIDER_ID" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "message": "Provider disconnected successfully"
@@ -151,15 +158,15 @@ curl -sk -X DELETE "$BASE_URL/api/v1/providers/$PROVIDER_ID" \
 
 ## Troubleshooting
 
-- **400 Bad Request - "Provider not available"**: 
+- **400 Bad Request - "Provider not available"**:
   - Ensure `provider_key` is valid (currently supported: "schwab")
   - Check provider is configured in environment variables
-- **400 Bad Request - "Provider not configured"**: 
+- **400 Bad Request - "Provider not configured"**:
   - Verify `SCHWAB_API_KEY` and `SCHWAB_API_SECRET` are set in `env/.env.dev`
 - **401 Unauthorized**: Access token expired or invalid → refresh or re-login
 - **404 Not Found**: Check that PROVIDER_ID is set correctly
 - **Auth URL missing**: Ensure services are healthy (`make dev-status`)
-- **Callback fails**: 
+- **Callback fails**:
   - Verify redirect URI matches exactly: `https://127.0.0.1:8182`
   - Ensure callback server is running (check `docker ps | grep callback`)
   - Check callback server logs: `docker logs dashtam-dev-callback`

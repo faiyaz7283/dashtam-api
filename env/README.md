@@ -4,12 +4,14 @@ This directory contains environment-specific configuration files for the Dashtam
 
 ## 📁 File Structure
 
-```
+```bash
 env/
 ├── .env.dev              # Development environment (gitignored)
+├── .env.dev.example      # Development environment template
 ├── .env.test             # Test environment (gitignored)
+├── .env.test.example     # Test environment template
 ├── .env.ci               # CI environment (committed, no secrets)
-├── .env.example          # Non-production template
+├── .env.ci.example       # CI environment template
 ├── .env.prod.example     # Production template
 └── README.md             # This file
 ```
@@ -17,6 +19,7 @@ env/
 ## 🔧 Environment Files
 
 ### `.env.dev` - Development Environment
+
 - **Purpose**: Local development with hot-reload and debug mode
 - **Git Status**: ❌ Gitignored (contains secrets)
 - **Usage**: `make dev-up`
@@ -27,6 +30,7 @@ env/
   - Hot-reload enabled
 
 ### `.env.test` - Test Environment  
+
 - **Purpose**: Isolated testing with ephemeral storage
 - **Git Status**: ❌ Gitignored (contains test secrets)
 - **Usage**: `make test-up`
@@ -37,6 +41,7 @@ env/
   - Test-specific configurations
 
 ### `.env.ci` - CI/CD Environment
+
 - **Purpose**: Automated testing in GitHub Actions
 - **Git Status**: ✅ Committed (no real secrets)
 - **Usage**: Automatic in GitHub Actions
@@ -46,13 +51,15 @@ env/
   - Mock credentials only
   - Minimal logging
 
-### `.env.example` - Non-Production Template
-- **Purpose**: Template for creating dev/test environments
+### `.env.*.example` - Non-Production Templates
+
+- **Purpose**: Template for creating dev/test/ci environments
 - **Git Status**: ✅ Committed
 - **Usage**: Copy to create new env files
 - **Contains**: All required variables with safe defaults
 
 ### `.env.prod.example` - Production Template
+
 - **Purpose**: Template for production deployment
 - **Git Status**: ✅ Committed
 - **Usage**: Copy and fill with production secrets
@@ -64,7 +71,7 @@ env/
 
 ```bash
 # 1. Copy example file to create your dev environment
-cp env/.env.example env/.env.dev
+cp env/.env.dev.example env/.env.dev
 
 # 2. Edit with your actual credentials
 nano env/.env.dev  # or use your preferred editor
@@ -91,14 +98,16 @@ make test-up
 ## 🔐 Security Best Practices
 
 ### DO ✅
-- Keep `.env.dev`, `.env.test`, and `.env.prod` in `.gitignore`
-- Use `.env.example` files as templates
+
+- Keep `.env.dev`, `.env.test`, `.env.ci`, and `.env.prod` in `.gitignore`
+- Use `.env.*.example` files as templates
 - Rotate secrets regularly
 - Use different secrets for each environment
 - Store production secrets in a secrets manager (AWS Secrets Manager, HashiCorp Vault, etc.)
 - Use `env_file` in docker-compose (already configured)
 
 ### DON'T ❌
+
 - Never commit files containing real secrets
 - Never share `.env.dev` or `.env.prod` files
 - Never use production credentials in development
@@ -127,6 +136,7 @@ services:
 ## 🔑 Required Variables
 
 ### Core Application
+
 ```bash
 # Application
 APP_NAME=Dashtam
@@ -147,6 +157,7 @@ REDIS_URL=redis://host:port/db
 ```
 
 ### Provider Credentials
+
 ```bash
 # Charles Schwab
 SCHWAB_API_KEY=<your-schwab-client-id>
@@ -156,6 +167,7 @@ SCHWAB_REDIRECT_URI=https://127.0.0.1:8182
 ```
 
 ### Email (AWS SES)
+
 ```bash
 # AWS Configuration
 AWS_REGION=us-east-1
@@ -252,22 +264,26 @@ The Makefile has been updated to use the new paths automatically.
 ## 🆘 Troubleshooting
 
 ### "Environment variable not found"
+
 - Check that the variable exists in your `.env.dev` file
 - Ensure the file is properly formatted (KEY=value, no spaces around =)
 - Verify the env_file path in docker-compose is correct
 - Rebuild containers: `make dev-rebuild`
 
 ### "Connection refused" errors
+
 - Check DATABASE_URL and REDIS_URL point to correct hostnames
 - In Docker, use service names (postgres, redis) not localhost
 - Verify ports are correct for your environment
 
 ### "Permission denied" on files
+
 - All files should be owned by your user (not root)
 - The non-root user in containers (appuser) has UID 1000
 - Check file permissions: `ls -la env/`
 
 ### "Cannot find .env file"
+
 - Makefile expects files in `env/` directory
 - Ensure you've copied `.env.example` to `.env.dev`
 - Check that the file isn't named `.env.dev.txt` or similar

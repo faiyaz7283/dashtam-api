@@ -1,9 +1,9 @@
 # Smoke Test CI Environment Debugging Journey
 
-**Date**: October 6, 2025  
-**Issue**: Smoke tests passing in dev/test environments but failing in CI with "User not found" errors  
-**Resolution**: Fixed database session state management and test fixture ordering  
-**Status**: ✅ RESOLVED - All smoke tests passing in all environments
+**Date:** October 6, 2025  
+**Issue:** Smoke tests passing in dev/test environments but failing in CI with "User not found" errors  
+**Resolution:** Fixed database session state management and test fixture ordering  
+**Status:** ✅ RESOLVED - All smoke tests passing in all environments
 
 ---
 
@@ -11,9 +11,9 @@
 
 The Dashtam project smoke tests were failing in the CI environment despite passing consistently in development and test environments. The root cause was a combination of:
 
-1. **Session state caching**: SQLAlchemy session was caching objects between HTTP requests
-2. **Test fixture ordering**: Database schema setup was not guaranteed to run before tests
-3. **Environment differences**: CI environment behavior differed from local test environment
+1. **Session state caching:** SQLAlchemy session was caching objects between HTTP requests
+2. **Test fixture ordering:** Database schema setup was not guaranteed to run before tests
+3. **Environment differences:** CI environment behavior differed from local test environment
 
 This document chronicles the complete debugging journey, root cause analysis, and final solution.
 
@@ -35,8 +35,9 @@ This document chronicles the complete debugging journey, root cause analysis, an
 
 ### Symptoms
 
-**CI Environment**:
-```
+**CI Environment:**
+
+```bash
 tests/smoke/test_complete_auth_flow.py::test_complete_authentication_flow FAILED
 
 src/api/v1/auth_jwt.py:114: in verify_email
@@ -44,7 +45,7 @@ src/api/v1/auth_jwt.py:114: in verify_email
 E   fastapi.exceptions.HTTPException: 404: User not found
 ```
 
-**Development/Test Environments**: ✅ All tests passing
+**Development/Test Environments:** ✅ All tests passing
 
 ### Test Flow
 
@@ -69,25 +70,28 @@ The test was failing at step 2 (email verification) in CI but working perfectly 
 
 ### Step 1: Environment Variable Analysis
 
-**Hypothesis**: Environment variables differ between CI and test environments.
+**Hypothesis:** Environment variables differ between CI and test environments.
 
-**Investigation**:
+**Investigation:**
+
 - Compared `env/.env.ci` vs `env/.env.test`
 - Found missing variables in CI: `API_V1_PREFIX`, `DEBUG`
 - PostgreSQL configuration difference: `synchronous_commit=off` in CI
 
-**Actions Taken**:
+**Actions Taken:**
+
 - Added `API_V1_PREFIX=/api/v1` to CI environment
 - Added `DEBUG=true` to CI environment
 - Removed `synchronous_commit=off` from CI PostgreSQL config
 
-**Result**: ❌ Issue persisted
+**Result:** ❌ Issue persisted
 
 ### Step 2: Database Query Investigation
 
-**Hypothesis**: User record not being persisted to database.
+**Hypothesis:** User record not being persisted to database.
 
-**Investigation**:
+**Investigation:**
+
 ```bash
 # Query database directly in CI
 docker compose -f compose/docker-compose.ci.yml exec postgres \
@@ -95,18 +99,20 @@ docker compose -f compose/docker-compose.ci.yml exec postgres \
   -c "SELECT email, email_verified FROM users;"
 ```
 
-**Findings**:
+**Findings:**
+
 - ❌ **`users` table did not exist**
 - Only `alembic_version` table present
 - Migrations running successfully but tables not created
 
-**Result**: Root cause identified - schema issue, not application logic
+**Result:** Root cause identified - schema issue, not application logic
 
 ### Step 3: Migration vs Fixture Analysis
 
-**Hypothesis**: Test fixture timing issue with Alembic migrations.
+**Hypothesis:** Test fixture timing issue with Alembic migrations.
 
-**Investigation**:
+**Investigation:**
+
 ```python
 # tests/conftest.py
 @pytest.fixture(scope="session", autouse=False)  # ← autouse=False!
@@ -117,20 +123,22 @@ def setup_test_database():
         return  # Skip table creation
 ```
 
-**Findings**:
+**Findings:**
+
 - `setup_test_database` fixture had `autouse=False`
 - Fixture checks if migrations ran and skips table creation if they did
-- **But**: With `autouse=False`, fixture only runs when explicitly requested
+- **But:** With `autouse=False`, fixture only runs when explicitly requested
 - Tests not requesting this fixture run before schema is ready
 - Result: Tests attempt to use database before tables exist
 
-**Result**: ✅ Root cause confirmed - fixture ordering issue
+**Result:** ✅ Root cause confirmed - fixture ordering issue
 
 ### Step 4: SQLAlchemy Session State Investigation
 
-**Hypothesis**: Session caching objects across HTTP requests.
+**Hypothesis:** Session caching objects across HTTP requests.
 
-**Investigation**:
+**Investigation:**
+
 ```python
 # Original code in conftest.py
 async def commit(self):
@@ -138,13 +146,14 @@ async def commit(self):
     return self.session.commit()  # ← No session expiry!
 ```
 
-**Findings**:
+**Findings:**
+
 - SQLAlchemy session caches objects in identity map
 - After commit, session still holds old object state
 - Subsequent requests query cached data instead of fresh database data
-- **Critical in CI**: Where timing and parallelism differ from local env
+- **Critical in CI:** Where timing and parallelism differ from local env
 
-**Result**: ✅ Secondary issue identified - session state management
+**Result:** ✅ Secondary issue identified - session state management
 
 ---
 
@@ -152,7 +161,8 @@ async def commit(self):
 
 ### Primary Cause: Fixture Ordering
 
-**Problem**:
+**Problem:**
+
 ```python
 @pytest.fixture(scope="session", autouse=False)  # ← Wrong!
 def setup_test_database():
@@ -163,14 +173,16 @@ def setup_test_database():
 - Tests access database before schema is ready
 - Migrations run in Docker container startup, but pytest doesn't wait for completion
 
-**Impact**:
+**Impact:**
+
 - CI environment: Migrations run async, tests start before completion → tables don't exist
 - Test environment: Same issue, but migrations complete faster (less noticeable)
 - Dev environment: Tables created by init_db script (different mechanism)
 
 ### Secondary Cause: Session State Caching
 
-**Problem**:
+**Problem:**
+
 ```python
 async def commit(self):
     return self.session.commit()  # Session keeps cached state
@@ -180,7 +192,8 @@ async def commit(self):
 - Commit doesn't expire cached state
 - Next request sees stale data from session cache, not database
 
-**Impact**:
+**Impact:**
+
 - User created in registration request
 - Session caches user object
 - Email verification request queries same session
@@ -190,11 +203,11 @@ async def commit(self):
 
 ### Why It Only Failed in CI
 
-1. **Timing**: CI environment has different execution timing
-2. **Parallelism**: CI may handle requests differently
-3. **Database Speed**: CI database (GitHub Actions) slower than local Docker
-4. **Migration Timing**: Migrations complete at different times relative to test start
-5. **Session Lifecycle**: FastAPI TestClient session lifecycle differs slightly in CI
+1. **Timing:** CI environment has different execution timing
+2. **Parallelism:** CI may handle requests differently
+3. **Database Speed:** CI database (GitHub Actions) slower than local Docker
+4. **Migration Timing:** Migrations complete at different times relative to test start
+5. **Session Lifecycle:** FastAPI TestClient session lifecycle differs slightly in CI
 
 ---
 
@@ -202,7 +215,7 @@ async def commit(self):
 
 ### Fix 1: Force Session Expiry After Commit
 
-**File**: `tests/conftest.py`
+**File:** `tests/conftest.py`
 
 ```python
 async def commit(self):
@@ -217,7 +230,8 @@ async def commit(self):
     return result
 ```
 
-**Rationale**:
+**Rationale:**
+
 - Forces SQLAlchemy to query database on next access
 - Ensures committed data is visible to subsequent requests
 - Eliminates stale cached state
@@ -225,7 +239,7 @@ async def commit(self):
 
 ### Fix 2: Force Session Expiry at Request Start
 
-**File**: `tests/conftest.py`
+**File:** `tests/conftest.py`
 
 ```python
 async def override_get_session():
@@ -243,7 +257,8 @@ async def override_get_session():
         pass
 ```
 
-**Rationale**:
+**Rationale:**
+
 - Ensures every request starts with clean session state
 - Forces fresh database queries
 - Prevents cross-request data contamination
@@ -251,7 +266,7 @@ async def override_get_session():
 
 ### Fix 3: Make Database Setup Automatic
 
-**File**: `tests/conftest.py`
+**File:** `tests/conftest.py`
 
 ```python
 @pytest.fixture(scope="session", autouse=True)  # ← Changed to True!
@@ -286,7 +301,8 @@ def setup_test_database():
     SQLModel.metadata.drop_all(engine)
 ```
 
-**Rationale**:
+**Rationale:**
+
 - `autouse=True` ensures fixture runs before any test
 - Blocks all tests until database schema is ready
 - Works in both CI (migrations) and local (table creation) environments
@@ -298,7 +314,7 @@ def setup_test_database():
 
 ### Test Results
 
-**After Fixes Applied**:
+**After Fixes Applied:**
 
 ```bash
 $ docker compose -f compose/docker-compose.test.yml exec app pytest tests/smoke/ -v
@@ -312,7 +328,7 @@ tests/smoke/test_complete_auth_flow.py::test_smoke_weak_password_rejected PASSED
 ============================== 5 passed in 2.36s ==============================
 ```
 
-**✅ All smoke tests passing in test environment**
+**✅ All smoke tests passing in test environment:**
 
 ### Environment Validation
 
@@ -330,14 +346,16 @@ tests/smoke/test_complete_auth_flow.py::test_smoke_weak_password_rejected PASSED
 
 ### 1. Session State Management is Critical
 
-**Lesson**: SQLAlchemy session identity map can cause hard-to-debug issues in testing.
+**Lesson:** SQLAlchemy session identity map can cause hard-to-debug issues in testing.
 
-**Best Practice**:
+**Best Practice:**
+
 - Always expire session state after commits
 - Force fresh queries at request boundaries
 - Never assume session state is up-to-date with database
 
-**Code Pattern**:
+**Code Pattern:**
+
 ```python
 def commit(self):
     self.session.commit()
@@ -347,14 +365,16 @@ def commit(self):
 
 ### 2. Fixture Dependencies Must Be Explicit
 
-**Lesson**: Fixtures with `autouse=False` create hidden ordering dependencies.
+**Lesson:** Fixtures with `autouse=False` create hidden ordering dependencies.
 
-**Best Practice**:
+**Best Practice:**
+
 - Use `autouse=True` for critical setup fixtures
 - Explicitly declare fixture dependencies
 - Document why `autouse` is chosen
 
-**Example**:
+**Example:**
+
 ```python
 @pytest.fixture(scope="session", autouse=True)  # ← Explicit
 def setup_critical_state():
@@ -364,15 +384,17 @@ def setup_critical_state():
 
 ### 3. Environment Parity Matters
 
-**Lesson**: Subtle environment differences can cause tests to pass locally and fail in CI.
+**Lesson:** Subtle environment differences can cause tests to pass locally and fail in CI.
 
-**Best Practice**:
+**Best Practice:**
+
 - Document environment differences explicitly
 - Use identical configurations where possible
 - Test in CI-like environment before pushing
 - Never assume "works on my machine" is sufficient
 
-**Example**:
+**Example:**
+
 ```yaml
 # env/.env.test (should mirror .env.ci)
 DATABASE_URL=postgresql+asyncpg://...
@@ -383,28 +405,32 @@ API_V1_PREFIX=/api/v1
 
 ### 4. PostgreSQL Configuration Impacts Test Behavior
 
-**Lesson**: `synchronous_commit=off` can cause read-after-write visibility issues.
+**Lesson:** `synchronous_commit=off` can cause read-after-write visibility issues.
 
-**Best Practice**:
+**Best Practice:**
+
 - Keep PostgreSQL config consistent across environments
 - Avoid performance optimizations in test environments
 - Document why any config differs from production
 
-**Removed from CI**:
+**Removed from CI:**
+
 ```yaml
 POSTGRES_INITDB_ARGS: "--synchronous_commit=off"  # ← Removed!
 ```
 
 ### 5. Migrations and Test Fixtures Need Coordination
 
-**Lesson**: Running migrations and test fixtures can conflict if not coordinated.
+**Lesson:** Running migrations and test fixtures can conflict if not coordinated.
 
-**Best Practice**:
+**Best Practice:**
+
 - Use `autouse=True` fixture to detect and wait for migrations
 - Check for `alembic_version` table before creating schema
 - Document migration vs fixture responsibilities
 
-**Pattern**:
+**Pattern:**
+
 ```python
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
@@ -426,7 +452,7 @@ def setup_test_database():
 
 ### 1. Add Session State Monitoring
 
-**Idea**: Add logging to track session state lifecycle.
+**Idea:** Add logging to track session state lifecycle.
 
 ```python
 def commit(self):
@@ -436,11 +462,11 @@ def commit(self):
     logger.debug(f"Session state after expire: {len(self.session.identity_map)} objects")
 ```
 
-**Benefit**: Easier debugging of session-related issues.
+**Benefit:** Easier debugging of session-related issues.
 
 ### 2. Add Migration Health Check
 
-**Idea**: Add explicit migration verification before tests.
+**Idea:** Add explicit migration verification before tests.
 
 ```python
 def check_migrations_complete():
@@ -453,11 +479,11 @@ def check_migrations_complete():
     # Fail fast if mismatch
 ```
 
-**Benefit**: Catch migration issues immediately, not during tests.
+**Benefit:** Catch migration issues immediately, not during tests.
 
 ### 3. Add CI-Specific Test Markers
 
-**Idea**: Mark tests that are particularly sensitive to CI differences.
+**Idea:** Mark tests that are particularly sensitive to CI differences.
 
 ```python
 @pytest.mark.ci_sensitive
@@ -465,11 +491,11 @@ def test_complex_multi_step_flow():
     ...
 ```
 
-**Benefit**: Can run these tests with extra logging/validation in CI.
+**Benefit:** Can run these tests with extra logging/validation in CI.
 
 ### 4. Add Database State Assertions
 
-**Idea**: Add helper to verify database state matches expectations.
+**Idea:** Add helper to verify database state matches expectations.
 
 ```python
 def assert_db_state(session, expected_users=1, expected_tokens=0):
@@ -479,7 +505,7 @@ def assert_db_state(session, expected_users=1, expected_tokens=0):
     assert actual_users == expected_users, f"Expected {expected_users} users, got {actual_users}"
 ```
 
-**Benefit**: Catch session caching issues earlier in test execution.
+**Benefit:** Catch session caching issues earlier in test execution.
 
 ---
 
@@ -510,7 +536,8 @@ The fixes applied ensure that:
 ✅ Schema is guaranteed to exist before tests run  
 ✅ Tests are repeatable and predictable across environments  
 
-**Next Steps**:
+**Next Steps:**
+
 1. Push changes and verify CI passes
 2. Monitor for any regressions
 3. Consider implementing future improvements
@@ -518,9 +545,9 @@ The fixes applied ensure that:
 
 ---
 
-**Status**: ✅ **RESOLVED**  
-**Test Coverage**: 5/5 smoke tests passing  
-**Environments**: Dev ✅ | Test ✅ | CI ✅ (Expected)  
+**Status:** ✅ **RESOLVED**  
+**Test Coverage:** 5/5 smoke tests passing  
+**Environments:** Dev ✅ | Test ✅ | CI ✅ (Expected)  
 
 ---
 

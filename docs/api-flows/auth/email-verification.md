@@ -3,9 +3,11 @@
 Verify a user’s email using the HTTPS-enabled development environment.
 
 ## Purpose
+
 Confirm a registered user’s email to enable login and protected actions.
 
 ## Prerequisites
+
 - Dev environment running with TLS
 - A user recently registered (see [Registration Flow](registration.md))
 - Verification token extracted from logs (see below)
@@ -27,7 +29,8 @@ docker logs dashtam-dev-app --tail 100 2>&1 | grep -A 20 '📧 EMAIL'
 ```
 
 **Example log output:**
-```
+
+```log
 📧 EMAIL (Development Mode - Not Sent)
 ================================================================================
 From: Dashtam <noreply@dashtam.com>
@@ -47,6 +50,7 @@ This link will expire in 24 hours.
 ```
 
 **Extract and set the token:**
+
 ```bash
 # Copy the token from the URL in the logs
 export VERIFICATION_TOKEN="vYaGSkz80Qoi86hR78lPyKt6zIp8LDoj13TiheZzjLk"
@@ -56,6 +60,7 @@ echo "Verification token: $VERIFICATION_TOKEN"
 ```
 
 ### 2) Verify email
+
 ```bash
 cat <<JSON >/tmp/verify-email.json
 {
@@ -69,13 +74,15 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/verify-email" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "message": "Email verified successfully. You can now log in."
 }
 ```
 
-**Optional: Inline (no heredoc)**
+**Optional: Inline (no heredoc):**
+
 ```bash
 curl -sk -X POST "$BASE_URL/api/v1/auth/verify-email" \
   -H 'Content-Type: application/json' \

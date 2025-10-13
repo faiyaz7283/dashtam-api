@@ -1,18 +1,18 @@
 # Git Quick Reference - Dashtam
 
-**One-page cheat sheet for common Git Flow operations**
+**One-page cheat sheet for common Git Flow operations:**
 
 ---
 
 ## 🌳 Branch Overview
 
-```
-main (production)              ← v1.2.0, v1.1.1 (tags)
+```text
+main (production)               ← v1.2.0, v1.1.1 (tags)
   ├── development (integration) ← default branch
   │   ├── feature/my-feature
   │   └── fix/my-bug-fix
-  ├── release/v1.2.0           ← preparing release
-  └── hotfix/v1.1.1            ← emergency fix
+  ├── release/v1.2.0            ← preparing release
+  └── hotfix/v1.1.1             ← emergency fix
 ```
 
 ---
@@ -20,6 +20,7 @@ main (production)              ← v1.2.0, v1.1.1 (tags)
 ## 🚀 Daily Workflow
 
 ### Start New Feature
+
 ```bash
 make git-feature
 # Or manually:
@@ -29,6 +30,7 @@ git checkout -b feature/feature-name
 ```
 
 ### Make Changes
+
 ```bash
 # Make your changes
 git add .
@@ -36,6 +38,7 @@ git commit -m "feat(scope): description"
 ```
 
 ### Finish Feature
+
 ```bash
 make git-finish
 # This will:
@@ -61,6 +64,7 @@ make git-finish                           # Push & create PR
 ## 📦 Release Workflow
 
 ### Start Release
+
 ```bash
 make git-release-start                    # Enter version: 1.2.0
 # Update pyproject.toml
@@ -73,6 +77,7 @@ git push -u origin release/v1.2.0
 ```
 
 ### Finish Release (after PR merged)
+
 ```bash
 make git-release-finish VERSION=1.2.0
 # This will:
@@ -86,6 +91,7 @@ make git-release-finish VERSION=1.2.0
 ## 🚨 Hotfix Workflow
 
 ### Start Hotfix
+
 ```bash
 make git-hotfix-start                     # Enter version: 1.1.1
 # Fix critical issue ONLY
@@ -97,6 +103,7 @@ git push -u origin hotfix/v1.1.1
 ```
 
 ### Finish Hotfix (after PR merged)
+
 ```bash
 make git-hotfix-finish VERSION=1.1.1
 # Deploy immediately!
@@ -106,7 +113,7 @@ make git-hotfix-finish VERSION=1.1.1
 
 ## 📝 Commit Message Format
 
-```
+```text
 <type>(<scope>): <subject>
 
 <body>
@@ -115,6 +122,7 @@ make git-hotfix-finish VERSION=1.1.1
 ```
 
 ### Types
+
 - `feat:` New feature (minor version bump)
 - `fix:` Bug fix (patch version bump)
 - `docs:` Documentation only
@@ -125,6 +133,7 @@ make git-hotfix-finish VERSION=1.1.1
 - `ci:` CI/CD changes
 
 ### Examples
+
 ```bash
 feat(api): add account listing endpoint
 fix(auth): prevent race condition in token refresh
@@ -134,6 +143,7 @@ chore(deps): update FastAPI to 0.110.0
 ```
 
 ### Breaking Changes
+
 ```bash
 feat(api)!: change authentication structure
 
@@ -145,6 +155,7 @@ BREAKING CHANGE: Auth endpoint moved to /api/v1/auth
 ## 🛠️ Make Commands
 
 ### Git Flow
+
 ```bash
 make git-status                        # Show Git status
 make git-sync                          # Sync with development
@@ -160,6 +171,7 @@ make git-branch-protection            # Setup branch protection
 ```
 
 ### Testing & Quality
+
 ```bash
 make test                # All tests with coverage
 make test-unit           # Unit tests only
@@ -173,6 +185,7 @@ make format              # Format code
 ## 🔄 Common Git Commands
 
 ### Sync & Update
+
 ```bash
 git fetch origin                          # Fetch updates
 git pull origin development               # Pull development
@@ -180,6 +193,7 @@ git rebase origin/development             # Rebase on development
 ```
 
 ### Status & History
+
 ```bash
 git status                                # Current status
 git log --oneline --graph -10             # Recent commits
@@ -188,6 +202,7 @@ git diff --staged                         # Staged changes
 ```
 
 ### Stashing
+
 ```bash
 git stash                                 # Stash changes
 git stash list                            # List stashes
@@ -195,6 +210,7 @@ git stash pop                             # Apply & remove stash
 ```
 
 ### Branch Management
+
 ```bash
 git branch                                # List local branches
 git branch -a                             # List all branches
@@ -203,6 +219,7 @@ git push origin --delete feature/name     # Delete remote branch
 ```
 
 ### Undoing Changes
+
 ```bash
 git checkout -- file.py                   # Discard file changes
 git reset HEAD file.py                    # Unstage file
@@ -218,15 +235,18 @@ git revert <commit-hash>                  # Safe revert (creates new commit)
 **Both `main` and `development` are protected:**
 
 ✅ Required status checks:
+
 - `Test Suite / Run Tests` must pass
 - `Code Quality / lint` must pass
 
 ✅ Pull request requirements:
+
 - At least 1 approval required
 - All conversations must be resolved
 - Branch must be up to date
 
 ✅ Restrictions:
+
 - No direct commits
 - No force pushes
 - No branch deletion
@@ -236,6 +256,7 @@ git revert <commit-hash>                  # Safe revert (creates new commit)
 ## 🔄 GitHub CLI PR Management
 
 ### Creating Pull Requests
+
 ```bash
 # Interactive PR creation
 gh pr create
@@ -251,6 +272,7 @@ gh pr create --base development --draft --title "WIP: my feature"
 ```
 
 ### Viewing PRs
+
 ```bash
 # View PR in browser
 gh pr view 16 --web
@@ -266,6 +288,7 @@ gh pr list
 ```
 
 ### Reviewing PRs
+
 ```bash
 # Approve PR
 gh pr review 16 --approve --body "LGTM!"
@@ -278,6 +301,7 @@ gh pr review 16 --comment --body "Minor suggestion"
 ```
 
 ### Merging PRs
+
 ```bash
 # Squash merge (recommended)
 gh pr merge 16 --squash --delete-branch
@@ -296,6 +320,7 @@ gh pr merge 16 --squash --auto --delete-branch
 ```
 
 **Merge Options:**
+
 - `--squash` - Combine all commits into one (clean history)
 - `--merge` - Create merge commit (preserve feature commits)
 - `--rebase` - Linear history
@@ -304,6 +329,7 @@ gh pr merge 16 --squash --auto --delete-branch
 - `--auto` - Merge automatically when checks pass
 
 **Merge State Status:**
+
 - `CLEAN` ✅ Ready to merge
 - `BLOCKED` ❌ Missing approvals or failing checks
 - `BEHIND` ⚠️ Branch needs update
@@ -315,6 +341,7 @@ gh pr merge 16 --squash --auto --delete-branch
 ## 📋 Pull Request Checklist
 
 Before creating PR:
+
 - [ ] All tests pass (`make test`)
 - [ ] Linting passes (`make lint`)
 - [ ] Code is formatted (`make format`)
@@ -323,6 +350,7 @@ Before creating PR:
 - [ ] Branch is up to date with development
 
 PR Description Template:
+
 ```markdown
 ## Description
 [Brief description]
@@ -347,7 +375,7 @@ Closes #XX
 
 ## 🎯 Semantic Versioning
 
-```
+```text
 vMAJOR.MINOR.PATCH
 
 v1.2.3
@@ -358,6 +386,7 @@ v1.2.3
 ```
 
 **Examples:**
+
 - `v1.0.0` → Initial release
 - `v1.1.0` → New feature added
 - `v1.1.1` → Bug fix
@@ -367,7 +396,7 @@ v1.2.3
 
 ## 🚦 Workflow Decision Tree
 
-```
+```text
 Need to work on something?
 │
 ├─ New feature? → make git-feature
@@ -387,6 +416,7 @@ Work complete?
 ## ⚠️ Important Rules
 
 ❌ **NEVER:**
+
 - Commit directly to `main` or `development`
 - Force push to shared branches
 - Commit secrets or sensitive data
@@ -394,6 +424,7 @@ Work complete?
 - Skip running tests before pushing
 
 ✅ **ALWAYS:**
+
 - Create feature/fix branch for changes
 - Write meaningful commit messages
 - Run tests before pushing (`make test`)
@@ -407,18 +438,21 @@ Work complete?
 ## 🆘 Emergency Procedures
 
 ### Revert Last Commit (not pushed)
+
 ```bash
 git reset --soft HEAD~1        # Keep changes
 git reset --hard HEAD~1        # Discard changes
 ```
 
 ### Revert Pushed Commit (safe)
+
 ```bash
 git revert <commit-hash>       # Creates new commit
 git push origin <branch>
 ```
 
 ### Accidentally Committed to Wrong Branch
+
 ```bash
 git branch feature/correct-branch    # Create branch with current commits
 git reset --hard origin/development  # Reset current branch
@@ -426,6 +460,7 @@ git checkout feature/correct-branch  # Switch to correct branch
 ```
 
 ### Merge Conflict
+
 ```bash
 git status                     # See conflicted files
 # Edit files, resolve conflicts (remove markers)

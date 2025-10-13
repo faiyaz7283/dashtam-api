@@ -1,8 +1,8 @@
 # JWT Authentication Quick Reference
 
-**Last Updated**: 2025-10-04  
-**For**: Developers using Dashtam authentication system  
-**Pattern**: Pattern A (JWT Access + Opaque Refresh)
+**Last Updated:** 2025-10-04  
+**For:** Developers using Dashtam authentication system  
+**Pattern:** Pattern A (JWT Access + Opaque Refresh)
 
 ---
 
@@ -604,12 +604,14 @@ def make_request(url: str, auth_client: DashtamAuth):
 ### Token Storage (Security)
 
 **❌ DON'T** (Vulnerable to XSS):
+
 ```javascript
 // Storing tokens in localStorage
 localStorage.setItem('access_token', token);
 ```
 
 **✅ DO** (More secure):
+
 ```javascript
 // Use httpOnly cookies (backend sets it)
 // Or use memory storage (lost on refresh, but safer)
@@ -617,6 +619,7 @@ const [accessToken, setAccessToken] = useState(null);
 ```
 
 **🏆 BEST** (Production):
+
 - Access token: Memory (React state)
 - Refresh token: httpOnly cookie (auto-sent)
 - Backend returns `Set-Cookie` header with httpOnly flag
@@ -659,7 +662,7 @@ except httpx.HTTPStatusError as e:
 
 ## Token Lifecycle
 
-```
+```text
 REGISTRATION
     ↓
 EMAIL VERIFICATION (token valid 24h)
@@ -731,21 +734,25 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 ## Troubleshooting
 
 ### "Token validation failed"
+
 - Check token hasn't expired
 - Verify token is being sent in correct format: `Authorization: Bearer <token>`
 - Ensure no extra spaces or newlines in token
 
 ### "Refresh token not found or revoked"
+
 - Token was already used for logout
 - Token expired (30 days)
 - User needs to login again
 
 ### "Email not verified"
+
 - User must verify email before logging in
 - Check email for verification link
 - In dev mode, check logs for token
 
 ### "Account is locked"
+
 - Too many failed login attempts (10+)
 - Wait 1 hour or contact administrator
 - Account auto-unlocks after lockout period
@@ -754,23 +761,23 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 
 ## Quick Reference Card
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
-│                DASHTAM AUTH QUICK REFERENCE              │
+│                DASHTAM AUTH QUICK REFERENCE             │
 ├─────────────────────────────────────────────────────────┤
 │ PATTERN A: JWT Access + Opaque Refresh                  │
-│                                                          │
+│                                                         │
 │ Access Token:  JWT, 30 min, stateless                   │
 │ Refresh Token: Random, 30 days, hashed in DB            │
-│                                                          │
-│ FLOW:                                                    │
+│                                                         │
+│ FLOW:                                                   │
 │ 1. Register → Email verification                        │
 │ 2. Login → Get tokens                                   │
 │ 3. Use access token (Bearer header)                     │
 │ 4. Refresh when expired (30 min)                        │
 │ 5. Logout → Revoke refresh token                        │
-│                                                          │
-│ ENDPOINTS:                                               │
+│                                                         │
+│ ENDPOINTS:                                              │
 │ POST   /auth/register      - Register                   │
 │ POST   /auth/verify-email  - Verify email               │
 │ POST   /auth/login         - Login                      │
@@ -778,8 +785,8 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 │ POST   /auth/logout        - Logout                     │
 │ GET    /auth/me            - Get user profile           │
 │ PATCH  /auth/me            - Update profile             │
-│                                                          │
-│ SECURITY:                                                │
+│                                                         │
+│ SECURITY:                                               │
 │ ✅ All tokens hashed in database                        │
 │ ✅ Email verification required                          │
 │ ✅ Password complexity enforced                         │
@@ -792,12 +799,12 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 
 ## Additional Resources
 
-- **Architecture Guide**: `docs/development/architecture/jwt-authentication.md`
-- **Full Implementation**: `docs/development/guides/authentication-implementation.md`
-- **API Documentation**: http://localhost:8000/docs (when running)
+- **Architecture Guide:** `docs/development/architecture/jwt-authentication.md`
+- **Full Implementation:** `docs/development/guides/authentication-implementation.md`
+- **API Documentation:** http://localhost:8000/docs (when running)
 
 ---
 
-**Last Updated**: 2025-10-04  
-**Version**: 1.0  
-**Status**: ✅ Production Ready
+**Last Updated:** 2025-10-04  
+**Version:** 1.0  
+**Status:** ✅ Production Ready

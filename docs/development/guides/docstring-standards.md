@@ -1,10 +1,10 @@
 # Docstring Standards Guide
 
-**Comprehensive guide for Python documentation across the entire Dashtam codebase**
+**Comprehensive guide for Python documentation across the entire Dashtam codebase:**
 
-**Last Updated**: 2025-10-11  
-**Applies To**: All Python files (src/, tests/, scripts/)  
-**Format**: Google-style docstrings (WARP.md requirement)
+**Last Updated:** 2025-10-11  
+**Applies To:** All Python files (src/, tests/, scripts/)  
+**Format:** Google-style docstrings (WARP.md requirement)
 
 ---
 
@@ -36,13 +36,14 @@
 
 The Dashtam project uses **Google-style docstrings** as mandated in WARP.md for the following reasons:
 
-1. **Readability**: Clean, natural language format that's easy to scan
-2. **Consistency**: Industry-standard format used by major Python projects
-3. **Tooling Support**: Compatible with Sphinx, MkDocs, mkdocstrings, and IDEs
-4. **Maintainability**: Clear structure makes documentation updates straightforward
-5. **Onboarding**: New developers can understand code behavior without reading implementation
+1. **Readability:** Clean, natural language format that's easy to scan
+2. **Consistency:** Industry-standard format used by major Python projects
+3. **Tooling Support:** Compatible with Sphinx, MkDocs, mkdocstrings, and IDEs
+4. **Maintainability:** Clear structure makes documentation updates straightforward
+5. **Onboarding:** New developers can understand code behavior without reading implementation
 
-**Google-Style Quick Reference**:
+**Google-Style Quick Reference:**
+
 ```python
 """One-line summary ending with period.
 
@@ -67,7 +68,8 @@ Example:
 """
 ```
 
-**Official Resources**:
+**Official Resources:**
+
 - [Google Python Style Guide - Docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
 - [PEP 257 - Docstring Conventions](https://peps.python.org/pep-0257/)
 - WARP.md - Project-specific docstring requirements
@@ -108,7 +110,8 @@ Note:
 """
 ```
 
-**Required Elements**:
+**Required Elements:**
+
 - One-line summary
 - Blank line
 - Detailed description of module purpose
@@ -237,7 +240,8 @@ async def create_user(
     """
 ```
 
-**Required Sections**:
+**Required Sections:**
+
 - Summary (one line)
 - Description (detailed explanation)
 - Args (all parameters with types and descriptions)
@@ -308,7 +312,8 @@ async def login(
     """
 ```
 
-**FastAPI-Specific Sections**:
+**FastAPI-Specific Sections:**
+
 - Request Body (schema description)
 - Response (schema description)
 - Status Codes (all possible HTTP status codes)
@@ -479,6 +484,7 @@ async def get_user_by_email(
 ## Test Documentation Standards
 
 Tests are **documentation of expected behavior**. Comprehensive test docstrings are critical for:
+
 - Understanding what's being tested without reading implementation
 - Debugging test failures quickly
 - Onboarding new developers
@@ -513,7 +519,8 @@ Note:
 """
 ```
 
-**Required Elements**:
+**Required Elements:**
+
 - One-line summary of what module tests
 - List of tested functionality
 - Optional Coverage section
@@ -692,7 +699,8 @@ def verified_user(db_session: Session) -> User:
     # Cleanup handled by db_session rollback
 ```
 
-**Fixture-Specific Sections**:
+**Fixture-Specific Sections:**
+
 - Args (fixture dependencies)
 - Returns or Yields (what fixture provides)
 - Cleanup (how resources are cleaned up)
@@ -787,13 +795,15 @@ def test_login(self, client, user):
     """Test login."""  # TOO BRIEF - doesn't explain what's validated
 ```
 
-**Why This is Wrong**:
+**Why This is Wrong:**
+
 - Doesn't explain what's being tested
 - No information about fixtures
 - Missing verification details
 - Not helpful for debugging failures
 
-**✅ Correct Version**:
+**✅ Correct Version:**
+
 ```python
 def test_login_success(self, client: TestClient, verified_user: User):
     """Test successful user login with valid credentials.
@@ -815,7 +825,8 @@ def test_token_refresh(self, client, refresh_token):
     # MISSING: No Args section documenting fixtures
 ```
 
-**✅ Correct Version**:
+**✅ Correct Version:**
+
 ```python
 def test_token_refresh(self, client: TestClient, refresh_token: str):
     """Test successful token refresh with valid refresh token.
@@ -834,7 +845,8 @@ def test_password_reset(self, auth_service):
     # WRONG: Describes implementation, not test purpose/validation
 ```
 
-**✅ Correct Version**:
+**✅ Correct Version:**
+
 ```python
 def test_password_reset_sends_email(self, auth_service, mock_email_service):
     """Test password reset sends email with reset token.
@@ -856,7 +868,8 @@ async def authenticate_user(email: str, password: str) -> User:
     # MISSING: No Raises section for possible exceptions
 ```
 
-**✅ Correct Version**:
+**✅ Correct Version:**
+
 ```python
 async def authenticate_user(email: str, password: str) -> User:
     """Authenticate user with email and password.
@@ -883,7 +896,8 @@ def create_token(user_id, expires_in):
     # MISSING: Type hints and arg descriptions
 ```
 
-**✅ Correct Version**:
+**✅ Correct Version:**
+
 ```python
 def create_token(user_id: UUID, expires_in: int) -> str:
     """Create JWT access token for user.
@@ -915,6 +929,7 @@ def create_token(user_id: UUID, expires_in: int) -> str:
 ### When Reviewing Code
 
 Check docstrings for:
+
 - [ ] Completeness (all sections present)
 - [ ] Accuracy (matches actual behavior)
 - [ ] Clarity (easy to understand)
@@ -939,6 +954,7 @@ make test
 ### During PR Reviews
 
 Docstring checklist for reviewers:
+
 - [ ] All new functions/classes have docstrings
 - [ ] Args/Returns sections match function signature
 - [ ] Raises section lists all possible exceptions
@@ -952,18 +968,21 @@ Docstring checklist for reviewers:
 
 ### Checklist for Complete Docstrings
 
-**Every Module**:
+**Every Module:**
+
 - [ ] Module-level docstring at top
 - [ ] One-line summary + detailed description
 - [ ] Lists key components/functionality
 
-**Every Class**:
+**Every Class:**
+
 - [ ] Class-level docstring
 - [ ] Attributes section (if applicable)
 - [ ] Example usage (for public APIs)
 - [ ] Note section for patterns/warnings
 
-**Every Function/Method**:
+**Every Function/Method:**
+
 - [ ] One-line summary
 - [ ] Detailed description (if needed)
 - [ ] Args section (all parameters documented)
@@ -971,13 +990,15 @@ Docstring checklist for reviewers:
 - [ ] Raises section (all possible exceptions)
 - [ ] Optional: Example, Note, Warning
 
-**Every Test Function**:
+**Every Test Function:**
+
 - [ ] Summary of what's tested
 - [ ] "Verifies that:" section with checks
 - [ ] Args section documenting all fixtures
 - [ ] Optional: Scenario, Setup, Note sections
 
-**Every Pytest Fixture**:
+**Every Pytest Fixture:**
+
 - [ ] Summary of fixture purpose
 - [ ] Args section (dependencies)
 - [ ] Returns/Yields section (what's provided)
@@ -1001,10 +1022,10 @@ Standard order for sections (not all required):
 
 For test functions, use these additional sections:
 
-- **Scenario**: Context/background for the test
-- **Setup**: Test data preparation steps
-- **Verifies that**: Specific checks performed
-- **Raises**: Expected assertion failures
+- **Scenario:** Context/background for the test
+- **Setup:** Test data preparation steps
+- **Verifies that:** Specific checks performed
+- **Raises:** Expected assertion failures
 
 ---
 
@@ -1012,13 +1033,14 @@ For test functions, use these additional sections:
 
 This guide implements the following WARP.md requirements:
 
-- ✅ **Google-style docstrings**: All code uses Google-style format
-- ✅ **Comprehensive documentation**: Functions, classes, modules, tests
-- ✅ **Type hints**: Always paired with docstring descriptions
-- ✅ **Test documentation**: Tests are treated as first-class documentation
-- ✅ **Code quality**: Docstrings checked by `make lint`
+- ✅ **Google-style docstrings:** All code uses Google-style format
+- ✅ **Comprehensive documentation:** Functions, classes, modules, tests
+- ✅ **Type hints:** Always paired with docstring descriptions
+- ✅ **Test documentation:** Tests are treated as first-class documentation
+- ✅ **Code quality:** Docstrings checked by `make lint`
 
-**See Also**:
+**See Also:**
+
 - WARP.md - Project rules and coding standards
 - [Testing Guide](../testing/guide.md) - Complete testing documentation
 - [Best Practices](../testing/best-practices.md) - Testing best practices
@@ -1028,22 +1050,25 @@ This guide implements the following WARP.md requirements:
 ## References
 
 ### Official Style Guides
+
 - [Google Python Style Guide - Docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
 - [PEP 257 - Docstring Conventions](https://peps.python.org/pep-0257/)
 - [PEP 484 - Type Hints](https://peps.python.org/pep-0484/)
 
 ### Tools and Automation
+
 - [mkdocstrings](https://mkdocstrings.github.io/) - Auto-generate docs from docstrings
 - [Sphinx](https://www.sphinx-doc.org/) - Documentation builder
 - [Ruff](https://docs.astral.sh/ruff/) - Fast Python linter (checks docstrings)
 
 ### Project Documentation
+
 - WARP.md - Complete project rules and context
 - [Test Docstring Standards](../testing/test-docstring-standards.md) - Test-specific patterns
 - [Documentation Implementation Guide](documentation-implementation-guide.md) - MkDocs setup
 
 ---
 
-**Last Updated**: 2025-10-11  
-**Maintained By**: Development Team  
-**Review Schedule**: Quarterly or when adding new patterns
+**Last Updated:** 2025-10-11  
+**Maintained By:** Development Team  
+**Review Schedule:** Quarterly or when adding new patterns

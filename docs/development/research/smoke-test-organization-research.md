@@ -1,12 +1,13 @@
 # Smoke Test Organization & SSL/TLS in Testing - Research & Recommendations
 
-**Date**: 2025-10-06  
-**Status**: ✅ **COMPLETE** - All Recommendations Implemented  
-**Decision Required**: No - All Actions Completed
+**Date:** 2025-10-06  
+**Status:** ✅ **COMPLETE** - All Recommendations Implemented  
+**Decision Required:** No - All Actions Completed
 
 ---
 
 ## Table of Contents
+
 - [Executive Summary](#executive-summary)
 - [Current State Analysis](#current-state-analysis)
 - [Industry Best Practices Research](#industry-best-practices-research)
@@ -21,18 +22,21 @@
 ## Executive Summary
 
 **Key Findings:**
+
 1. ✅ **Smoke tests belong in the test directory** - Industry consensus (85%+ of projects)
 2. ✅ **SSL/TLS should be enabled in test and CI environments** - Security best practice ✅ **COMPLETE**
 3. ✅ **Smoke tests should run in CI/CD** - Essential for deployment confidence
 4. ⚠️ **Current structure is non-standard** - Shell script in `scripts/` is atypical
 
 **Recommended Actions:**
+
 1. ✅ Move smoke tests to `tests/smoke/` directory - **COMPLETE** (2025-10-06)
 2. ✅ Enable SSL/TLS in test and CI environments - **COMPLETE** (2025-10-06)
 3. ✅ Integrate smoke tests into CI/CD pipeline - **COMPLETE** (2025-10-06)
 4. ✅ Convert shell script to pytest-based smoke tests - **COMPLETE** (2025-10-06)
 
 **SSL/TLS Implementation Summary (Completed 2025-10-06):**
+
 - ✅ Test environment now uses HTTPS (port 8001)
 - ✅ CI environment now uses HTTPS (internal)
 - ✅ Self-signed certificates committed to git
@@ -42,6 +46,7 @@
 - ✅ Production parity achieved across dev, test, and CI
 
 **Smoke Test Conversion Summary (Completed 2025-10-06):**
+
 - ✅ pytest-based smoke tests implemented (`tests/smoke/test_complete_auth_flow.py`)
 - ✅ Token extraction using pytest's `caplog` fixture (no Docker CLI dependency)
 - ✅ 22/23 tests passing (96% success rate, 1 skipped due to minor API bug)
@@ -57,7 +62,7 @@
 
 ### Current Structure
 
-```
+```bash
 Dashtam/
 ├── scripts/
 │   └── test-api-flows.sh          # 452 lines - Comprehensive smoke test
@@ -91,7 +96,7 @@ Dashtam/
 
 #### Test Directory Structure (Industry Consensus)
 
-```
+```bash
 tests/
 ├── unit/             # 95% of projects - Unit tests
 ├── integration/      # 90% of projects - Integration tests
@@ -102,6 +107,7 @@ tests/
 ```
 
 **Key Findings:**
+
 - ✅ **85% of projects** keep ALL test-related code in `tests/` directory
 - ✅ **60% of projects** have dedicated `tests/smoke/` or `tests/e2e/` directory
 - ✅ **Only 15%** use `scripts/` for testing - mostly for setup/teardown, not actual tests
@@ -118,6 +124,7 @@ tests/
 | **Location** | `tests/smoke/` or `tests/e2e/` | `tests/e2e/` | `tests/api/` |
 
 **Your `test-api-flows.sh` is actually a SMOKE TEST:**
+
 - ✅ Tests critical paths (registration → login → profile → logout)
 - ✅ Quick execution (< 5 minutes)
 - ✅ Validates system is operational
@@ -127,7 +134,7 @@ tests/
 
 ### 2. SSL/TLS in Testing - Best Practices
 
-**Research: 100+ enterprise projects and security guidelines**
+**Research: 100+ enterprise projects and security guidelines:**
 
 #### SSL/TLS Testing Approaches
 
@@ -137,11 +144,12 @@ tests/
 | **2. Test-Only SSL** | Dev/Test use self-signed, CI skips | 25% | Balance security & speed | CI doesn't test SSL |
 | **3. No SSL in Test** | HTTP only in test/CI | 10% | Fastest | Misses SSL issues |
 
-**Industry Recommendation: Production Parity (Approach 1)**
+**Industry Recommendation: Production Parity (Approach 1):**
 
 #### Why SSL/TLS in Test Environments?
 
 **Security Testing:**
+
 - ✅ Test TLS configuration and cipher suites
 - ✅ Validate certificate handling
 - ✅ Test HTTPS redirects
@@ -149,13 +157,15 @@ tests/
 - ✅ Test HSTS headers
 
 **Production Parity:**
+
 - ✅ Catch SSL-specific bugs early (mixed content, CORS, etc.)
 - ✅ Test proxy/load balancer behavior
 - ✅ Validate WebSocket over TLS
 - ✅ Test OAuth flows over HTTPS (some providers require it)
 
 **Real-World Example:**
-```
+
+```text
 GitHub Enterprise, GitLab, Auth0, Okta, Stripe:
 - All use SSL/TLS in test and CI environments
 - Self-signed certs in test, proper certs in staging/prod
@@ -181,11 +191,13 @@ GitHub Enterprise, GitLab, Auth0, Okta, Stripe:
 | **Adoption** | 20% of projects | 80% of projects |
 
 **Industry Consensus:**
+
 - ✅ **80% of Python projects** use pytest for ALL tests (including smoke)
 - ✅ Shell scripts used for **setup/infrastructure**, not tests
 - ✅ pytest provides better reporting, debugging, and CI integration
 
 **Notable Exceptions (Shell Scripts for Smoke Tests):**
+
 - Docker, Kubernetes, Terraform (non-Python ecosystems)
 - Legacy projects converting to pytest
 - Infrastructure testing (server health checks)
@@ -194,7 +206,7 @@ GitHub Enterprise, GitLab, Auth0, Okta, Stripe:
 
 ### 4. CI/CD Integration Best Practices
 
-**Research: GitHub Actions, GitLab CI, CircleCI, Jenkins**
+**Research: GitHub Actions, GitLab CI, CircleCI, Jenkins:**
 
 #### Test Stages in CI/CD Pipeline
 
@@ -210,12 +222,14 @@ Stages:
 ```
 
 **Smoke Tests as Deployment Gate:**
+
 - ✅ **95% of companies** run smoke tests before deployment
 - ✅ **85%** block deployment on smoke test failure
 - ✅ **70%** run smoke tests on every PR
 - ✅ **90%** run smoke tests post-deployment (health check)
 
-**Best Practice: Run smoke tests TWICE**
+**Best Practice: Run smoke tests TWICE:**
+
 1. **Pre-deployment** (in CI) - Block if critical paths fail
 2. **Post-deployment** (on staging/prod) - Alert if health check fails
 
@@ -228,6 +242,7 @@ Stages:
 **Current:** `scripts/test-api-flows.sh` (452 lines, comprehensive smoke test)
 
 **Issues:**
+
 - ❌ Not discoverable as a test (outside `tests/` directory)
 - ❌ Not integrated with pytest test suite
 - ❌ Requires manual execution
@@ -241,17 +256,20 @@ Stages:
 ### Problem 2: SSL/TLS in Test Environments
 
 **Current State:**
+
 - ✅ Dev environment: SSL enabled (self-signed certs)
 - ⚠️ Test environment: SSL available but tests use HTTP
 - ❌ CI environment: No SSL support
 
 **Issues:**
+
 - ❌ Smoke test uses `curl -k` (ignore SSL errors) - not production-like
 - ❌ Can't test HTTPS-specific behavior in CI
 - ❌ Production parity gap (prod uses HTTPS, CI uses HTTP)
 - ❌ OAuth providers may reject HTTP callbacks in test
 
 **Specific Example from Your Code:**
+
 ```bash
 # From test-api-flows.sh (line 75)
 curl -k -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/auth/register"
@@ -263,12 +281,14 @@ curl -k -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/auth/register"
 ### Problem 3: CI/CD Integration
 
 **Current State:**
+
 - ✅ Unit tests run in CI
 - ✅ Integration tests run in CI
 - ✅ API tests run in CI
 - ❌ Smoke tests NOT in CI (manual only)
 
 **Impact:**
+
 - ❌ Deployments can break critical paths without CI detecting it
 - ❌ No automated validation of end-to-end flows
 - ❌ Relying on post-deployment manual testing
@@ -281,7 +301,7 @@ curl -k -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/auth/register"
 
 **Option A: Keep Shell Script, Move to `tests/`** (Quick Win)
 
-```
+```bash
 tests/
 ├── smoke/
 │   ├── test-api-flows.sh          # Moved from scripts/
@@ -290,11 +310,13 @@ tests/
 ```
 
 **Pros:**
+
 - ✅ Fast to implement (just move file)
 - ✅ No code changes needed
 - ✅ Better organization
 
 **Cons:**
+
 - ❌ Still shell script (harder to maintain)
 - ❌ Not integrated with pytest
 - ❌ Requires separate CI step
@@ -341,6 +363,7 @@ def test_user_registration_flow(base_url, test_user):
 ```
 
 **Pros:**
+
 - ✅ Pytest native (better reporting, fixtures, plugins)
 - ✅ Easier to maintain (Python vs Bash)
 - ✅ Better debugging (full Python debugger)
@@ -348,6 +371,7 @@ def test_user_registration_flow(base_url, test_user):
 - ✅ CI integration automatic
 
 **Cons:**
+
 - ❌ More work to convert (estimated: 4-6 hours)
 - ❌ Requires learning pytest patterns for HTTP testing
 
@@ -357,7 +381,7 @@ def test_user_registration_flow(base_url, test_user):
 
 Keep shell script for now, add pytest smoke tests incrementally:
 
-```
+```bash
 tests/
 ├── smoke/
 │   ├── test_critical_paths.sh     # Shell script (existing)
@@ -367,18 +391,20 @@ tests/
 ```
 
 **Pros:**
+
 - ✅ Best of both worlds
 - ✅ Incremental migration
 - ✅ No big-bang change
 
 **Cons:**
+
 - ⚠️ Dual maintenance temporarily
 
 ---
 
 ### Solution 2: Enable SSL/TLS in Test and CI Environments
 
-**Approach: Self-Signed Certificates for Test/CI**
+**Approach: Self-Signed Certificates for Test/CI:**
 
 #### Step 1: Update docker-compose.test.yml
 
@@ -498,6 +524,7 @@ jobs:
 #### 1. Move Smoke Test to `tests/` Directory ✅ **COMPLETE**
 
 **Action:**
+
 ```bash
 mkdir -p tests/smoke
 # Converted to pytest instead of moving shell script
@@ -505,6 +532,7 @@ mkdir -p tests/smoke
 ```
 
 **Completed:**
+
 - ✅ Created `tests/smoke/` directory
 - ✅ Implemented pytest-based smoke tests (23 tests)
 - ✅ Added comprehensive `tests/smoke/README.md` documentation
@@ -520,6 +548,7 @@ mkdir -p tests/smoke
 #### 2. Enable SSL/TLS in Test Environment ✅
 
 **Action:**
+
 - Update `compose/docker-compose.test.yml` to use HTTPS
 - Ensure certs volume is mounted
 - Update test configuration to use `https://app:8000`
@@ -532,11 +561,13 @@ mkdir -p tests/smoke
 #### 3. Add Smoke Tests to CI/CD Pipeline ✅ **COMPLETE**
 
 **Action:**
+
 - Add smoke test step to `.github/workflows/test.yml`
 - Configure as blocking gate before deployment
 - Add proper error reporting
 
 **Completed:**
+
 - ✅ Smoke tests integrated into CI/CD pipeline
 - ✅ All tests run automatically in GitHub Actions
 - ✅ `make test` includes smoke tests in coverage
@@ -552,6 +583,7 @@ mkdir -p tests/smoke
 #### 4. Enable SSL/TLS in CI Environment ✅
 
 **Action:**
+
 - Update `compose/docker-compose.ci.yml` for internal HTTPS
 - Configure CI to handle self-signed certs
 - Update pytest fixtures
@@ -564,11 +596,13 @@ mkdir -p tests/smoke
 #### 5. Add Simple pytest Smoke Tests ✅ **COMPLETE**
 
 **Action:**
+
 - Create pytest-based smoke tests
 - Create fixtures for smoke tests
 - Implement comprehensive authentication flow testing
 
 **Completed:**
+
 - ✅ Created `tests/smoke/test_complete_auth_flow.py` (23 tests)
 - ✅ Implemented token extraction using pytest's `caplog` fixture
 - ✅ Complete authentication flow coverage:
@@ -588,11 +622,13 @@ mkdir -p tests/smoke
 #### 6. Convert Shell Script to pytest (Optional) ✅ **COMPLETE**
 
 **Action:**
+
 - Fully convert `test-api-flows.sh` to pytest
 - Use pytest fixtures for setup/teardown
 - Add better assertions and error reporting
 
 **Completed:**
+
 - ✅ Full pytest conversion completed
 - ✅ Comprehensive `tests/smoke/test_complete_auth_flow.py`
 - ✅ Better error messages and debugging
@@ -608,6 +644,7 @@ mkdir -p tests/smoke
 #### 7. Add Post-Deployment Smoke Tests
 
 **Action:**
+
 - Create separate smoke test suite for post-deployment validation
 - Run against staging/production after deployment
 - Alert on failure (don't block deployment)
@@ -621,87 +658,96 @@ mkdir -p tests/smoke
 
 ### Phase 1: Reorganization
 
-**Move and Enable SSL**
+**Move and Enable SSL:**
 
 ```bash
-# Step 1: Create smoke test directory
-mkdir -p tests/smoke
+    # Step 1: Create smoke test directory
+    mkdir -p tests/smoke
 
-# Step 2: Move smoke test script
-git mv scripts/test-api-flows.sh tests/smoke/
+    # Step 2: Move smoke test script
+    git mv scripts/test-api-flows.sh tests/smoke/
 
-# Step 3: Create README
-cat > tests/smoke/README.md << 'EOF'
-# Smoke Tests
+    # Step 3: Create README
+    cat > tests/smoke/README.md << 'EOF'
+    # Smoke Tests
 
-Smoke tests validate critical user flows end-to-end.
+    Smoke tests validate critical user flows end-to-end.
 
-## Purpose
-- Verify system is operational
-- Test critical paths (auth, registration, profile)
-- Block deployment if critical functionality broken
+    ## Purpose
+    - Verify system is operational
+    - Test critical paths (auth, registration, profile)
+    - Block deployment if critical functionality broken
 
-## Usage
+    ## Usage
 
-### Local (Manual)
-```bash
-# Start dev environment
-make dev-up
+    ### Local (Manual)
+    ```bash
+    # Start dev environment
+    make dev-up
 
-# Run smoke tests
-bash tests/smoke/test-api-flows.sh
-```
+    # Run smoke tests
+    bash tests/smoke/test-api-flows.sh
+    ```
 
-### CI/CD (Automatic)
-Smoke tests run automatically in CI pipeline after unit/integration tests.
+    ### CI/CD (Automatic)
 
-## What's Tested
-- User registration
-- Email verification
-- Login/logout
-- Profile management
-- Token refresh
-- Password reset
+    Smoke tests run automatically in CI pipeline after unit/integration tests.
 
-## Duration
-~3-5 minutes
-EOF
+    ## What's Tested
 
-# Step 4: Update Makefile
-cat >> Makefile << 'EOF'
+    - User registration
+    - Email verification
+    - Login/logout
+    - Profile management
+    - Token refresh
+    - Password reset
 
-# Smoke tests
-.PHONY: test-smoke
-test-smoke:
-	@echo "🔥 Running smoke tests..."
-	docker compose -f compose/docker-compose.test.yml exec app bash tests/smoke/test-api-flows.sh
-EOF
+    ## Duration
 
-# Step 5: Enable SSL in test environment
-# Edit compose/docker-compose.test.yml (see Solution 2)
+    ~3-5 minutes
+    EOF
 
-# Step 6: Update test script for HTTPS
-sed -i 's|BASE_URL="https://localhost:8000"|BASE_URL="https://app:8000"|' tests/smoke/test-api-flows.sh
+    ## Step 4: Update Makefile
 
-# Step 7: Commit
-git add tests/smoke/ Makefile compose/docker-compose.test.yml
-git commit -m "refactor(tests): move smoke tests to tests/ directory and enable SSL
+    cat >> Makefile << 'EOF'
 
-- Move test-api-flows.sh from scripts/ to tests/smoke/
-- Add comprehensive smoke test README
-- Enable SSL/TLS in test environment for production parity
-- Update Makefile with test-smoke command
-- Configure smoke tests to use HTTPS endpoints
+    ## Smoke tests
 
-Follows industry best practices:
-- 85% of projects keep all tests in tests/ directory
-- Production parity requires SSL in test environments
-- Smoke tests are discoverable as part of test suite"
+    .PHONY: test-smoke
+    test-smoke:
+      @echo "🔥 Running smoke tests..."
+      docker compose -f compose/docker-compose.test.yml exec app bash tests/smoke/test-api-flows.sh
+    EOF
+
+    ## Step 5: Enable SSL in test environment
+
+    ## Edit compose/docker-compose.test.yml (see Solution 2)
+
+    ## Step 6: Update test script for HTTPS
+
+    sed -i 's|BASE_URL="https://localhost:8000"|BASE_URL="https://app:8000"|' tests/smoke/test-api-flows.sh
+
+    ## Step 7: Commit
+
+    git add tests/smoke/ Makefile compose/docker-compose.test.yml
+    git commit -m "refactor(tests): move smoke tests to tests/ directory and enable SSL
+
+    - Move test-api-flows.sh from scripts/ to tests/smoke/
+    - Add comprehensive smoke test README
+    - Enable SSL/TLS in test environment for production parity
+    - Update Makefile with test-smoke command
+    - Configure smoke tests to use HTTPS endpoints
+
+    Follows industry best practices:
+
+    - 85% of projects keep all tests in tests/ directory
+    - Production parity requires SSL in test environments
+    - Smoke tests are discoverable as part of test suite"
 ```
 
 ---
 
-**CI/CD Integration**
+**CI/CD Integration:**
 
 ```yaml
 # Update .github/workflows/test.yml
@@ -736,6 +782,7 @@ jobs:
 ```
 
 **Commit:**
+
 ```bash
 git add .github/workflows/test.yml
 git commit -m "ci: integrate smoke tests into CI/CD pipeline
@@ -752,13 +799,13 @@ Smoke tests now validate critical paths in CI before deployment."
 
 ### Phase 2: SSL Hardening
 
-**Enable SSL in CI, improve cert handling, add pytest smoke tests**
+Enable SSL in CI, improve cert handling, add pytest smoke tests.
 
 ---
 
 ### Phase 3: pytest Migration (Optional)
 
-**Convert shell script to pytest incrementally**
+Convert shell script to pytest incrementally.
 
 ---
 
@@ -839,6 +886,7 @@ def test_user_registration(http_client, base_url, test_user):
 ```
 
 **Benefits:**
+
 - ✅ Better assertions (built-in pytest)
 - ✅ Cleaner code (no string parsing)
 - ✅ Better error messages
@@ -872,6 +920,7 @@ def test_user_registration(http_client, base_url, test_user):
 4. **pytest Conversion:** Convert shell script to pytest now or later? ⏸️ Optional (can wait)
 
 **My Recommendation:**
+
 - ✅ **DO NOW** (Phase 1): Move to `tests/`, enable SSL, add to CI
 - ⏸️ **DO LATER** (Phase 3): Convert to pytest (only if maintenance becomes painful)
 
@@ -884,6 +933,7 @@ def test_user_registration(http_client, base_url, test_user):
 All recommended actions from this research document have been successfully implemented:
 
 **Phase 1: Smoke Test Organization & SSL/TLS** ✅
+
 - ✅ Smoke tests moved to `tests/smoke/` directory
 - ✅ pytest-based implementation (`test_complete_auth_flow.py`)
 - ✅ SSL/TLS enabled in test and CI environments
@@ -891,11 +941,13 @@ All recommended actions from this research document have been successfully imple
 - ✅ `make test-smoke` command added to Makefile
 
 **Phase 2: CI/CD Integration** ✅
+
 - ✅ Smoke tests integrated into GitHub Actions workflow
 - ✅ All tests running automatically on every push/PR
 - ✅ Coverage reporting to Codecov
 
 **Phase 3: pytest Conversion** ✅
+
 - ✅ Full shell script to pytest conversion completed
 - ✅ Token extraction using pytest's `caplog` fixture
 - ✅ 22/23 tests passing (96% success rate)
@@ -904,12 +956,14 @@ All recommended actions from this research document have been successfully imple
 ### Results
 
 **Test Coverage:**
+
 - 23 smoke tests implemented
 - 22 passing, 1 skipped (minor API bug)
 - 96% success rate
 - Complete authentication flow validation
 
 **Documentation:**
+
 - ✅ `tests/smoke/README.md` - Comprehensive smoke test guide
 - ✅ `docs/development/testing/guide.md` - Updated with smoke test section
 - ✅ `docs/development/testing/best-practices.md` - Smoke tests in test pyramid
@@ -917,6 +971,7 @@ All recommended actions from this research document have been successfully imple
 - ✅ `WARP.md` - Project rules updated with `make test-smoke`
 
 **Integration:**
+
 - ✅ Works in dev, test, and CI environments
 - ✅ No external dependencies (Docker CLI)
 - ✅ Integrated with existing test infrastructure
@@ -942,11 +997,13 @@ All recommended actions from this research document have been successfully imple
 ### Files Created/Modified
 
 **New Files:**
+
 - `tests/smoke/test_complete_auth_flow.py` - 23 smoke tests
 - `tests/smoke/README.md` - Smoke test documentation
 - `docs/development/testing/smoke-test-caplog-solution.md` - Technical implementation guide
 
 **Modified Files:**
+
 - `Makefile` - Added `make test-smoke` command
 - `WARP.md` - Updated project rules
 - `docs/development/testing/guide.md` - Added smoke test section
@@ -957,20 +1014,18 @@ All recommended actions from this research document have been successfully imple
 ### Next Steps
 
 **Optional Future Improvements:**
+
 1. ⏭️ Fix GET `/password-resets/{token}` endpoint bug (minor, skipped test)
 2. ⏭️ Add post-deployment smoke tests for staging/production
 3. ⏭️ Expand smoke tests for provider operations (when implemented)
 
 **Maintenance:**
+
 - Legacy shell script at `scripts/test-api-flows.sh` preserved (deprecated)
 - Consider removing once pytest version is stable (after 1-2 months)
 
 ---
 
 **STATUS: ALL RESEARCH RECOMMENDATIONS IMPLEMENTED** ✅  
-**Date Completed**: 2025-10-06  
-**Total Effort**: ~20 hours (research + implementation + documentation)
-
----
-
-**END OF RESEARCH DOCUMENT**
+**Date Completed:** 2025-10-06  
+**Total Effort:** ~20 hours (research + implementation + documentation)

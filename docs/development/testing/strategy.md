@@ -3,15 +3,17 @@
 ## Executive Summary
 
 Based on comprehensive research of:
-1. **PDF Guide**: "A Comprehensive Guide to Testing FastAPI and SQLAlchemy 2.0 with pytest-asyncio"
-2. **FastAPI Official Template**: https://github.com/fastapi/full-stack-fastapi-template
-3. **Our Experience**: Greenlet errors and async complexity documented in `docs/research/async-testing.md`
 
-**Key Finding**: The FastAPI official template uses **synchronous testing** with `TestClient` and `Session` (not async), which completely avoids the greenlet/event loop issues we encountered.
+1. **PDF Guide:** "A Comprehensive Guide to Testing FastAPI and SQLAlchemy 2.0 with pytest-asyncio"
+2. **FastAPI Official Template:** https://github.com/fastapi/full-stack-fastapi-template
+3. **Our Experience:** Greenlet errors and async complexity documented in `docs/research/async-testing.md`
+
+**Key Finding:** The FastAPI official template uses **synchronous testing** with `TestClient` and `Session` (not async), which completely avoids the greenlet/event loop issues we encountered.
 
 ## ✅ Implementation Status: **COMPLETE**
 
 **Current State** (as of Phase 2 CI/CD completion):
+
 - ✅ Synchronous testing strategy fully implemented
 - ✅ 39 tests passing (9 unit, 11 integration, 19 API)
 - ✅ 51% code coverage
@@ -22,11 +24,12 @@ Based on comprehensive research of:
 - ✅ GitHub Actions CI/CD with automated testing
 - ✅ Codecov integration for coverage tracking
 
-**Next Phase**: Expand test coverage to 85%+ (see Phase 2+ in implementation plan below)
+**Next Phase:** Expand test coverage to 85%+ (see Phase 2+ in implementation plan below)
 
 ## Critical Decision: Sync vs Async Testing
 
 ### FastAPI Official Approach (Recommended)
+
 - Uses **synchronous** `TestClient` from FastAPI
 - Uses **synchronous** `Session` from SQLModel
 - Tests are regular `def test_*()` functions (NOT `async def`)
@@ -35,13 +38,14 @@ Based on comprehensive research of:
 - **Tests still work perfectly with async application code**
 
 ### Why This Works
+
 FastAPI's `TestClient` handles the async/sync bridge internally. Your application code remains async, but tests are sync. This is the **official, supported pattern**.
 
 ## Recommended Testing Architecture
 
 ### Three-Tier Testing Strategy
 
-```
+```bash
 tests/
 ├── unit/             # Pure logic, no database
 ├── integration/      # Database operations, service layer
@@ -49,14 +53,18 @@ tests/
 ```
 
 ### 1. Unit Tests (Fast, Isolated)
-**Purpose**: Test business logic without external dependencies
-**Characteristics**:
+
+**Purpose:** Test business logic without external dependencies
+
+**Characteristics:**
+
 - No database connection
 - Mock all external services
 - Test pure functions and class methods
 - Run in milliseconds
 
-**Example Pattern**:
+**Example Pattern:**
+
 ```python
 def test_encrypt_token(mock_encryption_service):
     """Test token encryption logic"""
@@ -65,14 +73,18 @@ def test_encrypt_token(mock_encryption_service):
 ```
 
 ### 2. Integration Tests (Database, Services)
-**Purpose**: Test database operations and service layer
-**Characteristics**:
+
+**Purpose:** Test database operations and service layer
+
+**Characteristics:**
+
 - Use real PostgreSQL database
 - Transaction rollback for isolation
 - Test CRUD operations
 - Test service layer business logic
 
-**Example Pattern (Sync)**:
+**Example Pattern (Sync):**
+
 ```python
 def test_create_provider(db: Session):
     """Test provider creation with database"""
@@ -86,14 +98,18 @@ def test_create_provider(db: Session):
 ```
 
 ### 3. API Tests (End-to-End)
-**Purpose**: Test complete request/response cycle
-**Characteristics**:
+
+**Purpose:** Test complete request/response cycle
+
+**Characteristics:**
+
 - Use FastAPI's `TestClient`
 - Test authentication flows
 - Test API endpoints
 - Test error handling
 
-**Example Pattern**:
+**Example Pattern:**
+
 ```python
 def test_create_provider_endpoint(client: TestClient, superuser_token_headers):
     """Test POST /api/v1/providers endpoint"""
@@ -113,6 +129,7 @@ def test_create_provider_endpoint(client: TestClient, superuser_token_headers):
 ### Phase 1: Core Test Infrastructure (2-3 hours)
 
 #### File: `tests/conftest.py`
+
 ```python
 from collections.abc import Generator
 import pytest
@@ -185,9 +202,10 @@ def superuser_token_headers(client: TestClient) -> dict[str, str]:
     return get_superuser_token_headers(client)
 ```
 
-#### Key Patterns from PDF Guide:
+#### Key Patterns from PDF Guide
 
-**1. Function-Scoped Engine with NullPool (If Using Async)**
+**1. Function-Scoped Engine with NullPool (If Using Async:**
+
 ```python
 @pytest.fixture(scope="function")
 def test_engine(test_settings):
@@ -199,7 +217,8 @@ def test_engine(test_settings):
     asyncio.run(engine.dispose())
 ```
 
-**2. Transactional Isolation with Savepoints (PostgreSQL)**
+**2. Transactional Isolation with Savepoints (PostgreSQL):**
+
 ```python
 @pytest_asyncio.fixture
 async def db_session(test_engine):
@@ -219,11 +238,12 @@ async def db_session(test_engine):
 
 ### Phase 2: Refactor Service Layer (1-2 hours)
 
-**Current Problem**: Services call `await session.commit()` which causes issues in test transactions.
+**Current Problem:** Services call `await session.commit()` which causes issues in test transactions.
 
-**Solution**: Remove commits from services, handle in API layer.
+**Solution:** Remove commits from services, handle in API layer.
 
-#### Before (Problematic):
+#### Before (Problematic)
+
 ```python
 # src/services/token_service.py
 async def store_initial_tokens(self, ...):
@@ -233,7 +253,8 @@ async def store_initial_tokens(self, ...):
     return token
 ```
 
-#### After (Clean):
+#### After (Clean)
+
 ```python
 # src/services/token_service.py
 async def store_initial_tokens(self, ...):
@@ -251,7 +272,8 @@ async def store_tokens(...):
     return token
 ```
 
-**Benefits**:
+**Benefits:**
+
 - Services are now testable with simple flush()
 - API layer controls transactions
 - Follows separation of concerns
@@ -259,8 +281,9 @@ async def store_tokens(...):
 
 ### Phase 3: Write Tests (3-4 hours)
 
-#### Directory Structure:
-```
+#### Directory Structure
+
+```bash
 tests/
 ├── __init__.py
 ├── conftest.py                 # Global fixtures
@@ -295,6 +318,7 @@ tests/
 ```
 
 #### Example: Unit Test
+
 ```python
 # tests/unit/services/test_encryption_service.py
 import pytest
@@ -314,6 +338,7 @@ def test_encrypt_decrypt_cycle():
 ```
 
 #### Example: Integration Test (Sync Pattern)
+
 ```python
 # tests/integration/crud/test_provider_crud.py
 import pytest
@@ -342,6 +367,7 @@ def test_create_provider(db: Session, test_user):
 ```
 
 #### Example: API Test
+
 ```python
 # tests/api/routes/test_providers.py
 from fastapi.testclient import TestClient
@@ -400,6 +426,7 @@ def test_oauth_flow_charles_schwab(
 ### Phase 4: Advanced Patterns (Optional, 1-2 hours)
 
 #### Testcontainers for Production Parity
+
 ```python
 # tests/integration/conftest.py
 import pytest
@@ -421,6 +448,7 @@ def db_engine(postgres_container):
 ```
 
 #### Parallel Testing with pytest-xdist
+
 ```ini
 # pytest.ini
 [pytest]
@@ -440,6 +468,7 @@ def test_db_url(worker_id):
 ## Configuration Files
 
 ### `pytest.ini`
+
 ```ini
 [pytest]
 # Test discovery
@@ -474,6 +503,7 @@ minversion = 7.0
 ```
 
 ### `pyproject.toml` (Testing Section)
+
 ```toml
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -500,17 +530,20 @@ exclude_lines = [
 ## Migration Path
 
 ### Step 1: Backup Current Tests
+
 ```bash
 mv tests/conftest.py tests/conftest_old_async.py
 mv tests/unit tests/unit_old_async
 ```
 
 ### Step 2: Implement New conftest.py
+
 - Use sync Session pattern from FastAPI template
 - Remove all async fixtures
 - Use TestClient instead of AsyncClient
 
 ### Step 3: Migrate Tests One Category at a Time
+
 1. **Start with Unit Tests** (easiest)
    - Remove `@pytest.mark.asyncio`
    - Change `async def` to `def`
@@ -526,6 +559,7 @@ mv tests/unit tests/unit_old_async
    - No async/await needed
 
 ### Step 4: Run and Verify
+
 ```bash
 # Run unit tests (fast)
 pytest tests/unit -v
@@ -543,6 +577,7 @@ pytest --cov=src --cov-report=html
 ## Benefits of This Approach
 
 ### ✅ Advantages
+
 1. **No async complexity** - Tests are simple sync functions
 2. **No greenlet errors** - TestClient handles async/sync bridge
 3. **Official pattern** - Used by FastAPI core team
@@ -552,6 +587,7 @@ pytest --cov=src --cov-report=html
 7. **Maintainable** - Clear, simple test code
 
 ### ⚠️ Trade-offs
+
 1. **Not testing async paths** - But FastAPI handles this internally
 2. **Different from production** - But functionality is identical
 3. **May miss async-specific bugs** - Rare in practice
@@ -566,25 +602,25 @@ pytest --cov=src --cov-report=html
 
 ## Recommended Tools
 
-- **pytest**: Core testing framework
-- **pytest-cov**: Coverage reporting
-- **pytest-xdist**: Parallel test execution (optional)
-- **faker**: Generate test data
-- **factory-boy**: Test data factories (optional)
-- **testcontainers**: Docker containers for tests (optional)
+- **pytest:** Core testing framework
+- **pytest-cov:** Coverage reporting
+- **pytest-xdist:** Parallel test execution (optional)
+- **faker:** Generate test data
+- **factory-boy:** Test data factories (optional)
+- **testcontainers:** Docker containers for tests (optional)
 
 ## Success Metrics
 
-- **Unit Tests**: < 100ms per test, 80%+ coverage
-- **Integration Tests**: < 500ms per test, 90%+ coverage  
-- **API Tests**: < 1s per test, 95%+ coverage
-- **Total Suite**: < 30s for full run
-- **CI Pipeline**: < 2 minutes including linting
+- **Unit Tests:** < 100ms per test, 80%+ coverage
+- **Integration Tests:** < 500ms per test, 90%+ coverage  
+- **API Tests:** < 1s per test, 95%+ coverage
+- **Total Suite:** < 30s for full run
+- **CI Pipeline:** < 2 minutes including linting
 
 ## Conclusion
 
-**Primary Recommendation**: Follow the FastAPI official template pattern using **synchronous tests** with `TestClient` and `Session`. This avoids all the async complexity while providing complete test coverage.
+**Primary Recommendation:** Follow the FastAPI official template pattern using **synchronous tests** with `TestClient` and `Session`. This avoids all the async complexity while providing complete test coverage.
 
-**Alternative (If Needed)**: If you must test async paths directly, use the patterns from the PDF guide with `NullPool`, `join_transaction_mode="create_savepoint"`, and careful event loop management.
+**Alternative (If Needed):** If you must test async paths directly, use the patterns from the PDF guide with `NullPool`, `join_transaction_mode="create_savepoint"`, and careful event loop management.
 
 The sync approach is proven, official, and will save significant development time while providing excellent test coverage.

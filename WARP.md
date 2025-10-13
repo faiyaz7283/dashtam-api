@@ -7,6 +7,7 @@ This file contains project-specific rules, coding standards, and context for AI 
 Dashtam is a secure, modern financial data aggregation platform that connects to multiple financial institutions through OAuth2, providing a unified API for accessing accounts, transactions, and financial data. The platform is built with FastAPI, PostgreSQL, Redis, and Docker, emphasizing type safety, async operations, and security.
 
 ### Current Status
+
 - ✅ OAuth2 flow fully implemented and tested with Charles Schwab
 - ✅ Token encryption and secure storage implemented
 - ✅ Database models and relationships established
@@ -137,6 +138,7 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
 ## Architecture Rules
 
 ### Technology Stack Requirements
+
 - **Backend Framework**: Always use FastAPI with async/await patterns
 - **Database**: PostgreSQL with SQLModel ORM (NOT SQLAlchemy ORM directly)
 - **Async Operations**: Use SQLAlchemy's AsyncSession with proper async patterns
@@ -146,9 +148,11 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
 - **Containerization**: Docker and Docker Compose for all services
 
 ### Package Management with UV
+
 **CRITICAL RULE**: Always use modern UV commands for package management. NEVER use legacy pip commands.
 
 **Required Commands:**
+
 - ✅ **Use `uv add package`** - Add dependencies (updates pyproject.toml and uv.lock)
 - ✅ **Use `uv remove package`** - Remove dependencies
 - ✅ **Use `uv sync`** - Sync environment with lockfile after pulling changes
@@ -157,18 +161,21 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
 - ✅ **Use `uv tree`** - Show dependency tree
 
 **Forbidden Commands:**
+
 - ❌ **NEVER use `uv pip install`** - Legacy compatibility only
 - ❌ **NEVER use `pip install`** - Use `uv add` instead
 - ❌ **NEVER use `pip freeze`** - UV manages versions in uv.lock
 - ❌ **NEVER edit `uv.lock` manually** - Let UV manage it
 
 **Why UV?**
+
 - 10-100x faster than pip
 - Deterministic resolution with lockfiles
 - Docker-optimized with official container images
 - Modern Python workflow (PEP 621 compliant)
 
 **Example Workflow:**
+
 ```bash
 # Add a new dependency
 docker compose -f compose/docker-compose.dev.yml exec app uv add boto3
@@ -183,25 +190,30 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run pytest
 **Full Documentation**: See [docs/development/guides/uv-package-management.md](docs/development/guides/uv-package-management.md) for comprehensive UV usage guide.
 
 ### Docker & Environment Configuration
+
 **CRITICAL RULES**: The project uses a modern Docker setup with organized directories.
 
 **Directory Structure:**
+
 - ✅ **`compose/`** - All docker-compose files (dev, test, ci, prod template)
 - ✅ **`env/`** - Environment variable files (.env.dev, .env.test, .env.ci)
 - ✅ **`docker/`** - Dockerfile and .dockerignore
 
 **Environment Variables:**
+
 - ✅ **Use `env_file:` in docker-compose** - Docker Compose loads env files
 - ✅ **NO `.env` volume mounts** - Environment variables passed via env_file
 - ✅ **Pydantic reads from environment** - No `env_file` parameter in Settings
 - ✅ **Single source of truth** - `POSTGRES_*` vars (not TEST_POSTGRES_*)
 
 **Docker Commands:**
+
 - ✅ **Use `make` commands** - All commands updated for new structure
 - ✅ **`make dev-up`** - Starts services using `compose/docker-compose.dev.yml`
 - ✅ **`make test`** - Runs tests using `compose/docker-compose.test.yml`
 
 **Security:**
+
 - ✅ **Non-root containers** - All services run as `appuser` (UID 1000)
 - ✅ **Proper file ownership** - Files owned by appuser:appuser
 - ✅ **`uv sync --frozen`** - Fast, deterministic builds from lockfile
@@ -209,6 +221,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run pytest
 ### Database Access Patterns
 
 **CRITICAL**: This project uses SQLAlchemy's AsyncSession. NEVER use these patterns:
+
 ```python
 # ❌ WRONG - These don't work with AsyncSession
 provider = await session.get(Provider, provider_id)
@@ -216,6 +229,7 @@ await session.refresh(provider, ["relationship"])
 ```
 
 **ALWAYS use these patterns instead:**
+
 ```python
 # ✅ CORRECT - Proper async patterns
 from sqlmodel import select
@@ -237,6 +251,7 @@ provider = result.scalar_one_or_none()
 ```
 
 ### Security Requirements
+
 - **HTTPS Only**: All services must use SSL/TLS (self-signed in dev, proper certs in prod)
 - **Token Encryption**: All OAuth tokens must be encrypted using AES-256 before storage
 - **No Secrets in Code**: Use environment variables for all sensitive data
@@ -245,6 +260,7 @@ provider = result.scalar_one_or_none()
 ## Coding Standards
 
 ### Documentation: API Flows (Manual Testing)
+
 - When creating, modifying, or deleting user-facing API endpoints, you MUST also create/modify/delete the corresponding manual API flow guides under `docs/api-flows/`.
 - Organize flows by domain (auth, providers, etc.), not HTTP verb. Each flow represents a user journey (e.g., registration, login, provider onboarding), which may span multiple endpoints.
 - Follow the reusable template: `docs/api-flows/flow-template.md`.
@@ -257,26 +273,31 @@ provider = result.scalar_one_or_none()
 - Cross-reference: ensure `docs/README.md` structure stays aligned and links are updated when you add or move flows.
 
 PR checklist additions (for any API endpoint change):
+
 - [ ] Updated/added/removed relevant flow(s) in `docs/api-flows/`
 - [ ] Verified flows end-to-end against dev HTTPS
 - [ ] Kept examples free of real secrets and used variables/placeholders
 - [ ] Updated docs/README.md navigation if structure changed
 
 ### Documentation: Markdown Quality (All Documentation Files)
+
 **CRITICAL RULE**: All markdown files (guides, docs, READMEs, etc.) must pass markdown linting before commit.
 
 **Workflow for Creating/Updating Markdown Files:**
-1. **Create or edit** markdown file using `create_file` or `edit_files` tool
-2. **Lint immediately** after creation/edit:
-   ```bash
-   docker compose -f compose/docker-compose.dev.yml exec app \
-     uv run markdownlint-cli2 "path/to/file.md"
-   ```
-3. **Fix all violations** - Zero tolerance for linting errors
-4. **Re-lint** until clean (exit code 0)
-5. **Then commit** - Only commit lint-clean markdown files
+
+- **Create or edit** markdown file using `create_file` or `edit_files` tool
+- **Lint immediately** after creation/edit:
+
+  ```bash
+  make lint-md FILE=path/to/file.md
+  ```  
+
+- **Fix all violations** - Zero tolerance for linting errors
+- **Re-lint** until clean (exit code 0)
+- **Then commit** - Only commit lint-clean markdown files
 
 **Why This Matters:**
+
 - Ensures consistent markdown formatting across all documentation
 - Catches formatting issues (headings, lists, links) early
 - Prevents accumulation of technical debt in docs
@@ -284,12 +305,14 @@ PR checklist additions (for any API endpoint change):
 - Follows project rule: "Always verify with the user that all requirements have been satisfied and properly handled before marking any task as complete"
 
 **Forbidden Patterns:**
+
 - ❌ **NEVER commit markdown files without linting first**
 - ❌ **NEVER skip linting because "it's just docs"**
 - ❌ **NEVER assume markdown is correctly formatted**
 - ❌ **NEVER use time-based estimates** ("Week 1-2", "2-3 hours") - Violates WARP.md flexible development rule
 
 **Quick Lint Command:**
+
 ```bash
 # Lint single file
 make lint-md FILE=path/to/file.md
@@ -300,10 +323,12 @@ make lint-md
 
 **Integration with Phase Completion Workflow:**
 This markdown linting step is part of the **Code Quality** phase:
+
 - Create/edit markdown → Lint markdown → Fix violations → Commit
 - Follows same discipline as Python linting (`make lint`) and formatting (`make format`)
 
 **Example Workflow:**
+
 ```bash
 # 1. Create new guide
 vim docs/development/guides/new-guide.md
@@ -316,8 +341,7 @@ docker compose -f compose/docker-compose.dev.yml exec app \
 # ... edit file to fix issues ...
 
 # 4. Verify clean
-docker compose -f compose/docker-compose.dev.yml exec app \
-  uv run markdownlint-cli2 "docs/development/guides/new-guide.md"
+make lint-md FILE=docs/development/guides/new-guide.md
 # ✅ Output: no errors (exit 0)
 
 # 5. Now safe to commit
@@ -326,12 +350,14 @@ git commit -m "docs(guides): add new development guide"
 ```
 
 **PR Checklist Additions (for any documentation change):**
+
 - [ ] All markdown files linted with `markdownlint-cli2`
 - [ ] All linting violations fixed (zero errors)
 - [ ] No time-based estimates in task lists or plans
 - [ ] Followed project documentation structure (`docs/` hierarchy)
 
 ### AI Agent: Markdown Creation Standards
+
 **CRITICAL FOR AI AGENTS**: When creating or editing markdown files, ALWAYS follow these standards to prevent linting violations.
 
 **Root Cause Analysis**: The project has 60+ markdown files with 300+ linting violations because markdown was created without following proper standards. We must prevent this at the source.
@@ -339,8 +365,11 @@ git commit -m "docs(guides): add new development guide"
 **Mandatory Standards When Creating/Editing Markdown:**
 
 1. **Headings Must Be Surrounded by Blank Lines** ✅
+
    ```markdown
+
    ✅ CORRECT:
+
    Some text here.
    
    ## Heading
@@ -348,73 +377,88 @@ git commit -m "docs(guides): add new development guide"
    More text here.
    
    ❌ WRONG:
+
    Some text here.
    ## Heading
    More text here.
+
    ```
 
 2. **Lists Must Be Surrounded by Blank Lines** ✅
+
    ```markdown
    ✅ CORRECT:
-   Paragraph before list.
-   
-   - List item 1
-   - List item 2
-   - List item 3
-   
-   Paragraph after list.
+
+      Paragraph before list.
+      
+      - List item 1
+      - List item 2
+      - List item 3
+    
+    Paragraph after list.
    
    ❌ WRONG:
-   Paragraph before list.
-   - List item 1
-   - List item 2
-   Paragraph after list.
+
+      Paragraph before list.
+      - List item 1
+      - List item 2
+      Paragraph after list.
+
    ```
 
 3. **Code Blocks Must Have Language Specified** ✅
-   ```markdown
-   ✅ CORRECT:
-   ```bash
-   echo "Hello"
-   ```
-   
-   ```python
-   print("Hello")
-   ```
-   
-   ❌ WRONG:
-   ```
-   echo "Hello"
-   ```
-   ```
+
+    ```markdown
+    ✅ CORRECT:
+
+        ```bash
+        echo "Hello"
+        ```
+        
+        ```python
+        print("Hello")
+        ```
+        
+    ❌ WRONG:
+
+        ```
+        echo "Hello"
+        ```
+    ```
 
 4. **Code Blocks Must Be Surrounded by Blank Lines** ✅
+
    ```markdown
    ✅ CORRECT:
-   Paragraph before code.
-   
-   ```bash
-   echo "Hello"
-   ```
-   
-   Paragraph after code.
-   
-   ❌ WRONG:
-   Paragraph before code.
-   ```bash
-   echo "Hello"
-   ```
-   Paragraph after code.
+
+        Paragraph before code.
+        
+        ```bash
+        echo "Hello"
+        ```
+    
+        Paragraph after code.
+    
+    ❌ WRONG:
+
+        Paragraph before code.
+        ```bash
+        echo "Hello"
+        ```
+        Paragraph after code.
    ```
 
 5. **Use Proper Headings, Not Bold Text** ✅
+
    ```markdown
    ✅ CORRECT:
+  
    ### Configuration Steps
    
    Follow these steps...
    
    ❌ WRONG:
+
    **Configuration Steps**
    
    Follow these steps...
@@ -422,13 +466,16 @@ git commit -m "docs(guides): add new development guide"
 
 6. **Nested List Indentation Must Be Correct** ✅
    - Use 2 spaces for nested list items (not 4)
+
    ```markdown
    ✅ CORRECT:
+
    - Parent item
      - Child item (2 spaces)
      - Another child
    
    ❌ WRONG:
+
    - Parent item
        - Child item (4 spaces)
    ```
@@ -460,69 +507,76 @@ git commit -m "docs(guides): add new development guide"
 | MD022 | Headings without blank lines | Add blank line before AND after headings |
 | MD032 | Lists without blank lines | Add blank line before AND after lists |
 | MD031 | Code blocks without blank lines | Add blank line before AND after code blocks |
-| MD040 | Code blocks without language | Add language identifier: ```bash, ```python, ```json |
+| MD040 | Code blocks without language | Add language identifier: \```bash, \```python, \```json |
 | MD036 | Bold text instead of heading | Use `###` heading instead of `**bold**` |
 | MD007 | Wrong list indentation | Use 2 spaces (not 4) for nested lists |
 | MD010 | Hard tabs | Use spaces only, never tabs |
 
 **Why This Matters:**
+
 - **Prevention > Cure**: Creating lint-clean markdown from the start prevents technical debt
 - **60+ files affected**: Past markdown has 300+ violations - we must not repeat this
 - **Professional quality**: Consistent formatting improves readability and maintainability  
 - **Workflow efficiency**: Fixing violations after creation wastes time
 
 **Enforcement:**
+
 - ✅ All AI agents MUST follow these standards when creating markdown
 - ✅ All markdown MUST be linted immediately after creation
 - ✅ Zero tolerance for violations in new markdown files
 - ✅ Existing violations will be addressed in separate cleanup PR
 
 **Template Example (Lint-Clean Markdown):**
+
 ```markdown
-# Document Title
 
-Brief introduction paragraph.
 
-## Section 1
+    # Document Title
 
-Content for section 1.
+    Brief introduction paragraph.
 
-### Subsection 1.1
+    ## Section 1
 
-Some details here.
+    Content for section 1.
 
-**Key points**:
+    ### Subsection 1.1
 
-- First point
-- Second point
-- Third point
+    Some details here.
 
-Example code:
+    **Key points**:
 
-```bash
-echo "Hello World"
-```
+    - First point
+    - Second point
+    - Third point
 
-More content here.
+    Example code:
 
-## Section 2
+    ```bash
+    echo "Hello World"
+    ```
 
-Content for section 2.
+    More content here.
 
-### Steps to Follow
+    ## Section 2
 
-1. First step
-2. Second step
-   - Nested item (2 spaces)
-   - Another nested item
-3. Third step
+    Content for section 2.
 
-Conclusion paragraph.
+    ### Steps to Follow
+
+    1. First step
+    2. Second step
+      - Nested item (2 spaces)
+      - Another nested item
+    3. Third step
+
+    Conclusion paragraph.
+
 ```
 
 **This template passes all linting checks!** Use it as a reference when creating new markdown files.
 
 ### Python Code Style
+
 - **Type Hints**: ALWAYS use type hints for function parameters and return values
 - **Docstrings**: Use Google-style docstrings for all functions and classes
 - **Async/Await**: Prefer async functions for all database and I/O operations
@@ -530,12 +584,15 @@ Conclusion paragraph.
 - **Logging**: Use structured logging with appropriate log levels
 
 ### Import Organization
+
 Always organize imports in this order:
+
 1. Standard library imports
 2. Third-party imports
 3. Local application imports
 
 Example:
+
 ```python
 import logging
 from typing import Optional, List
@@ -550,24 +607,28 @@ from src.core.database import get_session
 ```
 
 ### File Naming Conventions
+
 - **Python files**: Use snake_case (e.g., `token_service.py`)
 - **Docker files**: Use PascalCase with extensions (e.g., `Dockerfile`)
 - **Config files**: Use lowercase with appropriate extensions (e.g., `docker-compose.yml`)
 - **Documentation**: Use UPPERCASE for special files (e.g., `README.md`, `WARP.md`)
 
 ### Implementation Planning and Documentation
+
 **CRITICAL RULE**: Never use rigid day-based timelines ("Day 1", "Day 2", etc.) in implementation guides, documentation, or task lists.
 
 **Why**: Development work is flexible and variable. Some days allow intensive focus with many tasks completed in hours; other days have limited availability. Rigid day-based schedules don't reflect this reality and create false expectations.
 
 **Instead, use**:
+
 - ✅ **Phase-based organization**: "Phase 1: Database Schema", "Phase 2: Core Services"
 - ✅ **Workflow-based grouping**: "Database Schema & Models", "API Endpoints", "Testing"
 - ✅ **Logical dependencies**: "After migrations complete...", "Once services are implemented..."
 - ✅ **Flexible task lists**: Tasks grouped by logical components without time constraints
 
 **Examples**:
-```
+
+```text
 ❌ BAD:
 - Day 1: Create database migrations
 - Day 2: Implement services
@@ -589,6 +650,7 @@ from src.core.database import get_session
 ```
 
 This applies to:
+
 - Implementation guides
 - Quick reference docs
 - Todo lists and task tracking
@@ -598,7 +660,8 @@ This applies to:
 ## Project Structure Rules
 
 ### Directory Organization
-```
+
+```bash
 src/
 ├── api/           # API endpoints only
 ├── core/          # Core functionality (config, database, security)
@@ -608,6 +671,7 @@ src/
 ```
 
 ### Module Responsibilities
+
 - **api/**: Only HTTP endpoint definitions, no business logic
 - **services/**: All business logic, token management, provider operations
 - **models/**: Database models with relationships and methods
@@ -617,7 +681,9 @@ src/
 ## Docker and Development Rules
 
 ### Docker-Only Development Policy
+
 **CRITICAL RULE**: All development, testing, and execution must be done through Docker containers.
+
 - **NEVER run Python directly on host machine** for project-related tasks
 - **NEVER install project dependencies on host machine**
 - **All testing must be done in Docker containers** using `make test` or `docker-compose exec`
@@ -625,36 +691,43 @@ src/
 - **Package management must use containerized UV**
 
 This ensures:
+
 - Complete environment isolation
 - Consistent development experience across machines
 - No dependency conflicts with host system
 - Production-identical development environment
 
 ### AI Agent File Operations
+
 **CRITICAL RULE**: When working with files as an AI agent, follow these strict guidelines to avoid shell quoting and heredoc errors:
 
 **For editing existing files:**
+
 - ✅ **ALWAYS use `edit_files` tool** - Diff-based search/replace blocks
 - ✅ Precise, surgical edits to specific sections
 - ✅ Can make multiple edits across multiple files in one operation
 
 **For creating new files:**
+
 - ✅ **ALWAYS use `create_file` tool** - Provides complete file content
 - ✅ Reliable for multi-line files with complex content
 - ✅ No issues with quotes, heredocs, or special characters
 
 **For simple one-liners:**
+
 - ✅ **Use `echo 'line' >` for first line** - Single quotes, redirect to file
 - ✅ **Use `echo 'line' >>` for appending** - Single quotes, append to file
 - ✅ Chain multiple echo commands with `&&`
 
 **FORBIDDEN patterns in terminal commands:**
+
 - ❌ **NEVER use heredoc syntax** (`<< EOF`) - Gets mangled in transmission
 - ❌ **NEVER use multi-line strings in double quotes** - Causes `dquote>` prompt
 - ❌ **NEVER use `cat > file << EOF`** - Unreliable, causes heredoc issues
 - ❌ **NEVER use Python `-c` with multi-line code** - Quote escaping problems
 
 **Example - Correct approach:**
+
 ```bash
 # ✅ Simple one-liner
 echo 'MAX_SESSIONS=10' > .session_config
@@ -664,11 +737,13 @@ echo '# Title' > README.md && echo '' >> README.md && echo 'Content' >> README.m
 ```
 
 **For multi-line content in commands (e.g., git commit messages):**
+
 - ✅ **ALWAYS use temp file approach** - Create file with `create_file`, then reference it
 - ✅ Example: Create `/tmp/commit_msg.txt` with `create_file`, then `git commit -F /tmp/commit_msg.txt`
 - ✅ Works for any tool requiring multi-line input (git, curl, etc.)
 
 **Example - Multi-line commit message:**
+
 ```bash
 # ✅ Create temp file with create_file tool
 # /tmp/commit_msg.txt contains:
@@ -683,50 +758,62 @@ git commit -F /tmp/commit_msg.txt
 ```
 
 **Why this matters:**
+
 - Terminal commands with heredoc/complex quotes fail transmission
 - The shell waits indefinitely at `heredoc>` or `dquote>` prompts
 - Proper file tools (`edit_files`, `create_file`) are reliable and safe
 - Temp file approach works for ANY multi-line content needs
 
 ### Docker Service Names
+
 Environment-specific container names with suffixes:
 
 **Development:**
+
 - `dashtam-dev-app` - Main FastAPI application
 - `dashtam-dev-callback` - OAuth callback server
 - `dashtam-dev-postgres` - PostgreSQL database
 - `dashtam-dev-redis` - Redis cache
 
 **Test:**
+
 - `dashtam-test-app` - Test application
 - `dashtam-test-callback` - Test callback server
 - `dashtam-test-postgres` - Test PostgreSQL database
 - `dashtam-test-redis` - Test Redis cache
 
 **CI/CD:**
+
 - `dashtam-ci-app` - CI application
 - `dashtam-ci-postgres` - CI PostgreSQL database
 - `dashtam-ci-redis` - CI Redis cache
 
 ### Network Configuration
+
 **Development:**
+
 - Network: `dashtam-dev-network`
 - Ports: 8000 (app), 8182 (callback), 5432 (postgres), 6379 (redis)
 
 **Test:**
+
 - Network: `dashtam-test-network`
 - Ports: 8001 (app), 8183 (callback), 5433 (postgres), 6380 (redis)
 
 **CI:**
+
 - Network: `dashtam-ci-network`
 - No external ports (internal only for security)
 
 **Internal Communication:**
+
 - Backend internal hostname: `app` (NOT `backend` or `localhost`)
 - All environments use same internal container ports
 
 ### Environment Variables
+
 Critical environment variables that must be set:
+
 ```bash
 DATABASE_URL=postgresql+asyncpg://...  # Must use asyncpg driver
 SCHWAB_API_KEY=...                     # OAuth client ID
@@ -737,16 +824,19 @@ ENCRYPTION_KEY=...                      # For token encryption
 ```
 
 ### Environment Configuration Management
+
 **CRITICAL RULE**: Whenever adding new configuration variables to `src/core/config.py`, you MUST update ALL environment template files.
 
 **Required Files to Update:**
+
 1. `.env.example` - Production/general template
 2. `.env.dev.example` - Development environment template
 3. `.env.test.example` - Test environment template
 4. `.env.ci.example` - CI/CD environment template
 
 **Configuration Flow:**
-```
+
+```text
 1. Add new field to src/core/config.py (Settings class)
 2. Document the field in class docstring
 3. Add to ALL .env.example files with:
@@ -758,6 +848,7 @@ ENCRYPTION_KEY=...                      # For token encryption
 ```
 
 **Example:**
+
 ```bash
 # When adding AWS_REGION to config.py:
 
@@ -772,6 +863,7 @@ AWS_REGION=us-east-1  # Not used in CI (mocked)
 ```
 
 **Why This Matters:**
+
 - Ensures all environments have required configuration documented
 - New developers can quickly see all available settings
 - Prevents "missing environment variable" errors
@@ -779,15 +871,18 @@ AWS_REGION=us-east-1  # Not used in CI (mocked)
 - Follows the idempotent .env.example pattern (can be copied if .env missing)
 
 ### CI/CD Docker Compose Configuration
+
 **CRITICAL RULE**: The CI docker-compose file (`compose/docker-compose.ci.yml`) must NOT automatically run tests on container startup.
 
 **Why This Rule Exists:**
+
 - GitHub Actions workflow controls test execution via `docker compose exec` commands
 - Auto-running tests causes containers to exit before GitHub Actions can exec into them
 - This creates race conditions and intermittent exit code 137 failures
 - Proper flow: compose up → migrations → keep alive → GitHub Actions execs tests → compose down
 
 **Correct CI App Service Pattern:**
+
 ```yaml
 app:
   command: >
@@ -802,6 +897,7 @@ app:
 ```
 
 **Incorrect Pattern (DO NOT USE):**
+
 ```yaml
 app:
   command: >
@@ -812,6 +908,7 @@ app:
 ```
 
 **GitHub Actions Workflow Pattern:**
+
 ```yaml
 - name: Start test environment
   run: docker compose -f compose/docker-compose.ci.yml up -d --build
@@ -823,6 +920,7 @@ app:
 ```
 
 **Key Points:**
+
 - ✅ CI compose starts services and keeps them alive with `tail -f /dev/null`
 - ✅ GitHub Actions controls when and how tests run via `exec`
 - ✅ This allows separate jobs for main tests and smoke tests
@@ -883,6 +981,7 @@ app:
 #### REST Compliance Verification
 
 **Before ANY API changes**:
+
 1. Review [RESTful API Design Architecture](docs/development/architecture/restful-api-design.md)
 2. Ensure no inline schemas in routers
 3. Verify proper HTTP methods and status codes
@@ -891,6 +990,7 @@ app:
 6. Verify lint passes: `make lint`
 
 **Audit Reports**:
+
 - Initial audit: `docs/development/reviews/REST_API_AUDIT_REPORT.md`
 - Current audit: `docs/development/reviews/REST_API_AUDIT_REPORT_2025-10-05.md`
 - Both reports document 10/10 compliance achievement
@@ -898,6 +998,7 @@ app:
 #### REST Violations - STRICTLY PROHIBITED
 
 ❌ **Never Allowed**:
+
 - Verb-based URLs (`/getUsers`, `/createProvider`)
 - GET requests with side effects
 - Inline Pydantic schemas in router files
@@ -907,6 +1008,7 @@ app:
 - Action-oriented endpoints (except limited controller patterns for non-CRUD operations)
 
 ✅ **Acceptable Exception**:
+
 - Controller-style endpoints for true actions (e.g., `POST /auth/login`, `POST /providers/{id}/refresh`)
 - Only when operation is genuinely an action, not a resource state change
 - Must be documented and justified
@@ -914,6 +1016,7 @@ app:
 #### Maintaining Compliance
 
 **All API changes require**:
+
 1. REST principles adherence check
 2. Schema organization verification (no inline models)
 3. HTTP method and status code review
@@ -924,6 +1027,7 @@ app:
 **Compliance Score Target**: 10/10 (current status: ✅ achieved)
 
 ### Endpoint Naming
+
 - Use RESTful conventions with clear resource names
 - Prefix all API routes with `/api/v1/`
 - Use UUID for resource identifiers, not integers
@@ -932,6 +1036,7 @@ app:
 - Password resets: `/api/v1/password-resets/{token}`
 
 ### Response Format
+
 - Always return consistent JSON responses
 - Include appropriate HTTP status codes
 - Provide detailed error messages in development
@@ -939,7 +1044,9 @@ app:
 - All schemas defined in `src/schemas/` directory
 
 ### Authentication Flow
+
 The OAuth flow must follow this exact sequence:
+
 1. Create provider instance: `POST /api/v1/providers`
 2. Initiate authorization: `POST /api/v1/providers/{provider_id}/authorization`
 3. User authorizes in browser
@@ -950,6 +1057,7 @@ The OAuth flow must follow this exact sequence:
 ## Testing and Development Rules
 
 ### Test Coverage
+
 - **PHASE 1 COMPLETE**: Synchronous test infrastructure fully operational
 - **Test strategy**: FastAPI TestClient with synchronous SQLModel sessions
 - **Test pyramid approach**: 70% unit, 20% integration, 10% e2e tests
@@ -967,6 +1075,7 @@ The OAuth flow must follow this exact sequence:
 - **Current status**: All tests passing in dev, test, and CI environments ✅
 
 ### Smoke Tests
+
 - **Implementation**: pytest-based comprehensive authentication flow tests
 - **Token Extraction**: Uses pytest's `caplog` fixture (no Docker CLI needed)
 - **Coverage**: Complete user journey from registration to logout
@@ -978,9 +1087,11 @@ The OAuth flow must follow this exact sequence:
 - **Runs in**: dev, test, and CI environments without modifications
 
 ### Local Development Commands
+
 Always use the Makefile for common operations:
 
 **Development Environment:**
+
 - `make dev-up` - Start development services
 - `make dev-down` - Stop development services
 - `make dev-logs` - View development logs
@@ -990,6 +1101,7 @@ Always use the Makefile for common operations:
 - `make dev-rebuild` - Rebuild dev images from scratch (no cache)
 
 **Test Environment:**
+
 - `make test-up` - Start test services
 - `make test-down` - Stop test services
 - `make test-status` - Check test service status
@@ -997,6 +1109,7 @@ Always use the Makefile for common operations:
 - `make test-restart` - Restart test environment
 
 **Running Tests:**
+
 - `make test-verify` - Quick core functionality verification
 - `make test-unit` - Run unit tests
 - `make test-integration` - Run integration tests
@@ -1004,15 +1117,18 @@ Always use the Makefile for common operations:
 - `make test` - Run all tests with coverage
 
 **Code Quality:**
+
 - `make lint` - Run code linting (ruff check)
 - `make format` - Format code (ruff format)
 
 **CI/CD:**
+
 - `make ci-test` - Run CI tests locally
 - `make ci-build` - Build CI images
 - `make ci-down` - Clean up CI environment
 
 **Utilities:**
+
 - `make status-all` - Check status of all environments
 - `make certs` - Generate SSL certificates
 - `make keys` - Generate encryption keys
@@ -1020,12 +1136,14 @@ Always use the Makefile for common operations:
 - `make setup` - Complete initial setup
 
 ### SSL Certificates
+
 - Development uses self-signed certificates
 - Located in `certs/` directory
 - Must be generated before first run: `make certs`
 - Browser warnings are expected in development
 
 ### Database Migrations
+
 - Use Alembic for schema migrations (future)
 - Currently using `init_db.py` for development
 - Tables are created automatically on startup in dev mode
@@ -1035,21 +1153,25 @@ Always use the Makefile for common operations:
 ### Common Issues and Solutions (RESOLVED)
 
 #### "greenlet_spawn has not been called" Error ✅ FIXED
+
 - **Cause**: Improper async database operations
 - **Solution**: All database queries now use proper `session.execute(select(...))` pattern
 - **Status**: All async database operations working correctly
 
 #### "Invalid host header" Error ✅ FIXED
+
 - **Cause**: TrustedHostMiddleware blocking requests
 - **Solution**: Docker service names properly configured in allowed_hosts
 - **Status**: All internal Docker communication working
 
 #### Connection Errors in Callback Server ✅ FIXED
+
 - **Cause**: Wrong internal hostname configuration
 - **Solution**: Using correct `app` hostname for internal communication
 - **Status**: OAuth callback flow working perfectly
 
 #### API Documentation Not Available ✅ FIXED
+
 - **Cause**: DEBUG mode not properly configured
 - **Solution**: Fixed environment configuration to enable DEBUG in development
 - **Status**: `/docs` and `/redoc` endpoints now accessible
@@ -1057,6 +1179,7 @@ Always use the Makefile for common operations:
 ## Provider Implementation Rules
 
 ### Adding New Providers
+
 1. Create provider class in `src/providers/` inheriting from `BaseProvider`
 2. Implement required methods: `get_auth_url()`, `authenticate()`, `refresh_authentication()`
 3. Register in `ProviderRegistry` in `src/providers/registry.py`
@@ -1064,6 +1187,7 @@ Always use the Makefile for common operations:
 5. Test OAuth flow end-to-end before proceeding
 
 ### Token Management
+
 - Always encrypt tokens before storage
 - Implement automatic refresh logic
 - Handle token rotation if provider sends new refresh token
@@ -1076,6 +1200,7 @@ Always use the Makefile for common operations:
 ### Branching Strategy (Git Flow)
 
 **Primary Branches**:
+
 - **`main`** - Production-ready code only
   - ✅ Protected with required PR approvals and tests
   - ✅ Tagged with semantic versions (e.g., `v1.2.0`)
@@ -1089,6 +1214,7 @@ Always use the Makefile for common operations:
   - ✅ Receives merges from `feature/*` and `fix/*` branches
 
 **Supporting Branches**:
+
 - **`feature/*`** - New features (e.g., `feature/account-api`)
   - Branch from: `development`
   - Merge to: `development`
@@ -1120,6 +1246,7 @@ All releases follow [Semantic Versioning 2.0.0](https://semver.org/): `vMAJOR.MI
 - **PATCH** (v1.1.1): Bug fixes, backward-compatible
 
 **Pre-release versions**:
+
 - `v1.2.0-alpha.1` - Alpha release (internal testing)
 - `v1.2.0-beta.1` - Beta release (external testing)
 - `v1.2.0-rc.1` - Release candidate (final testing)
@@ -1131,6 +1258,7 @@ Use **Conventional Commits** for automated changelog generation:
 **Format**: `<type>(<scope>): <subject>`
 
 **Types**:
+
 - `feat:` New features (bumps MINOR version)
 - `fix:` Bug fixes (bumps PATCH version)
 - `docs:` Documentation only
@@ -1144,6 +1272,7 @@ Use **Conventional Commits** for automated changelog generation:
 - `revert:` Revert previous commit
 
 **Breaking Changes**: Use `BREAKING CHANGE:` in footer or `!` after type
+
 ```bash
 feat(api)!: change authentication endpoint structure
 
@@ -1151,6 +1280,7 @@ BREAKING CHANGE: Auth endpoint moved from /auth to /api/v1/auth
 ```
 
 **Examples**:
+
 ```bash
 feat(providers): add Plaid provider support
 fix(auth): prevent race condition in token refresh
@@ -1160,6 +1290,7 @@ chore(deps): update FastAPI to 0.110.0
 ```
 
 **Commit Rules**:
+
 - ✅ Use present tense ("add" not "added")
 - ✅ Use imperative mood ("move" not "moves")
 - ✅ Keep subject under 72 characters
@@ -1173,22 +1304,26 @@ chore(deps): update FastAPI to 0.110.0
 **CRITICAL**: Both `main` and `development` branches MUST be protected with:
 
 ✅ **Required Status Checks**:
-  - `Test Suite / Run Tests` - All tests must pass
-  - `Code Quality / lint` - Linting must pass
-  - Branches must be up to date before merging
+
+- `Test Suite / Run Tests` - All tests must pass
+- `Code Quality / lint` - Linting must pass
+- Branches must be up to date before merging
 
 ✅ **Required Pull Request Reviews**:
-  - At least 1 approval required
-  - Dismiss stale reviews on new commits
-  - Require conversation resolution
+
+- At least 1 approval required
+- Dismiss stale reviews on new commits
+- Require conversation resolution
 
 ✅ **Restrictions**:
-  - No direct commits (PR required)
-  - No force pushes
-  - No branch deletion
-  - Enforce for administrators (on `main`)
+
+- No direct commits (PR required)
+- No force pushes
+- No branch deletion
+- Enforce for administrators (on `main`)
 
 **Setting up branch protection** (see [Git Workflow Guide](docs/development/guides/git-workflow.md#branch-protection-rules)):
+
 ```bash
 # Via GitHub Web UI: Settings → Branches → Add rule
 # Or via GitHub CLI (gh) - see workflow guide
@@ -1197,6 +1332,7 @@ chore(deps): update FastAPI to 0.110.0
 ### Workflow Process
 
 **Starting New Feature**:
+
 ```bash
 git checkout development
 git pull origin development
@@ -1207,6 +1343,7 @@ git push -u origin feature/my-feature
 ```
 
 **Creating Release**:
+
 ```bash
 git checkout -b release/v1.2.0
 # Update version, CHANGELOG.md
@@ -1215,6 +1352,7 @@ git push -u origin release/v1.2.0
 ```
 
 **Emergency Hotfix**:
+
 ```bash
 git checkout main
 git checkout -b hotfix/v1.1.1
@@ -1225,6 +1363,7 @@ git checkout -b hotfix/v1.1.1
 ### Pull Request Process
 
 **All PRs must**:
+
 - ✅ Pass all automated tests (`Test Suite / Run Tests`)
 - ✅ Pass linting checks (`Code Quality / lint`)
 - ✅ Have at least 1 approval
@@ -1233,6 +1372,7 @@ git checkout -b hotfix/v1.1.1
 - ✅ Update documentation if needed
 
 **PR Template** (include in description):
+
 ```markdown
 ## Description
 [Brief description of changes]
@@ -1256,6 +1396,7 @@ Closes #XX
 ### Git Resources
 
 **For complete Git workflow documentation, see**:
+
 - 📚 [Git Workflow Guide](docs/development/guides/git-workflow.md) - Comprehensive guide with examples
 - 📋 [Git Quick Reference](docs/development/guides/git-quick-reference.md) - One-page cheat sheet
 - 🔧 [Branch Protection Setup](docs/development/guides/git-workflow.md#branch-protection-rules) - Configuration instructions
@@ -1263,12 +1404,14 @@ Closes #XX
 ## Performance and Optimization Rules
 
 ### Database Queries
+
 - Always use eager loading for relationships with `selectinload()`
 - Avoid N+1 queries by loading related data upfront
 - Use database indexes for frequently queried fields
 - Implement pagination for list endpoints
 
 ### Async Best Practices
+
 - Don't block the event loop with synchronous operations
 - Use `asyncio` for concurrent operations where appropriate
 - Implement connection pooling for database connections
@@ -1277,15 +1420,18 @@ Closes #XX
 ## Documentation Requirements
 
 ### Documentation Structure
+
 **CRITICAL**: All documentation must follow the established structure in `docs/`. NEVER create documentation files in the root directory except for README.md and WARP.md.
 
 **Root Directory** (Only these files):
+
 - `README.md` - Project overview and quick start
 - `WARP.md` - This file (AI agent rules and project context)
 - `CONTRIBUTING.md` - Contributing guidelines (optional)
 
 **Documentation Organization**:
-```
+
+```bash
 docs/
 ├── README.md                  # Documentation index
 ├── development/               # Developer documentation
@@ -1301,6 +1447,7 @@ docs/
 ```
 
 **When to Create Documentation**:
+
 - **Development docs** → `docs/development/[category]/filename.md`
   - Architecture decisions → `docs/development/architecture/`
   - Infrastructure setup → `docs/development/infrastructure/`
@@ -1319,6 +1466,7 @@ docs/
   - User tutorials and troubleshooting
 
 **Documentation Rules**:
+
 1. ✅ Keep root directory clean (only README.md and WARP.md)
 2. ✅ Use descriptive filenames with hyphens (e.g., `oauth-flow.md`)
 3. ✅ Create README.md in each major directory as an index
@@ -1330,12 +1478,14 @@ docs/
 9. ✅ Display session summaries in terminal output instead of creating files
 
 ### Code Documentation
+
 - Every module must have a module-level docstring
 - All public functions need docstrings with parameters and return values
 - Complex logic should have inline comments
 - Update README.md when adding new features or endpoints
 
 ### API Documentation
+
 - FastAPI auto-generates OpenAPI docs at `/docs`
 - Ensure all endpoints have proper descriptions
 - Include example requests/responses where helpful
@@ -1344,6 +1494,7 @@ docs/
 ## Monitoring and Logging Rules
 
 ### Logging Standards
+
 - Use structured logging with appropriate levels:
   - `DEBUG`: Detailed diagnostic information
   - `INFO`: General informational messages
@@ -1353,6 +1504,7 @@ docs/
 - Never log sensitive data (tokens, passwords, secrets)
 
 ### Health Checks
+
 - Implement health check endpoints for all services
 - Check database connectivity
 - Verify Redis connection
@@ -1361,6 +1513,7 @@ docs/
 ## Future Enhancements to Consider
 
 ### Planned Features
+
 1. Additional provider integrations (Chase, Bank of America, Fidelity)
 2. Plaid integration for broader bank support
 3. Account and transaction data models
@@ -1371,7 +1524,9 @@ docs/
 8. Multi-factor authentication
 
 ### Technical Improvements
+
 **Completed:**
+
 1. ✅ Fixed all async database operation patterns
 2. ✅ Updated all models for Pydantic v2 compatibility
 3. ✅ Implemented proper environment configuration
@@ -1398,6 +1553,7 @@ docs/
     - Production-safe schema evolution
 
 **In Progress / Next Sprint:**
+
 1. **P1: Connection timeouts** (Quick win - 1 day)
    - Add timeout handling to all httpx API calls
    - Prevent hanging requests
@@ -1407,6 +1563,7 @@ docs/
    - Support breach response
 
 **Planned (P2/P3):**
+
 1. Expand test coverage to 85%+
    - Provider integration tests (Schwab)
    - Error handling and edge cases
@@ -1422,6 +1579,7 @@ docs/
 ## Development Environment Setup
 
 ### Required Tools
+
 - Docker Desktop
 - Python 3.13+
 - UV package manager
@@ -1431,6 +1589,7 @@ docs/
 - curl or HTTPie for testing
 
 ### IDE Configuration
+
 - Use type checking (mypy or Pylance)
 - Enable format on save with Black
 - Configure import sorting with isort
@@ -1439,12 +1598,14 @@ docs/
 ## Contact and Resources
 
 ### Project Resources
+
 - Repository: [Your GitHub URL]
 - Documentation: See README.md
 - API Docs: https://localhost:8000/docs (when running)
 - Issue Tracker: [GitHub Issues]
 
 ### Key Dependencies Versions
+
 - FastAPI: Latest
 - SQLModel: Latest
 - PostgreSQL: 17.6
@@ -1459,6 +1620,7 @@ docs/
 **CRITICAL RULE**: After completing each development phase, follow this mandatory workflow to ensure quality and completeness.
 
 ### Git Branch Management
+
 - **Always verify appropriate branch created and in use** before starting work
 - Follow project gitflow conventions
 - Branch naming: `feature/`, `bugfix/`, `hotfix/` prefixes
@@ -1466,6 +1628,7 @@ docs/
 ### After Completing Each Phase
 
 **1. Development Environment Monitoring** 🔍
+
 - **CRITICAL**: Keep development environment running during active development: `make dev-up`
 - Monitor application logs in real-time: `make dev-logs`
 - Watch for import errors, missing dependencies, or runtime issues as you develop
@@ -1478,11 +1641,13 @@ docs/
   - Faster debugging cycle
 
 **2. Verification & Validation** ✅
+
 - Verify everything works as designed
 - Identify and fix any bugs
 - Test all new functionality manually
 
 **3. Test Creation** 🧪
+
 - Create comprehensive tests following `docs/development/testing/guide.md`
 - **Unit tests** for all new services/functions/classes (test in isolation)
 - **Integration tests** for ANY integrated services:
@@ -1495,18 +1660,21 @@ docs/
 - Ensure test coverage meets project standards (85% target)
 
 **4. Run All Tests** 🏃
+
 - Run entire test suite: `make test`
 - Verify all tests pass (both new and existing)
 - Check test coverage: `make test-coverage`
 - Fix any broken tests immediately
 
 **5. Code Quality** 🎨
+
 - Lint code: `make lint` (ruff check)
 - Format code: `make format` (ruff format)
 - Fix all linting errors and warnings
 - Ensure code follows project standards
 
 **6. Documentation Updates** 📚
+
 - Update all relevant documentation for completed work
 - Update WARP.md if project rules or context changed
 - Update implementation guides with completion status
@@ -1514,23 +1682,27 @@ docs/
 - Add inline code documentation where needed
 
 **7. Commit Changes** 💾
+
 - Stage all changes: `git add .`
 - Write comprehensive commit message:
-  ```
-  type(scope): Brief description
-  
-  - Detailed change 1
-  - Detailed change 2
-  - Detailed change 3
-  
-  Related to: [issue/feature reference]
-  ```
+
+```text
+type(scope): Brief description
+
+- Detailed change 1
+- Detailed change 2
+- Detailed change 3
+
+Related to: [issue/feature reference]
+```
+
 - Commit: `git commit -m "message"`
 - Push to feature branch: `git push origin branch-name`
 
 ### Once All Work Complete
 
 **8. Pull Request Creation** 🔀
+
 - Create comprehensive pull request with:
   - Clear description of all changes
   - List of features implemented
@@ -1547,8 +1719,10 @@ docs/
 ### Phase Completion Checklist
 
 Before marking a phase as complete, verify:
+
 - [ ] All phase deliverables implemented
-- [ ] All new code tested (unit + integration + API)
+- [ ] All new code tested (unit + integration + A
+PI)
 - [ ] All existing tests still pass
 - [ ] Code linted and formatted
 - [ ] Documentation updated
@@ -1564,6 +1738,7 @@ Before marking a phase as complete, verify:
 ## AI Agent Instructions
 
 When working on this project:
+
 1. Always check this WARP.md file first for project context and rules
 2. Follow the established patterns for database operations (async with selectinload)
 3. Maintain consistency with existing code style and structure
@@ -1578,9 +1753,11 @@ When working on this project:
 12. **ALWAYS maintain the AI Session Journal** for session continuity
 
 ### AI Session Journal System
+
 **CRITICAL**: Maintain session journal at `~/ai_dev_sessions/Dashtam/` for continuity between AI interactions.
 
 **Purpose:**
+
 - Resume work after critical errors or interruptions
 - Track progress and decisions across sessions
 - Provide context for future AI agents
@@ -1589,6 +1766,7 @@ When working on this project:
 **Three-Phase Workflow:** All sessions must follow this structured approach:
 
 **Phase 1: Session Initialization** 🎯 (Start of session)
+
 1. Create timestamped session file: `YYYY-MM-DD_HHMMSS_brief-description.md`
 2. Document session goals and objectives
 3. List planned tasks with checkboxes for tracking
@@ -1598,6 +1776,7 @@ When working on this project:
 7. Define success criteria
 
 **Phase 2: Progressive Updates** 📝 (During work)
+
 1. Check off completed tasks as you finish them
 2. Document key decisions and rationale
 3. Note unexpected issues and how resolved
@@ -1606,6 +1785,7 @@ When working on this project:
 6. Update blockers and their status
 
 **Phase 3: Final Summary** ✅ (End of session)
+
 1. Summarize what was accomplished
 2. Document what changed from original plan (and why)
 3. List key achievements and their impact
@@ -1615,16 +1795,19 @@ When working on this project:
 7. Provide recommendations for next session
 
 **Session Retention:**
+
 - Default: Keep 10 most recent sessions per project
 - Configured in `~/ai_dev_sessions/Dashtam/.session_config`
 - Older sessions automatically DELETED (not archived) to prevent unbounded growth
 
 **Template Selection:**
+
 - **`session-comprehensive.md`** - For complex multi-task work, research, architecture changes
 - **`session-template.md`** - For quick fixes, single-focus tasks, routine updates
 - Both templates available at: `~/ai_dev_sessions/templates/`
 
 **Workflow:**
+
 ```bash
 # 1. Check for existing sessions at start
 ls -t ~/ai_dev_sessions/Dashtam/ | head -5

@@ -17,14 +17,16 @@ This ensures optimal performance, maintains FastAPI best practices, and keeps co
 
 ## The Rule
 
-### Use `async def` when:
+### Use `async def` when
+
 - ✅ Performing database operations (SELECT, INSERT, UPDATE, DELETE)
 - ✅ Making HTTP/network requests to external APIs
 - ✅ Reading/writing files asynchronously
 - ✅ Calling other async functions with `await`
 - ✅ Using async libraries (httpx, asyncpg, etc.)
 
-### Use `def` (synchronous) when:
+### Use `def` (synchronous) when
+
 - ✅ Performing pure computational work (encryption, hashing, parsing)
 - ✅ Using synchronous-only libraries (passlib/bcrypt, cryptography)
 - ✅ Implementing utility functions with no I/O
@@ -37,7 +39,7 @@ This ensures optimal performance, maintains FastAPI best practices, and keeps co
 
 ### Pattern 1: I/O-Bound Services (Use `async def`)
 
-**Example: TokenService, AuthService**
+**Example - TokenService, AuthService:**
 
 ```python
 class TokenService:
@@ -70,6 +72,7 @@ class TokenService:
 ```
 
 **Why async?**
+
 - Database operations with `AsyncSession`
 - HTTP requests with `httpx.AsyncClient`
 - Must `await` I/O operations
@@ -78,7 +81,7 @@ class TokenService:
 
 ### Pattern 2: CPU-Bound Services (Use `def`)
 
-**Example: EncryptionService, PasswordService**
+**Example - EncryptionService, PasswordService:**
 
 ```python
 class PasswordService:
@@ -106,6 +109,7 @@ class PasswordService:
 ```
 
 **Why sync?**
+
 - Pure CPU operations (no I/O)
 - Libraries are synchronous (passlib, cryptography)
 - Can be called from async code without issues
@@ -146,6 +150,7 @@ class PasswordService:
 ```
 
 **When to use async wrappers:**
+
 - High-concurrency endpoints where 300ms+ blocking is noticeable
 - Operations taking >100ms that would benefit from parallelism
 - NOT needed initially - add when performance profiling shows need
@@ -184,6 +189,7 @@ async def login(
 ```
 
 **Key Points:**
+
 - Endpoint is `async def`
 - Can call sync functions directly (password_service.verify_password)
 - Must `await` async functions (auth_service.get_user_by_email)
@@ -194,6 +200,7 @@ async def login(
 ## Current Dashtam Service Classification
 
 ### Async Services (I/O-bound)
+
 | Service | Reason | I/O Type |
 |---------|--------|----------|
 | `TokenService` | Database operations, HTTP calls to providers | PostgreSQL, HTTP |
@@ -201,6 +208,7 @@ async def login(
 | `EmailService` | Sends emails via AWS SES | HTTP/Network |
 
 ### Sync Services (CPU-bound)
+
 | Service | Reason | Operation Type |
 |---------|--------|----------------|
 | `EncryptionService` | AES encryption/decryption | CPU (cryptography) |
@@ -325,14 +333,16 @@ def test_password_service():
 
 If bcrypt (or other CPU work) becomes a bottleneck:
 
-**Option 1: Thread Pool (Recommended)**
+**Option 1: Thread Pool (Recommended):**
+
 ```python
 async def hash_password_async(password: str) -> str:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, hash_password, password)
 ```
 
-**Option 2: Process Pool (For heavy computation)**
+**Option 2: Process Pool (For heavy computation):**
+
 ```python
 from concurrent.futures import ProcessPoolExecutor
 
@@ -342,7 +352,8 @@ async def heavy_computation_async(data: str) -> str:
         return await loop.run_in_executor(pool, heavy_computation, data)
 ```
 
-**Option 3: Background Tasks (Fire and forget)**
+**Option 3: Background Tasks (Fire and forget):**
+
 ```python
 from fastapi import BackgroundTasks
 
@@ -382,6 +393,7 @@ Monitor these metrics in production:
 ## Migration Path (If Needed)
 
 ### Step 1: Add Async Wrappers
+
 ```python
 class PasswordService:
     def hash_password(self, password: str) -> str:
@@ -395,6 +407,7 @@ class PasswordService:
 ```
 
 ### Step 2: Update Endpoints
+
 ```python
 @router.post("/register")
 async def register(request: RegisterRequest):
@@ -405,6 +418,7 @@ async def register(request: RegisterRequest):
 ```
 
 ### Step 3: Deprecate Sync Methods
+
 ```python
 def hash_password(self, password: str) -> str:
     """DEPRECATED: Use hash_password_async() instead."""

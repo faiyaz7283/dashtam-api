@@ -3,6 +3,7 @@
 This guide documents testing patterns, strategies, and best practices for the Dashtam project.
 
 ## Table of Contents
+
 - [Testing Philosophy](#testing-philosophy)
 - [Test Structure](#test-structure)
 - [Testing Patterns](#testing-patterns)
@@ -15,25 +16,29 @@ This guide documents testing patterns, strategies, and best practices for the Da
 ## Testing Philosophy
 
 ### Test Pyramid
+
 Dashtam follows the testing pyramid approach:
-- **70% Unit Tests**: Fast, isolated tests for individual functions/classes
-- **20% Integration Tests**: Tests for component interactions (database, services)
-- **10% API/E2E Tests**: Tests for complete workflows through HTTP endpoints
-- **Smoke Tests**: Critical path validation (subset of API tests, run pre-deployment)
+
+- **70% Unit Tests:** Fast, isolated tests for individual functions/classes
+- **20% Integration Tests:** Tests for component interactions (database, services)
+- **10% API/E2E Tests:** Tests for complete workflows through HTTP endpoints
+- **Smoke Tests:** Critical path validation (subset of API tests, run pre-deployment)
 
 ### Testing Principles
-1. **Tests should be fast**: Most tests should run in milliseconds
-2. **Tests should be isolated**: Each test should be independent
-3. **Tests should be deterministic**: Same input = same output, always
-4. **Tests should be readable**: Clear arrange-act-assert structure
-5. **Tests should test one thing**: Single responsibility per test
+
+1. **Tests should be fast:** Most tests should run in milliseconds
+2. **Tests should be isolated:** Each test should be independent
+3. **Tests should be deterministic:** Same input = same output, always
+4. **Tests should be readable:** Clear arrange-act-assert structure
+5. **Tests should test one thing:** Single responsibility per test
 
 ---
 
 ## Test Structure
 
 ### Directory Organization
-```
+
+```bash
 tests/
 ├── api/                    # API endpoint tests (TestClient)
 │   ├── test_provider_endpoints.py
@@ -53,11 +58,13 @@ tests/
 ```
 
 ### Test File Naming
+
 - Test files: `test_<module_name>.py`
 - Test classes: `Test<FeatureName>` (PascalCase)
 - Test functions: `test_<what_it_tests>` (snake_case)
 
 ### Test Function Structure (AAA Pattern)
+
 ```python
 def test_feature_name():
     """Test description explaining what we're testing."""
@@ -77,9 +84,10 @@ def test_feature_name():
 
 ### 1. Unit Tests
 
-**Purpose**: Test individual functions/methods in isolation
+**Purpose:** Test individual functions/methods in isolation
 
-**Pattern**:
+**Pattern:**
+
 ```python
 class TestEncryptionService:
     """Test suite for EncryptionService."""
@@ -96,7 +104,8 @@ class TestEncryptionService:
         assert encrypted != plaintext  # Ensure it was actually encrypted
 ```
 
-**Best Practices**:
+**Best Practices:**
+
 - Mock external dependencies
 - Test edge cases (empty strings, None, special characters)
 - Test error conditions (exceptions, validation failures)
@@ -104,9 +113,10 @@ class TestEncryptionService:
 
 ### 2. Integration Tests
 
-**Purpose**: Test component interactions (database, services working together)
+**Purpose:** Test component interactions (database, services working together)
 
-**Pattern**:
+**Pattern:**
+
 ```python
 class TestTokenStorageIntegration:
     """Integration tests for token storage with database."""
@@ -136,7 +146,8 @@ class TestTokenStorageIntegration:
         assert token.access_token_encrypted is not None
 ```
 
-**Best Practices**:
+**Best Practices:**
+
 - Use real database (test database, not mocks)
 - Clean up after each test (transactions/fixtures)
 - Test relationships and cascades
@@ -144,9 +155,10 @@ class TestTokenStorageIntegration:
 
 ### 3. API Tests
 
-**Purpose**: Test HTTP endpoints end-to-end
+**Purpose:** Test HTTP endpoints end-to-end
 
-**Pattern**:
+**Pattern:**
+
 ```python
 class TestProviderEndpoints:
     """Test suite for provider API endpoints."""
@@ -167,7 +179,8 @@ class TestProviderEndpoints:
         assert "id" in data
 ```
 
-**Best Practices**:
+**Best Practices:**
+
 - Use FastAPI TestClient (synchronous)
 - Test all HTTP methods (GET, POST, PUT, DELETE)
 - Test validation (missing fields, invalid data)
@@ -181,6 +194,7 @@ class TestProviderEndpoints:
 ### Common Fixtures (in conftest.py)
 
 #### Database Session Fixture
+
 ```python
 @pytest.fixture
 def db_session():
@@ -196,6 +210,7 @@ def db_session():
 ```
 
 #### Test User Fixture
+
 ```python
 @pytest.fixture
 def test_user(db_session):
@@ -208,6 +223,7 @@ def test_user(db_session):
 ```
 
 #### Test Client Fixture
+
 ```python
 @pytest.fixture
 def client():
@@ -218,6 +234,7 @@ def client():
 ### Mocking Strategies
 
 #### 1. Mocking External APIs
+
 ```python
 def test_oauth_callback(self, client, test_provider):
     """Test OAuth callback with mocked provider response."""
@@ -240,6 +257,7 @@ def test_oauth_callback(self, client, test_provider):
 ```
 
 #### 2. Mocking Services
+
 ```python
 def test_token_refresh_failure(self, client, test_provider):
     """Test handling of token refresh failure."""
@@ -254,14 +272,16 @@ def test_token_refresh_failure(self, client, test_provider):
 
 #### 3. When to Mock vs Use Real Objects
 
-**Mock when**:
+**Mock when:**
+
 - External API calls (OAuth providers, third-party services)
 - Time-dependent operations (`datetime.now()`)
 - File system operations
 - Network operations
 - Slow operations (sleep, heavy computation)
 
-**Use real objects when**:
+**Use real objects when:**
+
 - Database operations (use test database)
 - Internal service calls
 - Model creation and validation
@@ -272,14 +292,16 @@ def test_token_refresh_failure(self, client, test_provider):
 ## Coverage Guidelines
 
 ### Target Coverage by Module Type
+
 - **Core utilities** (database, config): **95-100%**
 - **Services** (business logic): **85-95%**
-- **API endpoints**: **80-90%**
-- **Models**: **80-90%**
+- **API endpoints:** **80-90%**
+- **Models:** **80-90%**
 - **Providers** (OAuth implementations): **70-85%**
 
 ### Current Coverage Status
-```
+
+```text
 ✅ src/core/database.py: 100%
 ✅ src/services/encryption.py: 84%
 ✅ src/services/token_service.py: 86%
@@ -290,18 +312,21 @@ def test_token_refresh_failure(self, client, test_provider):
 
 ### What to Test
 
-**✅ Always test**:
+**✅ Always test:**
+
 - Happy path (normal usage)
 - Error cases (exceptions, validation failures)
 - Edge cases (empty, None, extreme values)
 - Boundary conditions (min/max values)
 
-**⚠️ Sometimes test**:
+**⚠️ Sometimes test:**
+
 - Private methods (if complex logic)
 - Properties (if they have logic)
 - Utility functions
 
-**❌ Don't test**:
+**❌ Don't test:**
+
 - Third-party library code
 - Simple getters/setters without logic
 - Framework code (FastAPI, SQLModel)
@@ -311,13 +336,16 @@ def test_token_refresh_failure(self, client, test_provider):
 ## Common Pitfalls
 
 ### 1. Async/Sync Mismatch
-❌ **Wrong**:
+
+❌ **Wrong:**
+
 ```python
 def test_async_function():
     result = some_async_function()  # Returns coroutine, not result
 ```
 
-✅ **Correct**:
+✅ **Correct:**
+
 ```python
 @pytest.mark.asyncio
 async def test_async_function():
@@ -325,13 +353,16 @@ async def test_async_function():
 ```
 
 Or use `AsyncMock` for mocking:
+
 ```python
 mock_func = AsyncMock(return_value="result")
 result = await mock_func()
 ```
 
 ### 2. Database Session Issues
-❌ **Wrong**:
+
+❌ **Wrong:**
+
 ```python
 def test_with_session(db_session):
     user = User(email="test@test.com")
@@ -339,7 +370,8 @@ def test_with_session(db_session):
     # Not committed, might not be available in other queries
 ```
 
-✅ **Correct**:
+✅ **Correct:**
+
 ```python
 def test_with_session(db_session):
     user = User(email="test@test.com")
@@ -349,7 +381,9 @@ def test_with_session(db_session):
 ```
 
 ### 3. Test Isolation
-❌ **Wrong**:
+
+❌ **Wrong:**
+
 ```python
 shared_user = None  # Module-level state
 
@@ -359,14 +393,17 @@ def test_create_user(db_session):
     # Test 2 might fail if test 1 runs first
 ```
 
-✅ **Correct**:
+✅ **Correct:**
+
 ```python
 def test_create_user(db_session):
     user = User(email="test@test.com")  # Fresh instance per test
 ```
 
 ### 4. Over-Mocking
-❌ **Wrong**:
+
+❌ **Wrong:**
+
 ```python
 def test_token_storage(db_session):
     with patch("sqlmodel.Session.add"):  # Mocking the database!
@@ -374,7 +411,8 @@ def test_token_storage(db_session):
             # This doesn't test anything meaningful
 ```
 
-✅ **Correct**:
+✅ **Correct:**
+
 ```python
 def test_token_storage(db_session):
     # Use real database session
@@ -385,12 +423,15 @@ def test_token_storage(db_session):
 ```
 
 ### 5. Timezone-Aware Datetimes
-❌ **Wrong**:
+
+❌ **Wrong:**
+
 ```python
 expires_at = datetime.utcnow()  # Deprecated in Python 3.13
 ```
 
-✅ **Correct**:
+✅ **Correct:**
+
 ```python
 from datetime import datetime, timezone
 
@@ -402,11 +443,13 @@ expires_at = datetime.now(timezone.utc)  # Timezone-aware
 ## Running Tests
 
 ### Run All Tests
+
 ```bash
 make test
 ```
 
 ### Run Test Categories
+
 ```bash
 make test-unit         # Unit tests only
 make test-integration  # Integration tests only
@@ -414,22 +457,26 @@ make test-smoke        # Smoke tests (critical paths)
 ```
 
 ### Run Specific Test File
+
 ```bash
 make test-unit ARGS="tests/unit/core/test_database.py"
 ```
 
 ### Run Specific Test
+
 ```bash
 docker compose -f docker-compose.test.yml exec -T app \
   uv run pytest tests/unit/core/test_database.py::TestGetEngine::test_get_engine_creates_new_engine -xvs
 ```
 
 ### Run Tests with Coverage
+
 ```bash
 make test  # Automatically includes coverage
 ```
 
 ### Run Tests in Watch Mode (for development)
+
 ```bash
 docker compose -f docker-compose.test.yml exec app \
   uv run pytest-watch tests/
@@ -440,11 +487,13 @@ docker compose -f docker-compose.test.yml exec app \
 ## CI/CD Integration
 
 Tests automatically run in GitHub Actions on:
+
 - Every push to feature branches
 - Every pull request to `development` or `main`
 - Manual workflow trigger
 
-**CI Requirements**:
+**CI Requirements:**
+
 - ✅ All tests must pass
 - ✅ Code quality checks (ruff lint, ruff format)
 - ✅ Coverage report uploaded to Codecov
@@ -463,6 +512,7 @@ Tests automatically run in GitHub Actions on:
 ## Contributing
 
 When adding new features:
+
 1. Write tests first (TDD approach recommended)
 2. Ensure tests cover happy path and error cases
 3. Aim for >85% coverage on new code
@@ -471,6 +521,6 @@ When adding new features:
 
 ---
 
-**Last Updated**: 2025-10-03  
-**Test Count**: 110 tests  
-**Overall Coverage**: 67%
+**Last Updated:** 2025-10-03  
+**Test Count:** 110 tests  
+**Overall Coverage:** 67%

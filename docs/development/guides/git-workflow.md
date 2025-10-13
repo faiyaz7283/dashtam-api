@@ -1,6 +1,7 @@
 # Git Workflow Guide
 
 ## Table of Contents
+
 - [Overview](#overview)
 - [Branching Strategy (Git Flow)](#branching-strategy-git-flow)
 - [Semantic Versioning](#semantic-versioning)
@@ -21,6 +22,7 @@
 Dashtam uses **Git Flow** as our branching model, which provides a robust framework for managing releases, features, and hotfixes. Combined with **Semantic Versioning** and **Conventional Commits**, this ensures our codebase remains organized, traceable, and production-ready.
 
 ### Key Principles
+
 - ✅ **All work happens in feature branches** - Never commit directly to `main` or `development`
 - ✅ **Tests must pass** - All PRs require passing CI tests before merge
 - ✅ **Code review required** - At least one approval needed for PRs to protected branches
@@ -33,7 +35,7 @@ Dashtam uses **Git Flow** as our branching model, which provides a robust framew
 
 ### Branch Hierarchy
 
-```
+```text
 main (production)
   ├── development (integration)
   │   ├── feature/oauth-integration
@@ -68,7 +70,7 @@ We follow [Semantic Versioning 2.0.0](https://semver.org/): `MAJOR.MINOR.PATCH`
 
 ### Examples
 
-```
+```text
 v1.0.0  → Initial stable release
 v1.1.0  → Added account listing API (new feature)
 v1.1.1  → Fixed token refresh bug (bug fix)
@@ -79,6 +81,7 @@ v2.0.0  → Changed OAuth flow (breaking change)
 ### Pre-release Versions
 
 For development and testing:
+
 - `v1.2.0-alpha.1` - Alpha release (unstable, internal testing)
 - `v1.2.0-beta.1` - Beta release (feature-complete, external testing)
 - `v1.2.0-rc.1` - Release candidate (production-ready, final testing)
@@ -89,49 +92,55 @@ For development and testing:
 
 ### 1. `main` Branch
 
-**Purpose**: Production-ready code only
+**Purpose:** Production-ready code only
 
-**Rules**:
+**Rules:**
+
 - ✅ Always deployable to production
 - ✅ Protected (no direct commits)
 - ✅ Requires PR with approvals
 - ✅ All tests must pass
 - ✅ Tagged with version numbers (e.g., `v1.2.0`)
 
-**Receives merges from**:
+**Receives merges from:**
+
 - `release/*` branches (new releases)
 - `hotfix/*` branches (emergency fixes)
 
 ### 2. `development` Branch
 
-**Purpose**: Integration branch for ongoing development
+**Purpose:** Integration branch for ongoing development
 
-**Rules**:
+**Rules:**
+
 - ✅ Protected (no direct commits)
 - ✅ Requires PR with approvals
 - ✅ All tests must pass
 - ✅ Always ahead of `main` (contains unreleased features)
 
-**Receives merges from**:
+**Receives merges from:**
+
 - `feature/*` branches (new features)
 - `fix/*` branches (bug fixes)
 - `hotfix/*` branches (after production deployment)
 
 ### 3. `feature/*` Branches
 
-**Purpose**: Develop new features
+**Purpose:** Develop new features
 
-**Naming Convention**: `feature/short-description`
+**Naming Convention:** `feature/short-description`
 
-**Examples**:
-```
+**Examples:**
+
+```bash
 feature/account-listing-api
 feature/oauth-plaid-integration
 feature/dashboard-ui
 feature/transaction-sync
 ```
 
-**Lifecycle**:
+**Lifecycle:**
+
 ```bash
 # Create from development
 git checkout development
@@ -153,38 +162,42 @@ git push origin --delete feature/account-listing-api
 
 ### 4. `fix/*` Branches
 
-**Purpose**: Fix bugs in development
+**Purpose:** Fix bugs in development
 
-**Naming Convention**: `fix/short-description`
+**Naming Convention:** `fix/short-description`
 
-**Examples**:
-```
+**Examples:**
+
+```text
 fix/token-encryption-error
 fix/database-connection-leak
 fix/oauth-callback-timeout
 fix/test-isolation-issue
 ```
 
-**Lifecycle**: Same as feature branches (branch from and merge to `development`)
+**Lifecycle:** Same as feature branches (branch from and merge to `development`)
 
 ### 5. `release/*` Branches
 
-**Purpose**: Prepare a new release
+**Purpose:** Prepare a new release
 
-**Naming Convention**: `release/vX.Y.Z`
+**Naming Convention:** `release/vX.Y.Z`
 
-**Examples**:
-```
+**Examples:**
+
+```text
 release/v1.2.0
 release/v2.0.0
 release/v1.3.0-beta.1
 ```
 
-**When to Create**:
+**When to Create:**
+
 - When `development` has enough features for a release
 - When you want to freeze features and focus on stabilization
 
-**Lifecycle**:
+**Lifecycle:**
+
 ```bash
 # Create from development
 git checkout development
@@ -218,24 +231,27 @@ git push origin --delete release/v1.2.0
 
 ### 6. `hotfix/*` Branches
 
-**Purpose**: Emergency fixes for production
+**Purpose:** Emergency fixes for production
 
-**Naming Convention**: `hotfix/vX.Y.Z` or `hotfix/critical-issue`
+**Naming Convention:** `hotfix/vX.Y.Z` or `hotfix/critical-issue`
 
-**Examples**:
-```
+**Examples:**
+
+```text
 hotfix/v1.1.1
 hotfix/security-token-leak
 hotfix/critical-db-error
 ```
 
-**When to Create**:
+**When to Create:**
+
 - Critical bug in production
 - Security vulnerability
 - Data loss risk
 - System downtime
 
-**Lifecycle**:
+**Lifecycle:**
+
 ```bash
 # Create from main (production)
 git checkout main
@@ -272,7 +288,7 @@ We use **Conventional Commits** for automated changelog generation and semantic 
 
 ### Format
 
-```
+```text
 <type>(<scope>): <subject>
 
 <body>
@@ -344,7 +360,8 @@ test(auth): add registry unit tests
 
 ### Commit Message Rules
 
-✅ **DO**:
+✅ **DO:**
+
 - Use present tense ("add feature" not "added feature")
 - Use imperative mood ("move cursor to" not "moves cursor to")
 - Keep subject line under 72 characters
@@ -354,7 +371,8 @@ test(auth): add registry unit tests
 - Wrap body at 72 characters
 - Reference issues and PRs in footer
 
-❌ **DON'T**:
+❌ **DON'T:**
+
 - Write vague messages like "fix bug" or "update code"
 - Mix multiple unrelated changes in one commit
 - Commit incomplete work to shared branches
@@ -534,18 +552,19 @@ git push origin --delete hotfix/v1.2.1
 ### Creating a Pull Request
 
 1. **Push your branch** to GitHub:
+
    ```bash
    git push -u origin feature/your-feature
    ```
 
-2. **Create PR on GitHub**:
+2. **Create PR on GitHub:**
    - Navigate to repository
    - Click "Pull requests" → "New pull request"
    - Select base branch (`development` for features/fixes)
    - Select your feature branch
    - Click "Create pull request"
 
-3. **Write a good PR description**:
+3. **Write a good PR description:**
 
    ```markdown
    ## Description
@@ -593,9 +612,10 @@ git push origin --delete hotfix/v1.2.1
 
 ### Reviewing a Pull Request
 
-**As a Reviewer**:
+**As a Reviewer:**
 
-✅ **Check**:
+✅ **Check:**
+
 - Code quality and readability
 - Tests coverage and quality
 - Documentation updates
@@ -603,12 +623,14 @@ git push origin --delete hotfix/v1.2.1
 - Follows project conventions
 - Breaking changes clearly documented
 
-✅ **Review Types**:
-- **Approve**: Code is good to merge
-- **Request changes**: Issues need to be addressed
-- **Comment**: Feedback without blocking merge
+✅ **Review Types:**
 
-✅ **Best Practices**:
+- **Approve:** Code is good to merge
+- **Request changes:** Issues need to be addressed
+- **Comment:** Feedback without blocking merge
+
+✅ **Best Practices:**
+
 - Be constructive and kind
 - Explain the "why" behind suggestions
 - Distinguish between blocking and non-blocking feedback
@@ -655,7 +677,7 @@ gh pr create \
   --label "enhancement,needs-review"
 ```
 
-**Example: Comprehensive PR Creation**
+**Example: Comprehensive PR Creation:**
 
 ```bash
 # After pushing your feature branch
@@ -685,7 +707,7 @@ Related to #38
 "
 ```
 
-**Viewing and Managing PRs**:
+**Viewing and Managing PRs:**
 
 ```bash
 # View PR in browser
@@ -712,7 +734,7 @@ gh pr review 16 --comment --body "Minor feedback: consider..."
 
 ### Merging Pull Requests
 
-**Merge Options**:
+**Merge Options:**
 
 1. **Merge commit** (preferred for features):
    - Preserves complete history
@@ -728,7 +750,7 @@ gh pr review 16 --comment --body "Minor feedback: consider..."
    - Linear history
    - Can complicate history if not careful
 
-**Merging with GitHub CLI**:
+**Merging with GitHub CLI:**
 
 ```bash
 # Basic merge (uses repository default merge method)
@@ -750,7 +772,7 @@ gh pr merge 16 --squash --delete-branch --admin
 gh pr merge 16 --squash --auto --delete-branch
 ```
 
-**Merge Command Options Explained**:
+**Merge Command Options Explained:**
 
 | Option | Description | Use Case |
 |--------|-------------|----------|
@@ -762,7 +784,7 @@ gh pr merge 16 --squash --auto --delete-branch
 | `--auto` | Auto-merge when checks pass | CI-dependent merge |
 | `--body "text"` | Custom merge commit message | Override default |
 
-**Branch Protection and PR Merging**:
+**Branch Protection and PR Merging:**
 
 ```bash
 # Check if PR is mergeable
@@ -775,22 +797,25 @@ gh pr view 16 --json mergeable,mergeStateStatus
 }
 ```
 
-**Merge State Status**:
+**Merge State Status:**
+
 - `CLEAN` - Ready to merge
 - `BLOCKED` - Cannot merge (missing approvals or failing checks)
 - `BEHIND` - Branch needs to be updated
 - `UNSTABLE` - Checks failing
 - `DRAFT` - PR is in draft state
 
-**Common Merge Scenarios**:
+**Common Merge Scenarios:**
 
-**Scenario 1: Feature PR to Development (Standard)**
+**Scenario 1: Feature PR to Development (Standard):**
+
 ```bash
 # After all checks pass and approval received
 gh pr merge 16 --squash --delete-branch
 ```
 
-**Scenario 2: Self-Approval Required (Admin)**
+**Scenario 2: Self-Approval Required (Admin):**
+
 ```bash
 # Review your own PR for documentation
 gh pr review 16 --approve --body "Self-approval: All tests passing, security enhancement thoroughly tested."
@@ -799,13 +824,15 @@ gh pr review 16 --approve --body "Self-approval: All tests passing, security enh
 gh pr merge 16 --squash --delete-branch
 ```
 
-**Scenario 3: Bypass Review (Admin Emergency)**
+**Scenario 3: Bypass Review (Admin Emergency):**
+
 ```bash
 # Use --admin flag to bypass branch protection
 gh pr merge 16 --squash --delete-branch --admin
 ```
 
-**Scenario 4: Release PR to Main**
+**Scenario 4: Release PR to Main:**
+
 ```bash
 # Use merge commit to preserve release history
 gh pr merge 42 --merge --delete-branch
@@ -817,7 +844,8 @@ git tag -a v1.4.0 -m "Release version 1.4.0"
 git push origin v1.4.0
 ```
 
-**Scenario 5: Hotfix PR (Urgent)**
+**Scenario 5: Hotfix PR (Urgent):**
+
 ```bash
 # Squash merge to main
 gh pr merge 99 --squash --delete-branch --admin
@@ -835,7 +863,7 @@ git merge --no-ff main
 git push origin development
 ```
 
-**Customizing Merge Commit Message**:
+**Customizing Merge Commit Message:**
 
 ```bash
 # Squash merge with custom commit message
@@ -852,7 +880,8 @@ Follows Pattern A (JWT Access + Opaque Refresh) security model.
 Comprehensive test coverage ensures reliable behavior."
 ```
 
-**After Merge**:
+**After Merge:**
+
 ```bash
 # Update local development branch
 git checkout development
@@ -1068,14 +1097,16 @@ jobs:
 
 ### When to Create a Hotfix
 
-**Create hotfix if**:
+**Create hotfix if:**
+
 - ❌ Critical production bug
 - ❌ Security vulnerability
 - ❌ Data loss or corruption
 - ❌ Service downtime
 - ❌ Performance degradation affecting users
 
-**Don't create hotfix if**:
+**Don't create hotfix if:**
+
 - ✅ Minor UI glitch (can wait for regular release)
 - ✅ Non-critical bug (can wait for regular release)
 - ✅ Feature request (definitely not a hotfix)
@@ -1335,7 +1366,8 @@ git checkout v1.0.0
 
 ### General Guidelines
 
-✅ **DO**:
+✅ **DO:**
+
 - Commit early and often with meaningful messages
 - Keep commits small and focused
 - Write clear commit messages following conventions
@@ -1348,7 +1380,8 @@ git checkout v1.0.0
 - Review your own PR before requesting reviews
 - Respond to review feedback promptly
 
-❌ **DON'T**:
+❌ **DON'T:**
+
 - Commit directly to main or development
 - Force push to shared branches
 - Commit incomplete work
@@ -1401,12 +1434,12 @@ git branch --merged | grep -v "\*\|main\|development" | xargs -n 1 git branch -d
 
 ### Collaboration Tips
 
-1. **Communicate**: Let team know about long-running branches
-2. **Small PRs**: Keep PRs focused and reviewable (< 400 lines)
-3. **Self-review**: Review your own PR first
-4. **Link issues**: Reference issues in commits and PRs
-5. **Document**: Update docs with code changes
-6. **Test**: All PRs must have tests
+1. **Communicate:** Let team know about long-running branches
+2. **Small PRs:** Keep PRs focused and reviewable (< 400 lines)
+3. **Self-review:** Review your own PR first
+4. **Link issues:** Reference issues in commits and PRs
+5. **Document:** Update docs with code changes
+6. **Test:** All PRs must have tests
 
 ### Security Considerations
 
@@ -1490,17 +1523,20 @@ git reset --hard HEAD~1
 ## Additional Resources
 
 ### Documentation
+
 - [Git Official Documentation](https://git-scm.com/doc)
 - [Git Flow Cheatsheet](https://danielkummer.github.io/git-flow-cheatsheet/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Semantic Versioning](https://semver.org/)
 
 ### Tools
+
 - [GitHub CLI (gh)](https://cli.github.com/)
 - [Git Flow Extension](https://github.com/nvie/gitflow)
 - [Commitizen](https://github.com/commitizen/cz-cli) - Interactive commit message tool
 
 ### Internal Resources
+
 - [Testing Guide](../../tests/TESTING_GUIDE.md)
 - [Development Setup](../infrastructure/docker-compose-guide.md)
 - [WARP.md](../../../WARP.md) - Project rules and conventions
@@ -1510,6 +1546,7 @@ git reset --hard HEAD~1
 ## Questions or Issues?
 
 If you have questions about the Git workflow:
+
 1. Check this guide first
 2. Review the [WARP.md](../../../WARP.md) project rules
 3. Ask in the team chat
@@ -1517,6 +1554,6 @@ If you have questions about the Git workflow:
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2024-01-15  
-**Maintained By**: Dashtam Development Team
+**Version:** 1.0.0  
+**Last Updated:** 2024-01-15  
+**Maintained By:** Dashtam Development Team

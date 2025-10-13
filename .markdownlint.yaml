@@ -1,9 +1,0 @@
-# Markdownlint configuration for the project
-# Allows fenced code blocks for better syntax highlighting
-
-MD046:
-  style: fenced  # Allow fenced code blocks (```) instead of indented
-
-# Optional: You can add other rules here as needed
-# MD013: false  # Disable line length rule if needed
-# MD033: false  # Disable HTML tags rule if needed

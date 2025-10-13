@@ -24,17 +24,17 @@ This guide explains how to implement OAuth token rotation correctly in Dashtam p
    - The refresh token stays the same indefinitely
    - You use the same refresh token every time
    - The provider's response omits the `refresh_token` field
-   - **Example**: Schwab (in most cases)
+   - **Example:** Schwab (in most cases)
 
 2. **With Rotation (One-Time Refresh Token)** - More Secure
    - Each refresh operation returns a NEW refresh token
    - The old refresh token becomes invalid immediately
    - The provider's response includes a NEW `refresh_token` field
-   - **Example**: Some banking APIs, Plaid (optional)
+   - **Example:** Some banking APIs, Plaid (optional)
 
 ### Visual Example
 
-```
+```text
 NO ROTATION:
 ┌──────────────────────────────────────────────┐
 │ Initial Authentication                       │
@@ -86,15 +86,15 @@ WITH ROTATION:
 
 ### Security Benefits
 
-1. **Limits Token Lifetime**: Even if a refresh token is stolen, it only works once
-2. **Detects Theft**: If someone else uses the token, your next request fails
-3. **Reduces Attack Window**: Stolen tokens have minimal value
-4. **Prevents Replay Attacks**: Old tokens can't be reused
+1. **Limits Token Lifetime:** Even if a refresh token is stolen, it only works once
+2. **Detects Theft:** If someone else uses the token, your next request fails
+3. **Reduces Attack Window:** Stolen tokens have minimal value
+4. **Prevents Replay Attacks:** Old tokens can't be reused
 
 ### Business Impact
 
-- **No rotation**: Simpler implementation, but less secure
-- **With rotation**: More secure, but requires careful handling to avoid breaking user sessions
+- **No rotation:** Simpler implementation, but less secure
+- **With rotation:** More secure, but requires careful handling to avoid breaking user sessions
 
 ---
 
@@ -104,39 +104,39 @@ Dashtam uses a **universal rotation detection system** that works for ALL provid
 
 ### Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │  PROVIDER IMPLEMENTATION                            │
 │  (Provider-specific HTTP call)                      │
 │                                                     │
-│  async def refresh_authentication(refresh_token):  │
-│    response = await http.post(...)                 │
-│    tokens = response.json()                        │
+│  async def refresh_authentication(refresh_token):   │
+│    response = await http.post(...)                  │
+│    tokens = response.json()                         │
 │                                                     │
 │    result = {"access_token": tokens["access_token"]}│
 │                                                     │
-│    # KEY: Only include if provider sent it         │
-│    if "refresh_token" in tokens:                   │
-│        result["refresh_token"] = tokens["refresh"] │
+│    # KEY: Only include if provider sent it          │
+│    if "refresh_token" in tokens:                    │
+│        result["refresh_token"] = tokens["refresh"]  │
 │                                                     │
-│    return result                                   │
+│    return result                                    │
 └─────────────────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────────────────┐
 │  TOKEN SERVICE (Universal Logic)                    │
 │  (Automatic rotation detection)                     │
 │                                                     │
-│  if new_tokens.get("refresh_token"):               │
-│    if new_tokens["refresh_token"] != old_token:    │
-│      # ROTATION DETECTED                           │
-│      encrypted_new = encrypt(new_refresh_token)    │
-│      log("Token rotated")                          │
-│    else:                                           │
-│      # SAME TOKEN (edge case)                      │
-│      log("Same token returned")                    │
-│  else:                                             │
-│    # NO ROTATION                                   │
-│    log("No rotation, keeping existing token")      │
+│  if new_tokens.get("refresh_token"):                │
+│    if new_tokens["refresh_token"] != old_token:     │
+│      # ROTATION DETECTED                            │
+│      encrypted_new = encrypt(new_refresh_token)     │
+│      log("Token rotated")                           │
+│    else:                                            │
+│      # SAME TOKEN (edge case)                       │
+│      log("Same token returned")                     │
+│  else:                                              │
+│    # NO ROTATION                                    │
+│    log("No rotation, keeping existing token")       │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -212,6 +212,7 @@ return {
 ```
 
 **Why is this wrong?**
+
 - Makes it look like provider always returns same token
 - TokenService can't detect rotation
 - Breaks security if provider actually rotates
@@ -309,6 +310,7 @@ if "refresh_token" in tokens:
 ### Pitfall 2: Not Testing All Scenarios
 
 Make sure to test:
+
 - ✅ Rotation happens
 - ✅ No rotation (key omitted)
 - ✅ Same token returned (edge case)
@@ -316,6 +318,7 @@ Make sure to test:
 ### Pitfall 3: Assuming Provider Behavior
 
 Never assume:
+
 - "Provider X always rotates" → Test both scenarios
 - "Provider Y never rotates" → API may change
 - "All banking providers rotate" → Each is different
@@ -337,12 +340,13 @@ logger.debug("Provider sent new refresh token")
 
 ### Charles Schwab
 
-**Observed Behavior**: No rotation (in most cases)
+**Observed Behavior:** No rotation (in most cases)
+
 - Refresh response omits `refresh_token` field
 - Same refresh token used indefinitely
 - Rotation handled correctly by Dashtam's implementation
 
-**Implementation**: `src/providers/schwab.py`
+**Implementation:** `src/providers/schwab.py`
 
 ```python
 # Only includes refresh_token if Schwab sends it
@@ -404,7 +408,7 @@ for log in result.scalars():
 
 Look for these log messages:
 
-```
+```log
 # Rotation detected
 INFO: Token rotation detected for Schwab: Provider sent new refresh token
 
@@ -460,9 +464,10 @@ When implementing token rotation for a new provider:
 
 ---
 
-**Questions or Issues?** 
+**Questions or Issues?**
 
 If you encounter unexpected rotation behavior:
+
 1. Check audit logs for rotation_type
 2. Review provider's API documentation
 3. Test with provider's sandbox/test environment

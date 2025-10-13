@@ -2,7 +2,7 @@
 
 ## Development Environment Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        DEVELOPMENT WORKFLOW                         │
 └─────────────────────────────────────────────────────────────────────┘
@@ -65,7 +65,7 @@
 
 ## Test Environment Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        TESTING WORKFLOW                             │
 └─────────────────────────────────────────────────────────────────────┘
@@ -221,7 +221,7 @@
 
 ## Database State Comparison
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │            POSTGRESQL CONTAINER STATE                               │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -266,7 +266,7 @@
 
 ## Environment Switching Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │              SWITCHING BETWEEN ENVIRONMENTS                         │
 └─────────────────────────────────────────────────────────────────────┘
@@ -329,7 +329,7 @@ Scenario 2: What NOT to Do
 
 ## Configuration Loading Hierarchy
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                 DEVELOPMENT CONFIGURATION                           │
 └─────────────────────────────────────────────────────────────────────┘
@@ -449,7 +449,7 @@ Scenario 2: What NOT to Do
 2. **Dev data is NEVER lost** when running tests (different database)
 3. **Test data is ALWAYS fresh** (dropped and recreated each time)
 4. **You cannot run dev and test simultaneously** (container name conflicts)
-5. **Switching is easy**: `make test-clean` → `make up`
+5. **Switching is easy:** `make test-clean` → `make up`
 
 ### ⚠️  Critical Safety Features
 

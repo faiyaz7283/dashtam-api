@@ -3,9 +3,11 @@
 Request a password reset, verify a token, and confirm the new password using the HTTPS-enabled development environment.
 
 ## Purpose
+
 Allow a user to reset their password securely.
 
 ## Prerequisites
+
 - Dev environment running with TLS
 - A registered and verified user (see [Registration](registration.md) flow)
 
@@ -34,6 +36,7 @@ curl -sk -X POST "$BASE_URL/api/v1/password-resets" \
 ```
 
 **Expected Response (HTTP 202 Accepted):**
+
 ```json
 {
   "message": "If an account exists with that email, a password reset link has been sent."
@@ -42,7 +45,8 @@ curl -sk -X POST "$BASE_URL/api/v1/password-resets" \
 
 **Note**: Always returns 202 (even if email doesn't exist) to prevent email enumeration attacks.
 
-**Optional: Inline (no heredoc)**
+**Optional: Inline (no heredoc):**
+
 ```bash
 curl -sk -X POST "$BASE_URL/api/v1/password-resets" \
   -H 'Content-Type: application/json' \
@@ -59,7 +63,8 @@ docker logs dashtam-dev-app --tail 100 2>&1 | grep -A 20 '📧 EMAIL'
 ```
 
 **Example log output:**
-```
+
+```log
 📧 EMAIL (Development Mode - Not Sent)
 ================================================================================
 From: Dashtam <noreply@dashtam.com>
@@ -79,6 +84,7 @@ This link will expire in 1 hour.
 ```
 
 **Extract and set the token:**
+
 ```bash
 # Copy the token from the URL in the logs
 export RESET_TOKEN="xK9mP2vNqL8jH5tR7wY3zD6fB4cS1aE0"
@@ -96,6 +102,7 @@ curl -sk "$BASE_URL/api/v1/password-resets/$RESET_TOKEN" | python3 -m json.tool
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "valid": true,
@@ -105,6 +112,7 @@ curl -sk "$BASE_URL/api/v1/password-resets/$RESET_TOKEN" | python3 -m json.tool
 ```
 
 **If token is invalid/expired (HTTP 200 OK):**
+
 ```json
 {
   "valid": false
@@ -126,13 +134,15 @@ curl -sk -X PATCH "$BASE_URL/api/v1/password-resets/$RESET_TOKEN" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "message": "Password reset successfully. You can now log in with your new password."
 }
 ```
 
-**Optional: Inline (no heredoc)**
+**Optional: Inline (no heredoc):**
+
 ```bash
 curl -sk -X PATCH "$BASE_URL/api/v1/password-resets/$RESET_TOKEN" \
   -H 'Content-Type: application/json' \
@@ -149,6 +159,7 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/login" \
 ```
 
 **Expected Response (HTTP 200 OK):**
+
 ```json
 {
   "access_token": "eyJhbGci...",
@@ -166,6 +177,7 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/login" \
 **Important**: When you complete a password reset, **all active sessions are automatically logged out** for security.
 
 **What happens:**
+
 - ✅ All refresh tokens are revoked immediately
 - ⚠️ Existing access tokens remain valid for ~30 minutes (then expire)
 - ✅ Cannot get new access tokens (refresh is blocked)

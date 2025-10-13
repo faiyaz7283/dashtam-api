@@ -1,8 +1,9 @@
 # Docker & Build Infrastructure Refactoring Plan
-**Date**: 2025-10-05  
-**Status**: Ready for Implementation  
-**Priority**: High  
-**Estimated Time**: 4-6 hours
+
+**Date:** 2025-10-05  
+**Status:** Ready for Implementation  
+**Priority:** High  
+**Estimated Time:** 4-6 hours
 
 ---
 
@@ -15,7 +16,8 @@ This document provides the complete implementation plan for refactoring the Dock
 ## Current State vs. Target State
 
 ### Current State ❌
-```
+
+```bash
 Dashtam/
 ├── docker/Dockerfile              # Creates pyproject.toml dynamically, runs as root
 ├── docker-compose.yml             # Unused, has wrong .env mounting
@@ -29,6 +31,7 @@ Dashtam/
 ```
 
 **Problems:**
+
 - 🔴 No non-root user in dev/test
 - 🔴 Base docker-compose.yml unused and incorrect
 - 🔴 Environment variables hardcoded in compose files
@@ -36,7 +39,8 @@ Dashtam/
 - 🟡 requirements.txt still primary source
 
 ### Target State ✅
-```
+
+```bash
 Dashtam/
 ├── docker/
 │   ├── Dockerfile                # ✅ Reusable, non-root user, uses pyproject.toml
@@ -60,6 +64,7 @@ Dashtam/
 ```
 
 **Benefits:**
+
 - ✅ Non-root user in all environments
 - ✅ Single source of truth for dependencies
 - ✅ Environment variables in dedicated files
@@ -70,7 +75,7 @@ Dashtam/
 
 ## Phase 1: Backup & Preparation ✅ COMPLETED
 
-**Status**: ✅ Done (files extracted and backed up)
+**Status:** ✅ Done (files extracted and backed up)
 
 ```bash
 ✅ pyproject.toml extracted from running container
@@ -134,6 +139,7 @@ The Makefile needs to be updated to reference new paths.
 ### New Dockerfile Structure
 
 **Key Changes:**
+
 1. ✅ Add non-root user to ALL stages
 2. ✅ Use pyproject.toml + uv.lock (no requirements.txt)
 3. ✅ Remove dynamic pyproject.toml creation
@@ -280,7 +286,8 @@ CMD ["python", "-u", "callback_server.py"]
 
 ### Key Features
 
-**1. First-Time Setup Support**
+**1. First-Time Setup Support:**
+
 ```dockerfile
 RUN if [ ! -f "pyproject.toml" ]; then \
         uv init --app --name dashtam --python 3.13 --no-readme --no-pin-python; \
@@ -288,22 +295,27 @@ RUN if [ ! -f "pyproject.toml" ]; then \
         uv sync --frozen; \
     fi
 ```
+
 - If no pyproject.toml: Initialize fresh project
 - If pyproject.toml exists: Use it and sync from lockfile
 
-**2. Non-Root User Everywhere**
+**2. Non-Root User Everywhere:**
+
 ```dockerfile
 USER appuser
 COPY --chown=appuser:appuser . .
 ```
+
 - All stages run as appuser (UID 1000)
 - Files owned by appuser:appuser
 - No permission issues on host
 
-**3. Lockfile-Based Builds**
+**3. Lockfile-Based Builds:**
+
 ```dockerfile
 uv sync --frozen  # Uses lockfile, no dependency resolution
 ```
+
 - Fast builds (no resolution)
 - Reproducible (exact versions)
 - Cached layers
@@ -410,6 +422,7 @@ volumes:
 ```
 
 **Key Changes:**
+
 - ✅ Uses `env_file: ../env/.env.dev` (no hardcoded vars)
 - ✅ Mounts pyproject.toml and uv.lock as read-only
 - ✅ alembic.ini as read-only (config shouldn't change)
@@ -424,17 +437,17 @@ Update all Makefile commands to use new paths:
 ```makefile
 # Development Environment
 dev-up:
-	@echo "🚀 Starting DEVELOPMENT environment..."
-	@docker compose -f compose/docker-compose.dev.yml --env-file env/.env.dev up -d
-	@echo "✅ Development services started!"
+    @echo "🚀 Starting DEVELOPMENT environment..."
+    @docker compose -f compose/docker-compose.dev.yml --env-file env/.env.dev up -d
+    @echo "✅ Development services started!"
 
 dev-down:
-	@echo "🛑 Stopping DEVELOPMENT environment..."
-	@docker compose -f compose/docker-compose.dev.yml down
+    @echo "🛑 Stopping DEVELOPMENT environment..."
+    @docker compose -f compose/docker-compose.dev.yml down
 
 dev-build:
-	@echo "🏗️  Building DEVELOPMENT images..."
-	@docker compose -f compose/docker-compose.dev.yml --env-file env/.env.dev build
+    @echo "🏗️  Building DEVELOPMENT images..."
+    @docker compose -f compose/docker-compose.dev.yml --env-file env/.env.dev build
 
 # ... similar for test, ci environments ...
 ```
@@ -446,35 +459,38 @@ dev-build:
 ### env/README.md
 
 ```markdown
-# Environment Configuration
 
-This directory contains environment-specific configuration files.
 
-## Files
+    # Environment Configuration
 
-- `.env.dev` - Development environment (gitignored)
-- `.env.test` - Test environment (gitignored)
-- `.env.ci` - CI environment (committed, no secrets)
-- `.env.prod.example` - Production template
+    This directory contains environment-specific configuration files.
 
-## Usage
+    ## Files
 
-Copy the example file:
-\`\`\`bash
-cp env/.env.prod.example env/.env.prod
-\`\`\`
+    - `.env.dev` - Development environment (gitignored)
+    - `.env.test` - Test environment (gitignored)
+    - `.env.ci` - CI environment (committed, no secrets)
+    - `.env.prod.example` - Production template
 
-Edit with your values (NEVER commit .env.prod).
+    ## Usage
 
-## Environment Priority
+    Copy the example file:
+    ```bash
+    cp env/.env.prod.example env/.env.prod
+    ```
 
-1. Environment variables (highest)
-2. env_file in docker-compose
-3. Default values in code
+    Edit with your values (NEVER commit .env.prod).
 
-## Required Variables
+    ## Environment Priority
 
-See `.env.prod.example` for all required variables.
+    1. Environment variables (highest)
+    2. env_file in docker-compose
+    3. Default values in code
+
+    ## Required Variables
+
+    See `.env.prod.example` for all required variables.
+
 ```
 
 ---
@@ -483,7 +499,7 @@ See `.env.prod.example` for all required variables.
 
 Create `docker/.dockerignore`:
 
-```
+```bash
 # Git
 .git/
 .gitignore
@@ -547,6 +563,7 @@ Dockerfile
 ## Testing Strategy
 
 ### Step 1: Test Dev Environment
+
 ```bash
 # Build
 make dev-build
@@ -572,6 +589,7 @@ make test
 ```
 
 ### Step 2: Test Test Environment
+
 ```bash
 make test-build
 make test-up
@@ -579,6 +597,7 @@ make test
 ```
 
 ### Step 3: Test CI Environment
+
 ```bash
 make ci-build
 make ci-test
@@ -607,6 +626,7 @@ make dev-rebuild
 ## Migration Checklist
 
 ### Pre-Migration
+
 - [x] Extract pyproject.toml from container
 - [x] Extract uv.lock from container
 - [x] Create backups
@@ -615,6 +635,7 @@ make dev-rebuild
 - [ ] Document any custom configurations
 
 ### Migration
+
 - [ ] Create directory structure (compose/, env/, docker/)
 - [ ] Move compose files to compose/
 - [ ] Move env files to env/
@@ -625,6 +646,7 @@ make dev-rebuild
 - [ ] Create env/README.md
 
 ### Testing
+
 - [ ] Test dev build (no cache)
 - [ ] Verify non-root user in dev
 - [ ] Test file permissions
@@ -633,12 +655,14 @@ make dev-rebuild
 - [ ] Verify env vars loaded correctly
 
 ### Documentation
+
 - [ ] Update main README.md
 - [ ] Update infrastructure docs
 - [ ] Update WARP.md if needed
 - [ ] Add migration notes
 
 ### Cleanup
+
 - [ ] Remove old docker-compose.yml
 - [ ] Remove requirements.txt (or mark as legacy)
 - [ ] Remove requirements-dev.txt (or mark as legacy)
@@ -649,21 +673,25 @@ make dev-rebuild
 ## Benefits Summary
 
 ### Security
+
 - ✅ Non-root user in all environments
 - ✅ Proper file permissions
 - ✅ Locked dependencies (auditable)
 
 ### Development Experience
+
 - ✅ No sudo needed for file edits
 - ✅ Files owned by developer user
 - ✅ IDE file watchers work correctly
 
 ### Build Performance
+
 - ✅ Faster builds (lockfile, no resolution)
 - ✅ Better layer caching
 - ✅ Reproducible builds
 
 ### Maintainability
+
 - ✅ Clean root directory
 - ✅ Organized structure
 - ✅ Single source of truth (pyproject.toml)
@@ -671,21 +699,5 @@ make dev-rebuild
 
 ---
 
-## Timeline
-
-**Estimated Time: 4-6 hours**
-
-- Phase 2 (Directory setup): 30 min
-- Phase 3 (Dockerfile): 1 hour
-- Phase 4 (Compose files): 1 hour
-- Phase 5 (Makefile): 30 min
-- Phase 6 (Env files): 30 min
-- Phase 7 (.dockerignore): 15 min
-- Testing: 1-2 hours
-- Documentation: 30 min
-- Buffer: 30 min
-
----
-
-**Ready for Implementation**: ✅ Yes  
-**Next Step**: Create directory structure and start Phase 2
+**Ready for Implementation:** ✅ Yes  
+**Next Step:** Create directory structure and start Phase 2

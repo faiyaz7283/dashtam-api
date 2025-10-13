@@ -1,8 +1,8 @@
 # JWT Authentication Architecture
 
-**Last Updated**: 2025-10-04  
-**Status**: ✅ Implemented (Pattern A - Industry Standard)  
-**Version**: 1.0
+**Last Updated:** 2025-10-04  
+**Status:** ✅ Implemented (Pattern A - Industry Standard)  
+**Version:** 1.0
 
 ---
 
@@ -42,9 +42,9 @@ Dashtam implements **Pattern A** JWT authentication, the industry-standard appro
 
 ### The Two-Token System
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
-│              PATTERN A (Industry Standard)                   │
+│              PATTERN A (Industry Standard)                  │
 └─────────────────────────────────────────────────────────────┘
 
 ACCESS TOKEN (JWT):
@@ -84,9 +84,10 @@ REFRESH TOKEN (Opaque):
 
 ### 1. Access Token (JWT)
 
-**Purpose**: Authenticate API requests
+**Purpose:** Authenticate API requests
 
-**Structure**:
+**Structure:**
+
 ```json
 {
   "sub": "123e4567-e89b-12d3-a456-426614174000",  // user_id
@@ -97,13 +98,15 @@ REFRESH TOKEN (Opaque):
 }
 ```
 
-**Usage**:
+**Usage:**
+
 ```bash
 # Every API request
 curl -H "Authorization: Bearer eyJhbGci..." https://api.dashtam.com/api/v1/providers
 ```
 
-**Lifecycle**:
+**Lifecycle:**
+
 1. Generated at login
 2. Used for all API requests (30 min)
 3. Expires automatically
@@ -111,15 +114,17 @@ curl -H "Authorization: Bearer eyJhbGci..." https://api.dashtam.com/api/v1/provi
 
 ### 2. Refresh Token (Opaque)
 
-**Purpose**: Obtain new access tokens without re-login
+**Purpose:** Obtain new access tokens without re-login
 
-**Structure**:
-```
+**Structure:**
+
+```text
 a8f4e2d9c1b7f6e3d2c8b4a1e9f7d6c5e4d3c2b1a9f8e7d6c5b4a3e2d1c0b9a8
 (64 character random URL-safe string)
 ```
 
 **Storage** (Database):
+
 ```python
 RefreshToken(
     id=UUID("..."),
@@ -133,14 +138,16 @@ RefreshToken(
 )
 ```
 
-**Usage**:
+**Usage:**
+
 ```bash
 # When access token expires
 curl -X POST https://api.dashtam.com/api/v1/auth/refresh \
   -d '{"refresh_token": "a8f4e2d9c1b7..."}'
 ```
 
-**Lifecycle**:
+**Lifecycle:**
+
 1. Generated at login (hashed in DB)
 2. Stored securely by client
 3. Used to get new access token (once per 30 min)
@@ -148,11 +155,12 @@ curl -X POST https://api.dashtam.com/api/v1/auth/refresh \
 
 ### 3. Email Verification Token (Opaque)
 
-**Purpose**: Verify user email address
+**Purpose:** Verify user email address
 
-**Structure**: Similar to refresh token (random string)
+**Structure:** Similar to refresh token (random string)
 
-**Lifecycle**:
+**Lifecycle:**
+
 - Generated at registration
 - Sent via email (plain text)
 - Stored as hash in DB
@@ -161,11 +169,12 @@ curl -X POST https://api.dashtam.com/api/v1/auth/refresh \
 
 ### 4. Password Reset Token (Opaque)
 
-**Purpose**: Reset forgotten password
+**Purpose:** Reset forgotten password
 
-**Structure**: Similar to refresh token (random string)
+**Structure:** Similar to refresh token (random string)
 
-**Lifecycle**:
+**Lifecycle:**
+
 - Generated on password reset request
 - Sent via email (plain text)
 - Stored as hash in DB
@@ -194,14 +203,14 @@ return plain_token  # Client needs plain token
 
 ### Why Hash Tokens?
 
-**Scenario**: Database compromise
+**Scenario:** Database compromise
 
 | Token Type | Stored As | If DB Leaked |
 |-----------|-----------|--------------|
 | Plain text | `a8f4e2d9...` | ❌ Attacker can login as anyone |
 | Hashed | `$2b$12$...` | ✅ Attacker can't use tokens |
 
-**Cost**: ~300ms bcrypt verification (acceptable for refresh flow)
+**Cost:** ~300ms bcrypt verification (acceptable for refresh flow)
 
 ### Validation Flow
 
@@ -238,139 +247,139 @@ raise AuthenticationError("Invalid token")
 
 ### Flow 1: Registration & Email Verification
 
-```
+```text
 ┌────────┐                                           ┌────────┐
 │ Client │                                           │ Server │
 └────────┘                                           └────────┘
-    │                                                      │
+    │                                                     │
     │  POST /auth/register                                │
     │  {email, password, name}                            │
     ├────────────────────────────────────────────────────>│
-    │                                                      │
+    │                                                     │
     │                                              1. Hash password
     │                                              2. Create user (inactive)
     │                                              3. Generate verification token
     │                                              4. Hash & store token
     │                                              5. Send email with plain token
-    │                                                      │
+    │                                                     │
     │  {message: "Check email"}                           │
     │<────────────────────────────────────────────────────┤
-    │                                                      │
-    │                                                      │
+    │                                                     │
+    │                                                     │
     │  (User clicks link in email)                        │
     │  GET /auth/verify-email?token=abc123...             │
     ├────────────────────────────────────────────────────>│
-    │                                                      │
+    │                                                     │
     │                                              1. Hash incoming token
     │                                              2. Find matching hash in DB
     │                                              3. Mark user as verified
     │                                              4. Mark token as used
-    │                                                      │
+    │                                                     │
     │  {message: "Email verified"}                        │
     │<────────────────────────────────────────────────────┤
 ```
 
 ### Flow 2: Login
 
-```
+```text
 ┌────────┐                                           ┌────────┐
 │ Client │                                           │ Server │
 └────────┘                                           └────────┘
-    │                                                      │
+    │                                                     │
     │  POST /auth/login                                   │
     │  {email, password}                                  │
     ├────────────────────────────────────────────────────>│
-    │                                                      │
+    │                                                     │
     │                                              1. Verify password
     │                                              2. Check email verified
     │                                              3. Check account active
     │                                              4. Generate JWT access token
     │                                              5. Generate opaque refresh token
     │                                              6. Hash & store refresh token
-    │                                                      │
-    │  {                                                   │
+    │                                                     │
+    │  {                                                  │
     │    access_token: "eyJhbGci...",  (JWT)              │
     │    refresh_token: "a8f4e2d9...", (Opaque)           │
     │    token_type: "bearer",                            │
     │    expires_in: 1800                                 │
-    │  }                                                   │
+    │  }                                                  │
     │<────────────────────────────────────────────────────┤
-    │                                                      │
+    │                                                     │
     │  Store tokens securely                              │
 ```
 
 ### Flow 3: Authenticated API Request
 
-```
+```text
 ┌────────┐                                           ┌────────┐
 │ Client │                                           │ Server │
 └────────┘                                           └────────┘
-    │                                                      │
+    │                                                     │
     │  GET /api/v1/providers                              │
     │  Authorization: Bearer eyJhbGci...                  │
     ├────────────────────────────────────────────────────>│
-    │                                                      │
+    │                                                     │
     │                                              1. Extract JWT from header
     │                                              2. Verify JWT signature
     │                                              3. Check expiration
     │                                              4. Extract user_id from JWT
     │                                              5. (No DB lookup needed!)
-    │                                                      │
+    │                                                     │
     │  {providers: [...]}                                 │
     │<────────────────────────────────────────────────────┤
 ```
 
 ### Flow 4: Token Refresh
 
-```
+```text
 ┌────────┐                                           ┌────────┐
 │ Client │                                           │ Server │
 └────────┘                                           └────────┘
-    │                                                      │
+    │                                                     │
     │  (Access token expired after 30 min)                │
-    │                                                      │
+    │                                                     │
     │  POST /auth/refresh                                 │
     │  {refresh_token: "a8f4e2d9..."}                     │
     ├────────────────────────────────────────────────────>│
-    │                                                      │
+    │                                                     │
     │                                              1. Hash incoming token
     │                                              2. Find matching hash in DB
     │                                              3. Verify not expired
     │                                              4. Verify not revoked
     │                                              5. Generate new JWT access token
-    │                                                      │
-    │  {                                                   │
+    │                                                     │
+    │  {                                                  │
     │    access_token: "eyJnEw...",  (NEW JWT)            │
     │    refresh_token: "a8f4e2d9...", (SAME)             │
     │    token_type: "bearer",                            │
     │    expires_in: 1800                                 │
-    │  }                                                   │
+    │  }                                                  │
     │<────────────────────────────────────────────────────┤
 ```
 
 ### Flow 5: Logout
 
-```
+```text
 ┌────────┐                                           ┌────────┐
 │ Client │                                           │ Server │
 └────────┘                                           └────────┘
-    │                                                      │
+    │                                                     │
     │  POST /auth/logout                                  │
     │  {refresh_token: "a8f4e2d9..."}                     │
     ├────────────────────────────────────────────────────>│
-    │                                                      │
+    │                                                     │
     │                                              1. Hash incoming token
     │                                              2. Find matching hash in DB
     │                                              3. Mark token as revoked
     │                                              4. Set revoked_at timestamp
-    │                                                      │
+    │                                                     │
     │  {message: "Logged out successfully"}               │
     │<────────────────────────────────────────────────────┤
-    │                                                      │
+    │                                                     │
     │  Delete tokens from client storage                  │
 ```
 
-**⚠️ Important: Logout Behavior & Token Revocation**
+**⚠️ Important: Logout Behavior & Token Revocation:**
 
 When a user logs out, **only the refresh token is revoked**. The JWT access token remains valid until its natural expiration (30 minutes). This is by design and consistent with industry-standard JWT implementations.
 
@@ -383,15 +392,15 @@ When a user logs out, **only the refresh token is revoked**. The JWT access toke
 
 **Why Access Tokens Can't Be Immediately Revoked:**
 
-1. **Stateless by Design**: JWTs are validated by signature only, no database lookup
-2. **Performance**: Checking a revocation list defeats JWT's scalability benefit
-3. **Industry Standard**: Auth0, GitHub, Google, AWS Cognito all work this way
+1. **Stateless by Design:** JWTs are validated by signature only, no database lookup
+2. **Performance:** Checking a revocation list defeats JWT's scalability benefit
+3. **Industry Standard:** Auth0, GitHub, Google, AWS Cognito all work this way
 
 **Security Implications:**
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────┐
-│ After Logout: What Can/Cannot Be Done                       │
+│ After Logout: What Can/Cannot Be Done                        │
 └──────────────────────────────────────────────────────────────┘
 
 ✅ CAN (with old access token, for ~30 min):
@@ -407,10 +416,10 @@ When a user logs out, **only the refresh token is revoked**. The JWT access toke
 
 **Why This Is Acceptable:**
 
-1. **Short Window**: 30 minutes is industry-standard (configurable)
-2. **No Session Extension**: Can't get new tokens without refresh token
-3. **Long-term Protection**: Refresh token (30 days) is properly revoked
-4. **Performance vs Security**: Acceptable trade-off for stateless scalability
+1. **Short Window:** 30 minutes is industry-standard (configurable)
+2. **No Session Extension:** Can't get new tokens without refresh token
+3. **Long-term Protection:** Refresh token (30 days) is properly revoked
+4. **Performance vs Security:** Acceptable trade-off for stateless scalability
 
 **Testing Logout:**
 
@@ -453,7 +462,7 @@ For use cases requiring immediate JWT revocation (rare):
 # - Hybrid approach: stateless + selective checks
 ```
 
-**Current Implementation: Pattern A (Recommended)**
+**Current Implementation: Pattern A (Recommended):**
 
 ✅ Refresh tokens: Immediately revocable (opaque, database-backed)  
 ⚠️ Access tokens: Valid until expiration (JWT, stateless)  
@@ -461,7 +470,7 @@ For use cases requiring immediate JWT revocation (rare):
 
 ### Flow 6: Password Reset with Session Revocation
 
-```
+```text
 ┌────────┐                                           ┌────────┐
 │ Client │                                           │ Server │
 └────────┘                                           └────────┘
@@ -498,13 +507,13 @@ For use cases requiring immediate JWT revocation (rare):
     │  User must login again with new password            │
 ```
 
-**🔒 Security Enhancement: Session Revocation on Password Reset**
+**🔒 Security Enhancement: Session Revocation on Password Reset:**
 
 When a user resets their password, **all active refresh tokens are immediately revoked**. This ensures that any potentially compromised sessions are terminated.
 
 **Why This Is Critical:**
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────┐
 │ Scenario: Password Reset After Compromise                    │
 └──────────────────────────────────────────────────────────────┘
@@ -591,6 +600,7 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" \
 **User Experience:**
 
 After password reset:
+
 - ✅ All devices logged out (refresh tokens revoked)
 - ⚠️ Current sessions may work for ~30 min (access tokens valid until expiry)
 - ✅ Cannot extend sessions (refresh blocked)
@@ -604,7 +614,7 @@ After password reset:
 | Revoke nothing | ❌ Low | ✅ No disruption |
 | Revoke access + refresh | ✅✅ Highest | ❌❌ Complex JWT blocklist |
 
-**Industry Standard**: Password reset → revoke all refresh tokens (Google, GitHub, Auth0)
+**Industry Standard:** Password reset → revoke all refresh tokens (Google, GitHub, Auth0)
 
 ---
 
@@ -737,6 +747,7 @@ CREATE INDEX idx_password_reset_tokens_expires_at ON password_reset_tokens(expir
 ### Example Requests
 
 #### Register
+
 ```bash
 POST /api/v1/auth/register
 Content-Type: application/json
@@ -754,6 +765,7 @@ Content-Type: application/json
 ```
 
 #### Login
+
 ```bash
 POST /api/v1/auth/login
 Content-Type: application/json
@@ -782,6 +794,7 @@ Content-Type: application/json
 ```
 
 #### Protected Endpoint
+
 ```bash
 GET /api/v1/providers
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -793,6 +806,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 #### Refresh Token
+
 ```bash
 POST /api/v1/auth/refresh
 Content-Type: application/json
@@ -816,7 +830,7 @@ Content-Type: application/json
 
 ### Services Architecture
 
-```
+```bash
 src/services/
 ├── auth_service.py       # Orchestrates auth flows
 ├── password_service.py   # Password hashing & validation
@@ -826,7 +840,7 @@ src/services/
 
 ### AuthService
 
-**Responsibility**: Orchestrate all authentication workflows
+**Responsibility:** Orchestrate all authentication workflows
 
 ```python
 class AuthService:
@@ -850,7 +864,7 @@ class AuthService:
 
 ### PasswordService
 
-**Responsibility**: Password hashing and validation (sync)
+**Responsibility:** Password hashing and validation (sync)
 
 ```python
 class PasswordService:
@@ -864,7 +878,7 @@ class PasswordService:
 
 ### JWTService
 
-**Responsibility**: JWT generation and validation (sync)
+**Responsibility:** JWT generation and validation (sync)
 
 ```python
 class JWTService:
@@ -883,9 +897,10 @@ class JWTService:
 
 ### Token Revocation & Logout Behavior
 
-**⚠️ IMPORTANT**: When users logout, only the **refresh token** is immediately revoked. The **JWT access token remains valid** until its natural expiration (30 minutes). This is by design for stateless JWT implementations.
+**⚠️ IMPORTANT:** When users logout, only the **refresh token** is immediately revoked. The **JWT access token remains valid** until its natural expiration (30 minutes). This is by design for stateless JWT implementations.
 
 **Key Points:**
+
 - ✅ Refresh token: Immediately revoked (can't get new access tokens)
 - ⚠️ Access token: Valid until expiry (can still access API for ~30 min)
 - 📚 **See [Flow 5: Logout](#flow-5-logout)** for detailed explanation and testing examples
@@ -901,7 +916,8 @@ This is the industry-standard trade-off between performance and immediate revoca
 | **localStorage** | ❌ XSS vulnerability | ❌ XSS vulnerability |
 | **sessionStorage** | ⚠️ Acceptable | ❌ Lost on tab close |
 
-**Recommendation**:
+**Recommendation:**
+
 - Access Token: React state/memory
 - Refresh Token: httpOnly cookie (auto-sent)
 
@@ -950,18 +966,18 @@ REFRESH_TOKEN_USAGE = 10 per hour per token
 
 ### Test Pyramid
 
-```
+```text
               /\
              /  \      E2E (10%)
             /____\     - Full auth flows
            /      \    
           /  API   \   Integration (20%)
          /  Tests   \  - Endpoint testing
-        /___________\ 
-       /             \
-      /     Unit      \ Unit Tests (70%)
-     /     Tests       \ - Service methods
-    /___________________\ - Token validation
+        /____________\ 
+       /              \
+      /     Unit       \ Unit Tests (70%)
+     /     Tests        \ - Service methods
+    /____________________\ - Token validation
 ```
 
 ### Test Coverage Requirements
@@ -977,18 +993,21 @@ REFRESH_TOKEN_USAGE = 10 per hour per token
 ### Key Test Scenarios
 
 ✅ **Registration**
+
 - Valid registration
 - Duplicate email
 - Weak password
 - Email sending failure
 
 ✅ **Email Verification**
+
 - Valid token
 - Expired token
 - Already used token
 - Invalid token
 
 ✅ **Login**
+
 - Valid credentials
 - Invalid password
 - Unverified email
@@ -996,17 +1015,20 @@ REFRESH_TOKEN_USAGE = 10 per hour per token
 - Locked account
 
 ✅ **Token Refresh**
+
 - Valid refresh token
 - Expired refresh token
 - Revoked refresh token
 - Invalid refresh token
 
 ✅ **Logout**
+
 - Valid logout
 - Already revoked token
 - Invalid token
 
 ✅ **Password Reset**
+
 - Request reset
 - Valid reset token
 - Expired reset token
@@ -1018,30 +1040,34 @@ REFRESH_TOKEN_USAGE = 10 per hour per token
 
 ### Pattern A: JWT Access + Opaque Refresh (✅ Our Choice)
 
-**Pros**:
+**Pros:**
+
 - ✅ Simpler to implement correctly
 - ✅ Industry standard (95% adoption)
 - ✅ Easier token validation (hash lookup)
 - ✅ No JWT complexity for refresh
 - ✅ Consistent with other opaque tokens
 
-**Cons**:
+**Cons:**
+
 - ⚠️ Database lookup on refresh (acceptable - infrequent)
 
 ### Pattern B: JWT Access + JWT Refresh (❌ Rejected)
 
-**Pros**:
+**Pros:**
+
 - ✅ No database lookup if not validating hash
 - ✅ Can include claims in refresh token
 
-**Cons**:
+**Cons:**
+
 - ❌ More complex to implement securely
 - ❌ Must validate JWT hash against DB (negates benefit)
 - ❌ Easy to implement insecurely (security hole)
 - ❌ Mixing stateless/stateful incorrectly
 - ❌ JTI is redundant with DB record ID
 
-**Why We Changed**: The original implementation had Pattern B but **forgot to validate the hash**, creating a security vulnerability. Pattern A is simpler and industry-standard.
+**Why We Changed:** The original implementation had Pattern B but **forgot to validate the hash**, creating a security vulnerability. Pattern A is simpler and industry-standard.
 
 ---
 
@@ -1070,6 +1096,6 @@ REFRESH_TOKEN_USAGE = 10 per hour per token
 
 ---
 
-**Document Version**: 1.0  
-**Last Reviewed**: 2025-10-04  
-**Status**: ✅ Production Ready
+**Document Version:** 1.0  
+**Last Reviewed:** 2025-10-04  
+**Status:** ✅ Production Ready

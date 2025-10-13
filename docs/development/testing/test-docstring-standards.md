@@ -1,6 +1,6 @@
 # Test Docstring Standards
 
-> **Note**: This document is now part of the comprehensive [Docstring Standards Guide](../guides/docstring-standards.md). 
+> **Note:** This document is now part of the comprehensive [Docstring Standards Guide](../guides/docstring-standards.md).
 > Please refer to that guide for complete Python documentation standards covering all code types.
 > This document is maintained for backward compatibility and focuses on test-specific patterns.
 
@@ -8,11 +8,11 @@ This document provides the standard for writing comprehensive Google-style docst
 
 ## Why Comprehensive Docstrings in Tests?
 
-1. **Code as Documentation**: Tests document expected behavior and usage patterns
-2. **Onboarding**: New developers understand test purpose without reading implementation
-3. **Maintenance**: Clear test intent makes refactoring safer
-4. **Debugging**: Well-documented tests make failure diagnosis faster
-5. **Compliance**: Follows project WARP.md rule for Google-style docstrings
+1. **Code as Documentation:** Tests document expected behavior and usage patterns
+2. **Onboarding:** New developers understand test purpose without reading implementation
+3. **Maintenance:** Clear test intent makes refactoring safer
+4. **Debugging:** Well-documented tests make failure diagnosis faster
+5. **Compliance:** Follows project WARP.md rule for Google-style docstrings
 
 ## Standard Format
 
@@ -36,7 +36,8 @@ Note:
 """
 ```
 
-**Required Elements**:
+**Required Elements:**
+
 - One-line summary
 - Blank line
 - Detailed description of what the module tests
@@ -60,7 +61,8 @@ class TestJWTService:
     """
 ```
 
-**Required Elements**:
+**Required Elements:**
+
 - One-line summary of test suite purpose
 - Blank line  
 - Detailed description of coverage
@@ -85,7 +87,8 @@ def test_create_access_token(self):
     """
 ```
 
-**Required Elements**:
+**Required Elements:**
+
 - One-line summary (verb + what is tested)
 - Blank line
 - "Verifies that:" or "Validates that:" section with specific checks
@@ -116,7 +119,8 @@ def test_login_success(self, client: TestClient, verified_user: User):
     """
 ```
 
-**Required Elements**:
+**Required Elements:**
+
 - Standard docstring sections (summary + verifies)
 - Args section documenting ALL fixtures
 - Each arg includes fixture name, type, and brief description
@@ -162,7 +166,8 @@ async def test_token_rotation_with_new_refresh_token(
     """
 ```
 
-**Required Elements**:
+**Required Elements:**
+
 - Comprehensive summary
 - Scenario section explaining test context
 - Setup section describing test data preparation
@@ -201,7 +206,8 @@ def verified_user(db_session: Session, test_user: User) -> User:
     return test_user
 ```
 
-**Required Elements**:
+**Required Elements:**
+
 - Summary of fixture purpose
 - Description of what fixture provides
 - Args section for any dependencies
@@ -393,19 +399,19 @@ Example:
 
 When updating test docstrings:
 
-1. **During Development**: Write docstring WHILE writing test
-2. **Code Review**: Check docstring completeness
-3. **Linting**: Run `make lint` to catch issues
-4. **Formatting**: Run `make format` to auto-format
-5. **Before Commit**: Verify all tests have proper docstrings
+1. **During Development:** Write docstring WHILE writing test
+2. **Code Review:** Check docstring completeness
+3. **Linting:** Run `make lint` to catch issues
+4. **Formatting:** Run `make format` to auto-format
+5. **Before Commit:** Verify all tests have proper docstrings
 
 ## Resources
 
-- **WARP.md**: Project rules requiring Google-style docstrings
-- **Google Style Guide**: https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings
-- **PEP 257**: Docstring conventions (https://peps.python.org/pep-0257/)
-- **Example**: See `tests/conftest.py` for excellent docstring examples
+- **WARP.md:** Project rules requiring Google-style docstrings
+- **Google Style Guide:** https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings
+- **PEP 257:** Docstring conventions (https://peps.python.org/pep-0257/)
+- **Example:** See `tests/conftest.py` for excellent docstring examples
 
 ---
 
-**Remember**: Good test docstrings are documentation. They should be clear enough that someone can understand what's being tested without reading the test implementation.
+**Remember:** Good test docstrings are documentation. They should be clear enough that someone can understand what's being tested without reading the test implementation.

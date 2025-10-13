@@ -7,9 +7,10 @@ Welcome to the Dashtam documentation! This directory contains all documentation 
 ## 📚 Documentation Structure
 
 ### For Developers
-Documentation for working **on** the Dashtam project:
 
-- **[Development Guide](development/)** - Architecture, infrastructure, and testing
+Documentation for working on the Dashtam project:
+
+- [Development Guide](development/) - Architecture, infrastructure, and testing
   - [Architecture Overview](development/architecture/overview.md)
   - [Improvement Guide](development/architecture/improvement-guide.md) - Design improvements and roadmap
   - [Docker Setup](development/infrastructure/docker-setup.md)
@@ -19,27 +20,29 @@ Documentation for working **on** the Dashtam project:
   - [Documentation Implementation](development/guides/documentation-implementation-guide.md) - MkDocs setup guide
 
 ### Research & Decisions
+
 Historical research, architectural decisions, and migration notes:
 
-- **[Research Notes](research/)** - Technical research and decision records
+- [Research Notes](research/) - Technical research and decision records
   - [Async Testing Research](research/async-testing.md)
   - [Infrastructure Migration](research/infrastructure-migration.md)
   - [Test Coverage Plan](research/test-coverage-plan.md)
   - [Archived Documents](research/archived/)
 
 ### For Users
+
 Documentation for using and testing the Dashtam application:
 
-- **[Setup Guides](setup/)** - Installation and configuration (planned)
-- **[API Documentation](api/)** - API endpoints and usage (planned)
-- **[User Guides](guides/)** - Troubleshooting and tips (planned)
-- **[API Flows (Manual Testing)](../docs/api-flows/)** - HTTPS-first, user-centric flows for manual testing (dev TLS)
+- [Setup Guides](setup/) - Installation and configuration (planned)
+- [API Documentation](api/) - API endpoints and usage (planned)
+- [User Guides](guides/) - Troubleshooting and tips (planned)
+- [API Flows (Manual Testing)](../docs/api-flows/) - HTTPS-first, user-centric flows for manual testing (dev TLS)
 
 ---
 
 ## 🗂️ Directory Organization
 
-```
+```bash
 docs/
 ├── api-flows/          # Manual API flows (HTTPS-first, dev TLS)
 │   ├── auth/           # Registration, login, password reset
@@ -66,6 +69,7 @@ docs/
 For API flows, use kebab-case filenames and keep each flow focused on a single user journey (not a single HTTP verb). A reusable flow template is available at `docs/api-flows/flow-template.md`.
 
 ### File Naming
+
 - **Use kebab-case**: `my-document.md` (all lowercase with hyphens)
 - **Include type suffix when helpful**:
   - `-architecture.md` - Architecture documentation
@@ -77,6 +81,7 @@ For API flows, use kebab-case filenames and keep each flow focused on a single u
 - **Avoid special characters** except hyphens
 
 ### Examples
+
 - ✅ Good: `jwt-authentication-architecture.md`, `git-workflow-guide.md`
 - ✅ Good: `rest-api-audit-2025-10-05.md` (dated reviews)
 - ❌ Avoid: `JWT_Authentication.md`, `git_workflow.md`

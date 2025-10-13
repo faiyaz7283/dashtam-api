@@ -1,14 +1,17 @@
 # Complete Authentication Flow - End-to-End Smoke Test
 
 ## Purpose
+
 Run a full authentication lifecycle smoke test from registration through logout. Tests all major auth components in a single end-to-end flow for manual verification.
 
 **This is a smoke test** - it validates the entire auth system is operational by exercising all major endpoints in sequence.
 
 ## Prerequisites
+
 - Development environment running: `make dev-up`
 - Fresh database state (or unique test email)
 - Environment variables configured:
+
   ```bash
   export BASE_URL="https://localhost:8000"
   export TEST_EMAIL="smoke-test-$(date +%s)@example.com"  # Unique email
@@ -301,6 +304,7 @@ See: [JWT Authentication - Logout Behavior](../../development/architecture/jwt-a
 ## Smoke Test Summary
 
 **Endpoints Tested:**
+
 1. ✅ `POST /api/v1/auth/register` - User registration
 2. ✅ `POST /api/v1/auth/verify-email` - Email verification
 3. ✅ `POST /api/v1/auth/login` - User login
@@ -313,6 +317,7 @@ See: [JWT Authentication - Logout Behavior](../../development/architecture/jwt-a
 10. ✅ `POST /api/v1/auth/logout` - Logout and revoke refresh token
 
 **Features Verified:**
+
 - ✅ User registration with validation
 - ✅ Email verification with token extraction from logs
 - ✅ JWT authentication (access + refresh tokens)
@@ -326,17 +331,21 @@ See: [JWT Authentication - Logout Behavior](../../development/architecture/jwt-a
 ## Troubleshooting
 
 ### Registration fails with 409 Conflict
+
 **Cause:** Email already registered
 
 **Solution:** Use unique email with timestamp:
+
 ```bash
 export TEST_EMAIL="smoke-test-$(date +%s)@example.com"
 ```
 
 ### Cannot extract token from logs
+
 **Cause:** Email not logged or wrong container
 
 **Solution:**
+
 ```bash
 # Verify development mode
 docker exec dashtam-dev-app env | grep DEBUG
@@ -347,14 +356,17 @@ docker logs dashtam-dev-app --tail 200 2>&1 | grep -A 30 '📧'
 ```
 
 ### Login fails with 400 "Email not verified"
+
 **Cause:** Email verification step skipped or failed
 
 **Solution:** Complete email verification (Step 2) before login
 
 ### Refresh token still works after logout
+
 **Cause:** Looking at wrong token or caching issue
 
 **Solution:**
+
 ```bash
 # Use exact refresh token from Step 9 login
 echo "Using refresh token: ${REFRESH_TOKEN2:0:50}..."
@@ -369,9 +381,11 @@ curl -k -X POST "$BASE_URL/api/v1/auth/refresh" \
 ```
 
 ### Access token rejected after logout
+
 **Cause:** Misunderstanding JWT behavior - this is a bug if it happens
 
 **Solution:** Access tokens should remain valid after logout (up to expiration). If rejected immediately, check:
+
 ```bash
 # Verify token not expired
 echo "$ACCESS_TOKEN2" | cut -d'.' -f2 | base64 -d 2>/dev/null | grep exp
@@ -381,9 +395,11 @@ docker logs dashtam-dev-app --tail 50 | grep -i "auth"
 ```
 
 ### SSL certificate errors
+
 **Cause:** Self-signed certificates in development
 
 **Solution:** Always use `-k` flag with curl:
+
 ```bash
 curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 ```
@@ -391,6 +407,7 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 ## Cleanup (Optional)
 
 **To remove test user** (when admin endpoints available):
+
 ```bash
 # Future: DELETE /api/v1/admin/users/{id}
 ```
@@ -398,6 +415,7 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 **For now:** Test users remain in database. Use unique emails for each smoke test run.
 
 ## Related Flows
+
 - [Registration](registration.md) - Detailed registration flow
 - [Email Verification](email-verification.md) - Email verification details
 - [Login](login.md) - Login and token usage details
@@ -405,6 +423,7 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 - [JWT Authentication Architecture](../../development/architecture/jwt-authentication.md) - Complete auth design
 
 ## Notes
+
 - **Development Mode:** Emails logged to console (no AWS SES needed)
 - **Token Extraction:** All email tokens available in Docker logs
 - **Logout Behavior:** Only refresh tokens revoked immediately (JWT Pattern A)

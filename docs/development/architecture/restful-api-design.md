@@ -1,8 +1,8 @@
 # RESTful API Architecture
 
-**Last Updated**: 2025-10-04  
-**Status**: Active Standard  
-**Applies To**: All API endpoints in Dashtam
+**Last Updated:** 2025-10-04  
+**Status:** Active Standard  
+**Applies To:** All API endpoints in Dashtam
 
 ---
 
@@ -33,11 +33,11 @@ This document establishes the RESTful API design standards for the Dashtam appli
 
 ### Design Philosophy
 
-- **Resource-Oriented**: APIs are designed around resources (nouns) not actions (verbs)
-- **Stateless**: Each request contains all information needed to process it
-- **Cacheable**: Responses explicitly indicate cacheability
-- **Uniform Interface**: Consistent patterns across all endpoints
-- **Layered System**: Architecture supports intermediaries (proxies, gateways)
+- **Resource-Oriented:** APIs are designed around resources (nouns) not actions (verbs)
+- **Stateless:** Each request contains all information needed to process it
+- **Cacheable:** Responses explicitly indicate cacheability
+- **Uniform Interface:** Consistent patterns across all endpoints
+- **Layered System:** Architecture supports intermediaries (proxies, gateways)
 
 ---
 
@@ -47,9 +47,9 @@ This document establishes the RESTful API design standards for the Dashtam appli
 
 The API server and client are independent. The server exposes resources; clients consume them.
 
-```
+```text
 ┌─────────────┐         HTTP/JSON         ┌─────────────┐
-│   Client    │ ◄──────────────────────► │   Server    │
+│   Client    │ ◄──────────────────────►  │   Server    │
 │ (Frontend)  │                           │ (FastAPI)   │
 └─────────────┘                           └─────────────┘
 ```
@@ -58,13 +58,15 @@ The API server and client are independent. The server exposes resources; clients
 
 Each request is self-contained. Session state is stored client-side (e.g., JWT tokens).
 
-**✅ Good (Stateless)**:
+**✅ Good (Stateless):**
+
 ```http
 GET /api/v1/providers
 Authorization: Bearer eyJhbGci...
 ```
 
-**❌ Bad (Stateful)**:
+**❌ Bad (Stateful):**
+
 ```http
 GET /api/v1/providers
 Cookie: session_id=abc123
@@ -86,16 +88,17 @@ async def get_provider(provider_id: UUID):
 ### 4. Uniform Interface
 
 All endpoints follow consistent patterns:
-- **Resource identification**: URLs identify resources
-- **Resource manipulation**: Use standard HTTP methods
-- **Self-descriptive messages**: Responses include media type
-- **Hypermedia**: Links to related resources (optional)
+
+- **Resource identification:** URLs identify resources
+- **Resource manipulation:** Use standard HTTP methods
+- **Self-descriptive messages:** Responses include media type
+- **Hypermedia:** Links to related resources (optional)
 
 ### 5. Layered System
 
 Architecture supports intermediaries without client knowledge.
 
-```
+```text
 Client → Load Balancer → API Gateway → FastAPI Server → Database
 ```
 
@@ -107,16 +110,18 @@ Client → Load Balancer → API Gateway → FastAPI Server → Database
 
 **Resources are nouns, not verbs. Use plural names for collections.**
 
-✅ **Good**:
-```
+✅ **Good:**
+
+```bash
 /providers           # Collection
 /providers/{id}      # Individual resource
 /users               # Collection
 /users/{id}/tokens   # Sub-resource collection
 ```
 
-❌ **Bad**:
-```
+❌ **Bad:**
+
+```bash
 /getProviders        # Verb in URL
 /provider            # Singular for collection
 /user/{id}/getTokens # Verb in URL
@@ -126,10 +131,10 @@ Client → Load Balancer → API Gateway → FastAPI Server → Database
 
 Model relationships through URL structure:
 
-```
-/users                          # All users
-/users/{user_id}                # Specific user
-/users/{user_id}/providers      # User's providers
+```bash
+/users                                    # All users
+/users/{user_id}                          # Specific user
+/users/{user_id}/providers                # User's providers
 /users/{user_id}/providers/{provider_id}  # Specific provider
 ```
 
@@ -139,14 +144,14 @@ Model relationships through URL structure:
 
 Use **controller-style** endpoints as a last resort:
 
-```
+```bash
 POST /providers/{id}/refresh    # Refresh provider tokens
 POST /providers/{id}/sync       # Sync provider data
 POST /auth/login                # Login action
 POST /auth/logout               # Logout action
 ```
 
-**Note**: These are acceptable when the operation is truly an action, not a resource state change.
+**Note:** These are acceptable when the operation is truly an action, not a resource state change.
 
 ---
 
@@ -189,7 +194,8 @@ async def get_provider(
     return provider
 ```
 
-**Rules**:
+**Rules:**
+
 - Never modify data with GET
 - Support pagination for collections
 - Return 404 if resource not found
@@ -214,7 +220,8 @@ async def create_provider(
     )
 ```
 
-**Rules**:
+**Rules:**
+
 - Return 201 Created on success
 - Include `Location` header with new resource URL
 - Return created resource in response body
@@ -235,7 +242,8 @@ async def replace_provider(
     return provider
 ```
 
-**Rules**:
+**Rules:**
+
 - Replace entire resource
 - Require all fields in request
 - Return 200 with updated resource
@@ -256,7 +264,8 @@ async def update_provider(
     return provider
 ```
 
-**Rules**:
+**Rules:**
+
 - Update only specified fields
 - All fields optional in request
 - Return 200 with updated resource
@@ -275,7 +284,8 @@ async def delete_provider(
     # No response body with 204
 ```
 
-**Rules**:
+**Rules:**
+
 - Return 204 No Content (no response body)
 - OR return 200 with deleted resource info
 - Return 404 if already deleted
@@ -369,36 +379,40 @@ class CreateProviderRequest(BaseModel):
 
 ### Base URL Format
 
-```
+```text
 https://api.dashtam.com/api/v1/{resource}/{id}/{sub-resource}
-└─────────┬────────┘ └┬┘ └┬┘ └─┬───┘ └┬┘ └─────┬──────┘
-          │          │   │    │      │        │
-        Domain      API Ver  Resource ID  Sub-resource
+└───────────┬─────────┘└┬─┘└┬┘ └──┬─────┘ └─┬┘ └─────┬──────┘
+            │           │   │     │         │        │
+          Domain       API Ver  Resource    ID   Sub-resource
 ```
 
 ### URL Conventions
 
-1. **Use lowercase and hyphens**:
-   ```
+1. **Use lowercase and hyphens:**
+
+   ```text
    ✅ /user-preferences
    ❌ /userPreferences
    ❌ /user_preferences
    ```
 
-2. **No trailing slashes**:
-   ```
+2. **No trailing slashes:**
+
+   ```text
    ✅ /providers
    ❌ /providers/
    ```
 
-3. **Use path for required params, query for optional**:
-   ```
+3. **Use path for required params, query for optional:**
+
+   ```text
    ✅ /providers/{id}?include=connection
    ❌ /providers?id={id}
    ```
 
-4. **Nest resources logically**:
-   ```
+4. **Nest resources logically:**
+
+   ```text
    ✅ /users/{user_id}/providers
    ❌ /user-providers?user_id={id}
    ```
@@ -406,6 +420,7 @@ https://api.dashtam.com/api/v1/{resource}/{id}/{sub-resource}
 ### Query Parameters
 
 Use query parameters for:
+
 - Filtering: `?status=active`
 - Sorting: `?sort=created_at&order=desc`
 - Pagination: `?page=2&limit=50`
@@ -448,14 +463,16 @@ Accept: application/json
 }
 ```
 
-**Conventions**:
+**Conventions:**
+
 - Use `snake_case` for field names (Python convention)
 - Include only necessary fields
 - Validate with Pydantic schemas
 
 ### Response Format
 
-**Success Response**:
+**Success Response:**
+
 ```json
 {
   "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -466,7 +483,8 @@ Accept: application/json
 }
 ```
 
-**Collection Response**:
+**Collection Response:**
+
 ```json
 {
   "items": [
@@ -480,7 +498,8 @@ Accept: application/json
 }
 ```
 
-**Error Response**:
+**Error Response:**
+
 ```json
 {
   "detail": "Provider not found",
@@ -512,22 +531,25 @@ created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 Version is in the URL path:
 
-```
+```text
 https://api.dashtam.com/api/v1/providers
 https://api.dashtam.com/api/v2/providers  # Future version
 ```
 
-**Advantages**:
+**Advantages:**
+
 - Simple and explicit
 - Easy to route
 - Clear in browser/logs
 
-**When to version**:
+**When to version:**
+
 - Breaking changes to request/response format
 - Removing endpoints
 - Changing authentication method
 
-**Backward compatibility**:
+**Backward compatibility:**
+
 - Add new fields (non-breaking)
 - Deprecate, don't remove (with warnings)
 - Support old version for at least 6 months
@@ -564,7 +586,8 @@ class ErrorResponse(BaseModel):
 
 ### Error Examples
 
-**Single Error**:
+**Single Error:**
+
 ```json
 {
   "detail": "Provider not found",
@@ -574,7 +597,8 @@ class ErrorResponse(BaseModel):
 }
 ```
 
-**Validation Errors**:
+**Validation Errors:**
+
 ```json
 {
   "detail": "Validation error",
@@ -651,7 +675,8 @@ async def list_providers(
     )
 ```
 
-**Response**:
+**Response:**
+
 ```json
 {
   "items": [...],
@@ -718,7 +743,8 @@ async def list_providers(
     return providers.scalars().all()
 ```
 
-**Usage**:
+**Usage:**
+
 ```http
 GET /api/v1/providers?status=active&provider_key=schwab&search=retirement
 ```
@@ -747,7 +773,8 @@ async def list_providers(
     return await session.execute(query)
 ```
 
-**Usage**:
+**Usage:**
+
 ```http
 GET /api/v1/providers?sort=created_at&order=desc
 ```
@@ -976,6 +1003,6 @@ Include links to related resources:
 
 ---
 
-**Document Version**: 1.0  
-**Last Reviewed**: 2025-10-04  
-**Next Review**: 2025-04-04
+**Document Version:** 1.0  
+**Last Reviewed:** 2025-10-04  
+**Next Review:** 2025-04-04

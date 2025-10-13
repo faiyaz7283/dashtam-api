@@ -1453,7 +1453,7 @@ make lint-md
 
 **Required Diagram Types:**
 
-- **Directory trees** → Use `mindmap`
+- **Directory trees** → Use code blocks with tree structure (like `tree` command output)
 - **Process flows** → Use `flowchart TD`
 - **Database schemas** → Use `erDiagram`
 - **API sequences** → Use `sequenceDiagram`

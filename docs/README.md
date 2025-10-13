@@ -100,7 +100,7 @@ docs/
 **Diagram Standards:**
 
 - 🎨 **ALL diagrams MUST use Mermaid syntax** - See [MERMAID_GUIDELINES.md](templates/MERMAID_GUIDELINES.md)
-- ✅ Directory trees → `mindmap`
+- ✅ Directory trees → Code blocks with tree structure (like `tree` command)
 - ✅ Process flows → `flowchart TD`
 - ✅ Database schemas → `erDiagram`
 - ✅ API sequences → `sequenceDiagram`

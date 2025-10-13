@@ -37,56 +37,7 @@
 
 ## Required Diagram Types
 
-### 1. Directory Tree Structures → Use Mindmap
-
-**When to use:**
-
-- Showing project directory structure
-- Displaying file organization
-- Illustrating component hierarchy
-
-**Syntax:**
-
-```mermaid
-mindmap
-  root((Project))
-    docs
-      architecture
-        overview.md
-        jwt-authentication.md
-      guides
-        git-workflow.md
-        docker-setup.md
-      templates
-        README.md
-        general-template.md
-    src
-      api
-        auth.py
-        providers.py
-      models
-        user.py
-        token.py
-      services
-        auth_service.py
-```
-
-**Example Output:**
-
-```mermaid
-mindmap
-  root((Dashtam))
-    docs/
-      development/
-      research/
-      templates/
-    src/
-      api/
-      models/
-      services/
-```
-
-### 2. Directional Flows → Use Flowchart
+### 1. Directional Flows → Use Flowchart
 
 **When to use:**
 
@@ -124,7 +75,7 @@ flowchart TD
 - `RL` - Right to left
 - `BT` - Bottom to top
 
-### 3. Relationships & Tables → Use ER Diagram
+### 2. Relationships & Tables → Use ER Diagram
 
 **When to use:**
 
@@ -174,7 +125,7 @@ erDiagram
 - `}o--o{` - Many to many
 - `||--o|` - One to zero or one
 
-### 4. Sequence Diagrams → Use Sequence
+### 3. Sequence Diagrams → Use Sequence
 
 **When to use:**
 
@@ -210,7 +161,7 @@ sequenceDiagram
     A-->>U: 200 OK
 ```
 
-### 5. State Diagrams → Use State Diagram
+### 4. State Diagrams → Use State Diagram
 
 **When to use:**
 
@@ -236,7 +187,7 @@ stateDiagram-v2
     end note
 ```
 
-### 6. Gantt Charts → Use Gantt
+### 5. Gantt Charts → Use Gantt
 
 **When to use:**
 
@@ -264,7 +215,7 @@ gantt
     Documentation        :p6, after p5, 2d
 ```
 
-### 7. Class Diagrams → Use Class Diagram
+### 6. Class Diagrams → Use Class Diagram
 
 **When to use:**
 
@@ -364,24 +315,7 @@ sequenceDiagram
     A-->>C: 200 OK + tokens
 ```
 
-### Pattern 2: Directory Structure
-
-```mermaid
-mindmap
-  root((Project Root))
-    src
-      api
-      models
-      services
-    tests
-      unit
-      integration
-    docs
-      development
-      templates
-```
-
-### Pattern 3: Decision Flow
+### Pattern 2: Decision Flow
 
 ```mermaid
 flowchart TD
@@ -537,7 +471,10 @@ erDiagram
 1. **Flowchart** - `flowchart TD`
 2. **Sequence** - `sequenceDiagram`
 3. **ER Diagram** - `erDiagram`
-4. **Mindmap** - `mindmap`
+4. **State Diagram** - `stateDiagram-v2`
+5. **Class Diagram** - `classDiagram`
+
+**Note:** For directory trees, use code blocks with tree structure (not Mermaid).
 
 **Validation Tool:** [Mermaid Live Editor](https://mermaid.live/)
 

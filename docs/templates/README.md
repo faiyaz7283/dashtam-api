@@ -123,8 +123,8 @@ All templates include standard metadata at the **bottom** of the document:
 
 ### Diagram Standards (REQUIRED)
 
-- ✅ **MUST use Mermaid syntax** for all diagrams
-- ✅ Directory trees → Use `mindmap`
+- ✅ **MUST use Mermaid syntax** for diagrams (except directory trees)
+- ✅ Directory trees → Use code blocks with tree structure (like `tree` command)
 - ✅ Process flows → Use `flowchart TD`
 - ✅ Database schemas → Use `erDiagram`
 - ✅ API sequences → Use `sequenceDiagram`

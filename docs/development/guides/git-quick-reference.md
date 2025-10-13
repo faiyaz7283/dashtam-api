@@ -261,8 +261,11 @@ git revert <commit-hash>                  # Safe revert (creates new commit)
 # Interactive PR creation
 gh pr create
 
-# Quick PR creation
+# Quick PR creation inline
 gh pr create --base development --title "feat: my feature" --body "Description"
+
+# Quick PR creation temporary file
+gh pr create --base development --title "feat: my feature" --body-file /tmp/pr_description.md
 
 # With reviewers and labels
 gh pr create --base development --reviewer user1 --label enhancement

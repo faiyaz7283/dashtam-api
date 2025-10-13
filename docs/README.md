@@ -44,23 +44,82 @@ Documentation for using and testing the Dashtam application:
 
 ```bash
 docs/
+├── templates/          # Documentation templates (START HERE for new docs!)
+│   ├── README.md       # Template usage guide
+│   ├── general-template.md
+│   ├── architecture-template.md
+│   ├── guide-template.md
+│   ├── infrastructure-template.md
+│   ├── testing-template.md
+│   ├── research-template.md
+│   ├── api-flow-template.md
+│   └── MERMAID_GUIDELINES.md  # REQUIRED: Diagram standards
+│
 ├── api-flows/          # Manual API flows (HTTPS-first, dev TLS)
 │   ├── auth/           # Registration, login, password reset
 │   └── providers/      # Provider onboarding flows
 │
 ├── development/        # Developer documentation
 │   ├── architecture/   # System architecture and design
+│   ├── guides/         # How-to guides and tutorials
+│   ├── implementation/ # Implementation plans
 │   ├── infrastructure/ # Docker, CI/CD, environments
-│   ├── testing/        # Testing strategy and guides
-│   └── guides/         # Development how-tos
+│   ├── research/       # Active technical research
+│   ├── reviews/        # Code reviews, audits, assessments
+│   └── testing/        # Testing strategy and guides
 │
 ├── research/           # Research and decision records
-│   └── archived/       # Historical documents
+│   └── archived/       # Historical/completed research
+│       ├── completed-research/
+│       ├── implementation-plans/
+│       └── reviews/
 │
 ├── setup/              # User setup guides (planned)
 ├── api/                # API reference (planned)
 └── guides/             # User guides (planned)
 ```
+
+---
+
+## 📋 Documentation Templates
+
+**IMPORTANT**: Before creating new documentation, use the appropriate template from `docs/templates/`!
+
+### Available Templates
+
+| Template | Use For |
+|----------|----------|
+| [general-template.md](templates/general-template.md) | Any documentation that doesn't fit other categories |
+| [architecture-template.md](templates/architecture-template.md) | System architecture and design documents |
+| [guide-template.md](templates/guide-template.md) | Step-by-step how-to guides and tutorials |
+| [infrastructure-template.md](templates/infrastructure-template.md) | Infrastructure and operations documentation |
+| [testing-template.md](templates/testing-template.md) | Testing strategies and guides |
+| [research-template.md](templates/research-template.md) | Research documents and ADRs |
+| [api-flow-template.md](templates/api-flow-template.md) | API manual testing flows |
+
+**Diagram Standards:**
+
+- 🎨 **ALL diagrams MUST use Mermaid syntax** - See [MERMAID_GUIDELINES.md](templates/MERMAID_GUIDELINES.md)
+- ✅ Directory trees → `mindmap`
+- ✅ Process flows → `flowchart TD`
+- ✅ Database schemas → `erDiagram`
+- ✅ API sequences → `sequenceDiagram`
+- ❌ **NO image files** (PNG, JPG, SVG)
+- ❌ **NO external tools** (draw.io, Lucidchart)
+
+### Quick Start
+
+```bash
+# 1. Copy the appropriate template
+cp docs/templates/guide-template.md docs/development/guides/my-new-guide.md
+
+# 2. Fill out the template (replace [placeholders])
+
+# 3. Verify quality
+make lint-md
+```
+
+**Full Guide**: See [templates/README.md](templates/README.md) for complete documentation template system guide.
 
 ---
 
@@ -111,28 +170,54 @@ See [WARP.md](../WARP.md) section "Documentation: Markdown Quality" for complete
 
 ### Structure Guidelines
 
-When adding new documentation, follow this structure:
+When adding new documentation:
+
+1. **Choose template** → Use appropriate template from `docs/templates/`
+2. **Place correctly** → Follow directory organization above
+3. **Use Mermaid** → All diagrams must use Mermaid syntax (see MERMAID_GUIDELINES.md)
+4. **Lint before commit** → Run `make lint-md`
+
+**Directory Guidelines:**
 
 - **Development docs** → `docs/development/[category]/`
   - `architecture/` - System architecture and design patterns
-  - `guides/` - How-to guides and tutorials
+  - `guides/` - How-to guides and tutorials  
+  - `implementation/` - Implementation plans (move to archived when complete)
   - `infrastructure/` - Docker, CI/CD, deployment
-  - `testing/` - Testing strategy and guides
+  - `research/` - Active technical research
   - `reviews/` - Code reviews, audits, assessments
+  - `testing/` - Testing strategy and guides
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/` (future)
-- **Research/decisions** → `docs/research/`
+- **Research/decisions** → `docs/research/` (active) or `docs/development/research/`
 - **Historical/archived** → `docs/research/archived/`
-  - `implementation-plans/` - Completed implementation plans
-  - `reviews/` - Historical reviews and assessments
-  - `completed-research/` - Resolved research and fixes
+  - `completed-research/` - Resolved research
+  - `implementation-plans/` - Completed plans
+  - `reviews/` - Historical reviews
 
-See [WARP.md](../WARP.md) for complete documentation guidelines.
+**See also:**
+
+- [templates/README.md](templates/README.md) - Template system guide
+- [templates/MERMAID_GUIDELINES.md](templates/MERMAID_GUIDELINES.md) - Diagram standards
+- [WARP.md](../WARP.md) - Complete documentation guidelines
 
 ---
 
 ## 🔗 Quick Links
 
+### Essential Resources
+
+- **[Template System](templates/README.md)** - START HERE for new documentation
+- **[Mermaid Guidelines](templates/MERMAID_GUIDELINES.md)** - Diagram standards (REQUIRED)
 - [Main README](../README.md) - Project overview
 - [WARP.md](../WARP.md) - AI agent rules and project context
-- [Testing Guide](../tests/TESTING_GUIDE.md) - Quick testing reference
+
+### Documentation
+
 - [Development Docs](development/) - Full developer documentation
+- [API Flows](api-flows/) - Manual API testing flows
+- [Research](research/) - Technical research and decisions
+
+### Testing
+
+- [Testing Strategy](development/testing/strategy.md) - Overall testing approach
+- [Testing Guide](development/testing/guide.md) - How to write tests

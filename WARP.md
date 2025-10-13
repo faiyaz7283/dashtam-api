@@ -1419,6 +1419,65 @@ Closes #XX
 
 ## Documentation Requirements
 
+### Documentation Template System
+
+**CRITICAL**: ALWAYS use templates from `docs/templates/` when creating new documentation.
+
+**Available Templates:**
+
+- `general-template.md` - Default for any documentation
+- `architecture-template.md` - System architecture and design docs
+- `guide-template.md` - Step-by-step how-to guides
+- `infrastructure-template.md` - Infrastructure and operations docs
+- `testing-template.md` - Testing documentation
+- `research-template.md` - Research documents and ADRs
+- `api-flow-template.md` - API manual testing flows
+
+**Template Usage:**
+
+```bash
+# 1. Copy appropriate template
+cp docs/templates/guide-template.md docs/development/guides/my-guide.md
+
+# 2. Fill out template (replace [placeholders])
+
+# 3. Verify quality
+make lint-md
+```
+
+**See:** [docs/templates/README.md](docs/templates/README.md) for complete template system guide.
+
+### Diagram Standards (REQUIRED)
+
+**CRITICAL**: ALL diagrams in documentation MUST use Mermaid syntax.
+
+**Required Diagram Types:**
+
+- **Directory trees** → Use `mindmap`
+- **Process flows** → Use `flowchart TD`
+- **Database schemas** → Use `erDiagram`
+- **API sequences** → Use `sequenceDiagram`
+- **State transitions** → Use `stateDiagram-v2`
+- **Timelines** → Use `gantt`
+- **Class structures** → Use `classDiagram`
+
+**Prohibited:**
+
+- ❌ Image files (PNG, JPG, SVG uploads)
+- ❌ External diagram tools (draw.io, Lucidchart)
+- ❌ ASCII art diagrams
+
+**Example:**
+
+```mermaid
+flowchart TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Success]
+    B -->|No| D[Error]
+```
+
+**See:** [docs/templates/MERMAID_GUIDELINES.md](docs/templates/MERMAID_GUIDELINES.md) for complete diagram standards.
+
 ### Documentation Structure
 
 **CRITICAL**: All documentation must follow the established structure in `docs/`. NEVER create documentation files in the root directory except for README.md and WARP.md.
@@ -1434,25 +1493,43 @@ Closes #XX
 ```bash
 docs/
 ├── README.md                  # Documentation index
+├── templates/                 # Documentation templates (START HERE!)
+│   ├── README.md              # Template system guide
+│   ├── MERMAID_GUIDELINES.md  # Diagram standards (REQUIRED)
+│   └── *.md                   # Template files
 ├── development/               # Developer documentation
 │   ├── architecture/          # System design and architecture
+│   ├── guides/                # How-to guides and tutorials
+│   ├── implementation/        # Implementation plans
 │   ├── infrastructure/        # Docker, CI/CD, environments
-│   ├── testing/               # Testing strategy and guides
-│   └── guides/                # Development how-tos
-├── research/                  # Technical research and decisions
+│   ├── research/              # Active technical research
+│   ├── reviews/               # Code reviews, audits
+│   └── testing/               # Testing strategy and guides
+├── research/                  # Research and decision records
 │   └── archived/              # Historical/completed work
-├── setup/                     # User setup guides
-├── api/                       # API documentation
-└── guides/                    # User guides
+├── setup/                     # User setup guides (planned)
+├── api/                       # API documentation (planned)
+└── guides/                    # User guides (planned)
 ```
 
 **When to Create Documentation**:
 
+1. **Choose template** from `docs/templates/` based on document type
+2. **Copy template** to appropriate location
+3. **Fill out template** (replace all [placeholders])
+4. **Use Mermaid** for all diagrams (see MERMAID_GUIDELINES.md)
+5. **Lint before commit** (`make lint-md`)
+
+**Document Placement:**
+
 - **Development docs** → `docs/development/[category]/filename.md`
   - Architecture decisions → `docs/development/architecture/`
-  - Infrastructure setup → `docs/development/infrastructure/`
-  - Testing guides → `docs/development/testing/`
   - How-to guides → `docs/development/guides/`
+  - Implementation plans → `docs/development/implementation/`
+  - Infrastructure setup → `docs/development/infrastructure/`
+  - Active research → `docs/development/research/`
+  - Code reviews/audits → `docs/development/reviews/`
+  - Testing guides → `docs/development/testing/`
 
 - **Research & decisions** → `docs/research/filename.md`
   - Technical research documents
@@ -1467,15 +1544,19 @@ docs/
 
 **Documentation Rules**:
 
-1. ✅ Keep root directory clean (only README.md and WARP.md)
-2. ✅ Use descriptive filenames with hyphens (e.g., `oauth-flow.md`)
-3. ✅ Create README.md in each major directory as an index
-4. ✅ Link between related documents
-5. ✅ Update `docs/README.md` index when adding new sections
-6. ✅ Archive completed research/migration docs to `docs/research/archived/`
-7. ❌ NEVER scatter documentation across random directories
-8. ❌ NEVER create temporary summary files (SESSION_SUMMARY.md, ACCOMPLISHMENTS.md, etc.)
-9. ✅ Display session summaries in terminal output instead of creating files
+1. ✅ **Use templates** - ALWAYS start with appropriate template from `docs/templates/`
+2. ✅ **Use Mermaid** - ALL diagrams MUST use Mermaid syntax (see MERMAID_GUIDELINES.md)
+3. ✅ **Metadata at bottom** - Templates have metadata section at end for user-first reading
+4. ✅ **Keep root directory clean** - Only README.md and WARP.md
+5. ✅ **Use descriptive filenames** - kebab-case (e.g., `oauth-flow.md`)
+6. ✅ **Create README.md** - In each major directory as an index
+7. ✅ **Link between documents** - Cross-reference related docs
+8. ✅ **Update docs/README.md** - When adding new sections
+9. ✅ **Archive completed work** - Move to `docs/research/archived/`
+10. ✅ **Lint before commit** - Run `make lint-md` to verify quality
+11. ❌ **NEVER scatter documentation** - Follow established directory structure
+12. ❌ **NEVER use image files for diagrams** - Use Mermaid instead
+13. ❌ **NEVER create temporary summary files** - Display in terminal output
 
 ### Code Documentation
 

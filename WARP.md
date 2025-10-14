@@ -1906,6 +1906,14 @@ cp ~/ai_dev_sessions/templates/session-comprehensive.md \
 # 4. Complete final summary at end of session (Phase 3)
 ```
 
-**Critical Rule:** NEVER commit session journal files to the Dashtam project repository. They belong in the separate `~/ai_dev_sessions/` directory.
+**Critical Rules:**
+
+1. **NEVER commit session journal files** to the Dashtam project repository. They belong in the separate `~/ai_dev_sessions/` directory.
+2. **NEVER create work summary files** in the project (e.g., MIGRATION_SUMMARY.md, TASK_SUMMARY.md, etc.). Use:
+   - AI session journals for session documentation
+   - Comprehensive git commit messages for change documentation
+   - Pull request descriptions for feature summaries
+   - Project documentation (in docs/) for user-facing information only
+3. **Work artifacts belong outside the project**: Session notes, task lists, work summaries, and progress tracking belong in `~/ai_dev_sessions/` or `/tmp/`, NOT in the project repository.
 
 Remember: This is a financial data platform where security and reliability are paramount. Every decision should prioritize data protection and system stability.

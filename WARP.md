@@ -1430,6 +1430,7 @@ Closes #XX
 - `guide-template.md` - Step-by-step how-to guides
 - `infrastructure-template.md` - Infrastructure and operations docs
 - `testing-template.md` - Testing documentation
+- `troubleshooting-template.md` - Bug investigations and resolutions
 - `research-template.md` - Research documents and ADRs
 - `api-flow-template.md` - API manual testing flows
 
@@ -1500,13 +1501,14 @@ docs/
 ├── development/               # Developer documentation
 │   ├── architecture/          # System design and architecture
 │   ├── guides/                # How-to guides and tutorials
-│   ├── implementation/        # Implementation plans
+│   ├── historical/            # Historical/archived docs (completed work)
+│   ├── implementation/        # Implementation plans (active)
 │   ├── infrastructure/        # Docker, CI/CD, environments
 │   ├── research/              # Active technical research
 │   ├── reviews/               # Code reviews, audits
-│   └── testing/               # Testing strategy and guides
-├── research/                  # Research and decision records
-│   └── archived/              # Historical/completed work
+│   ├── testing/               # Testing strategy and guides
+│   └── troubleshooting/       # Bug investigations and resolutions
+├── research/                  # Research and decision records (project-wide)
 ├── setup/                     # User setup guides (planned)
 ├── api/                       # API documentation (planned)
 └── guides/                    # User guides (planned)
@@ -1525,17 +1527,18 @@ docs/
 - **Development docs** → `docs/development/[category]/filename.md`
   - Architecture decisions → `docs/development/architecture/`
   - How-to guides → `docs/development/guides/`
+  - Historical/archived docs → `docs/development/historical/`
   - Implementation plans → `docs/development/implementation/`
   - Infrastructure setup → `docs/development/infrastructure/`
   - Active research → `docs/development/research/`
   - Code reviews/audits → `docs/development/reviews/`
   - Testing guides → `docs/development/testing/`
+  - Troubleshooting/bug investigations → `docs/development/troubleshooting/`
 
 - **Research & decisions** → `docs/research/filename.md`
   - Technical research documents
   - Architectural decision records (ADRs)
   - Migration plans and notes
-  - Archive when completed → `docs/research/archived/`
 
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/`
   - Installation guides
@@ -1552,7 +1555,7 @@ docs/
 6. ✅ **Create index.md** - For navigation pages in directories (docs/, docs/development/, etc.)
 7. ✅ **Link between documents** - Cross-reference related docs
 8. ✅ **Update docs/index.md** - When adding new sections
-9. ✅ **Archive completed work** - Move to `docs/research/archived/`
+9. ✅ **Archive completed work** - Move to `docs/development/historical/`
 10. ✅ **Lint before commit** - Run `make lint-md` to verify quality
 11. ❌ **NEVER scatter documentation** - Follow established directory structure
 12. ❌ **NEVER use image files for diagrams** - Use Mermaid instead

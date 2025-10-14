@@ -13,6 +13,7 @@ This directory contains standardized templates for all Dashtam documentation. Us
 | [guide-template.md](guide-template.md) | Step-by-step how-to guides | Tutorials, setup guides, how-to documentation |
 | [infrastructure-template.md](infrastructure-template.md) | Infrastructure and operations docs | Docker, CI/CD, database, deployment, monitoring |
 | [testing-template.md](testing-template.md) | Testing documentation | Test strategies, testing guides, QA documentation |
+| [troubleshooting-template.md](troubleshooting-template.md) | Debugging and issue resolution docs | Bug investigations, root cause analysis, solutions |
 | [research-template.md](research-template.md) | Research and ADR documents | Technical research, decision records, options analysis |
 | [api-flow-template.md](api-flow-template.md) | API manual testing flows | User-centric API workflows for manual testing |
 | [index-template.md](index-template.md) | Directory navigation pages | Navigation/index pages (docs/index.md, docs/development/index.md) |
@@ -31,6 +32,7 @@ This directory contains standardized templates for all Dashtam documentation. Us
 - **Writing how-to guide?** → Use `guide-template.md`
 - **Documenting infrastructure?** → Use `infrastructure-template.md`
 - **Writing test documentation?** → Use `testing-template.md`
+- **Documenting a bug/issue resolution?** → Use `troubleshooting-template.md`
 - **Researching options/decisions?** → Use `research-template.md`
 - **Creating API flow?** → Use `api-flow-template.md`
 - **Creating directory index/navigation?** → Use `index-template.md`
@@ -83,7 +85,6 @@ All templates include standard metadata at the **bottom** of the document:
 
 ## Document Information
 
-**Status:** Draft | Active | Archived | Superseded
 **Category:** [Template Category]
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
@@ -138,22 +139,34 @@ All templates include standard metadata at the **bottom** of the document:
 
 ---
 
-## 🔄 Status Values
+## 📋 Metadata Standards
 
-Use these standard status values:
+### Simplified Metadata (Updated 2025-01-06)
 
-| Status | Meaning | When to Use |
-|--------|---------|-------------|
-| **Draft** | Work in progress, not yet reviewed | Initial creation, major revisions |
-| **Active** | Current and actively maintained | Standard state for current docs |
-| **Archived** | No longer actively maintained but kept for reference | Superseded docs, historical records |
-| **Superseded** | Replaced by newer document | When a new doc replaces this one |
+All templates now use simplified metadata **without the "Status" field**:
 
-**Status Lifecycle:**
+**Required Fields:**
 
-```text
-Draft → Active → Archived/Superseded
-```
+- **Category**: Template-specific category (Architecture, Guide, Testing, Troubleshooting, etc.)
+- **Created**: Document creation date (YYYY-MM-DD)
+- **Last Updated**: Last modification date (YYYY-MM-DD)
+
+**Optional Fields** (template-specific):
+
+- **Applies To**: Scope (Architecture template)
+- **API Version**: API version (API Flow template)
+- **Environment**: Target environment (Infrastructure, Troubleshooting templates)
+- **Maintainer**: Responsible party (Index, README templates)
+- And others as needed per template
+
+**Why No Status Field?**
+
+- Document location indicates status (active vs historical)
+- Reduces maintenance overhead
+- Simpler, cleaner metadata
+- Status is implied by directory structure:
+  - `docs/development/*` = Active
+  - `docs/development/historical/*` = Historical/Archived
 
 ---
 
@@ -170,13 +183,14 @@ docs/
 ├── development/            # Developer documentation
 │   ├── architecture/       # System architecture and design
 │   ├── guides/             # How-to guides and tutorials
-│   ├── implementation/     # Implementation plans
+│   ├── historical/         # Historical/archived docs (completed work)
+│   ├── implementation/     # Implementation plans (active)
 │   ├── infrastructure/     # Docker, CI/CD, deployment
 │   ├── research/           # Technical research (active)
 │   ├── reviews/            # Code reviews, audits
-│   └── testing/            # Testing strategy and guides
-└── research/               # Research and ADRs
-    └── archived/           # Historical/completed research
+│   ├── testing/            # Testing strategy and guides
+│   └── troubleshooting/    # Bug investigations and resolutions
+└── research/               # Research and ADRs (project-wide)
 ```
 
 **Guidelines:**
@@ -184,7 +198,8 @@ docs/
 - **Development docs** → `docs/development/[category]/`
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/` (future)
 - **Active research** → `docs/research/` or `docs/development/research/`
-- **Completed research** → `docs/research/archived/`
+- **Completed/historical docs** → `docs/development/historical/`
+- **Troubleshooting/bug investigations** → `docs/development/troubleshooting/`
 
 ---
 

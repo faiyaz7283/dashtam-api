@@ -18,7 +18,7 @@ This directory contains standardized templates for all Dashtam documentation. Us
 | [api-flow-template.md](api-flow-template.md) | API manual testing flows | User-centric API workflows for manual testing |
 | [index-template.md](index-template.md) | Directory navigation pages | Navigation/index pages (docs/index.md, docs/development/index.md) |
 | [readme-template.md](readme-template.md) | Feature/component READMEs | Feature documentation (env/README.md, tests/smoke/README.md) |
-| [MERMAID_GUIDELINES.md](MERMAID_GUIDELINES.md) | **Diagram standards** | **REQUIRED: All diagrams MUST use Mermaid** |
+| [mermaid-diagram-standards.md](../development/guides/mermaid-diagram-standards.md) | **Diagram standards** | **REQUIRED: All diagrams MUST use Mermaid** |
 
 ---
 
@@ -135,7 +135,7 @@ All templates include standard metadata at the **bottom** of the document:
 - ✅ API sequences → Use `sequenceDiagram`
 - ❌ **NO image files** (PNG, JPG, SVG)
 - ❌ **NO external tools** (draw.io, Lucidchart)
-- 📖 **See:** [MERMAID_GUIDELINES.md](MERMAID_GUIDELINES.md) for complete reference
+- 📖 **See:** [Mermaid Diagram Standards](../development/guides/mermaid-diagram-standards.md) for complete reference
 
 ---
 

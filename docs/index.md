@@ -52,7 +52,6 @@ docs/
 │   ├── api-flow-template.md
 │   ├── index-template.md
 │   ├── readme-template.md
-│   └── MERMAID_GUIDELINES.md  # REQUIRED: Diagram standards
 │
 ├── api-flows/          # Manual API flows (HTTPS-first, dev TLS)
 │   ├── auth/           # Registration, login, password reset
@@ -99,7 +98,7 @@ docs/
 
 **Diagram Standards:**
 
-- 🎨 **ALL diagrams MUST use Mermaid syntax** - See [MERMAID_GUIDELINES.md](templates/MERMAID_GUIDELINES.md)
+- 🎨 **ALL diagrams MUST use Mermaid syntax** - See [Mermaid Diagram Standards](development/guides/mermaid-diagram-standards.md)
 - ✅ Directory trees → Code blocks with tree structure (like `tree` command)
 - ✅ Process flows → `flowchart TD`
 - ✅ Database schemas → `erDiagram`
@@ -174,7 +173,7 @@ When adding new documentation:
 
 1. **Choose template** → Use appropriate template from `docs/templates/`
 2. **Place correctly** → Follow directory organization above
-3. **Use Mermaid** → All diagrams must use Mermaid syntax (see MERMAID_GUIDELINES.md)
+3. **Use Mermaid** → All diagrams must use Mermaid syntax (see [Mermaid Diagram Standards](development/guides/mermaid-diagram-standards.md))
 4. **Lint before commit** → Run `make lint-md`
 
 **Directory Guidelines:**

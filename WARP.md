@@ -1477,7 +1477,7 @@ flowchart TD
     B -->|No| D[Error]
 ```
 
-**See:** [docs/templates/MERMAID_GUIDELINES.md](docs/templates/MERMAID_GUIDELINES.md) for complete diagram standards.
+**See:** [Mermaid Diagram Standards](docs/development/guides/mermaid-diagram-standards.md) for complete diagram standards.
 
 ### Documentation Structure
 
@@ -1496,7 +1496,6 @@ docs/
 ├── index.md                   # Documentation index (navigation)
 ├── templates/                 # Documentation templates (START HERE!)
 │   ├── README.md              # Template system guide
-│   ├── MERMAID_GUIDELINES.md  # Diagram standards (REQUIRED)
 │   └── *.md                   # Template files
 ├── development/               # Developer documentation
 │   ├── architecture/          # System design and architecture
@@ -1519,7 +1518,7 @@ docs/
 1. **Choose template** from `docs/templates/` based on document type
 2. **Copy template** to appropriate location
 3. **Fill out template** (replace all [placeholders])
-4. **Use Mermaid** for all diagrams (see MERMAID_GUIDELINES.md)
+4. **Use Mermaid** for all diagrams (see [Mermaid Diagram Standards](docs/development/guides/mermaid-diagram-standards.md))
 5. **Lint before commit** (`make lint-md`)
 
 **Document Placement:**
@@ -1548,7 +1547,7 @@ docs/
 **Documentation Rules**:
 
 1. ✅ **Use templates** - ALWAYS start with appropriate template from `docs/templates/`
-2. ✅ **Use Mermaid** - ALL diagrams MUST use Mermaid syntax (see MERMAID_GUIDELINES.md)
+2. ✅ **Use Mermaid** - ALL diagrams MUST use Mermaid syntax (see [Mermaid Diagram Standards](docs/development/guides/mermaid-diagram-standards.md))
 3. ✅ **Metadata at bottom** - Templates have metadata section at end for user-first reading
 4. ✅ **Keep root directory clean** - Only README.md and WARP.md
 5. ✅ **Use descriptive filenames** - kebab-case (e.g., `oauth-flow.md`)

@@ -333,7 +333,6 @@ Check `pytest.ini` or `.coveragerc` configuration
 
 ## Document Information
 
-**Status:** Draft | Active | Archived | Superseded
 **Category:** Testing
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD

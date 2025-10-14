@@ -24,10 +24,7 @@ Documentation for working on the Dashtam project:
 Historical research, architectural decisions, and migration notes:
 
 - [Research Notes](research/) - Technical research and decision records
-  - [Async Testing Research](research/async-testing.md)
-  - [Infrastructure Migration](research/infrastructure-migration.md)
-  - [Test Coverage Plan](research/test-coverage-plan.md)
-  - [Archived Documents](research/archived/)
+  - [Authentication Approaches Research](research/authentication-approaches-research.md)
 
 ### For Users
 
@@ -55,7 +52,6 @@ docs/
 │   ├── api-flow-template.md
 │   ├── index-template.md
 │   ├── readme-template.md
-│   └── MERMAID_GUIDELINES.md  # REQUIRED: Diagram standards
 │
 ├── api-flows/          # Manual API flows (HTTPS-first, dev TLS)
 │   ├── auth/           # Registration, login, password reset
@@ -64,17 +60,15 @@ docs/
 ├── development/        # Developer documentation
 │   ├── architecture/   # System architecture and design
 │   ├── guides/         # How-to guides and tutorials
-│   ├── implementation/ # Implementation plans
+│   ├── historical/     # Historical/archived docs (completed work)
+│   ├── implementation/ # Implementation plans (active)
 │   ├── infrastructure/ # Docker, CI/CD, environments
 │   ├── research/       # Active technical research
 │   ├── reviews/        # Code reviews, audits, assessments
-│   └── testing/        # Testing strategy and guides
+│   ├── testing/        # Testing strategy and guides
+│   └── troubleshooting/ # Bug investigations and resolutions
 │
-├── research/           # Research and decision records
-│   └── archived/       # Historical/completed research
-│       ├── completed-research/
-│       ├── implementation-plans/
-│       └── reviews/
+├── research/           # Research and decision records (project-wide)
 │
 ├── setup/              # User setup guides (planned)
 ├── api/                # API reference (planned)
@@ -96,6 +90,7 @@ docs/
 | [guide-template.md](templates/guide-template.md) | Step-by-step how-to guides and tutorials |
 | [infrastructure-template.md](templates/infrastructure-template.md) | Infrastructure and operations documentation |
 | [testing-template.md](templates/testing-template.md) | Testing strategies and guides |
+| [troubleshooting-template.md](templates/troubleshooting-template.md) | Bug investigations and resolutions |
 | [research-template.md](templates/research-template.md) | Research documents and ADRs |
 | [api-flow-template.md](templates/api-flow-template.md) | API manual testing flows |
 | [index-template.md](templates/index-template.md) | Directory navigation pages (docs/index.md, docs/development/index.md) |
@@ -103,7 +98,7 @@ docs/
 
 **Diagram Standards:**
 
-- 🎨 **ALL diagrams MUST use Mermaid syntax** - See [MERMAID_GUIDELINES.md](templates/MERMAID_GUIDELINES.md)
+- 🎨 **ALL diagrams MUST use Mermaid syntax** - See [Mermaid Diagram Standards](development/guides/mermaid-diagram-standards.md)
 - ✅ Directory trees → Code blocks with tree structure (like `tree` command)
 - ✅ Process flows → `flowchart TD`
 - ✅ Database schemas → `erDiagram`
@@ -178,25 +173,24 @@ When adding new documentation:
 
 1. **Choose template** → Use appropriate template from `docs/templates/`
 2. **Place correctly** → Follow directory organization above
-3. **Use Mermaid** → All diagrams must use Mermaid syntax (see MERMAID_GUIDELINES.md)
+3. **Use Mermaid** → All diagrams must use Mermaid syntax (see [Mermaid Diagram Standards](development/guides/mermaid-diagram-standards.md))
 4. **Lint before commit** → Run `make lint-md`
 
 **Directory Guidelines:**
 
 - **Development docs** → `docs/development/[category]/`
   - `architecture/` - System architecture and design patterns
-  - `guides/` - How-to guides and tutorials  
-  - `implementation/` - Implementation plans (move to archived when complete)
+  - `guides/` - How-to guides and tutorials
+  - `historical/` - Completed implementation plans and research
+  - `implementation/` - Implementation plans (active)
   - `infrastructure/` - Docker, CI/CD, deployment
   - `research/` - Active technical research
   - `reviews/` - Code reviews, audits, assessments
   - `testing/` - Testing strategy and guides
+  - `troubleshooting/` - Bug investigations and resolutions
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/` (future)
 - **Research/decisions** → `docs/research/` (active) or `docs/development/research/`
-- **Historical/archived** → `docs/research/archived/`
-  - `completed-research/` - Resolved research
-  - `implementation-plans/` - Completed plans
-  - `reviews/` - Historical reviews
+- **Historical/archived** → `docs/development/historical/` - Completed work and plans
 
 **See also:**
 

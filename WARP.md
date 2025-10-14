@@ -1430,6 +1430,7 @@ Closes #XX
 - `guide-template.md` - Step-by-step how-to guides
 - `infrastructure-template.md` - Infrastructure and operations docs
 - `testing-template.md` - Testing documentation
+- `troubleshooting-template.md` - Bug investigations and resolutions
 - `research-template.md` - Research documents and ADRs
 - `api-flow-template.md` - API manual testing flows
 
@@ -1476,7 +1477,7 @@ flowchart TD
     B -->|No| D[Error]
 ```
 
-**See:** [docs/templates/MERMAID_GUIDELINES.md](docs/templates/MERMAID_GUIDELINES.md) for complete diagram standards.
+**See:** [Mermaid Diagram Standards](docs/development/guides/mermaid-diagram-standards.md) for complete diagram standards.
 
 ### Documentation Structure
 
@@ -1495,18 +1496,18 @@ docs/
 ├── index.md                   # Documentation index (navigation)
 ├── templates/                 # Documentation templates (START HERE!)
 │   ├── README.md              # Template system guide
-│   ├── MERMAID_GUIDELINES.md  # Diagram standards (REQUIRED)
 │   └── *.md                   # Template files
 ├── development/               # Developer documentation
 │   ├── architecture/          # System design and architecture
 │   ├── guides/                # How-to guides and tutorials
-│   ├── implementation/        # Implementation plans
+│   ├── historical/            # Historical/archived docs (completed work)
+│   ├── implementation/        # Implementation plans (active)
 │   ├── infrastructure/        # Docker, CI/CD, environments
 │   ├── research/              # Active technical research
 │   ├── reviews/               # Code reviews, audits
-│   └── testing/               # Testing strategy and guides
-├── research/                  # Research and decision records
-│   └── archived/              # Historical/completed work
+│   ├── testing/               # Testing strategy and guides
+│   └── troubleshooting/       # Bug investigations and resolutions
+├── research/                  # Research and decision records (project-wide)
 ├── setup/                     # User setup guides (planned)
 ├── api/                       # API documentation (planned)
 └── guides/                    # User guides (planned)
@@ -1517,7 +1518,7 @@ docs/
 1. **Choose template** from `docs/templates/` based on document type
 2. **Copy template** to appropriate location
 3. **Fill out template** (replace all [placeholders])
-4. **Use Mermaid** for all diagrams (see MERMAID_GUIDELINES.md)
+4. **Use Mermaid** for all diagrams (see [Mermaid Diagram Standards](docs/development/guides/mermaid-diagram-standards.md))
 5. **Lint before commit** (`make lint-md`)
 
 **Document Placement:**
@@ -1525,17 +1526,18 @@ docs/
 - **Development docs** → `docs/development/[category]/filename.md`
   - Architecture decisions → `docs/development/architecture/`
   - How-to guides → `docs/development/guides/`
+  - Historical/archived docs → `docs/development/historical/`
   - Implementation plans → `docs/development/implementation/`
   - Infrastructure setup → `docs/development/infrastructure/`
   - Active research → `docs/development/research/`
   - Code reviews/audits → `docs/development/reviews/`
   - Testing guides → `docs/development/testing/`
+  - Troubleshooting/bug investigations → `docs/development/troubleshooting/`
 
 - **Research & decisions** → `docs/research/filename.md`
   - Technical research documents
   - Architectural decision records (ADRs)
   - Migration plans and notes
-  - Archive when completed → `docs/research/archived/`
 
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/`
   - Installation guides
@@ -1545,14 +1547,14 @@ docs/
 **Documentation Rules**:
 
 1. ✅ **Use templates** - ALWAYS start with appropriate template from `docs/templates/`
-2. ✅ **Use Mermaid** - ALL diagrams MUST use Mermaid syntax (see MERMAID_GUIDELINES.md)
+2. ✅ **Use Mermaid** - ALL diagrams MUST use Mermaid syntax (see [Mermaid Diagram Standards](docs/development/guides/mermaid-diagram-standards.md))
 3. ✅ **Metadata at bottom** - Templates have metadata section at end for user-first reading
 4. ✅ **Keep root directory clean** - Only README.md and WARP.md
 5. ✅ **Use descriptive filenames** - kebab-case (e.g., `oauth-flow.md`)
 6. ✅ **Create index.md** - For navigation pages in directories (docs/, docs/development/, etc.)
 7. ✅ **Link between documents** - Cross-reference related docs
 8. ✅ **Update docs/index.md** - When adding new sections
-9. ✅ **Archive completed work** - Move to `docs/research/archived/`
+9. ✅ **Archive completed work** - Move to `docs/development/historical/`
 10. ✅ **Lint before commit** - Run `make lint-md` to verify quality
 11. ❌ **NEVER scatter documentation** - Follow established directory structure
 12. ❌ **NEVER use image files for diagrams** - Use Mermaid instead
@@ -1903,6 +1905,14 @@ cp ~/ai_dev_sessions/templates/session-comprehensive.md \
 # 4. Complete final summary at end of session (Phase 3)
 ```
 
-**Critical Rule:** NEVER commit session journal files to the Dashtam project repository. They belong in the separate `~/ai_dev_sessions/` directory.
+**Critical Rules:**
+
+1. **NEVER commit session journal files** to the Dashtam project repository. They belong in the separate `~/ai_dev_sessions/` directory.
+2. **NEVER create work summary files** in the project (e.g., MIGRATION_SUMMARY.md, TASK_SUMMARY.md, etc.). Use:
+   - AI session journals for session documentation
+   - Comprehensive git commit messages for change documentation
+   - Pull request descriptions for feature summaries
+   - Project documentation (in docs/) for user-facing information only
+3. **Work artifacts belong outside the project**: Session notes, task lists, work summaries, and progress tracking belong in `~/ai_dev_sessions/` or `/tmp/`, NOT in the project repository.
 
 Remember: This is a financial data platform where security and reliability are paramount. Every decision should prioritize data protection and system stability.

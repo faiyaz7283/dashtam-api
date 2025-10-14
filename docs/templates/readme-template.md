@@ -303,7 +303,6 @@ If you encounter issues not covered here:
 
 ## Document Information
 
-**Status:** Active
 **Category:** Feature Documentation
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD

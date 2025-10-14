@@ -262,7 +262,6 @@ resources:
 
 ## Document Information
 
-**Status:** Draft | Active | Archived | Superseded
 **Category:** Infrastructure
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD

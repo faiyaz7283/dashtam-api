@@ -225,7 +225,6 @@ example_code()
 
 ## Document Information
 
-**Status:** Draft | Active | Decided | Superseded
 **Category:** Research
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD

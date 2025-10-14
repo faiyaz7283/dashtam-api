@@ -81,7 +81,6 @@ When adding new documents to this directory:
 
 ## Document Information
 
-**Status:** Active
 **Category:** Index/Navigation
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD

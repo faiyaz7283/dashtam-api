@@ -101,11 +101,8 @@ export VERIFICATION_TOKEN="<token-from-logs>"
 
 ## Document Information
 
-**Status:** Draft | Active | Archived | Superseded
 **Category:** API Flow
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
 **API Version:** v1
 **Environment:** Development (HTTPS with self-signed TLS)
-
-[Optional: **Supersedes:** old-flow.md]

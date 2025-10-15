@@ -1,20 +1,84 @@
 # OAuth Token Rotation Guide
 
-This guide explains how to implement OAuth token rotation correctly in Dashtam provider integrations.
-
-## Table of Contents
-
-- [What is Token Rotation?](#what-is-token-rotation)
-- [Why Token Rotation Matters](#why-token-rotation-matters)
-- [How Dashtam Handles Rotation](#how-dashtam-handles-rotation)
-- [Implementation Guidelines](#implementation-guidelines)
-- [Testing Token Rotation](#testing-token-rotation)
-- [Common Pitfalls](#common-pitfalls)
-- [Provider-Specific Behaviors](#provider-specific-behaviors)
+A comprehensive guide for implementing OAuth token rotation correctly in Dashtam provider integrations, covering universal rotation detection, security benefits, and implementation patterns.
 
 ---
 
-## What is Token Rotation?
+## Table of Contents
+
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+- [Examples](#examples)
+- [Verification](#verification)
+- [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
+- [References](#references)
+
+---
+
+## Overview
+
+This guide explains how to implement OAuth token rotation correctly in Dashtam provider integrations. You'll learn about Dashtam's universal rotation detection system, security benefits, and proper implementation patterns.
+
+### What You'll Learn
+
+- What token rotation is and why it matters for security
+- How Dashtam's universal rotation detection system works
+- How to implement `refresh_authentication()` correctly for any provider
+- How to test token rotation scenarios comprehensively
+- How to debug rotation issues using audit logs
+- Provider-specific behaviors and edge cases
+
+### When to Use This Guide
+
+Use this guide when:
+
+- Implementing a new OAuth provider in Dashtam
+- Debugging token refresh issues
+- Understanding why tokens become invalid unexpectedly
+- Implementing secure token handling patterns
+- Testing OAuth refresh flows
+
+### Token Rotation Fundamentals
+
+**Token Rotation** is a security mechanism where an OAuth provider issues a new refresh token each time you use the old one to get a new access token. The old refresh token is immediately invalidated.
+
+**Two Strategies:**
+
+1. **No Rotation** - Refresh token stays the same (most common)
+2. **With Rotation** - New refresh token issued each time (more secure)
+
+## Prerequisites
+
+Before implementing token rotation, ensure you have:
+
+- [ ] Understanding of OAuth 2.0 refresh token flow
+- [ ] Access to provider's OAuth documentation
+- [ ] Dashtam development environment set up
+- [ ] Knowledge of async Python programming
+
+**Required Tools:**
+
+- httpx - For HTTP client operations
+- pytest - For testing rotation scenarios
+- Dashtam TokenService - For universal rotation handling
+- Provider API access - For testing refresh flows
+
+**Required Knowledge:**
+
+- OAuth 2.0 authorization flows
+- HTTP request/response handling
+- Async/await patterns in Python
+- Database transaction concepts
+
+## Step-by-Step Instructions
+
+### Step 1: Understand Token Rotation Types
+
+Review the two token rotation strategies that providers may implement:
+
+**Token Rotation Concepts:**
 
 **Token Rotation** is a security mechanism where an OAuth provider issues a new refresh token each time you use the old one to get a new access token. The old refresh token is immediately invalidated.
 
@@ -80,9 +144,11 @@ WITH ROTATION:
 └──────────────────────────────────────────────┘
 ```
 
----
+### Step 2: Understand Security Benefits
 
-## Why Token Rotation Matters
+Learn why token rotation is important for OAuth security:
+
+**Security Benefits of Token Rotation:**
 
 ### Security Benefits
 
@@ -96,9 +162,11 @@ WITH ROTATION:
 - **No rotation:** Simpler implementation, but less secure
 - **With rotation:** More secure, but requires careful handling to avoid breaking user sessions
 
----
+### Step 3: Learn Dashtam's Universal System
 
-## How Dashtam Handles Rotation
+Understand how Dashtam handles rotation automatically:
+
+**Dashtam's Universal Rotation Detection:**
 
 Dashtam uses a **universal rotation detection system** that works for ALL providers, regardless of whether they rotate tokens or not.
 
@@ -148,9 +216,11 @@ Dashtam uses a **universal rotation detection system** that works for ALL provid
 4. ✅ **Audit logs** track rotation events
 5. ✅ **No provider-specific rotation logic needed**
 
----
+### Step 4: Implement refresh_authentication() Method
 
-## Implementation Guidelines
+Implement the core method that handles token refresh:
+
+**Implementation Pattern:**
 
 ### Step 1: Implement `refresh_authentication()` Method
 
@@ -247,9 +317,57 @@ if "refresh_token" in tokens:
 return result
 ```
 
----
+### Step 5: Test Your Implementation
 
-## Testing Token Rotation
+Write comprehensive tests for your token rotation implementation. See Examples section for complete test patterns.
+
+## Examples
+
+### Complete Provider Implementation
+
+Here's a complete example of implementing token rotation correctly:
+
+```python
+class ExampleProvider(BaseProvider):
+    """Example OAuth provider with proper token rotation handling."""
+    
+    async def refresh_authentication(self, refresh_token: str) -> Dict[str, Any]:
+        """Refresh access token, handling rotation automatically."""
+        async with httpx.AsyncClient(timeout=settings.get_http_timeout()) as client:
+            response = await client.post(
+                f"{self.base_url}/oauth/token",
+                headers=self._get_auth_headers(),
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token
+                }
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Token refresh failed: {response.text}")
+            
+            tokens = response.json()
+            
+            # Build response - only include what provider sends
+            result = {
+                "access_token": tokens["access_token"],
+                "expires_in": tokens.get("expires_in", 3600),
+                "token_type": tokens.get("token_type", "Bearer"),
+            }
+            
+            # ✅ CRITICAL: Only include if provider sent it
+            if "refresh_token" in tokens:
+                result["refresh_token"] = tokens["refresh_token"]
+                logger.debug(f"{self.provider_name} sent new refresh token")
+            else:
+                logger.debug(f"{self.provider_name} did not send refresh token")
+            
+            return result
+```
+
+### Testing Token Rotation
+
+Comprehensive test suite for token rotation scenarios:
 
 ### Test Scenarios to Cover
 
@@ -292,101 +410,11 @@ async def test_token_rotation_detected(db_session):
 
 See `tests/unit/services/test_token_rotation.py` for complete examples.
 
----
+## Verification
 
-## Common Pitfalls
+How to verify your token rotation implementation is working correctly:
 
-### Pitfall 1: Defaulting to Input Token
-
-```python
-# ❌ WRONG
-"refresh_token": tokens.get("refresh_token", refresh_token)
-
-# ✅ CORRECT
-if "refresh_token" in tokens:
-    result["refresh_token"] = tokens["refresh_token"]
-```
-
-### Pitfall 2: Not Testing All Scenarios
-
-Make sure to test:
-
-- ✅ Rotation happens
-- ✅ No rotation (key omitted)
-- ✅ Same token returned (edge case)
-
-### Pitfall 3: Assuming Provider Behavior
-
-Never assume:
-
-- "Provider X always rotates" → Test both scenarios
-- "Provider Y never rotates" → API may change
-- "All banking providers rotate" → Each is different
-
-### Pitfall 4: Logging Tokens in Plain Text
-
-```python
-# ❌ NEVER log actual tokens
-logger.info(f"Refresh token: {refresh_token}")
-
-# ✅ Log rotation events only
-logger.info("Token rotation detected")
-logger.debug("Provider sent new refresh token")
-```
-
----
-
-## Provider-Specific Behaviors
-
-### Charles Schwab
-
-**Observed Behavior:** No rotation (in most cases)
-
-- Refresh response omits `refresh_token` field
-- Same refresh token used indefinitely
-- Rotation handled correctly by Dashtam's implementation
-
-**Implementation:** `src/providers/schwab.py`
-
-```python
-# Only includes refresh_token if Schwab sends it
-if "refresh_token" in tokens:
-    result["refresh_token"] = tokens["refresh_token"]
-```
-
-### Future Providers (Plaid, Chase, etc.)
-
-When adding new providers:
-
-1. **Read the provider's documentation** for their rotation policy
-2. **Implement the standard pattern** (only include if present)
-3. **Test both scenarios** (with and without rotation)
-4. **Document observed behavior** in provider docstring
-
-**Example for new provider:**
-
-```python
-class ChaseProvider(BaseProvider):
-    """Chase banking provider.
-    
-    Token Rotation: Chase DOES rotate refresh tokens on every refresh.
-    Each refresh operation returns a new refresh_token that must be
-    stored, and the old one becomes invalid.
-    """
-    
-    async def refresh_authentication(self, refresh_token: str):
-        # Standard implementation - works regardless of rotation
-        result = {"access_token": tokens["access_token"]}
-        if "refresh_token" in tokens:
-            result["refresh_token"] = tokens["refresh_token"]
-        return result
-```
-
----
-
-## Debugging Rotation Issues
-
-### Check Audit Logs
+### Check 1: Audit Log Verification
 
 ```python
 # Query audit logs for rotation events
@@ -404,71 +432,146 @@ for log in result.scalars():
     print(f"Type: {log.details['rotation_type']}")
 ```
 
-### Check Logs
+**Expected Result:** Logs should show correct rotation detection based on provider behavior.
 
-Look for these log messages:
+### Check 2: Token Refresh Flow
 
-```log
-# Rotation detected
-INFO: Token rotation detected for Schwab: Provider sent new refresh token
-
-# No rotation
-DEBUG: Provider Schwab did not include refresh_token in response (no rotation)
-
-# Same token returned
-DEBUG: Provider Schwab returned same refresh token (no rotation)
+```bash
+# Test token refresh through API
+curl -X POST http://localhost:8000/api/v1/providers/{id}/refresh \
+  -H "Authorization: Bearer access_token"
 ```
 
-### Common Issues
+**Expected Result:** New access token returned, refresh token handling based on provider.
 
-1. **"Provider always shows rotation"**
-   - Check if provider implementation defaults to old token
-   - Should only include key if present in API response
+### Check 3: Multiple Refresh Sequence
 
-2. **"Provider never shows rotation"**
-   - Verify API actually sends refresh_token
-   - Check response parsing logic
+Test multiple refreshes in sequence to ensure rotation persistence:
 
-3. **"Rotation works but tokens become invalid"**
-   - Ensure database commits after rotation
-   - Check for race conditions in concurrent requests
+```python
+# Test multiple refreshes
+for i in range(3):
+    result = await token_service.refresh_token(provider.id, user.id)
+    print(f"Refresh {i+1}: {result.success}")
+```
 
----
+**Expected Result:** All refreshes succeed, rotation detected appropriately.
 
-## Summary Checklist
+## Troubleshooting
 
-When implementing token rotation for a new provider:
+### Issue 1: Provider Always Shows Rotation
 
-- [ ] Read provider's OAuth documentation
-- [ ] Implement `refresh_authentication()` following pattern
+**Symptoms:**
+
+- Audit logs show rotation even when provider doesn't rotate
+- Different refresh token returned each time
+
+**Cause:** Provider implementation defaults to input token
+
+**Solution:**
+
+```python
+# ❌ WRONG - Remove default fallback
+"refresh_token": tokens.get("refresh_token", refresh_token)
+
+# ✅ CORRECT - Only include if present
+if "refresh_token" in tokens:
+    result["refresh_token"] = tokens["refresh_token"]
+```
+
+### Issue 2: Provider Never Shows Rotation
+
+**Symptoms:**
+
+- Audit logs never show rotation
+- Provider documentation says tokens rotate
+
+**Cause:** Response parsing doesn't detect new tokens
+
+**Solution:**
+
+- Verify API actually sends `refresh_token` field
+- Check HTTP response parsing logic
+- Test with provider's sandbox environment
+
+### Issue 3: Tokens Become Invalid After Rotation
+
+**Symptoms:**
+
+- Rotation detected but subsequent requests fail
+- "Invalid refresh token" errors
+
+**Cause:** Database not committed or race conditions
+
+**Solution:**
+
+- Ensure database transaction commits after token storage
+- Check for concurrent refresh attempts
+- Verify token encryption/decryption process
+
+## Best Practices
+
+Follow these best practices for robust token rotation:
+
+- ✅ **Only Include When Present:** Never default refresh_token to input value
+- ✅ **Test All Scenarios:** Test rotation, no-rotation, and same-token cases
+- ✅ **Use Universal Pattern:** Follow Dashtam's standard implementation
+- ✅ **Log Events Not Tokens:** Log rotation events, never actual token values
+- ✅ **Handle Edge Cases:** Account for same token returned edge case
+- ✅ **Verify with Provider:** Check provider documentation for rotation policy
+- ✅ **Test With Real API:** Use sandbox/test environments when possible
+- ✅ **Monitor Audit Logs:** Use audit logs for rotation behavior verification
+
+### Common Mistakes to Avoid
+
+- ❌ **Defaulting to Input Token:** Breaks rotation detection
+- ❌ **Assuming Provider Behavior:** Test actual provider responses
+- ❌ **Incomplete Testing:** Test both rotation and no-rotation scenarios
+- ❌ **Logging Tokens:** Never log actual token values in plain text
+- ❌ **Ignoring Edge Cases:** Same token returned is valid but rare
+
+### Security Considerations
+
+- **Rotation Detection:** Essential for security audit compliance
+- **Token Lifetime:** Rotation reduces stolen token lifetime
+- **Attack Detection:** Failed rotation can indicate token theft
+- **Audit Trail:** All rotation events must be logged for security reviews
+
+### Implementation Checklist
+
+When implementing a new provider:
+
+- [ ] Read provider's OAuth documentation thoroughly
+- [ ] Implement `refresh_authentication()` following standard pattern
 - [ ] Only include `refresh_token` if provider sends it
-- [ ] Never default to input refresh_token
+- [ ] Never default to input refresh_token value
 - [ ] Write tests for rotation scenarios
 - [ ] Write tests for no-rotation scenarios
 - [ ] Test edge case of same token returned
-- [ ] Document provider's rotation behavior
-- [ ] Verify audit logs capture rotation events
-- [ ] Test with real API (if possible)
+- [ ] Document provider's observed rotation behavior
+- [ ] Verify audit logs capture rotation events correctly
+- [ ] Test with real API when possible
+
+## References
+
+- [OAuth 2.0 RFC 6749 - Token Refresh](https://tools.ietf.org/html/rfc6749#section-6) - Official OAuth specification
+- [OAuth 2.0 Security Best Practices](https://tools.ietf.org/html/draft-ietf-oauth-security-topics) - Security guidelines
+- [JWT Authentication Architecture](../architecture/jwt-authentication.md) - Dashtam's auth architecture
+- [Provider Implementation Guide](../guides/provider-implementation.md) - General provider patterns
+
+**Dashtam Code References:**
+
+- `src/services/token_service.py` - Universal rotation logic implementation
+- `src/providers/base.py` - Abstract method documentation and interface
+- `src/providers/schwab.py` - Reference implementation example
+- `tests/unit/services/test_token_rotation.py` - Comprehensive test examples
 
 ---
 
-## Additional Resources
+## Document Information
 
-- [OAuth 2.0 RFC 6749 - Token Refresh](https://tools.ietf.org/html/rfc6749#section-6)
-- [OAuth 2.0 Security Best Practices](https://tools.ietf.org/html/draft-ietf-oauth-security-topics)
-- Dashtam Code:
-  - `src/services/token_service.py` - Universal rotation logic
-  - `src/providers/base.py` - Abstract method documentation
-  - `src/providers/schwab.py` - Reference implementation
-  - `tests/unit/services/test_token_rotation.py` - Comprehensive tests
-
----
-
-**Questions or Issues?**
-
-If you encounter unexpected rotation behavior:
-
-1. Check audit logs for rotation_type
-2. Review provider's API documentation
-3. Test with provider's sandbox/test environment
-4. Verify response format matches expectations
+**Category:** Guide  
+**Created:** 2025-10-04  
+**Last Updated:** 2025-10-15  
+**Difficulty Level:** Advanced  
+**Estimated Time:** 60-90 minutes

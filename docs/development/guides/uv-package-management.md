@@ -707,3 +707,15 @@ docker compose -f docker-compose.dev.yml exec app uv tree
 ---
 
 **Remember:** UV is designed to be fast and intuitive. When in doubt, `uv --help` or `uv <command> --help` provides excellent inline documentation!
+
+---
+
+## Document Information
+
+**Category:** Guide
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-15
+**Difficulty Level:** Intermediate
+**Target Audience:** Developers, DevOps engineers, Python package managers
+**Prerequisites:** Basic Python knowledge, Docker familiarity
+**Related Documents:** [Docker Setup Guide](../infrastructure/docker-setup.md)

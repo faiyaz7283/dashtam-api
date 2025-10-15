@@ -334,8 +334,7 @@ This markdown linting step is part of the **Code Quality** phase:
 vim docs/development/guides/new-guide.md
 
 # 2. Lint immediately
-docker compose -f compose/docker-compose.dev.yml exec app \
-  uv run markdownlint-cli2 "docs/development/guides/new-guide.md"
+make lint-md-file FILE="docs/development/guides/new-guide.md"
 
 # 3. Fix violations, re-lint until clean
 # ... edit file to fix issues ...

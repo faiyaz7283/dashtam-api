@@ -137,25 +137,36 @@ Phase 5: Gradual Expansion (As Confidence Grows)
 - Compatible with VS Code extension
 - Can use `.markdownlintignore` for exceptions
 
-**Installation:**
+**No Installation Required:**
 
-```bash
-# Via UV (project dependency)
-docker compose -f compose/docker-compose.dev.yml exec app \
-  uv add --group dev markdownlint-cli2
-```
+Dashtam uses a one-off Node.js container approach (no project dependencies needed).
 
-**Usage:**
+**Usage via Makefile (Recommended):**
 
 ```bash
 # Check all files (non-destructive)
-markdownlint-cli2 "**/*.md"
+make lint-md
 
-# Check with auto-fix (use carefully)
-markdownlint-cli2 --fix "docs/README.md"
+# Check specific file
+make lint-md-file FILE="docs/README.md"
 
-# Check specific directory
-markdownlint-cli2 "docs/development/**/*.md"
+# Check specific directory pattern
+make lint-md-file FILE="docs/development/**/*.md"
+
+# Auto-fix issues (with confirmation prompt)
+make lint-md-fix
+```
+
+**Direct Docker Usage:**
+
+```bash
+# Check all files
+docker run --rm -v $(PWD):/workspace:ro -w /workspace node:24-alpine \
+  npx markdownlint-cli2 "**/*.md" "#node_modules"
+
+# Check specific file
+docker run --rm -v $(PWD):/workspace:ro -w /workspace node:24-alpine \
+  npx markdownlint-cli2 "docs/README.md"
 ```
 
 #### 2. **remark-cli with remark-lint** (Alternative/Supplementary)
@@ -283,23 +294,38 @@ https://this-bare-url-is-ok.com
 
 ### Makefile Commands
 
-Add to `Makefile`:
+The project Makefile already includes these commands (no changes needed):
 
 ```makefile
-# Markdown linting commands
-.PHONY: lint-md lint-md-fix md-check
+# Markdown linting commands (uses one-off Node.js container)
+MARKDOWN_LINT_IMAGE := node:24-alpine
+MARKDOWN_LINT_CMD := npx markdownlint-cli2
 
-lint-md:  ## Check Markdown files for linting issues
-  @echo "Linting Markdown files..."
-  docker compose -f compose/docker-compose.dev.yml exec app \
-    uv run markdownlint-cli2 "**/*.md"
+lint-md:  ## Check all Markdown files for linting issues
+  @echo "🔍 Linting markdown files..."
+  @docker run --rm \
+    -v $(PWD):/workspace:ro \
+    -w /workspace \
+    $(MARKDOWN_LINT_IMAGE) \
+    $(MARKDOWN_LINT_CMD) "**/*.md" "#node_modules"
 
-lint-md-fix:  ## Fix auto-fixable Markdown issues (CAREFUL!)
-  @echo "⚠️  Warning: This will modify Markdown files"
-  @echo "Press Ctrl+C to cancel, or Enter to continue..."
-  @read
-  docker compose -f compose/docker-compose.dev.yml exec app \
-    uv run markdownlint-cli2 --fix "docs/**/*.md"
+lint-md-fix:  ## Fix auto-fixable Markdown issues (with confirmation)
+  @echo "⚠️  WARNING: This will modify markdown files!"
+  @read -p "Continue? (yes/no): " confirm; \
+  if [ "$$confirm" = "yes" ]; then \
+    docker run --rm \
+      -v $(PWD):/workspace \
+      -w /workspace \
+      $(MARKDOWN_LINT_IMAGE) \
+      $(MARKDOWN_LINT_CMD) --fix "**/*.md" "#node_modules"; \
+  fi
+
+lint-md-file:  ## Lint specific file(s) - Usage: make lint-md-file FILE="path/to/file.md"
+  @docker run --rm \
+    -v $(PWD):/workspace:ro \
+    -w /workspace \
+    $(MARKDOWN_LINT_IMAGE) \
+    $(MARKDOWN_LINT_CMD) "$(FILE)"
 
 md-check: lint-md  ## Alias for lint-md
 ```
@@ -318,9 +344,12 @@ STAGED_MD_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$'
 if [ -n "$STAGED_MD_FILES" ]; then
     echo "Running markdownlint on staged Markdown files..."
     
-    # Run markdownlint (check only, no auto-fix)
-    docker compose -f compose/docker-compose.dev.yml exec -T app \
-        uv run markdownlint-cli2 $STAGED_MD_FILES
+    # Run markdownlint using one-off container (check only, no auto-fix)
+    docker run --rm \
+        -v $(PWD):/workspace:ro \
+        -w /workspace \
+        node:24-alpine \
+        npx markdownlint-cli2 $STAGED_MD_FILES
     
     if [ $? -ne 0 ]; then
         echo "❌ Markdown linting failed. Please fix issues before committing."
@@ -376,7 +405,7 @@ Add to `.vscode/settings.json`:
    git checkout -b test/markdown-formatting
    
    # Format a single file
-   markdownlint-cli2 --fix docs/path/to/file.md
+   make lint-md-fix  # Or lint specific file with make lint-md-file FILE="..."
    
    # Commit and push
    git add docs/path/to/file.md

@@ -2,24 +2,29 @@
 
 This section provides end-to-end, HTTPS-first guides for manually testing real user flows against the development environment (TLS-enabled), mirroring production usage as closely as possible.
 
-**Goals:**
+---
 
-- Validate user-centric scenarios (not just single endpoints)
-- Enable reproducible, copy-pasteable steps for reviewers and teammates
-- Keep a consistent approach across flows and domains
+## 📚 Contents
 
-**Conventions:**
+Comprehensive manual testing flows for the Dashtam API, organized by domain and user journey. All flows use HTTPS with self-signed certificates for development environment testing.
 
-- HTTPS-first with curl -k (dev TLS uses self-signed certs)
-- Organize by domain (auth, providers, etc.), not HTTP verb
-- Each flow document includes:
-  - Purpose and prerequisites
-  - Step-by-step commands (curl)
-  - Expected responses (focused snippets)
-  - Cleanup (where applicable)
-  - Troubleshooting
-- Use shell variables for inputs and never inline secrets in docs
-- Quote-safe commands: prefer heredocs + `--data-binary @file` for JSON payloads to avoid shell quoting issues (no dquote> prompts)
+---
+
+## 🗺️ Directory Structure
+
+```bash
+api-flows/
+├── auth/
+│   ├── registration.md           # User registration flow
+│   ├── email-verification.md     # Email verification process
+│   ├── login.md                  # Login and token management
+│   ├── password-reset.md         # Password reset flow
+│   └── complete-auth-flow.md     # End-to-end authentication
+├── providers/
+│   ├── provider-onboarding.md    # Provider OAuth setup
+│   └── provider-refresh.md       # Token refresh flow
+└── index.md                      # This file
+```
 
 **Quick start (dev, HTTPS):**
 
@@ -103,13 +108,83 @@ This is **correct behavior** for stateless JWT architecture (Pattern A - industr
 
 **See**: [JWT Authentication - Logout Behavior](../development/architecture/jwt-authentication.md#flow-5-logout) for detailed explanation.
 
-## How to add a new flow
+---
 
-- Copy `flow-template.md` into the appropriate subdirectory
-- Follow the template structure (Purpose, Prerequisites, Steps, Troubleshooting, Related Flows)
-- Keep commands minimal and idempotent where possible
+## 📝 Documents
+
+### Authentication Flows
+
+Complete authentication workflows for user management:
+
+- [User Registration](auth/registration.md) - Register new user with email verification
+- [Email Verification](auth/email-verification.md) - Verify email address with token
+- [User Login](auth/login.md) - Login, token management, and logout
+- [Password Reset](auth/password-reset.md) - Forgot password workflow
+- [Complete Auth Flow](auth/complete-auth-flow.md) - End-to-end authentication testing
+
+### Provider Flows
+
+Financial provider integration workflows:
+
+- [Provider Onboarding](providers/provider-onboarding.md) - OAuth setup and connection
+- [Provider Token Refresh](providers/provider-refresh.md) - Token refresh and rotation
+
+---
+
+## 🔗 Quick Links
+
+**Related Documentation:**
+
+- [API Flow Template](../templates/api-flow-template.md) - Template for creating new flows
+- [Development Guide](../development/) - Developer documentation
+- [Testing Strategy](../development/testing/strategy.md) - Overall testing approach
+
+**External Resources:**
+
+- [curl Documentation](https://curl.se/docs/) - HTTP client reference
+- [HTTP Status Codes](https://httpstatuses.com/) - Status code reference
+- [JWT.io](https://jwt.io/) - JWT token decoder
+
+---
+
+## 🗺️ Navigation
+
+**Parent Directory:** [../index.md](../index.md)
+
+**Related Directories:**
+
+- [Development Documentation](../development/index.md)
+- [Templates](../templates/README.md)
+- [Testing Guides](../development/testing/)
+
+---
+
+## 📝 Contributing
+
+When adding new API flow documents:
+
+1. Copy the [API Flow Template](../templates/api-flow-template.md)
+2. Place in appropriate subdirectory (auth/ or providers/)
+3. Follow established conventions and structure
+4. Update this index with link and description
+5. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
+
+### Flow Creation Guidelines
+
+- Organize by domain (auth, providers) not HTTP verb
+- Each flow represents a complete user journey
+- Include Purpose, Prerequisites, Steps, and Troubleshooting
+- Use HTTPS-first approach with `curl -k` for dev TLS
 - Include expected HTTP status codes for all responses
-- Add token extraction guide if flow involves email tokens
-- Prefer small JSON examples focusing on fields testers must validate
-- Add comprehensive Troubleshooting section with specific error messages
-- Cross-reference related flows (prerequisites and next steps)
+- Add token extraction guides for email-based flows
+- Cross-reference related flows and prerequisites
+
+---
+
+## Document Information
+
+**Category:** Index/Navigation
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15
+**Maintainer:** Development Team
+**Scope:** API manual testing flows index

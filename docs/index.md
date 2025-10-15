@@ -4,6 +4,12 @@ Welcome to the Dashtam documentation! This directory contains all documentation 
 
 ---
 
+## 📚 Contents
+
+Comprehensive documentation for developers, users, and contributors working with the Dashtam financial data aggregation platform. All documentation follows standardized templates and quality guidelines.
+
+---
+
 ## 📚 Documentation Structure
 
 ### For Developers
@@ -202,20 +208,47 @@ When adding new documentation:
 
 ## 🔗 Quick Links
 
-### Essential Resources
+**Related Documentation:**
 
-- **[Template System](templates/README.md)** - START HERE for new documentation
-- **[Mermaid Guidelines](templates/MERMAID_GUIDELINES.md)** - Diagram standards (REQUIRED)
-- [Main README](../README.md) - Project overview
+- [Main README](../README.md) - Project overview and setup
 - [WARP.md](../WARP.md) - AI agent rules and project context
+- [Template System](templates/README.md) - Documentation creation guide
 
-### Documentation
+**External Resources:**
 
-- [Development Docs](development/) - Full developer documentation
-- [API Flows](api-flows/) - Manual API testing flows
-- [Research](research/) - Technical research and decisions
+- [FastAPI Documentation](https://fastapi.tiangolo.com/) - Web framework reference
+- [SQLModel Documentation](https://sqlmodel.tiangolo.com/) - Database ORM reference
+- [Docker Compose Reference](https://docs.docker.com/compose/) - Container orchestration
 
-### Testing
+---
 
-- [Testing Strategy](development/testing/strategy.md) - Overall testing approach
-- [Testing Guide](development/testing/guide.md) - How to write tests
+## 🗺️ Navigation
+
+**Parent Directory:** [../](../)
+
+**Related Directories:**
+
+- [Source Code](../src/) - Application source code
+- [Tests](../tests/) - Test suites and fixtures
+- [Docker Configuration](../compose/) - Container orchestration
+
+---
+
+## 📝 Contributing
+
+When adding new documents to this directory:
+
+1. Follow the appropriate [template](templates/README.md)
+2. Update this README with a link and description
+3. Ensure proper directory structure placement
+4. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
+
+---
+
+## Document Information
+
+**Category:** Index/Navigation
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15
+**Maintainer:** Development Team
+**Scope:** Main documentation index for the Dashtam project

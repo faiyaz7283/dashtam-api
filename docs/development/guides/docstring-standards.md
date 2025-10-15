@@ -1069,6 +1069,14 @@ This guide implements the following WARP.md requirements:
 
 ---
 
-**Last Updated:** 2025-10-11  
-**Maintained By:** Development Team  
-**Review Schedule:** Quarterly or when adding new patterns
+---
+
+## Document Information
+
+**Category:** Guide
+**Created:** 2025-10-11
+**Last Updated:** 2025-10-15
+**Difficulty Level:** Intermediate
+**Target Audience:** Developers, code reviewers, documentation maintainers
+**Prerequisites:** Python knowledge, Google-style docstring familiarity
+**Related Documents:** [Testing Guide](../testing/guide.md), [Test Docstring Standards](../testing/test-docstring-standards.md)

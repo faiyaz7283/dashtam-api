@@ -2,6 +2,23 @@
 
 Request a password reset, verify a token, and confirm the new password using the HTTPS-enabled development environment.
 
+---
+
+## Table of Contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [Steps](#steps)
+  - [1) Request password reset](#1-request-password-reset)
+  - [2) Extract reset token from logs](#2-extract-reset-token-from-logs)
+  - [3) Verify reset token (optional)](#3-verify-reset-token-optional)
+  - [4) Confirm password reset](#4-confirm-password-reset)
+  - [5) Test login with new password](#5-test-login-with-new-password)
+- [🔒 Security Note: Session Revocation](#-security-note-session-revocation)
+- [Next Step](#next-step)
+- [Troubleshooting](#troubleshooting)
+- [Related Flows](#related-flows)
+
 ## Purpose
 
 Allow a user to reset their password securely.
@@ -213,3 +230,21 @@ See [Complete Auth Flow](complete-auth-flow.md) for full end-to-end testing incl
   - Verify DEBUG=true in `env/.env.dev`
 - **SSL certificate errors**: Use `-k` flag with curl to accept self-signed dev certificates
 - **Login fails after reset**: Ensure you're using the NEW_PASSWORD, not the old one
+
+## Related Flows
+
+- **Prerequisites:** [Registration](registration.md) + [Email Verification](email-verification.md) - Account must exist
+- **Next step:** [Login](login.md) - Authenticate with new password
+- **Complete flow:** [Complete Auth Flow](complete-auth-flow.md) - End-to-end testing with password reset
+- **Alternative:** [Login](login.md) - If you remember your current password
+- **Architecture:** [JWT Authentication](../../development/architecture/jwt-authentication.md) - Understanding password security
+
+---
+
+## Document Information
+
+**Category:** API Flow  
+**Created:** 2025-10-15  
+**Last Updated:** 2025-10-15  
+**API Version:** v1  
+**Environment:** Development (HTTPS with self-signed TLS)

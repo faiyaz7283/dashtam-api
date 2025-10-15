@@ -2,6 +2,20 @@
 
 Register a new user using the HTTPS-enabled development environment.
 
+---
+
+## Table of Contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [Steps](#steps)
+  - [1) Register](#1-register)
+  - [2) Extract verification token from logs](#2-extract-verification-token-from-logs)
+- [Next Step](#next-step)
+- [Cleanup](#cleanup-optional)
+- [Troubleshooting](#troubleshooting)
+- [Related Flows](#related-flows)
+
 ## Purpose
 
 Create a new user account that can later be verified and used to log in.
@@ -121,3 +135,20 @@ echo "Verification token: $VERIFICATION_TOKEN"
   - Ensure dev environment is running: `make dev-status`
   - Check logs are streaming: `make dev-logs`
   - Verify DEBUG=true in `env/.env.dev`
+
+## Related Flows
+
+- **Next step:** [Email Verification](email-verification.md) - Verify the email address with extracted token
+- **Complete flow:** [Complete Auth Flow](complete-auth-flow.md) - End-to-end authentication testing
+- **After verification:** [Login](login.md) - Authenticate with verified credentials
+- **Architecture:** [JWT Authentication](../../development/architecture/jwt-authentication.md) - Understanding the auth system
+
+---
+
+## Document Information
+
+**Category:** API Flow  
+**Created:** 2025-10-15  
+**Last Updated:** 2025-10-15  
+**API Version:** v1  
+**Environment:** Development (HTTPS with self-signed TLS)

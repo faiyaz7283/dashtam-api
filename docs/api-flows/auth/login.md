@@ -2,6 +2,20 @@
 
 Log in as a verified user, capture tokens, call a protected endpoint, refresh, and logout.
 
+---
+
+## Table of Contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [Steps](#steps)
+  - [1) Login to obtain tokens](#1-login-to-obtain-tokens)
+  - [2) Call a protected endpoint](#2-call-a-protected-endpoint)
+  - [3) Refresh access token](#3-refresh-access-token)
+  - [4) Logout (revoke refresh token)](#4-logout-revoke-refresh-token)
+  - [5) Verify logout behavior](#5-verify-logout-behavior)
+- [Related Flows](#related-flows)
+
 ## Purpose
 
 Authenticate a user and validate token-based access to protected resources.
@@ -203,3 +217,21 @@ curl -sk "$BASE_URL/api/v1/auth/me" \
 - **401 Unauthorized:** access token expired/invalid → refresh or re-login
 - **403 Forbidden:** missing/invalid Authorization header (Bearer prefix required)
 - **SSL:** use `-k` in dev to accept self-signed certificate
+
+## Related Flows
+
+- **Prerequisites:** [Registration](registration.md) → [Email Verification](email-verification.md) - Required before login
+- **Alternative:** [Password Reset](password-reset.md) - If password forgotten
+- **Complete flow:** [Complete Auth Flow](complete-auth-flow.md) - End-to-end authentication testing
+- **After login:** [Provider Onboarding](../providers/provider-onboarding.md) - Connect financial accounts
+- **Architecture:** [JWT Authentication](../../development/architecture/jwt-authentication.md) - Understanding the auth system
+
+---
+
+## Document Information
+
+**Category:** API Flow  
+**Created:** 2025-10-15  
+**Last Updated:** 2025-10-15  
+**API Version:** v1  
+**Environment:** Development (HTTPS with self-signed TLS)

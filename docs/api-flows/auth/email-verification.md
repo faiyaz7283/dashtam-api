@@ -1,6 +1,19 @@
 # Email Verification (HTTPS, Dev)
 
-Verify a user’s email using the HTTPS-enabled development environment.
+Verify a user's email using the HTTPS-enabled development environment.
+
+---
+
+## Table of Contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [Steps](#steps)
+  - [1) Extract verification token from logs](#1-extract-verification-token-from-logs)
+  - [2) Verify email](#2-verify-email)
+- [Next Step](#next-step)
+- [Troubleshooting](#troubleshooting)
+- [Related Flows](#related-flows)
 
 ## Purpose
 
@@ -107,3 +120,20 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/verify-email" \
   - Check logs immediately after registration: `docker logs dashtam-dev-app --tail 50`
   - Verify DEBUG=true in `env/.env.dev`
 - **SSL certificate errors**: Use `-k` flag with curl to accept self-signed dev certificates
+
+## Related Flows
+
+- **Previous step:** [Registration](registration.md) - Register user account and obtain verification token
+- **Next step:** [Login](login.md) - Authenticate with verified account
+- **Complete flow:** [Complete Auth Flow](complete-auth-flow.md) - End-to-end authentication testing
+- **Architecture:** [JWT Authentication](../../development/architecture/jwt-authentication.md) - Understanding the auth system
+
+---
+
+## Document Information
+
+**Category:** API Flow  
+**Created:** 2025-10-15  
+**Last Updated:** 2025-10-15  
+**API Version:** v1  
+**Environment:** Development (HTTPS with self-signed TLS)

@@ -1554,6 +1554,13 @@ If you have questions about the Git workflow:
 
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** 2024-01-15  
-**Maintained By:** Dashtam Development Team
+---
+
+## Document Information
+
+**Category:** Guide
+**Created:** 2025-10-03
+**Last Updated:** 2025-10-15
+**Difficulty Level:** Intermediate
+**Target Audience:** Developers, contributors, maintainers
+**Prerequisites:** Basic Git knowledge, GitHub account access

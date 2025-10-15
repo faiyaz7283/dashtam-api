@@ -1,12 +1,74 @@
 # JWT Authentication Quick Reference
 
-**Last Updated:** 2025-10-04  
-**For:** Developers using Dashtam authentication system  
-**Pattern:** Pattern A (JWT Access + Opaque Refresh)
+A comprehensive quick reference guide for developers using the Dashtam JWT authentication system with Pattern A (JWT Access + Opaque Refresh tokens).
 
 ---
 
-## Quick Start
+## Table of Contents
+
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+- [Examples](#examples)
+- [Verification](#verification)
+- [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
+- [References](#references)
+
+---
+
+## Overview
+
+This guide provides quick reference information for integrating with Dashtam's JWT authentication system. You'll learn how to register users, authenticate, manage tokens, and handle common authentication scenarios.
+
+### What You'll Learn
+
+- How to register and verify user accounts
+- How to login and manage JWT access tokens
+- How to implement token refresh patterns
+- How to build authentication clients in Python, JavaScript/TypeScript, and React
+- How to handle common authentication errors
+
+### When to Use This Guide
+
+Use this guide when:
+
+- Building client applications that integrate with Dashtam
+- Implementing user authentication flows
+- Need quick reference for API endpoints and patterns
+- Troubleshooting authentication issues
+
+### Authentication Pattern
+
+**Pattern A:** JWT Access + Opaque Refresh
+
+- **Access Token:** JWT, 30 minutes TTL, stateless
+- **Refresh Token:** Opaque, 30 days TTL, hashed in database
+
+## Prerequisites
+
+Before using this guide, ensure you have:
+
+- [ ] Dashtam API server running (localhost:8000 or production URL)
+- [ ] Valid API endpoint access
+- [ ] HTTP client (curl, Postman, or programmatic client)
+
+**Required Tools:**
+
+- curl - For command line testing
+- Python 3.13+ - For Python examples (optional)
+- Node.js 18+ - For JavaScript/TypeScript examples (optional)
+- React 18+ - For React hook examples (optional)
+
+**Required Knowledge:**
+
+- Basic understanding of HTTP/REST APIs
+- Familiarity with JWT tokens
+- Understanding of authentication vs authorization
+
+## Step-by-Step Instructions
+
+### Step 1: Register a New User
 
 ### 1. Register a New User
 
@@ -126,9 +188,9 @@ curl -X POST http://localhost:8000/api/v1/auth/logout \
 # Delete stored tokens from client
 ```
 
----
+## Examples
 
-## Python Client Example
+### Python Client Example
 
 ```python
 import httpx
@@ -563,6 +625,52 @@ function LoginPage() {
 }
 ```
 
+## Verification
+
+How to verify your authentication integration is working correctly:
+
+### Check 1: Registration and Email Verification
+
+```bash
+# Test user registration
+REGISTER_RESPONSE=$(curl -s -X POST http://localhost:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "TestPass123!",
+    "name": "Test User"
+  }')
+
+echo "Registration: $REGISTER_RESPONSE"
+```
+
+**Expected Result:** Should receive `201 Created` with message about email verification.
+
+### Check 2: Token Validation
+
+```bash
+# Verify JWT token structure (decode without validation)
+python3 -c "
+import jwt
+import json
+token = 'your-jwt-token-here'
+decoded = jwt.decode(token, options={'verify_signature': False})
+print(json.dumps(decoded, indent=2))
+"
+```
+
+**Expected Result:** Should show JWT payload with `sub`, `exp`, `iat` fields.
+
+### Check 3: Protected Endpoint Access
+
+```bash
+# Test authenticated request
+curl -H "Authorization: Bearer your-access-token" \
+  http://localhost:8000/api/v1/auth/me
+```
+
+**Expected Result:** Should return user profile information.
+
 ---
 
 ## All API Endpoints
@@ -624,9 +732,7 @@ const [accessToken, setAccessToken] = useState(null);
 - Refresh token: httpOnly cookie (auto-sent)
 - Backend returns `Set-Cookie` header with httpOnly flag
 
----
-
-## Error Handling
+## Troubleshooting
 
 ### Common Error Codes
 
@@ -680,17 +786,39 @@ Repeat...
 LOGOUT → Refresh Token REVOKED
 ```
 
----
+## Best Practices
 
-## Security Best Practices
+Follow these best practices for secure and reliable authentication:
 
-1. **NEVER log tokens** - They're like passwords
-2. **Use HTTPS** - Tokens in plain HTTP can be intercepted
-3. **Store refresh tokens securely** - httpOnly cookies preferred
-4. **Implement token rotation** - Refresh token changes on each use (future)
-5. **Handle token expiry gracefully** - Auto-refresh in client
-6. **Logout on suspicious activity** - E.g., multiple failed refresh attempts
-7. **Don't share tokens** - Each device should have its own
+- ✅ **Never Log Tokens:** Treat tokens like passwords - never log or expose them
+- ✅ **Always Use HTTPS:** Tokens transmitted over HTTP can be intercepted
+- ✅ **Secure Token Storage:** Use httpOnly cookies for refresh tokens, memory for access tokens
+- ✅ **Implement Auto-Refresh:** Handle token expiry gracefully with automatic refresh
+- ✅ **Use Strong Passwords:** Enforce password complexity (8+ chars, mixed case, symbols)
+- ✅ **Logout on Suspicious Activity:** Revoke tokens on multiple failed attempts
+- ✅ **One Token Per Device:** Each device/session should have its own token pair
+
+### Token Storage Security
+
+**❌ DON'T** (Vulnerable to XSS):
+
+```javascript
+// Storing tokens in localStorage
+localStorage.setItem('access_token', token);
+```
+
+**✅ DO** (More secure):
+
+```javascript
+// Use httpOnly cookies (backend sets it) or memory storage
+const [accessToken, setAccessToken] = useState(null);
+```
+
+**🏆 BEST** (Production):
+
+- Access token: Memory storage (React state)
+- Refresh token: httpOnly cookie (auto-sent by browser)
+- Backend returns `Set-Cookie` header with httpOnly flag
 
 ---
 
@@ -729,29 +857,27 @@ print(f"Token expires at: {exp_time}")
 print(f"Time remaining: {exp_time - datetime.now()}")
 ```
 
----
+### Common Authentication Issues
 
-## Troubleshooting
-
-### "Token validation failed"
+#### "Token validation failed"
 
 - Check token hasn't expired
 - Verify token is being sent in correct format: `Authorization: Bearer <token>`
 - Ensure no extra spaces or newlines in token
 
-### "Refresh token not found or revoked"
+#### "Refresh token not found or revoked"
 
 - Token was already used for logout
 - Token expired (30 days)
 - User needs to login again
 
-### "Email not verified"
+#### "Email not verified"
 
 - User must verify email before logging in
 - Check email for verification link
 - In dev mode, check logs for token
 
-### "Account is locked"
+#### "Account is locked"
 
 - Too many failed login attempts (10+)
 - Wait 1 hour or contact administrator
@@ -795,16 +921,20 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 └─────────────────────────────────────────────────────────┘
 ```
 
+## References
+
+- [JWT Authentication Architecture](../architecture/jwt-authentication.md) - Complete system architecture and design
+- [API Documentation](http://localhost:8000/docs) - Interactive OpenAPI documentation
+- [Authentication Implementation Guide](authentication-implementation.md) - Detailed implementation guide
+- [Token Rotation Guide](token-rotation.md) - Advanced token security patterns
+- [REST API Design](../architecture/restful-api-design.md) - API design principles
+
 ---
 
-## Additional Resources
+## Document Information
 
-- **Architecture Guide:** `docs/development/architecture/jwt-authentication.md`
-- **Full Implementation:** `docs/development/guides/authentication-implementation.md`
-- **API Documentation:** http://localhost:8000/docs (when running)
-
----
-
-**Last Updated:** 2025-10-04  
-**Version:** 1.0  
-**Status:** ✅ Production Ready
+**Category:** Guide  
+**Created:** 2025-10-04  
+**Last Updated:** 2025-10-15  
+**Difficulty Level:** Intermediate  
+**Estimated Time:** 30-45 minutes

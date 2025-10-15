@@ -1,10 +1,75 @@
 # RESTful API Quick Reference
 
-**Quick guide for developers building REST APIs in Dashtam:**
+A comprehensive quick reference guide for developers building RESTful APIs following Dashtam's established patterns, conventions, and best practices.
 
 ---
 
-## HTTP Methods Cheat Sheet
+## Table of Contents
+
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+- [Examples](#examples)
+- [Verification](#verification)
+- [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
+- [References](#references)
+
+---
+
+## Overview
+
+This guide provides quick reference information for building REST APIs in Dashtam. You'll learn HTTP method usage, status codes, URL patterns, endpoint implementation, and testing strategies.
+
+### What You'll Learn
+
+- How to use HTTP methods correctly (GET, POST, PUT, PATCH, DELETE)
+- Proper HTTP status codes for different scenarios
+- RESTful URL design patterns and conventions
+- Request/response schema design with Pydantic
+- Common implementation patterns (pagination, filtering, authentication)
+- Error handling and testing approaches
+
+### When to Use This Guide
+
+Use this guide when:
+
+- Building new API endpoints in Dashtam
+- Reviewing existing endpoints for REST compliance
+- Need quick reference for HTTP methods and status codes
+- Implementing common patterns like pagination or filtering
+- Troubleshooting API design issues
+
+## Prerequisites
+
+Before using this guide, ensure you have:
+
+- [ ] Dashtam development environment running
+- [ ] Understanding of FastAPI framework
+- [ ] Access to database models and schemas
+- [ ] Familiarity with async/await patterns
+
+**Required Tools:**
+
+- FastAPI - Latest version
+- SQLModel/SQLAlchemy - For database operations
+- Pydantic v2 - For request/response schemas
+- Pytest - For testing
+
+**Required Knowledge:**
+
+- Basic understanding of REST architectural principles
+- HTTP methods and status codes
+- Python async programming
+- Database query patterns
+
+## Step-by-Step Instructions
+
+### Step 1: Choose Correct HTTP Method
+
+Use this reference to select the appropriate HTTP method for your endpoint:
+
+**HTTP Methods Reference:**
 
 | Method | Purpose | Request Body | Response Body | Idempotent | Safe |
 |--------|---------|--------------|---------------|------------|------|
@@ -14,9 +79,11 @@
 | PATCH | Update resource | ✅ Yes | ✅ Yes | ❌ | ❌ |
 | DELETE | Remove resource | ❌ No | Optional | ✅ | ❌ |
 
----
+### Step 2: Select Appropriate Status Codes
 
-## Status Code Quick Reference
+Choose the correct HTTP status code based on the operation result:
+
+**Status Code Reference:**
 
 ### Success (2xx)
 
@@ -46,9 +113,11 @@
 503  # Service Unavailable
 ```
 
----
+### Step 3: Design RESTful URLs
 
-## URL Patterns
+Follow these URL patterns for consistent, RESTful endpoint design:
+
+**URL Design Patterns:**
 
 ### ✅ Good
 
@@ -71,9 +140,23 @@ GET    /api/v1/provider                     # Singular for collection
 PATCH  /api/v1/updateProvider/{id}          # Verb in URL
 ```
 
----
+### Step 4: Implement Request/Response Schemas
 
-## Endpoint Template
+Design Pydantic schemas for request validation and response serialization. See Examples section for complete schema implementations.
+
+### Step 5: Add Authentication and Authorization
+
+Include authentication dependencies and authorization checks. See Examples section for authentication patterns.
+
+### Step 6: Handle Common Patterns
+
+Implement pagination, filtering, and sorting as needed. See Examples section for common patterns.
+
+## Examples
+
+### Complete Endpoint Implementation
+
+Here's a complete REST API endpoint implementation following all Dashtam patterns:
 
 ```python
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -582,9 +665,106 @@ async def list_providers(
 ❌ created, creation_date, date_created
 ```
 
----
+## Verification
 
-## Testing Template
+How to verify your REST API endpoints are working correctly:
+
+### Check 1: HTTP Method and Status Code Verification
+
+```bash
+# Test each endpoint returns correct status
+curl -X GET http://localhost:8000/api/v1/providers -H "Authorization: Bearer token"
+# Expected: 200 OK
+
+curl -X POST http://localhost:8000/api/v1/providers -H "Authorization: Bearer token" \
+  -d '{"provider_key":"schwab","alias":"test"}'
+# Expected: 201 Created
+```
+
+### Check 2: Response Format Consistency
+
+```bash
+# Verify paginated response format
+curl http://localhost:8000/api/v1/providers | jq
+# Expected: {"items": [...], "total": N, "page": 1, "per_page": 50}
+```
+
+### Check 3: Error Handling
+
+```bash
+# Test 404 handling
+curl http://localhost:8000/api/v1/providers/nonexistent-id
+# Expected: 404 with proper error format
+```
+
+## Troubleshooting
+
+### Issue 1: Wrong Status Code Returned
+
+**Symptoms:**
+
+- POST endpoint returns 200 instead of 201
+- DELETE endpoint returns 200 instead of 204
+
+**Solution:**
+
+```python
+# Add explicit status codes
+@router.post("/providers", status_code=status.HTTP_201_CREATED)
+@router.delete("/providers/{id}", status_code=status.HTTP_204_NO_CONTENT)
+```
+
+### Issue 2: Inconsistent Response Format
+
+**Symptoms:**
+
+- Different endpoints return different JSON structures
+- Missing pagination in collection endpoints
+
+**Solution:**
+
+- Use consistent schema classes (ProviderResponse, PaginatedResponse)
+- Always return same fields in same order
+
+### Issue 3: Validation Errors Not Helpful
+
+**Symptoms:**
+
+- Generic "validation failed" messages
+- No field-specific error details
+
+**Solution:**
+
+```python
+# Use Pydantic field validation with clear messages
+class CreateProviderRequest(BaseModel):
+    alias: str = Field(..., min_length=1, description="Provider display name")
+```
+
+## Best Practices
+
+Follow these best practices for consistent, maintainable REST APIs:
+
+- ✅ **Use Plural Nouns:** `/providers`, not `/provider`
+- ✅ **HTTP Method Semantics:** GET for retrieval, POST for creation, etc.
+- ✅ **Consistent Status Codes:** 200/201/204 for success, 400/404/409 for client errors
+- ✅ **Resource-Based URLs:** `/providers/{id}`, not `/getProvider`
+- ✅ **Pagination for Collections:** Always paginate list endpoints
+- ✅ **Authentication Required:** Protect all endpoints except public ones
+- ✅ **Authorization Checks:** Verify user owns resources
+- ✅ **Input Validation:** Use Pydantic schemas for all requests
+- ✅ **Error Response Format:** Consistent error structure across all endpoints
+
+### Common Mistakes to Avoid
+
+- ❌ **Verbs in URLs:** `/getProviders`, `/createProvider`
+- ❌ **Wrong Status Codes:** Returning 200 for POST creation
+- ❌ **No Pagination:** Returning unbounded lists
+- ❌ **Inconsistent Naming:** Mixing camelCase and snake_case
+- ❌ **Missing Auth:** Unprotected sensitive endpoints
+- ❌ **Poor Error Messages:** Generic "Bad Request" without details
+
+### Testing Template
 
 ```python
 import pytest
@@ -806,16 +986,20 @@ async def list_providers() -> PaginatedResponse[ProviderResponse]:
     return {"items": providers, "total": 10, ...}
 ```
 
+## References
+
+- [RESTful API Design Architecture](../architecture/restful-api-design.md) - Complete REST API architecture and design principles
+- [JWT Authentication Quick Reference](jwt-auth-quick-reference.md) - Authentication patterns for API endpoints  
+- [FastAPI Documentation](https://fastapi.tiangolo.com) - Official FastAPI framework documentation
+- [HTTP Status Codes Reference](https://httpstatuses.com) - Complete HTTP status code definitions
+- [REST API Best Practices](https://restfulapi.net) - Industry standard REST API patterns
+
 ---
 
-## Resources
+## Document Information
 
-- **Full Architecture Doc:** `docs/development/architecture/restful-api-design.md`
-- **FastAPI Docs:** https://fastapi.tiangolo.com
-- **HTTP Status Codes:** https://httpstatuses.com
-- **REST API Tutorial:** https://restfulapi.net
-
----
-
-**Last Updated:** 2025-10-04  
-**Version:** 1.0
+**Category:** Guide  
+**Created:** 2025-10-04  
+**Last Updated:** 2025-10-15  
+**Difficulty Level:** Intermediate  
+**Estimated Time:** 45-60 minutes

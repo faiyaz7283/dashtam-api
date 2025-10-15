@@ -498,6 +498,14 @@ git merge --continue           # If merging
 
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** 2024-01-15  
-**Quick Access:** Run `make help` to see all available commands
+---
+
+## Document Information
+
+**Category:** Guide
+**Created:** 2025-10-03
+**Last Updated:** 2025-10-15
+**Difficulty Level:** Beginner
+**Target Audience:** Developers, new contributors, anyone needing quick Git reference
+**Prerequisites:** Basic command line knowledge
+**Related Documents:** [Git Workflow Guide](git-workflow.md)

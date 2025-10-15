@@ -2,6 +2,21 @@
 
 Create a provider instance, obtain an authorization URL, complete the OAuth flow, and verify the connection.
 
+---
+
+## Table of Contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [Steps](#steps)
+  - [1) Create provider instance](#1-create-provider-instance)
+  - [2) Request authorization URL](#2-request-authorization-url)
+  - [3) Authorize in browser](#3-authorize-in-browser)
+  - [4) Verify connection status](#4-verify-connection-status)
+- [Cleanup](#cleanup-optional)
+- [Troubleshooting](#troubleshooting)
+- [Related Flows](#related-flows)
+
 ## Purpose
 
 Manually test the end-to-end OAuth onboarding flow for a provider (e.g., Schwab).
@@ -172,3 +187,21 @@ curl -sk -X DELETE "$BASE_URL/api/v1/providers/$PROVIDER_ID" \
   - Check callback server logs: `docker logs dashtam-dev-callback`
 - **SSL warnings in browser**: Expected for self-signed certs in dev → click "Proceed" or "Accept Risk"
 - **Connection shows `needs_reconnection: true`**: OAuth may have failed → check callback server logs
+
+## Related Flows
+
+- **Prerequisites:** [Registration](../auth/registration.md) → [Email Verification](../auth/email-verification.md) → [Login](../auth/login.md) - Must have authenticated user
+- **Alternative:** [Provider Disconnect](provider-disconnect.md) - Remove provider connection
+- **Next steps:** Future account and transaction endpoints (after provider connected)
+- **Complete flow:** [Complete Auth Flow](../auth/complete-auth-flow.md) - Full authentication testing
+- **Architecture:** [JWT Authentication](../../development/architecture/jwt-authentication.md) - Understanding auth requirements
+
+---
+
+## Document Information
+
+**Category:** API Flow  
+**Created:** 2025-10-15  
+**Last Updated:** 2025-10-15  
+**API Version:** v1  
+**Environment:** Development (HTTPS with self-signed TLS)

@@ -1,5 +1,23 @@
 # Complete Authentication Flow - End-to-End Smoke Test
 
+End-to-end smoke test covering the complete authentication lifecycle from registration through logout.
+
+---
+
+## Table of Contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [Complete Flow Steps](#complete-flow-steps)
+  - [Step 1: User Registration](#step-1-user-registration)
+  - [Step 2: Email Verification](#step-2-email-verification)
+  - [Step 3: Login](#step-3-login)
+  - [Step 4: Access Protected Resource](#step-4-access-protected-resource)
+  - [Step 5: Update Profile](#step-5-update-profile)
+  - [Step 6: Token Refresh](#step-6-token-refresh)
+  - [Step 7: Password Reset Request](#step-7-password-reset-request)
+- [Related Flows](#related-flows)
+
 ## Purpose
 
 Run a full authentication lifecycle smoke test from registration through logout. Tests all major auth components in a single end-to-end flow for manual verification.
@@ -430,3 +448,13 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 - **🔒 Password Reset Security:** All sessions automatically logged out (Test 13 verifies this)
 - **Test Isolation:** Use unique email per test run to avoid conflicts
 - **Expected Duration:** ~2-3 minutes for complete smoke test
+
+---
+
+## Document Information
+
+**Category:** API Flow  
+**Created:** 2025-10-15  
+**Last Updated:** 2025-10-15  
+**API Version:** v1  
+**Environment:** Development (HTTPS with self-signed TLS)

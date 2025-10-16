@@ -18,6 +18,7 @@ Request a password reset, verify a token, and confirm the new password using the
 - [Next Step](#next-step)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
+- [Document Information](#document-information)
 
 ## Purpose
 

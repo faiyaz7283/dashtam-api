@@ -12,9 +12,10 @@ Register a new user using the HTTPS-enabled development environment.
   - [1) Register](#1-register)
   - [2) Extract verification token from logs](#2-extract-verification-token-from-logs)
 - [Next Step](#next-step)
-- [Cleanup](#cleanup-optional)
+- [Cleanup (optional)](#cleanup-optional)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
+- [Document Information](#document-information)
 
 ## Purpose
 

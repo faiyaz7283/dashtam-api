@@ -16,7 +16,20 @@ End-to-end smoke test covering the complete authentication lifecycle from regist
   - [Step 5: Update Profile](#step-5-update-profile)
   - [Step 6: Token Refresh](#step-6-token-refresh)
   - [Step 7: Password Reset Request](#step-7-password-reset-request)
+  - [Step 8: Password Reset Confirmation](#step-8-password-reset-confirmation)
+  - [Step 9: Logout (Refresh Token Revocation)](#step-9-logout-refresh-token-revocation)
+- [Smoke Test Summary](#smoke-test-summary)
+- [Troubleshooting](#troubleshooting)
+  - [Registration fails with 409 Conflict](#registration-fails-with-409-conflict)
+  - [Cannot extract token from logs](#cannot-extract-token-from-logs)
+  - [Login fails with 400 "Email not verified"](#login-fails-with-400-email-not-verified)
+  - [Refresh token still works after logout](#refresh-token-still-works-after-logout)
+  - [Access token rejected after logout](#access-token-rejected-after-logout)
+  - [SSL certificate errors](#ssl-certificate-errors)
+- [Cleanup (Optional)](#cleanup-optional)
 - [Related Flows](#related-flows)
+- [Notes](#notes)
+- [Document Information](#document-information)
 
 ## Purpose
 

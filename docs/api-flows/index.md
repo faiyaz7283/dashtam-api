@@ -1,5 +1,21 @@
 # API Flows (Manual Testing)
 
+## Table of Contents
+
+- [📚 Contents](#-contents)
+- [🗺️ Directory Structure](#️-directory-structure)
+- [Development: Email Token Extraction](#development-email-token-extraction)
+- [Expected HTTP Status Codes](#expected-http-status-codes)
+- [Important: Logout Behavior](#important-logout-behavior)
+- [📝 Documents](#-documents)
+  - [Authentication Flows](#authentication-flows)
+  - [Provider Flows](#provider-flows)
+- [🔗 Quick Links](#-quick-links)
+- [🗺️ Navigation](#️-navigation)
+- [📝 Contributing](#-contributing)
+  - [Flow Creation Guidelines](#flow-creation-guidelines)
+- [Document Information](#document-information)
+
 This section provides end-to-end, HTTPS-first guides for manually testing real user flows against the development environment (TLS-enabled), mirroring production usage as closely as possible.
 
 ---

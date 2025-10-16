@@ -1,5 +1,27 @@
 # Dashtam Documentation
 
+## Table of Contents
+
+- [📚 Contents](#-contents)
+- [📚 Documentation Structure](#-documentation-structure)
+  - [For Developers](#for-developers)
+  - [Research & Decisions](#research--decisions)
+  - [For Users](#for-users)
+- [🗂️ Directory Organization](#️-directory-organization)
+- [📋 Documentation Templates](#-documentation-templates)
+  - [Available Templates](#available-templates)
+  - [Quick Start](#quick-start)
+- [📝 Naming Conventions](#-naming-conventions)
+  - [File Naming](#file-naming)
+  - [Examples](#examples)
+- [📝 Contributing to Documentation](#-contributing-to-documentation)
+  - [Markdown Quality Standards](#markdown-quality-standards)
+  - [Structure Guidelines](#structure-guidelines)
+- [🔗 Quick Links](#-quick-links)
+- [🗺️ Navigation](#️-navigation)
+- [📝 Contributing](#-contributing)
+- [Document Information](#document-information)
+
 Welcome to the Dashtam documentation! This directory contains all documentation for the project, organized by audience and purpose.
 
 ---

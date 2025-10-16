@@ -13,9 +13,10 @@ Create a provider instance, obtain an authorization URL, complete the OAuth flow
   - [2) Request authorization URL](#2-request-authorization-url)
   - [3) Authorize in browser](#3-authorize-in-browser)
   - [4) Verify connection status](#4-verify-connection-status)
-- [Cleanup](#cleanup-optional)
+- [Cleanup (optional)](#cleanup-optional)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
+- [Document Information](#document-information)
 
 ## Purpose
 

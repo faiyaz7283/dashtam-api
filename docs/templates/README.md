@@ -141,9 +141,34 @@ All templates include standard metadata at the **bottom** of the document:
 
 ## 📋 Metadata Standards
 
-### Simplified Metadata (Updated 2025-01-06)
+### Required Formatting (Updated 2025-10-15)
 
-All templates now use simplified metadata **without the "Status" field**:
+### Critical Formatting Rule: Use Line Breaks, NOT Inline Formatting
+
+```markdown
+# ✅ CORRECT: Line breaks between fields
+## Document Information
+
+**Category:** Guide
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15
+**Difficulty Level:** Intermediate
+
+# ❌ WRONG: Inline formatting with trailing spaces
+**Category:** Guide  
+**Created:** 2025-10-15  
+**Last Updated:** 2025-10-15  
+**Difficulty Level:** Intermediate  
+```
+
+**Phase 1 Discovery:** Many documents used inline formatting which causes:
+
+- Inconsistent rendering
+- Markdown linting issues  
+- Poor readability
+- MkDocs parsing problems
+
+### Metadata Fields
 
 **Required Fields:**
 
@@ -156,14 +181,23 @@ All templates now use simplified metadata **without the "Status" field**:
 - **Applies To**: Scope (Architecture template)
 - **API Version**: API version (API Flow template)
 - **Environment**: Target environment (Infrastructure, Troubleshooting templates)
-- **Maintainer**: Responsible party (Index, README templates)
+- **Difficulty Level**: Beginner | Intermediate | Advanced (Guide template)
+- **Target Audience**: Who should read this (Guide template)
+- **Prerequisites**: What knowledge/tools are needed (Guide template)
 - And others as needed per template
 
-**Why No Status Field?**
+**Forbidden Fields** (discovered in Phase 1):
+
+- ❌ **Status**: Document location indicates status (active vs historical)
+- ❌ **Maintainer**: Reduces maintenance overhead, use GitHub ownership
+- ❌ Any custom fields not in templates
+
+**Why These Standards?**
 
 - Document location indicates status (active vs historical)
 - Reduces maintenance overhead
-- Simpler, cleaner metadata
+- Consistent formatting across all documents
+- MkDocs Material compatibility
 - Status is implied by directory structure:
   - `docs/development/*` = Active
   - `docs/development/historical/*` = Historical/Archived
@@ -319,6 +353,159 @@ When creating a new document:
 - **Not sure which template?** Start with `general-template.md`
 - **Template missing something?** Propose improvements in PR
 - **Documentation standards?** See WARP.md section on documentation
+
+---
+
+## 📈 Phase 1 Migration Learnings (2025-10-15)
+
+### Critical Quality Issues Discovered
+
+During Phase 1 documentation template migration (20 documents), several recurring quality issues were identified that **MUST** be addressed in future phases:
+
+#### 1. Table of Contents Completeness ⚠️ **HIGH PRIORITY**
+
+**Problem:** Most documents had incomplete TOCs showing only main template sections, missing:
+
+- Subsections and nested content
+- Additional sections added between template sections
+- Proper hierarchy (### subsections under ## main sections)
+
+**Example Issue:**
+
+```markdown
+# BAD: Incomplete TOC
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)  
+- [Examples](#examples)
+
+# Document actually contains:
+## Overview
+### What You'll Learn    ← Missing from TOC
+### When to Use         ← Missing from TOC
+## Prerequisites
+## Step-by-Step Instructions  ← Missing from TOC
+### Step 1             ← Missing from TOC
+### Step 2             ← Missing from TOC
+## Examples
+```
+
+**Solution for Future Phases:**
+
+- Generate complete TOC by analyzing all headings (##, ###, ####)
+- Include proper hierarchy and nesting
+- Ensure MkDocs-compatible anchor links
+- Test all link fragments for validity
+
+#### 2. ASCII/Text Diagrams → Mermaid Conversion 🎨 **HIGH PRIORITY**
+
+**Problem:** Many documents contained ASCII/text diagrams instead of professional Mermaid diagrams.
+
+**Examples Found:**
+
+```markdown
+# BAD: ASCII Box Diagrams
+┌─────────────────────────────────────┐
+│  TEXT IN BOXES                      │  
+│  → arrows and connections           │
+└─────────────────────────────────────┘
+
+# GOOD: Mermaid Diagrams  
+```mermaid
+flowchart TD
+    A[Clear Process] --> B[Professional Look]
+    B --> C[MkDocs Compatible]
+```
+
+**Solution for Future Phases:**
+
+- Convert ALL ASCII/text diagrams to appropriate Mermaid types:
+  - Process flows → `flowchart TD`
+  - Sequences → `sequenceDiagram`
+  - Architecture → `flowchart` with styling
+  - Data relationships → `erDiagram`
+- Add Mermaid pattern examples to [Mermaid Diagram Standards](../development/guides/mermaid-diagram-standards.md)
+- Use proper styling and colors for visual hierarchy
+
+#### 3. Document Information Formatting 📝 **MEDIUM PRIORITY**
+
+**Problem:** Inconsistent metadata formatting - some documents used inline formatting with trailing spaces instead of line breaks.
+
+**Examples:**
+
+```markdown
+# BAD: Inline with trailing spaces
+**Category:** Guide  
+**Created:** 2025-10-15  
+**Last Updated:** 2025-10-15  
+
+# GOOD: Line breaks per template
+**Category:** Guide
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15
+```
+
+**Solution for Future Phases:**
+
+- Always use line breaks between metadata fields
+- Never use trailing spaces for formatting
+- Follow template structure exactly
+
+#### 4. Template Compliance Issues 🔧 **MEDIUM PRIORITY**
+
+**Discovered Issues:**
+
+- Duplicate metadata (both in header and Document Information)
+- Non-template fields added ("Maintainer", etc.)
+- Inconsistent field naming
+
+**Solution:** Strict template adherence validation
+
+### Phase Migration Checklist
+
+**For ALL future phases, each document MUST be checked for:**
+
+#### Quality Standards Checklist
+
+- [ ] **TOC Completeness**: All sections (##, ###, ####) included with proper hierarchy
+- [ ] **Mermaid Diagrams**: NO ASCII/text diagrams, all converted to Mermaid
+- [ ] **Document Information**: Line break formatting (not inline)
+- [ ] **Template Compliance**: Only template fields, no duplicates
+- [ ] **Markdown Linting**: Zero linting errors
+- [ ] **Link Validation**: All internal links work
+
+#### Recommended Migration Workflow
+
+1. **Initial Assessment**: Scan document for above issues
+2. **TOC Analysis**: Map ALL headings and create complete TOC
+3. **Diagram Conversion**: Convert any ASCII/text to Mermaid
+4. **Format Standardization**: Fix Document Information formatting
+5. **Template Validation**: Ensure strict template compliance
+6. **Quality Gates**: Lint and link validation
+7. **Testing**: Verify TOC navigation works
+
+### Tools & Commands
+
+```bash
+# Check TOC completeness
+grep -n "^##" docs/path/to/file.md | head -20
+
+# Find ASCII diagrams (common patterns)
+grep -n "┌\|└\|├\|─" docs/path/to/file.md
+
+# Check Document Information formatting
+tail -10 docs/path/to/file.md
+
+# Validate markdown
+make lint-md-file FILE="docs/path/to/file.md"
+```
+
+### Success Metrics from Phase 1
+
+- **Documents processed:** 20/20 (100%)
+- **ASCII diagrams converted:** 3 major conversions (jwt-auth, token-rotation)
+- **Formatting issues fixed:** 12 documents standardized
+- **Template compliance:** 100% achieved
+- **Linting errors:** 0 across all documents
 
 ---
 

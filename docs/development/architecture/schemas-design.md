@@ -1,25 +1,83 @@
 # API Schemas Architecture & Design
 
-**Document Version:** 1.0  
-**Last Updated:** October 2025  
-**Author:** Dashtam Development Team
-
----
-
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [What Are Schemas?](#what-are-schemas)
-3. [Why Separate Schemas?](#why-separate-schemas)
-4. [Technical Architecture](#technical-architecture)
-5. [Schema Types](#schema-types)
-6. [Design Patterns](#design-patterns)
-7. [Validation & Type Safety](#validation--type-safety)
-8. [OpenAPI Integration](#openapi-integration)
-9. [Best Practices](#best-practices)
-10. [Examples & Usage](#examples--usage)
-11. [Testing Strategies](#testing-strategies)
-12. [Migration Guide](#migration-guide)
+- [Overview](#overview)
+  - [Key Roles](#key-roles)
+- [Context](#context)
+- [Architecture Goals](#architecture-goals)
+- [Design Decisions](#design-decisions)
+  - [What Are Schemas?](#what-are-schemas)
+  - [Pydantic Models](#pydantic-models)
+  - [Key Components](#key-components)
+  - [Data Flow](#data-flow)
+- [Why Separate Schemas?](#why-separate-schemas)
+  - [Historical Context](#historical-context)
+  - [Architectural Principles](#architectural-principles)
+- [Components](#components)
+  - [Directory Structure](#directory-structure)
+  - [Module Organization](#module-organization)
+    - [common.py](#commonpy)
+    - [auth.py](#authpy)
+    - [provider.py](#providerpy)
+  - [Import Patterns](#import-patterns)
+    - [Direct Import (Recommended)](#direct-import-recommended)
+    - [Package Import (Alternative)](#package-import-alternative)
+- [Implementation Details](#implementation-details)
+  - [Schema Types](#schema-types)
+    - [1. Request Schemas](#1-request-schemas)
+    - [2. Response Schemas](#2-response-schemas)
+    - [3. Shared/Common Schemas](#3-sharedcommon-schemas)
+    - [4. Nested Schemas](#4-nested-schemas)
+  - [Design Patterns](#design-patterns)
+    - [Pattern 1: Request-Response Pair](#pattern-1-request-response-pair)
+    - [Pattern 2: Shared Response Type](#pattern-2-shared-response-type)
+    - [Pattern 3: Inheritance for Variations](#pattern-3-inheritance-for-variations)
+    - [Pattern 4: Optional Update Schema](#pattern-4-optional-update-schema)
+    - [Pattern 5: Enum for Constants](#pattern-5-enum-for-constants)
+  - [Validation & Type Safety](#validation--type-safety)
+    - [Built-in Validators](#built-in-validators)
+    - [Custom Validators](#custom-validators)
+    - [Model Validators](#model-validators)
+    - [Type Coercion](#type-coercion)
+  - [OpenAPI Integration](#openapi-integration)
+    - [Automatic Documentation](#automatic-documentation)
+    - [Viewing Documentation](#viewing-documentation)
+    - [Response Model Declaration](#response-model-declaration)
+  - [Best Practices](#best-practices)
+    - [1. Comprehensive Documentation](#1-comprehensive-documentation)
+    - [2. Consistent Naming](#2-consistent-naming)
+    - [3. Field Ordering](#3-field-ordering)
+    - [4. Validation Before Database](#4-validation-before-database)
+    - [5. Never Expose Sensitive Data](#5-never-expose-sensitive-data)
+    - [6. Use Type Hints Everywhere](#6-use-type-hints-everywhere)
+    - [7. Separate DTOs from Database Models](#7-separate-dtos-from-database-models)
+    - [8. Version Your Schemas](#8-version-your-schemas)
+  - [Examples & Usage](#examples--usage)
+    - [Example 1: User Registration Flow](#example-1-user-registration-flow)
+    - [Example 2: Login with Nested Response](#example-2-login-with-nested-response)
+    - [Example 3: PATCH with Optional Fields](#example-3-patch-with-optional-fields)
+  - [Migration Guide](#migration-guide)
+    - [Migrating Inline Schemas to Separate Files](#migrating-inline-schemas-to-separate-files)
+- [Testing Strategy](#testing-strategy)
+  - [Unit Testing Schemas](#unit-testing-schemas)
+  - [Integration Testing with Endpoints](#integration-testing-with-endpoints)
+- [Security Considerations](#security-considerations)
+  - [Data Validation at API Boundary](#data-validation-at-api-boundary)
+  - [Sensitive Data Protection](#sensitive-data-protection)
+  - [Validation Security](#validation-security)
+- [Performance Considerations](#performance-considerations)
+  - [Validation Overhead](#validation-overhead)
+  - [Response Serialization](#response-serialization)
+  - [Schema Compilation](#schema-compilation)
+- [Future Enhancements](#future-enhancements)
+  - [Planned Improvements](#planned-improvements)
+  - [Known Limitations](#known-limitations)
+- [References](#references)
+  - [Related Dashtam Documentation](#related-dashtam-documentation)
+  - [External Resources](#external-resources)
+  - [Project Files](#project-files)
+- [Document Information](#document-information)
 
 ---
 
@@ -37,7 +95,52 @@ Schemas in Dashtam are **Pydantic models** that define the structure, validation
 
 ---
 
-## What Are Schemas?
+## Context
+
+Dashtam's API schemas operate within a FastAPI-based architecture, serving as the data contract layer between clients and backend services.
+
+**Operating Environment:**
+
+- **Framework**: FastAPI with Pydantic v2 for data validation
+- **API Consumers**: Web frontend, mobile apps, potential third-party integrations
+- **Data Flow**: JSON over HTTPS for all client-server communication
+- **Validation Layer**: Request validation at API boundary, before business logic
+- **Documentation**: Auto-generated OpenAPI (Swagger) specifications
+
+**System Constraints:**
+
+- **Type Safety Required**: Full type hints for IDE support and static analysis
+- **Performance**: Sub-millisecond validation overhead for typical requests
+- **Maintainability**: Schemas must be reusable across multiple endpoints
+- **Versioning**: Support for API version evolution without breaking clients
+- **Standards Compliance**: REST API best practices and OpenAPI 3.0 specification
+
+**Key Requirements:**
+
+1. **Separation of Concerns**: Schemas separate from business logic and database models
+2. **Comprehensive Validation**: Catch invalid data at API boundary
+3. **Self-Documenting**: Schemas generate complete API documentation
+4. **Developer Experience**: Clear error messages and IDE autocomplete
+5. **Security**: Never expose sensitive internal data in responses
+
+---
+
+## Architecture Goals
+
+1. **Data Validation** - Ensure all incoming data meets requirements before reaching business logic
+2. **Type Safety** - Enable compile-time type checking and IDE autocomplete for all data structures
+3. **API Documentation** - Auto-generate comprehensive OpenAPI documentation from schema definitions
+4. **Separation of Concerns** - Decouple data structure definitions from business logic and database models
+5. **Reusability** - Single source of truth for data structures used across multiple endpoints
+6. **Security by Design** - Prevent exposure of sensitive data through strict response schema control
+7. **Developer Experience** - Provide clear validation errors and examples for API consumers
+8. **Maintainability** - Centralized schema management for easier updates and versioning
+
+---
+
+## Design Decisions
+
+### What Are Schemas?
 
 ### Pydantic Models
 
@@ -63,20 +166,20 @@ class LoginRequest(BaseModel):
 
 ### Data Flow
 
-```text
-Client Request (JSON)
-    ↓
-FastAPI receives request
-    ↓
-Pydantic Schema validates & parses
-    ↓
-Endpoint handler (business logic)
-    ↓
-Pydantic Schema serializes response
-    ↓
-FastAPI sends response (JSON)
-    ↓
-Client receives validated data
+```mermaid
+flowchart TD
+    A[Client Request JSON] --> B[FastAPI receives request]
+    B --> C[Pydantic Schema validates & parses]
+    C --> D[Endpoint handler business logic]
+    D --> E[Pydantic Schema serializes response]
+    E --> F[FastAPI sends response JSON]
+    F --> G[Client receives validated data]
+    
+    style A fill:#e1f5ff
+    style C fill:#fff3cd
+    style D fill:#d4edda
+    style E fill:#fff3cd
+    style G fill:#e1f5ff
 ```
 
 ---
@@ -142,7 +245,7 @@ async def get_providers() -> List[ProviderTypeInfo]:
 
 ---
 
-## Technical Architecture
+## Components
 
 ### Directory Structure
 
@@ -264,9 +367,11 @@ async def login(request: auth.LoginRequest):
 
 ---
 
-## Schema Types
+## Implementation Details
 
-### 1. Request Schemas
+### Schema Types
+
+#### 1. Request Schemas
 
 **Purpose:** Validate incoming data from clients
 
@@ -299,7 +404,7 @@ class RegisterRequest(BaseModel):
 - Type coercion (string → EmailStr)
 - Custom validators for complex logic
 
-### 2. Response Schemas
+#### 2. Response Schemas
 
 **Purpose:** Structure and document outgoing data
 
@@ -345,7 +450,7 @@ class UserResponse(BaseModel):
 - Consistent date formatting
 - Nested schemas supported
 
-### 3. Shared/Common Schemas
+#### 3. Shared/Common Schemas
 
 **Purpose:** Reusable components across domains
 
@@ -369,7 +474,7 @@ class MessageResponse(BaseModel):
 - Status updates (`"Email sent"`)
 - Simple confirmations (`"Provider disconnected"`)
 
-### 4. Nested Schemas
+#### 4. Nested Schemas
 
 **Purpose:** Complex data structures
 
@@ -393,11 +498,9 @@ class LoginResponse(BaseModel):
 - Clear data relationships
 - Better OpenAPI documentation
 
----
+### Design Patterns
 
-## Design Patterns
-
-### Pattern 1: Request-Response Pair
+#### Pattern 1: Request-Response Pair
 
 **When:** Endpoint has specific input/output structure
 
@@ -413,7 +516,7 @@ class RegisterResponse(BaseModel):  # or MessageResponse
     # Could include user details if needed
 ```
 
-### Pattern 2: Shared Response Type
+#### Pattern 2: Shared Response Type
 
 **When:** Multiple endpoints return same structure
 
@@ -429,7 +532,7 @@ class UserResponse(BaseModel):
 @router.patch("/me", response_model=UserResponse)
 ```
 
-### Pattern 3: Inheritance for Variations
+#### Pattern 3: Inheritance for Variations
 
 **When:** Schemas share common fields
 
@@ -448,7 +551,7 @@ class RefreshResponse(BaseTokenResponse):
     # No user data on refresh
 ```
 
-### Pattern 4: Optional Update Schema
+#### Pattern 4: Optional Update Schema
 
 **When:** PATCH endpoints allow partial updates
 
@@ -467,7 +570,7 @@ class UpdateUserRequest(BaseModel):
         return v.strip() if v else v
 ```
 
-### Pattern 5: Enum for Constants
+#### Pattern 5: Enum for Constants
 
 **When:** Field has fixed set of values
 
@@ -485,11 +588,9 @@ class UserResponse(BaseModel):
     role: UserRole  # Validated against enum
 ```
 
----
+### Validation & Type Safety
 
-## Validation & Type Safety
-
-### Built-in Validators
+#### Built-in Validators
 
 ```python
 from pydantic import (
@@ -518,7 +619,7 @@ class ExampleSchema(BaseModel):
     user_id: UUID4
 ```
 
-### Custom Validators
+#### Custom Validators
 
 ```python
 from pydantic import field_validator
@@ -542,7 +643,7 @@ class PasswordResetConfirm(BaseModel):
         return v
 ```
 
-### Model Validators
+#### Model Validators
 
 ```python
 from pydantic import model_validator
@@ -559,7 +660,7 @@ class DateRangeRequest(BaseModel):
         return self
 ```
 
-### Type Coercion
+#### Type Coercion
 
 Pydantic automatically converts types when possible:
 
@@ -574,11 +675,9 @@ class User(BaseModel):
 # Raises: ValidationError
 ```
 
----
+### OpenAPI Integration
 
-## OpenAPI Integration
-
-### Automatic Documentation
+#### Automatic Documentation
 
 Schemas automatically generate OpenAPI (Swagger) documentation:
 
@@ -608,12 +707,12 @@ class LoginRequest(BaseModel):
 - Example values
 - Nested object structure
 
-### Viewing Documentation
+#### Viewing Documentation
 
 1. **Swagger UI:** http://localhost:8000/docs
 2. **ReDoc:** http://localhost:8000/redoc
 
-### Response Model Declaration
+#### Response Model Declaration
 
 ```python
 from fastapi import APIRouter
@@ -636,11 +735,9 @@ async def login(request: LoginRequest):
     pass
 ```
 
----
+### Best Practices
 
-## Best Practices
-
-### 1. Comprehensive Documentation
+#### 1. Comprehensive Documentation
 
 **Always include:**
 
@@ -676,7 +773,7 @@ class RegisterRequest(BaseModel):
     }
 ```
 
-### 2. Consistent Naming
+#### 2. Consistent Naming
 
 ```python
 # Request schemas
@@ -691,7 +788,7 @@ class RegisterRequest(BaseModel):
 List[*]        # List[UserResponse], List[ProviderTypeInfo]
 ```
 
-### 3. Field Ordering
+#### 3. Field Ordering
 
 **Logical order:**
 
@@ -718,7 +815,7 @@ class UserResponse(BaseModel):
     last_login_at: Optional[datetime]
 ```
 
-### 4. Validation Before Database
+#### 4. Validation Before Database
 
 **Always validate in schemas first:**
 
@@ -738,7 +835,7 @@ async def register_user(request: RegisterRequest):
     # Database logic...
 ```
 
-### 5. Never Expose Sensitive Data
+#### 5. Never Expose Sensitive Data
 
 ```python
 # ❌ BAD: Exposes password hash
@@ -752,7 +849,7 @@ class UserResponse(BaseModel):
     # No password_hash field
 ```
 
-### 6. Use Type Hints Everywhere
+#### 6. Use Type Hints Everywhere
 
 ```python
 from typing import List, Optional
@@ -769,7 +866,7 @@ async def find_user(email: str) -> Optional[UserResponse]:
     pass
 ```
 
-### 7. Separate DTOs from Database Models
+#### 7. Separate DTOs from Database Models
 
 **Don't mix concerns:**
 
@@ -789,7 +886,7 @@ class UserResponse(BaseModel):
     # ... API-specific fields
 ```
 
-### 8. Version Your Schemas
+#### 8. Version Your Schemas
 
 **For breaking changes:**
 
@@ -805,11 +902,9 @@ class LoginRequestV2(BaseModel):
     password: str
 ```
 
----
+### Examples & Usage
 
-## Examples & Usage
-
-### Example 1: User Registration Flow
+#### Example 1: User Registration Flow
 
 **Schema Definition:**
 
@@ -863,7 +958,7 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
   }'
 ```
 
-### Example 2: Login with Nested Response
+#### Example 2: Login with Nested Response
 
 **Schema Definition:**
 
@@ -921,7 +1016,7 @@ async def login(
     )
 ```
 
-### Example 3: PATCH with Optional Fields
+#### Example 3: PATCH with Optional Fields
 
 **Schema Definition:**
 
@@ -963,7 +1058,7 @@ async def update_profile(
 
 ---
 
-## Testing Strategies
+## Testing Strategy
 
 ### Unit Testing Schemas
 
@@ -1050,11 +1145,9 @@ def test_register_invalid_email(client: TestClient):
     assert "email" in str(data).lower()
 ```
 
----
+### Migration Guide
 
-## Migration Guide
-
-### Migrating Inline Schemas to Separate Files
+#### Migrating Inline Schemas to Separate Files
 
 **Step 1: Extract Schema:**
 
@@ -1118,50 +1211,92 @@ open http://localhost:8000/docs
 
 ---
 
-## Summary
+## Security Considerations
 
-### Key Takeaways
+### Data Validation at API Boundary
 
-1. **Schemas = Data Contracts** - Define structure, validation, and documentation
-2. **Separation = Maintainability** - Keep schemas separate from business logic
-3. **Pydantic = Validation** - Automatic validation with great error messages
-4. **OpenAPI = Documentation** - Auto-generated API docs from schemas
-5. **Type Safety = Confidence** - Catch errors at development time
+- **Request Validation**: All incoming data validated before reaching business logic
+- **Type Safety**: Pydantic ensures type correctness and prevents type confusion attacks
+- **Input Sanitization**: Field constraints prevent injection attacks (SQL, NoSQL, command injection)
 
-### Quick Reference
+### Sensitive Data Protection
 
-```python
-# Import patterns
-from src.schemas.auth import LoginRequest, UserResponse
-from src.schemas.common import MessageResponse
+- **Response Filtering**: Never expose password hashes, tokens, or internal IDs in response schemas
+- **Field Exclusion**: Use separate response schemas that explicitly exclude sensitive fields
+- **Example Validation**: Ensure example data in schemas doesn't contain real credentials
 
-# Field constraints
-email: EmailStr                          # Valid email
-password: str = Field(min_length=8)      # Min length
-age: int = Field(ge=0, le=150)          # Range
-optional_field: Optional[str] = None     # Optional
+### Validation Security
 
-# Response declaration
-@router.post("/endpoint", response_model=ResponseSchema)
-
-# Custom validation
-@field_validator("field_name")
-@classmethod
-def validate_field(cls, v):
-    # Custom logic
-    return v
-```
-
-### Additional Resources
-
-- **Pydantic Docs:** https://docs.pydantic.dev/
-- **FastAPI Docs:** https://fastapi.tiangolo.com/
-- **OpenAPI Spec:** https://swagger.io/specification/
-- **Project Schemas:** `src/schemas/`
-- **Schema Tests:** `tests/unit/schemas/`
+- **Length Limits**: All string fields have `max_length` constraints to prevent DOS attacks
+- **Email Validation**: Use `EmailStr` type to prevent email header injection
+- **Custom Validators**: Implement password complexity, allowed characters, format validation
 
 ---
 
-**Document Status:** ✅ Complete  
-**Next Review:** When adding new schema modules  
-**Questions?:** See team lead or check Pydantic documentation
+## Performance Considerations
+
+### Validation Overhead
+
+- **Sub-millisecond Performance**: Pydantic v2 validation is highly optimized (Rust core)
+- **Lazy Validation**: Validation only occurs when data is accessed
+- **Schema Caching**: Pydantic caches schema compilation for reuse
+
+### Response Serialization
+
+- **Efficient JSON Serialization**: FastAPI uses optimized JSON serialization
+- **Field Exclusion**: Use `response_model_exclude` for large objects when needed
+- **Pagination**: Always paginate list responses to prevent large payload overhead
+
+### Schema Compilation
+
+- **Startup Overhead**: Schemas compiled at application startup (one-time cost)
+- **Reusability**: Share common schemas across endpoints to reduce compilation overhead
+
+---
+
+## Future Enhancements
+
+### Planned Improvements
+
+- **Schema Versioning Strategy**: Implement systematic API versioning (v1, v2) for breaking changes
+- **Advanced Validation**: Add cross-field validation patterns for complex business rules
+- **Performance Optimization**: Profile and optimize validation for high-throughput endpoints
+- **Documentation Enhancement**: Auto-generate client SDKs from OpenAPI schemas
+- **Testing Utilities**: Create schema factories and fixtures for easier test data generation
+
+### Known Limitations
+
+- **Manual Schema Updates**: Schema changes require manual updates to maintain consistency
+- **Limited Datetime Validation**: No built-in validation for business-specific date rules
+- **Complex Nested Validation**: Deeply nested schemas can be challenging to validate comprehensively
+
+---
+
+## References
+
+### Related Dashtam Documentation
+
+- [RESTful API Design](restful-api-design.md) - API design standards and best practices
+- [JWT Authentication Architecture](jwt-authentication.md) - Auth schemas implementation
+- [Async vs Sync Patterns](async-vs-sync-patterns.md) - Service layer patterns
+
+### External Resources
+
+- **Pydantic Documentation**: https://docs.pydantic.dev/
+- **FastAPI Documentation**: https://fastapi.tiangolo.com/
+- **OpenAPI Specification**: https://swagger.io/specification/
+
+### Project Files
+
+- [Schema Implementations](../../../src/schemas/) - All Pydantic schema definitions
+- [Schema Unit Tests](../../../tests/unit/schemas/) - Unit tests for schema validation
+- [API Integration Tests](../../../tests/api/) - API endpoint integration tests
+
+---
+
+## Document Information
+
+**Category:** Architecture  
+**Created:** 2025-10-04  
+**Last Updated:** 2025-10-16  
+**Applies To:** All Dashtam API endpoints

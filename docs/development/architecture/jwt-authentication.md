@@ -1218,11 +1218,16 @@ Performance: 99.8% stateless
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [Auth0: Token Best Practices](https://auth0.com/docs/secure/tokens/token-best-practices)
 - [JWT.io](https://jwt.io/)
-- Dashtam implementation guides:
-  - `docs/api-flows/auth/registration.md` - Registration flow testing
-  - `docs/api-flows/auth/login.md` - Login flow testing
-  - `docs/api-flows/auth/complete-auth-flow.md` - End-to-end testing
-  - `docs/development/guides/jwt-auth-quick-reference.md` - Quick reference
+
+**Related Dashtam Documents:**
+
+- [Registration Flow](../../api-flows/auth/registration.md) - Registration flow testing
+- [Login Flow](../../api-flows/auth/login.md) - Login flow testing
+- [Complete Auth Flow](../../api-flows/auth/complete-auth-flow.md) - End-to-end testing
+- [JWT Auth Quick Reference](../guides/jwt-auth-quick-reference.md) - Quick reference
+- [Async vs Sync Patterns](async-vs-sync-patterns.md) - Service implementation patterns
+- [RESTful API Design](restful-api-design.md) - API endpoint design standards
+- [Schemas Design](schemas-design.md) - Request/response schema patterns
 
 ---
 
@@ -1232,9 +1237,4 @@ Performance: 99.8% stateless
 **Created:** 2025-10-04  
 **Last Updated:** 2025-10-16  
 **Status:** ✅ Production Ready  
-**Applies To:** All Dashtam authentication flows  
-**Related Documents:**
-
-- `async-vs-sync-patterns.md` - Service implementation patterns
-- `restful-api-design.md` - API endpoint design standards
-- `schemas-design.md` - Request/response schema patterns
+**Applies To:** All Dashtam authentication flows

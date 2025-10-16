@@ -14,6 +14,7 @@ Verify a user's email using the HTTPS-enabled development environment.
 - [Next Step](#next-step)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
+- [Document Information](#document-information)
 
 ## Purpose
 

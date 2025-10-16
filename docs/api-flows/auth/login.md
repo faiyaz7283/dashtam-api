@@ -14,7 +14,9 @@ Log in as a verified user, capture tokens, call a protected endpoint, refresh, a
   - [3) Refresh access token](#3-refresh-access-token)
   - [4) Logout (revoke refresh token)](#4-logout-revoke-refresh-token)
   - [5) Verify logout behavior](#5-verify-logout-behavior)
+- [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
+- [Document Information](#document-information)
 
 ## Purpose
 

@@ -279,7 +279,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 | `jwt-authentication.md` | Well-structured | architecture-template | A - Metadata | Medium |
 | `restful-api-design.md` | Well-structured | architecture-template | A - Metadata | Medium |
 | `schemas-design.md` | Well-structured | architecture-template | A - Metadata | Low |
-| `async-vs-sync-patterns.md` | Well-structured | architecture-template | A - Metadata | Low |
+| `async-vs-sync-patterns.md` | ✅ **COMPLETE** | architecture-template | A - Structural | Medium |
 | `overview.md` | Moderately structured | architecture-template | B - Structural | Medium |
 | `improvement-guide.md` | Loosely structured | architecture-template | C - Restructure | High |
 
@@ -298,7 +298,16 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 |--------------|-------------------|--------------|--------------------|------------|
 | `docs/development/index.md` | Basic structure | index-template | B - Structural | Medium |
 
-**Phase 2 Totals:** 11 documents, Medium complexity
+**Phase 2 Totals:** 11 documents, Medium complexity  
+**Progress:** 1/11 complete (9% - Architecture batch in progress)
+
+**🚧 PHASE 2 IN PROGRESS:**
+
+- **Architecture (1/6 complete):** async-vs-sync-patterns.md ✅
+- **Infrastructure (0/4):** Pending
+- **Development Index (0/1):** Pending
+
+### Phase 2 Status: IN PROGRESS (1/11 documents, 9%)
 
 ### Phase 3: Supporting Docs (15 documents)
 
@@ -1122,6 +1131,63 @@ date +%Y-%m-%d
 
 ### Ready for Phase 1 Pull Request Creation
 
+### Session 2025-10-16 (17:07-21:16 UTC) - Phase 2 Architecture Migration Start
+
+**Branch:** `docs/phase-2-architecture-migration`  
+**Status:** Phase 2 started (1/11 complete, 9%)
+
+**Completed in this session:**
+
+**✅ Architecture Documents (1/6 complete):**
+
+- `docs/development/architecture/async-vs-sync-patterns.md` - Comprehensive template restructuring with new Context and Architecture Goals sections, content mapped to template structure, 39-entry hierarchical TOC, Document Information metadata added, 0 linting errors
+
+**Key lessons learned:**
+
+- **Template migration is NOT just adding TOC + metadata** - requires comprehensive content restructuring
+- **Must map existing content to template sections** - e.g., "The Rule" → "Design Decisions", "Dashtam Service Patterns" → "Components"
+- **Must add missing template sections with new content** - e.g., Context, Architecture Goals
+- **Phase 1 standards apply** - hierarchical TOC with all ##, ###, #### subsections for MkDocs compatibility
+- **Migration plan is living document** - must update progress after each completion
+- **File tool usage critical** - `edit_files` requires exact content match (watch for line number prefixes: `|` vs `||`)
+
+**Issues encountered and solutions:**
+
+1. **Issue:** Initial shallow migration approach (just TOC + metadata)
+   - **Root cause:** Misunderstood migration goals - need comprehensive restructuring
+   - **Solution:** Studied templates, Phase 1 examples, migration plan deeply; created content mapping; restructured completely
+   - **Prevention:** Always study template structure thoroughly before starting; map existing content to template sections
+
+2. **Issue:** `edit_files` diff application failed with "Could not apply all diffs"
+   - **Root cause:** Used `||` (double pipe from line number display) instead of `|` (single pipe in actual content)
+   - **Solution:** Read file content carefully; markdown tables use single `|` separator, not double
+   - **Prevention:** Always verify exact content match when using `edit_files`; line number prefix is `<num>|` but content starts after that pipe
+
+**Quality metrics this session:**
+
+- Documents migrated: 1 architecture doc (async-vs-sync-patterns.md)
+- Content sections added: 2 new sections (Context, Architecture Goals)
+- Linting errors fixed: 0 (maintained lint-clean status)
+- Template compliance achieved: 100% for async-vs-sync-patterns.md
+- Phase 2 progress: 0/11 → 1/11 (0% → 9%)
+
+**Next session tasks:**
+
+- [ ] Continue with remaining architecture documents:
+  - [ ] jwt-authentication.md (Type A, Medium)
+  - [ ] restful-api-design.md (Type A, Medium)
+  - [ ] schemas-design.md (Type A, Low)
+  - [ ] overview.md (Type B, Medium)
+  - [ ] improvement-guide.md (Type C, High)
+- [ ] Follow same comprehensive restructuring process
+- [ ] Update migration plan after each completion
+- [ ] Create PR when architecture batch (6 docs) complete
+
+**Commits:**
+
+- `[pending]` - docs(architecture): comprehensive template migration for async-vs-sync-patterns.md
+- `[pending]` - docs(migration): update progress tracking for Phase 2 start
+
 ---
 
 ## References
@@ -1138,6 +1204,6 @@ date +%Y-%m-%d
 
 **Category:** Guide
 **Created:** 2025-10-15
-**Last Updated:** 2025-10-15
+**Last Updated:** 2025-10-16
 **Difficulty Level:** Intermediate
 **Target Audience:** AI agents, documentation maintainers, contributors

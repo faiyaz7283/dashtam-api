@@ -1,23 +1,110 @@
 # Async vs Sync Design Patterns
 
-**Document Purpose**: Define when to use async vs sync patterns in Dashtam, following industry best practices and maintaining consistency.
-
-**Last Updated**: 2025-10-04  
-**Status**: Active Standard
+Define when to use async vs sync patterns in Dashtam, following industry best practices and maintaining consistency for optimal performance and code clarity.
 
 ---
 
-## Core Principle
+## Table of Contents
 
-> **Use `async def` for I/O-bound operations. Use `def` for CPU-bound operations.**
+- [Overview](#overview)
+  - [Why This Approach?](#why-this-approach)
+- [Context](#context)
+- [Architecture Goals](#architecture-goals)
+- [Design Decisions](#design-decisions)
+  - [Decision 1: Async for I/O-Bound Operations](#decision-1-async-for-io-bound-operations)
+  - [Decision 2: Sync for CPU-Bound Operations](#decision-2-sync-for-cpu-bound-operations)
+  - [Decision 3: Hybrid Approach for Endpoints](#decision-3-hybrid-approach-for-endpoints)
+  - [Decision Log](#decision-log)
+- [Components](#components)
+  - [Component 1: I/O-Bound Services (Async Pattern)](#component-1-io-bound-services-async-pattern)
+  - [Component 2: CPU-Bound Services (Sync Pattern)](#component-2-cpu-bound-services-sync-pattern)
+  - [Component 3: Service Classification](#component-3-service-classification)
+  - [Current Service Classification](#current-service-classification)
+    - [Async Services (I/O-bound)](#async-services-io-bound)
+    - [Sync Services (CPU-bound)](#sync-services-cpu-bound)
+- [Implementation Details](#implementation-details)
+  - [FastAPI Endpoint Pattern](#fastapi-endpoint-pattern)
+  - [Best Practices](#best-practices)
+    - [1. Don't Mix Patterns Within a Service](#1-dont-mix-patterns-within-a-service)
+    - [2. Call Sync from Async (Not Async from Sync)](#2-call-sync-from-async-not-async-from-sync)
+    - [3. Use Dependency Injection for Services](#3-use-dependency-injection-for-services)
+    - [4. Keep Service Initialization Lightweight](#4-keep-service-initialization-lightweight)
+- [Performance Considerations](#performance-considerations)
+  - [When CPU-Bound Work Blocks](#when-cpu-bound-work-blocks)
+  - [Current Performance Profile](#current-performance-profile)
+  - [Monitoring and Review Criteria](#monitoring-and-review-criteria)
+- [Testing Strategy](#testing-strategy)
+  - [Testing Async Services](#testing-async-services)
+  - [Testing Sync Services](#testing-sync-services)
+- [Future Enhancements](#future-enhancements)
+  - [Step 1: Add Async Wrappers](#step-1-add-async-wrappers)
+  - [Step 2: Update Endpoints](#step-2-update-endpoints)
+  - [Step 3: Deprecate Sync Methods](#step-3-deprecate-sync-methods)
+- [References](#references)
+
+---
+
+## Overview
+
+Dashtam uses a hybrid async/sync architecture that maximizes performance while maintaining code clarity. This architectural pattern addresses the fundamental question: **when to use `async def` versus `def` in our codebase.**
+
+> **Core Principle**: Use `async def` for I/O-bound operations. Use `def` for CPU-bound operations.
 
 This ensures optimal performance, maintains FastAPI best practices, and keeps code clean and maintainable.
 
+### Why This Approach?
+
+The hybrid approach provides:
+
+- **Non-blocking I/O**: Database queries and HTTP requests don't block the event loop
+- **Simplicity for CPU Work**: Synchronous functions for encryption, hashing, and parsing
+- **FastAPI Optimization**: Leverage framework's async capabilities effectively
+- **Clear Patterns**: Developers can easily determine which pattern to use
+- **Testability**: Both patterns are straightforward to test
+
+## Context
+
+Dashtam is built on FastAPI with async/await patterns for I/O operations and synchronous patterns for CPU-bound work. The application handles:
+
+**I/O Operations:**
+
+- Database operations (PostgreSQL with AsyncSession)
+- HTTP requests to financial providers (OAuth flows, API calls)
+- Email sending via AWS SES
+- Redis cache operations
+
+**CPU-Intensive Operations:**
+
+- Password hashing with bcrypt (~300ms per hash)
+- JWT token generation and validation
+- AES-256 token encryption/decryption
+- Data parsing and validation
+
+**Constraints:**
+
+- Must support high concurrency (100+ simultaneous users)
+- Response time target: <500ms for API requests
+- Compatible with FastAPI's async event loop
+- Library compatibility (some libraries are sync-only)
+
+## Architecture Goals
+
+- **Performance Optimization**: Non-blocking I/O operations for scalability
+- **Code Clarity**: Clear, consistent patterns that are easy to understand
+- **Service Consistency**: Uniform async/sync usage within each service
+- **FastAPI Best Practices**: Leverage framework capabilities effectively
+- **Maintainability**: Simple patterns that reduce cognitive load
+- **Testing Simplicity**: Patterns that are straightforward to test
+
 ---
 
-## The Rule
+## Design Decisions
 
-### Use `async def` when
+### Decision 1: Async for I/O-Bound Operations
+
+**Rationale:** I/O operations (database queries, HTTP requests) block execution while waiting for external systems. Using `async def` allows the event loop to handle other requests during wait time, maximizing concurrency and throughput.
+
+**When to use `async def`:**
 
 - ✅ Performing database operations (SELECT, INSERT, UPDATE, DELETE)
 - ✅ Making HTTP/network requests to external APIs
@@ -25,7 +112,16 @@ This ensures optimal performance, maintains FastAPI best practices, and keeps co
 - ✅ Calling other async functions with `await`
 - ✅ Using async libraries (httpx, asyncpg, etc.)
 
-### Use `def` (synchronous) when
+**Trade-offs:**
+
+- ✅ **Pros**: Non-blocking, high concurrency, optimal for I/O-bound workloads
+- ⚠️ **Cons**: More complex (async/await syntax), requires async-compatible libraries
+
+### Decision 2: Sync for CPU-Bound Operations
+
+**Rationale:** CPU-intensive operations (encryption, hashing) don't benefit from async patterns since they're compute-bound, not I/O-bound. Synchronous functions are simpler, and many CPU-intensive libraries (bcrypt, cryptography) are synchronous by design.
+
+**When to use `def` (synchronous):**
 
 - ✅ Performing pure computational work (encryption, hashing, parsing)
 - ✅ Using synchronous-only libraries (passlib/bcrypt, cryptography)
@@ -33,11 +129,52 @@ This ensures optimal performance, maintains FastAPI best practices, and keeps co
 - ✅ Working with in-memory data structures
 - ✅ Mathematical calculations
 
+**Trade-offs:**
+
+- ✅ **Pros**: Simpler code, works with all libraries, easier to test and reason about
+- ⚠️ **Cons**: Blocks event loop during execution (mitigated by FastAPI's thread pool)
+
+### Decision 3: Hybrid Approach for Endpoints
+
+**Rationale:** FastAPI endpoints can be `async def` and call both async and sync functions. This provides the best of both worlds: async I/O operations and simple sync CPU operations.
+
+**Pattern:**
+
+```python
+@router.post("/login")  
+async def login(request: LoginRequest):  # Endpoint is async
+    # Call async I/O function
+    user = await auth_service.get_user_by_email(request.email)
+    
+    # Call sync CPU function directly (no await)
+    if not password_service.verify_password(request.password, user.password_hash):
+        raise HTTPException(status_code=401)
+    
+    # Mix both patterns as needed
+    return {"access_token": jwt_service.create_access_token(user.id)}
+```
+
+**Trade-offs:**
+
+- ✅ **Pros**: Maximum flexibility, optimal performance for mixed workloads
+- ⚠️ **Cons**: Requires understanding of when to use `await`
+
+### Decision Log
+
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2025-10-04 | Keep PasswordService synchronous | Follows EncryptionService pattern, bcrypt is sync-only, no performance issues identified |
+| 2025-10-04 | Keep JWTService synchronous | Pure CPU work (<1ms), python-jose is synchronous |
+| 2025-10-04 | Keep AuthService asynchronous | Performs database I/O operations |
+| 2025-10-04 | Keep EmailService asynchronous | Performs HTTP/network I/O to AWS SES |
+
+**Next Review**: When production metrics indicate performance issues with sync services.
+
 ---
 
-## Dashtam Service Patterns
+## Components
 
-### Pattern 1: I/O-Bound Services (Use `async def`)
+### Component 1: I/O-Bound Services (Async Pattern)
 
 **Example - TokenService, AuthService:**
 
@@ -79,7 +216,7 @@ class TokenService:
 
 ---
 
-### Pattern 2: CPU-Bound Services (Use `def`)
+### Component 2: CPU-Bound Services (Sync Pattern)
 
 **Example - EncryptionService, PasswordService:**
 
@@ -117,7 +254,7 @@ class PasswordService:
 
 ---
 
-### Pattern 3: Hybrid Services (Sync methods, async wrappers if needed)
+### Component 3: Service Classification
 
 **When CPU-bound operations need async behavior:**
 
@@ -157,9 +294,9 @@ class PasswordService:
 
 ---
 
-## FastAPI Endpoint Patterns
+## Implementation Details
 
-### Async Endpoint (Recommended for most cases)
+### FastAPI Endpoint Pattern
 
 ```python
 @router.post("/login")
@@ -197,9 +334,9 @@ async def login(
 
 ---
 
-## Current Dashtam Service Classification
+### Current Service Classification
 
-### Async Services (I/O-bound)
+#### Async Services (I/O-bound)
 
 | Service | Reason | I/O Type |
 |---------|--------|----------|
@@ -207,7 +344,7 @@ async def login(
 | `AuthService` | Database operations, user management | PostgreSQL |
 | `EmailService` | Sends emails via AWS SES | HTTP/Network |
 
-### Sync Services (CPU-bound)
+#### Sync Services (CPU-bound)
 
 | Service | Reason | Operation Type |
 |---------|--------|----------------|
@@ -217,9 +354,9 @@ async def login(
 
 ---
 
-## Best Practices
+### Best Practices
 
-### 1. Don't Mix Patterns Within a Service
+#### 1. Don't Mix Patterns Within a Service
 
 ```python
 # ❌ BAD - Mixing async/sync in same service
@@ -242,7 +379,7 @@ class GoodService:
         await self.session.execute(...)
 ```
 
-### 2. Call Sync from Async (Not Async from Sync)
+#### 2. Call Sync from Async (Not Async from Sync)
 
 ```python
 # ✅ CORRECT - Calling sync from async
@@ -259,7 +396,7 @@ def sync_function():
     user = auth_service.get_user(user_id)  # Missing await, will fail!
 ```
 
-### 3. Use Dependency Injection for Services
+#### 3. Use Dependency Injection for Services
 
 ```python
 # ✅ CORRECT - Services injected with dependencies
@@ -273,7 +410,7 @@ async def endpoint(session: AsyncSession = Depends(get_session)):
     jwt_service = JWTService()
 ```
 
-### 4. Keep Service Initialization Lightweight
+#### 4. Keep Service Initialization Lightweight
 
 ```python
 # ✅ CORRECT - Lightweight init
@@ -289,7 +426,7 @@ class BadService:
 
 ---
 
-## Testing Patterns
+## Testing Strategy
 
 ### Testing Async Services
 
@@ -375,22 +512,20 @@ async def endpoint(background_tasks: BackgroundTasks):
 
 **Verdict**: Current sync services are performant enough. Monitor in production.
 
----
+### Monitoring and Review Criteria
 
-## When to Revisit This Decision
-
-Monitor these metrics in production:
+Monitor these metrics in production to determine if async wrappers are needed:
 
 1. **Request latency p95/p99** - If >500ms due to password hashing
 2. **Concurrent user load** - If >100 simultaneous logins cause issues
 3. **CPU usage** - If bcrypt saturates CPU during peak times
 4. **User complaints** - If login feels slow (>1s response time)
 
-**Action**: If any of the above occur, implement async wrappers using `run_in_executor`.
+**Action**: If any of the above occur, implement async wrappers using `run_in_executor` (see Future Enhancements).
 
 ---
 
-## Migration Path (If Needed)
+## Future Enhancements
 
 ### Step 1: Add Async Wrappers
 
@@ -428,20 +563,6 @@ def hash_password(self, password: str) -> str:
 
 ---
 
-## Summary
-
-| Aspect | Async (`async def`) | Sync (`def`) |
-|--------|---------------------|--------------|
-| **Use for** | I/O operations | CPU operations |
-| **Examples** | Database, HTTP, Files | Encryption, Hashing, Parsing |
-| **Services** | TokenService, AuthService, EmailService | PasswordService, JWTService, EncryptionService |
-| **Can call from** | Async code only (with `await`) | Both sync and async code |
-| **Testing** | `@pytest.mark.asyncio` | Regular `def test_*()` |
-| **Performance** | Non-blocking I/O | Blocks during computation |
-| **Complexity** | Higher (async/await) | Lower (straightforward) |
-
----
-
 ## References
 
 - [FastAPI Async SQL Databases](https://fastapi.tiangolo.com/advanced/async-sql-databases/)
@@ -451,13 +572,9 @@ def hash_password(self, password: str) -> str:
 
 ---
 
-## Decision Log
+## Document Information
 
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2025-10-04 | Keep PasswordService synchronous | Follows EncryptionService pattern, bcrypt is sync-only, no performance issues identified |
-| 2025-10-04 | Keep JWTService synchronous | Pure CPU work (<1ms), python-jose is synchronous |
-| 2025-10-04 | Keep AuthService asynchronous | Performs database I/O operations |
-| 2025-10-04 | Keep EmailService asynchronous | Performs HTTP/network I/O to AWS SES |
-
-**Next Review**: When production metrics indicate performance issues with sync services.
+**Category:** Architecture  
+**Created:** 2025-10-04  
+**Last Updated:** 2025-10-16  
+**Applies To:** All Dashtam services and API endpoints

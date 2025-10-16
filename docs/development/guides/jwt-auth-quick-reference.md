@@ -7,12 +7,43 @@ A comprehensive quick reference guide for developers using the Dashtam JWT authe
 ## Table of Contents
 
 - [Overview](#overview)
+  - [What You'll Learn](#what-youll-learn)
+  - [When to Use This Guide](#when-to-use-this-guide)
+  - [Authentication Pattern](#authentication-pattern)
 - [Prerequisites](#prerequisites)
 - [Step-by-Step Instructions](#step-by-step-instructions)
+  - [1. Register a New User](#1-register-a-new-user)
+  - [2. Verify Email](#2-verify-email)
+  - [3. Login](#3-login)
+  - [4. Make Authenticated Requests](#4-make-authenticated-requests)
+  - [5. Refresh Access Token (When Expired)](#5-refresh-access-token-when-expired)
+  - [6. Logout](#6-logout)
 - [Examples](#examples)
+  - [Python Client Example](#python-client-example)
+  - [JavaScript/TypeScript Client Example](#javascripttypescript-client-example)
+  - [React Hook Example](#react-hook-example)
 - [Verification](#verification)
+  - [Check 1: Registration and Email Verification](#check-1-registration-and-email-verification)
+  - [Check 2: Token Validation](#check-2-token-validation)
+  - [Check 3: Protected Endpoint Access](#check-3-protected-endpoint-access)
+- [All API Endpoints](#all-api-endpoints)
+- [Common Patterns](#common-patterns)
+  - [Auto-Refresh Pattern](#auto-refresh-pattern)
+  - [Token Storage (Security)](#token-storage-security)
 - [Troubleshooting](#troubleshooting)
+  - [Common Error Codes](#common-error-codes)
+  - [Example Error Handling](#example-error-handling)
+  - [Common Authentication Issues](#common-authentication-issues)
+- [Token Lifecycle](#token-lifecycle)
 - [Best Practices](#best-practices)
+  - [Token Storage Security](#token-storage-security-1)
+- [Testing](#testing)
+  - [Test Account Creation](#test-account-creation)
+  - [Check Token Expiry](#check-token-expiry)
+- [Quick Reference Card](#quick-reference-card)
+  - [Authentication Pattern A: JWT Access + Opaque Refresh](#authentication-pattern-a-jwt-access--opaque-refresh)
+  - [API Endpoints Reference](#api-endpoints-reference)
+  - [Security Features](#security-features)
 - [References](#references)
 
 ---
@@ -887,39 +918,48 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 
 ## Quick Reference Card
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│                DASHTAM AUTH QUICK REFERENCE             │
-├─────────────────────────────────────────────────────────┤
-│ PATTERN A: JWT Access + Opaque Refresh                  │
-│                                                         │
-│ Access Token:  JWT, 30 min, stateless                   │
-│ Refresh Token: Random, 30 days, hashed in DB            │
-│                                                         │
-│ FLOW:                                                   │
-│ 1. Register → Email verification                        │
-│ 2. Login → Get tokens                                   │
-│ 3. Use access token (Bearer header)                     │
-│ 4. Refresh when expired (30 min)                        │
-│ 5. Logout → Revoke refresh token                        │
-│                                                         │
-│ ENDPOINTS:                                              │
-│ POST   /auth/register      - Register                   │
-│ POST   /auth/verify-email  - Verify email               │
-│ POST   /auth/login         - Login                      │
-│ POST   /auth/refresh       - Refresh token              │
-│ POST   /auth/logout        - Logout                     │
-│ GET    /auth/me            - Get user profile           │
-│ PATCH  /auth/me            - Update profile             │
-│                                                         │
-│ SECURITY:                                               │
-│ ✅ All tokens hashed in database                        │
-│ ✅ Email verification required                          │
-│ ✅ Password complexity enforced                         │
-│ ✅ Account lockout (10 failures → 1h)                   │
-│ ✅ HTTPS only in production                             │
-└─────────────────────────────────────────────────────────┘
+### Authentication Pattern A: JWT Access + Opaque Refresh
+
+```mermaid
+flowchart TD
+    A[User Registration] --> B[Email Verification Required]
+    B --> C[Login with Email/Password]
+    C --> D[Receive Token Pair]
+    D --> E[Access Token: JWT, 30 min]
+    D --> F[Refresh Token: Opaque, 30 days]
+    E --> G[Make API Requests]
+    G --> H{Token Expired?}
+    H -->|No| G
+    H -->|Yes| I[Use Refresh Token]
+    I --> J[Get New Access Token]
+    J --> G
+    K[Logout] --> L[Revoke Refresh Token]
+    
+    style E fill:#e1f5fe
+    style F fill:#fff3e0
+    style G fill:#e8f5e8
 ```
+
+### API Endpoints Reference
+
+| Endpoint | Method | Purpose | Auth Required |
+|----------|---------|---------|---------------|
+| `/auth/register` | POST | User registration | ❌ |
+| `/auth/verify-email` | POST | Email verification | ❌ |
+| `/auth/login` | POST | User login | ❌ |
+| `/auth/refresh` | POST | Token refresh | ❌ |
+| `/auth/logout` | POST | User logout | ✅ |
+| `/auth/me` | GET | Get user profile | ✅ |
+| `/auth/me` | PATCH | Update profile | ✅ |
+
+### Security Features
+
+- ✅ **Token Security**: All refresh tokens hashed in database
+- ✅ **Email Verification**: Required before login access
+- ✅ **Password Policy**: Complexity requirements enforced
+- ✅ **Account Protection**: Lockout after 10 failed attempts (1 hour)
+- ✅ **Transport Security**: HTTPS only in production
+- ✅ **Token Expiry**: Short-lived access tokens (30 minutes)
 
 ## References
 
@@ -933,8 +973,8 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-15  
-**Difficulty Level:** Intermediate  
+**Category:** Guide
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-15
+**Difficulty Level:** Intermediate
 **Estimated Time:** 30-45 minutes

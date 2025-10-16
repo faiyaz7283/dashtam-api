@@ -523,5 +523,3 @@ services:
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-15
 **Component Type:** Docker, Container orchestration, Build system
-
-**Maintainer:** Dashtam Development Team

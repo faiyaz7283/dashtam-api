@@ -1,10 +1,6 @@
 # Docstring Standards Guide
 
-**Comprehensive guide for Python documentation across the entire Dashtam codebase:**
-
-**Last Updated:** 2025-10-11  
-**Applies To:** All Python files (src/, tests/, scripts/)  
-**Format:** Google-style docstrings (WARP.md requirement)
+Comprehensive guide for Python documentation across the entire Dashtam codebase using Google-style docstrings as required by WARP.md.
 
 ---
 

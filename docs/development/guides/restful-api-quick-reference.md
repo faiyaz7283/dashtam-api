@@ -998,8 +998,8 @@ async def list_providers() -> PaginatedResponse[ProviderResponse]:
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-15  
-**Difficulty Level:** Intermediate  
+**Category:** Guide
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-15
+**Difficulty Level:** Intermediate
 **Estimated Time:** 45-60 minutes

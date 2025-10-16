@@ -243,8 +243,8 @@ See [Complete Auth Flow](complete-auth-flow.md) for full end-to-end testing incl
 
 ## Document Information
 
-**Category:** API Flow  
-**Created:** 2025-10-15  
-**Last Updated:** 2025-10-15  
-**API Version:** v1  
+**Category:** API Flow
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15
+**API Version:** v1
 **Environment:** Development (HTTPS with self-signed TLS)

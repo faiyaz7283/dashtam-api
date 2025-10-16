@@ -98,50 +98,54 @@ Review the two token rotation strategies that providers may implement:
 
 ### Visual Example
 
-```text
-NO ROTATION:
-┌──────────────────────────────────────────────┐
-│ Initial Authentication                       │
-│ ➜ access_token: "abc123"                     │
-│ ➜ refresh_token: "xyz789"                    │
-└──────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────┐
-│ First Refresh (30 min later)                 │
-│ Send: refresh_token="xyz789"                 │
-│ Get:  access_token="def456"                  │
-│       (no refresh_token in response)         │
-│ Keep: refresh_token="xyz789" (unchanged)     │
-└──────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────┐
-│ Second Refresh (30 min later)                │
-│ Send: refresh_token="xyz789" (SAME)          │
-│ Get:  access_token="ghi789"                  │
-└──────────────────────────────────────────────┘
+#### No Rotation Strategy (Most Common)
 
-WITH ROTATION:
-┌──────────────────────────────────────────────┐
-│ Initial Authentication                       │
-│ ➜ access_token: "abc123"                     │
-│ ➜ refresh_token: "xyz789"                    │
-└──────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────┐
-│ First Refresh (30 min later)                 │
-│ Send: refresh_token="xyz789"                 │
-│ Get:  access_token="def456"                  │
-│       refresh_token="new999" (NEW!)          │
-│ Save: refresh_token="new999"                 │
-│ Old:  refresh_token="xyz789" (INVALID)       │
-└──────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────┐
-│ Second Refresh (30 min later)                │
-│ Send: refresh_token="new999" (DIFFERENT!)    │
-│ Get:  access_token="ghi789"                  │
-│       refresh_token="new111" (NEW!)          │
-└──────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Provider
+    participant Database
+    
+    Note over Client,Database: Initial Authentication
+    Client->>Provider: Login credentials
+    Provider-->>Client: access_token: "abc123"<br/>refresh_token: "xyz789"
+    Client->>Database: Store refresh_token: "xyz789"
+    
+    Note over Client,Database: First Refresh (30 min later)
+    Client->>Provider: refresh_token: "xyz789"
+    Provider-->>Client: access_token: "def456"<br/>(no refresh_token in response)
+    Note over Client: Keep same refresh_token: "xyz789"
+    
+    Note over Client,Database: Second Refresh (30 min later)
+    Client->>Provider: refresh_token: "xyz789" (SAME)
+    Provider-->>Client: access_token: "ghi789"
+    Note over Client: Continue using: "xyz789"
+```
+
+#### With Rotation Strategy (More Secure)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Provider
+    participant Database
+    
+    Note over Client,Database: Initial Authentication
+    Client->>Provider: Login credentials
+    Provider-->>Client: access_token: "abc123"<br/>refresh_token: "xyz789"
+    Client->>Database: Store refresh_token: "xyz789"
+    
+    Note over Client,Database: First Refresh (30 min later)
+    Client->>Provider: refresh_token: "xyz789"
+    Provider-->>Client: access_token: "def456"<br/>refresh_token: "new999" (NEW!)
+    Client->>Database: Store refresh_token: "new999"
+    Note over Database: Old token "xyz789" becomes INVALID
+    
+    Note over Client,Database: Second Refresh (30 min later)
+    Client->>Provider: refresh_token: "new999" (DIFFERENT!)
+    Provider-->>Client: access_token: "ghi789"<br/>refresh_token: "new111" (NEW!)
+    Client->>Database: Store refresh_token: "new111"
+    Note over Database: Old token "new999" becomes INVALID
 ```
 
 ### Step 2: Understand Security Benefits
@@ -172,41 +176,41 @@ Dashtam uses a **universal rotation detection system** that works for ALL provid
 
 ### Architecture
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  PROVIDER IMPLEMENTATION                            │
-│  (Provider-specific HTTP call)                      │
-│                                                     │
-│  async def refresh_authentication(refresh_token):   │
-│    response = await http.post(...)                  │
-│    tokens = response.json()                         │
-│                                                     │
-│    result = {"access_token": tokens["access_token"]}│
-│                                                     │
-│    # KEY: Only include if provider sent it          │
-│    if "refresh_token" in tokens:                    │
-│        result["refresh_token"] = tokens["refresh"]  │
-│                                                     │
-│    return result                                    │
-└─────────────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────────────┐
-│  TOKEN SERVICE (Universal Logic)                    │
-│  (Automatic rotation detection)                     │
-│                                                     │
-│  if new_tokens.get("refresh_token"):                │
-│    if new_tokens["refresh_token"] != old_token:     │
-│      # ROTATION DETECTED                            │
-│      encrypted_new = encrypt(new_refresh_token)     │
-│      log("Token rotated")                           │
-│    else:                                            │
-│      # SAME TOKEN (edge case)                       │
-│      log("Same token returned")                     │
-│  else:                                              │
-│    # NO ROTATION                                    │
-│    log("No rotation, keeping existing token")       │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[Provider Implementation] --> B[HTTP POST to Provider API]
+    B --> C[Parse JSON Response]
+    C --> D{Provider sent<br/>refresh_token?}
+    D -->|Yes| E[Include refresh_token<br/>in result]
+    D -->|No| F[Only return<br/>access_token]
+    E --> G[Return result to TokenService]
+    F --> G
+    
+    G --> H[TokenService - Universal Logic]
+    H --> I{new_tokens contains<br/>refresh_token?}
+    I -->|Yes| J{new_token !=<br/>old_token?}
+    I -->|No| K[No Rotation<br/>Keep existing token]
+    J -->|Yes| L[Rotation Detected<br/>Encrypt new token]
+    J -->|No| M[Same Token<br/>Edge case handling]
+    
+    K --> N[Log: No rotation]
+    L --> O[Log: Token rotated]
+    M --> P[Log: Same token returned]
+    
+    style A fill:#e3f2fd
+    style H fill:#fff3e0
+    style L fill:#e8f5e8
+    style K fill:#fff3e0
+    style M fill:#fce4ec
 ```
+
+#### Key Implementation Points
+
+1. **Provider Layer**: Only returns what the API actually sends
+2. **Token Service**: Universal detection logic works for all providers
+3. **Rotation Detection**: Automatic comparison of old vs new tokens
+4. **Logging**: Full audit trail of rotation events
+5. **Security**: New tokens encrypted before database storage
 
 ### Key Points
 
@@ -570,8 +574,8 @@ When implementing a new provider:
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-15  
-**Difficulty Level:** Advanced  
+**Category:** Guide
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-15
+**Difficulty Level:** Advanced
 **Estimated Time:** 60-90 minutes

@@ -16,6 +16,7 @@
 - [Troubleshooting](#troubleshooting)
 - [Maintenance](#maintenance)
 - [Security](#security)
+- [Performance Optimization](#performance-optimization)
 - [References](#references)
 
 ---

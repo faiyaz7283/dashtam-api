@@ -281,7 +281,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 | `schemas-design.md` | Well-structured | architecture-template | A - Metadata | Low |
 | `async-vs-sync-patterns.md` | ✅ **COMPLETE** | architecture-template | A - Structural | Medium |
 | `overview.md` | Moderately structured | architecture-template | B - Structural | Medium |
-| `technical-debt-roadmap.md` (moved to implementation/) | Loosely structured | infrastructure-template | C - Restructure | High |
+| `technical-debt-roadmap.md` (moved to implementation/) | Loosely structured | general-template | C - Restructure | High |
 
 **Infrastructure (4 docs):**
 

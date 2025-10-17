@@ -1,9 +1,228 @@
 # Architecture Improvement Guide
 
-**Document Purpose**: Track design flaws discovered during development and testing, with recommended best-practice solutions to improve application quality, security, and reliability.
+**Living Document**: Track design flaws discovered during development and testing, with recommended best-practice solutions to improve application quality, security, and reliability.
 
-**Status**: Living Document - Updated as issues are discovered  
-**Priority**: High-priority items should be addressed before production deployment
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Context](#context)
+   - [Purpose](#purpose)
+   - [Document Scope](#document-scope)
+   - [Target Audience](#target-audience)
+3. [Architecture Goals](#architecture-goals)
+   - [Core Objectives](#core-objectives)
+   - [Success Criteria](#success-criteria)
+4. [Design Decisions](#design-decisions)
+   - [Decision 1: Timezone-Aware Datetime Storage](#decision-1-timezone-aware-datetime-storage)
+   - [Decision 2: Database Migration Framework](#decision-2-database-migration-framework)
+   - [Decision 3: HTTP Connection Timeout Handling](#decision-3-http-connection-timeout-handling)
+   - [Decision 4: OAuth Token Rotation Logic](#decision-4-oauth-token-rotation-logic)
+   - [Decision 5: JWT User Authentication System](#decision-5-jwt-user-authentication-system)
+5. [Core Components](#core-components)
+   - [Priority Classification](#priority-classification)
+   - [P0: Critical Issues](#p0-critical-issues)
+   - [P1: High-Priority Issues](#p1-high-priority-issues)
+   - [P2: Medium Priority Issues](#p2-medium-priority-issues)
+   - [P3: Low Priority (Quality of Life)](#p3-low-priority-quality-of-life)
+6. [Security Considerations](#security-considerations)
+   - [Token Security](#token-security)
+   - [Rate Limiting](#rate-limiting)
+   - [Secret Management](#secret-management)
+   - [Audit Log Context](#audit-log-context)
+7. [Performance Considerations](#performance-considerations)
+   - [HTTP Timeouts](#http-timeouts)
+   - [Rate Limiting Strategy](#rate-limiting-strategy)
+8. [Testing Strategy](#testing-strategy)
+   - [Validation Approach](#validation-approach)
+   - [Test Coverage Requirements](#test-coverage-requirements)
+9. [Deployment Considerations](#deployment-considerations)
+   - [Priority Matrix](#priority-matrix)
+   - [Status Legend](#status-legend)
+   - [Implementation Workflow](#implementation-workflow)
+10. [Future Improvements](#future-improvements)
+    - [P2 Planned Items](#p2-planned-items)
+    - [P3 Enhancement Items](#p3-enhancement-items)
+11. [References](#references)
+    - [External Resources](#external-resources)
+    - [Related Documentation](#related-documentation)
+12. [Document Information](#document-information)
+
+---
+
+## Overview
+
+The Architecture Improvement Guide is a living document that tracks design flaws, technical debt, and improvement opportunities discovered during development and testing. It provides a systematic approach to identifying, prioritizing, and resolving architectural issues to ensure the Dashtam platform maintains high standards of quality, security, and reliability.
+
+**Key Features**:
+
+- **Systematic Tracking**: All design flaws documented with clear problem statements
+- **Priority-Based**: P0 (Critical) → P1 (High) → P2 (Medium) → P3 (Low)
+- **Best Practice Solutions**: Industry-standard solutions with code examples
+- **Progress Monitoring**: Status tracking from TODO → In Progress → Resolved
+- **Regulatory Compliance**: Ensures SOC 2, PCI-DSS, and security best practices
+
+**Current Status** (2025-10-12):
+
+- ✅ All P0 Critical Items: **RESOLVED** (5/5 complete)
+- ✅ All P1 High-Priority Items: **RESOLVED** (5/5 complete)
+- 🟡 P2 Medium Priority Items: **READY** (4 items next in queue)
+- 🔴 P3 Low Priority Items: **TODO** (4 items for polish/enhancement)
+- 🎉 **Major Milestone**: Production-ready foundation achieved
+
+---
+
+## Context
+
+### Purpose
+
+This document serves multiple critical purposes in the Dashtam development workflow:
+
+**Problem Identification**:
+
+- Document design flaws as they're discovered during development
+- Capture technical debt before it becomes systemic
+- Identify security vulnerabilities early
+- Track compliance gaps (SOC 2, PCI-DSS)
+
+**Prioritization Framework**:
+
+- Establish clear priority levels (P0 → P1 → P2 → P3)
+- Assess impact vs. effort for each issue
+- Ensure critical issues addressed before production
+- Balance technical debt with feature development
+
+**Knowledge Transfer**:
+
+- Provide context for new team members
+- Document rationale behind architectural decisions
+- Share best practices and lessons learned
+- Create institutional memory
+
+**Continuous Improvement**:
+
+- Monthly review of P0/P1 items
+- Quarterly comprehensive review
+- Pre-release verification of critical items
+- Post-incident analysis and updates
+
+### Document Scope
+
+**In Scope**:
+
+- Architectural design flaws and anti-patterns
+- Security vulnerabilities and compliance gaps
+- Performance bottlenecks and scalability issues
+- Technical debt requiring systematic resolution
+- Missing features critical for production readiness
+
+**Out of Scope**:
+
+- Individual bug fixes (tracked in GitHub Issues)
+- Feature requests (tracked in product backlog)
+- Code style issues (handled by linting)
+- Minor UI/UX improvements (tracked separately)
+
+**Review Cadence**:
+
+- **Monthly**: P0/P1 items, priority updates
+- **Quarterly**: Comprehensive review of all items
+- **Pre-release**: P0 resolution verification
+- **Post-incident**: Lessons learned integration
+
+### Target Audience
+
+**Primary Users**:
+
+- **Development Team**: Implement solutions, track progress
+- **Architecture Team**: Review priorities, approve design decisions
+- **Security Team**: Validate security improvements
+- **DevOps Team**: Deploy and monitor changes
+
+**Secondary Users**:
+
+- **Product Management**: Understand technical constraints
+- **QA Team**: Test implemented improvements
+- **New Team Members**: Understand architecture evolution
+- **Auditors**: Verify compliance improvements
+
+---
+
+## Architecture Goals
+
+### Core Objectives
+
+The improvement guide supports these architectural objectives:
+
+**1. Security First**
+
+Ensure all critical security issues (P0/P1) are resolved before production:
+
+- ✅ Timezone-aware audit logs (regulatory compliance)
+- ✅ Token encryption and rotation (credential protection)
+- ✅ Connection timeouts (DoS prevention)
+- ✅ JWT authentication (user identity management)
+- 🟡 Rate limiting (brute force protection)
+- 🟡 Secret management (credential lifecycle)
+
+**2. Data Integrity**
+
+Maintain accurate, unambiguous financial data:
+
+- ✅ Timezone-aware timestamps (PCI-DSS Requirement 10.4.2)
+- ✅ Database migrations (schema versioning)
+- 🟡 Audit log context (request tracing)
+
+**3. Reliability**
+
+Prevent system failures and downtime:
+
+- ✅ Connection timeouts (prevent hangs)
+- ✅ Token rotation (automatic recovery)
+- 🟡 Rate limiting (prevent overload)
+
+**4. Maintainability**
+
+Ensure codebase remains clean and extensible:
+
+- ✅ Database migrations (controlled schema evolution)
+- 🔴 Error message consistency (developer experience)
+- 🔴 Configuration management (environment portability)
+
+**5. Compliance**
+
+Meet industry standards and regulatory requirements:
+
+- ✅ SOC 2: Audit logging with timezone awareness
+- ✅ PCI-DSS 10.4.2: Time synchronization
+- 🟡 Secret rotation policies
+- 🟡 Access control and session management
+
+### Success Criteria
+
+**P0/P1 Resolution**: All critical and high-priority items resolved before production
+
+- ✅ **ACHIEVED**: 10/10 P0/P1 items resolved (100%)
+- 🎉 **Major Milestone**: Production-ready foundation complete
+
+**Test Coverage**: Comprehensive testing for all improvements
+
+- ✅ **ACHIEVED**: 295 tests passing, 76% code coverage
+- Target: 85% overall coverage
+
+**Documentation**: Complete documentation for all resolved items
+
+- ✅ **ACHIEVED**: All P0/P1 items documented
+- Comprehensive guides for migrations, token rotation, JWT auth
+
+**No Regressions**: All existing tests pass after improvements
+
+- ✅ **MAINTAINED**: Zero regression failures
+- CI/CD enforces test passage before merge
+
+**Performance**: No degradation from improvements
+
+- ✅ **VERIFIED**: No performance impact measured
+- Timeout configuration improves user experience
 
 ---
 

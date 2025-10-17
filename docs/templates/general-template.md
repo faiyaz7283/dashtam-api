@@ -4,6 +4,23 @@
 
 ---
 
+<!--
+OPTIONAL: Add Table of Contents for complex documents (>150-200 lines or 5+ sections)
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Purpose](#purpose)
+- [Key Concepts](#key-concepts)
+- [Main Content](#main-content)
+- [Examples](#examples)
+- [Common Issues](#common-issues)
+- [Related Documentation](#related-documentation)
+- [Document Information](#document-information)
+
+---
+-->
+
 ## Overview
 
 [Provide a high-level overview of the topic. What is this document about? Why does it matter?]
@@ -62,10 +79,6 @@ echo "Replace with actual example"
 
 ## Document Information
 
-**Status:** Draft | Active | Archived | Superseded
 **Category:** General
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-
-[Optional: **Supersedes:** old-document.md]
-[Optional: **Authors:** Team Name or Individual Names]

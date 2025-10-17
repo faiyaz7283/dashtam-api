@@ -40,7 +40,7 @@ Documentation for working on the Dashtam project:
 
 - [Development Guide](development/) - Architecture, infrastructure, and testing
   - [Architecture Overview](development/architecture/overview.md)
-  - [Improvement Guide](development/architecture/improvement-guide.md) - Design improvements and roadmap
+  - [Technical Debt Roadmap](development/implementation/technical-debt-roadmap.md) - Technical debt tracking and implementation roadmap
   - [Docker Setup](development/infrastructure/docker-setup.md)
   - [Testing Strategy](development/testing/strategy.md)
   - [Testing Guide](development/testing/guide.md)

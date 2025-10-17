@@ -1,80 +1,197 @@
 # RESTful API Architecture
 
-**Last Updated:** 2025-10-04  
-**Status:** Active Standard  
-**Applies To:** All API endpoints in Dashtam
-
----
-
 ## Table of Contents
 
-1. [Introduction](#introduction)
-2. [REST Principles](#rest-principles)
-3. [Resource Design](#resource-design)
-4. [HTTP Methods](#http-methods)
-5. [Status Codes](#status-codes)
-6. [URL Structure](#url-structure)
-7. [Request/Response Formats](#requestresponse-formats)
-8. [Versioning Strategy](#versioning-strategy)
-9. [Error Handling](#error-handling)
-10. [Pagination](#pagination)
-11. [Filtering & Sorting](#filtering--sorting)
-12. [Authentication & Authorization](#authentication--authorization)
-13. [Rate Limiting](#rate-limiting)
-14. [Caching](#caching)
-15. [HATEOAS](#hateoas)
-16. [Best Practices](#best-practices)
+- [Overview](#overview)
+- [Context](#context)
+- [Architecture Goals](#architecture-goals)
+- [Design Decisions](#design-decisions)
+  - [Decision 1: Client-Server Separation](#decision-1-client-server-separation)
+  - [Decision 2: Stateless Communication](#decision-2-stateless-communication)
+  - [Decision 3: Explicit Cacheability](#decision-3-explicit-cacheability)
+  - [Decision 4: Uniform Interface](#decision-4-uniform-interface)
+  - [Decision 5: Layered System Architecture](#decision-5-layered-system-architecture)
+- [Components](#components)
+  - [Resource Naming](#resource-naming)
+  - [Resource Hierarchy](#resource-hierarchy)
+  - [Special Cases](#special-cases)
+- [HTTP Methods](#http-methods)
+  - [Standard Methods](#standard-methods)
+  - [Method Usage](#method-usage)
+    - [GET - Retrieve Resources](#get---retrieve-resources)
+    - [POST - Create Resources](#post---create-resources)
+    - [PUT - Replace Resources](#put---replace-resources)
+    - [PATCH - Update Resources](#patch---update-resources)
+    - [DELETE - Remove Resources](#delete---remove-resources)
+- [Status Codes](#status-codes)
+  - [Success Codes (2xx)](#success-codes-2xx)
+  - [Client Error Codes (4xx)](#client-error-codes-4xx)
+  - [Server Error Codes (5xx)](#server-error-codes-5xx)
+  - [Status Code Examples](#status-code-examples)
+- [URL Structure](#url-structure)
+  - [Base URL Format](#base-url-format)
+  - [URL Conventions](#url-conventions)
+  - [Query Parameters](#query-parameters)
+- [Request/Response Formats](#requestresponse-formats)
+  - [Content Type](#content-type)
+  - [Request Format](#request-format)
+  - [Response Format](#response-format)
+  - [Date/Time Format](#datetime-format)
+- [Versioning Strategy](#versioning-strategy)
+  - [URI Versioning (Current Approach)](#uri-versioning-current-approach)
+  - [Version in Code](#version-in-code)
+- [Error Handling](#error-handling)
+  - [Standard Error Response](#standard-error-response)
+  - [Error Examples](#error-examples)
+  - [Exception Handling](#exception-handling)
+- [Pagination](#pagination)
+  - [Offset-Based Pagination (Current)](#offset-based-pagination-current)
+  - [Cursor-Based Pagination (Future)](#cursor-based-pagination-future)
+- [Filtering & Sorting](#filtering--sorting)
+  - [Filtering](#filtering)
+  - [Sorting](#sorting)
+- [Security Considerations](#security-considerations)
+  - [Authentication & Authorization](#authentication--authorization)
+    - [Authentication](#authentication)
+    - [Authorization](#authorization)
+  - [Rate Limiting](#rate-limiting)
+    - [Implementation (Future)](#implementation-future)
+    - [Rate Limit Headers](#rate-limit-headers)
+  - [Caching](#caching)
+    - [Cache Headers](#cache-headers)
+    - [Conditional Requests](#conditional-requests)
+- [HATEOAS](#hateoas)
+  - [Hypermedia Links (Optional)](#hypermedia-links-optional)
+- [Best Practices](#best-practices)
+  - [Do's ✅](#dos-)
+  - [Don'ts ❌](#donts-)
+- [Implementation Details](#implementation-details)
+- [Performance Considerations](#performance-considerations)
+  - [Caching Benefits](#caching-benefits)
+  - [Pagination Performance](#pagination-performance)
+  - [Stateless Scalability](#stateless-scalability)
+- [Testing Strategy](#testing-strategy)
+  - [REST Compliance Testing](#rest-compliance-testing)
+  - [Test Coverage](#test-coverage)
+- [Future Enhancements](#future-enhancements)
+- [References](#references)
+- [Document Information](#document-information)
 
 ---
 
-## Introduction
+## Overview
 
 This document establishes the RESTful API design standards for the Dashtam application. All API endpoints must follow these guidelines to ensure consistency, maintainability, and adherence to industry best practices.
 
-### Design Philosophy
-
-- **Resource-Oriented:** APIs are designed around resources (nouns) not actions (verbs)
-- **Stateless:** Each request contains all information needed to process it
-- **Cacheable:** Responses explicitly indicate cacheability
-- **Uniform Interface:** Consistent patterns across all endpoints
-- **Layered System:** Architecture supports intermediaries (proxies, gateways)
+Dashtam implements a REST-compliant API architecture that provides a uniform interface for financial data access across web, mobile, and third-party integrations.
 
 ---
 
-## REST Principles
+## Context
 
-### 1. Client-Server Separation
+Dashtam's API serves as the primary interface for all client applications accessing financial data from multiple provider integrations.
 
-The API server and client are independent. The server exposes resources; clients consume them.
+**Operating Environment:**
 
-```text
-┌─────────────┐         HTTP/JSON         ┌─────────────┐
-│   Client    │ ◄──────────────────────►  │   Server    │
-│ (Frontend)  │                           │ (FastAPI)   │
-└─────────────┘                           └─────────────┘
+- **Framework**: FastAPI (async Python web framework)
+- **API Consumers**: Web frontend, mobile apps, potential third-party integrations
+- **Data Sources**: Multiple financial providers (Charles Schwab, future: Plaid, Chase, etc.)
+- **Deployment**: Containerized services behind API gateway/load balancer
+- **Authentication**: JWT-based stateless authentication
+
+**System Constraints:**
+
+- **Stateless requirement**: No server-side session storage (horizontal scalability)
+- **Multi-client support**: Single API serves multiple client types
+- **Provider diversity**: Must abstract differences across financial providers
+- **Security compliance**: Financial data requires strict access control
+- **Performance needs**: Support high request volumes with caching
+
+**Key Requirements:**
+
+1. **Consistency**: Uniform patterns across all endpoints
+2. **Discoverability**: Clear, predictable URL structure
+3. **Extensibility**: Easy to add new resources and providers
+4. **Client-agnostic**: Works for web, mobile, and API integrations
+5. **Standards compliance**: Follow REST architectural constraints
+
+---
+
+## Architecture Goals
+
+1. **Resource-Oriented Design** - Model API around resources (nouns) not actions (verbs)
+2. **Stateless Communication** - Each request contains all information needed; no server-side sessions
+3. **Cacheability** - Responses explicitly indicate cacheability to improve performance
+4. **Uniform Interface** - Consistent patterns, conventions, and error handling across all endpoints
+5. **Layered Architecture** - Support intermediaries (proxies, load balancers, API gateways) transparently
+6. **Industry Standards Compliance** - Follow RESTful API best practices and HTTP specifications
+
+---
+
+## Design Decisions
+
+### Decision 1: Client-Server Separation
+
+**Decision**: Separate client and server responsibilities; server exposes resources via HTTP/JSON, clients consume them.
+
+```mermaid
+flowchart LR
+    Client[Client<br/>Frontend] <-->|HTTP/JSON| Server[Server<br/>FastAPI]
 ```
 
-### 2. Statelessness
+**Rationale**:
 
-Each request is self-contained. Session state is stored client-side (e.g., JWT tokens).
+- Enables independent evolution of client and server
+- Supports multiple client types (web, mobile, third-party)
+- Improves portability and scalability
 
-**✅ Good (Stateless):**
+**Trade-offs**:
+
+- Requires network communication (latency)
+- Must design stable API contracts
+
+### Decision 2: Stateless Communication
+
+**Decision**: Each request must be self-contained with all required information; no server-side session storage.
+
+**Rationale**:
+
+- Enables horizontal scalability (any server can handle any request)
+- Simplifies server implementation (no session management)
+- Improves reliability (no session loss on server restart)
+
+**Implementation**:
+
+✅ **Good (Stateless)**:
 
 ```http
 GET /api/v1/providers
-Authorization: Bearer eyJhbGci...
+Authorization: Bearer eyJhbGci...  # JWT contains user identity
 ```
 
-**❌ Bad (Stateful):**
+❌ **Bad (Stateful)**:
 
 ```http
 GET /api/v1/providers
-Cookie: session_id=abc123
+Cookie: session_id=abc123  # Server must track sessions
 ```
 
-### 3. Cacheability
+**Trade-offs**:
 
-Responses define whether they can be cached.
+- Larger requests (auth token in every request)
+- Client must manage auth state
+
+### Decision 3: Explicit Cacheability
+
+**Decision**: Responses must explicitly indicate whether they can be cached using Cache-Control headers.
+
+**Rationale**:
+
+- Reduces server load for frequently accessed resources
+- Improves client performance (faster responses)
+- Supports CDN and browser caching
+
+**Implementation**:
 
 ```python
 @router.get("/providers/{provider_id}")
@@ -85,26 +202,61 @@ async def get_provider(provider_id: UUID):
     )
 ```
 
-### 4. Uniform Interface
+**Trade-offs**:
 
-All endpoints follow consistent patterns:
+- Cached data may be stale
+- Must carefully choose cache duration per resource
 
-- **Resource identification:** URLs identify resources
-- **Resource manipulation:** Use standard HTTP methods
-- **Self-descriptive messages:** Responses include media type
-- **Hypermedia:** Links to related resources (optional)
+### Decision 4: Uniform Interface
 
-### 5. Layered System
+**Decision**: All endpoints follow consistent patterns for resource identification, manipulation, and representation.
 
-Architecture supports intermediaries without client knowledge.
+**Rationale**:
 
-```text
-Client → Load Balancer → API Gateway → FastAPI Server → Database
+- Simplifies client development (predictable patterns)
+- Reduces learning curve for API consumers
+- Enables generic HTTP tooling
+
+**Principles**:
+
+- **Resource identification**: URLs identify resources (`/providers/{id}`)
+- **Resource manipulation**: Standard HTTP methods (GET, POST, PATCH, DELETE)
+- **Self-descriptive messages**: Responses include Content-Type headers
+- **Hypermedia**: Links to related resources (optional for Dashtam)
+
+**Trade-offs**:
+
+- May not perfectly map complex operations to CRUD
+- Requires discipline to maintain consistency
+
+### Decision 5: Layered System Architecture
+
+**Decision**: Support transparent intermediaries (load balancers, API gateways, proxies) between client and server.
+
+**Rationale**:
+
+- Enables horizontal scaling behind load balancer
+- Supports API gateway for cross-cutting concerns (auth, rate limiting)
+- Allows caching layers for performance
+
+**Architecture**:
+
+```mermaid
+flowchart LR
+    Client --> LB[Load Balancer]
+    LB --> GW[API Gateway]
+    GW --> API[FastAPI Server]
+    API --> DB[(Database)]
 ```
+
+**Trade-offs**:
+
+- Added complexity in infrastructure
+- Potential latency from additional hops
 
 ---
 
-## Resource Design
+## Components
 
 ### Resource Naming
 
@@ -781,9 +933,11 @@ GET /api/v1/providers?sort=created_at&order=desc
 
 ---
 
-## Authentication & Authorization
+## Security Considerations
 
-### Authentication
+### Authentication & Authorization
+
+#### Authentication
 
 Use Bearer tokens (JWT):
 
@@ -792,7 +946,7 @@ GET /api/v1/providers
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-### Authorization
+#### Authorization
 
 Check permissions in dependencies:
 
@@ -817,9 +971,9 @@ async def create_provider(
 
 ---
 
-## Rate Limiting
+### Rate Limiting
 
-### Implementation (Future)
+#### Implementation (Future)
 
 ```python
 from fastapi import Request
@@ -834,7 +988,7 @@ async def list_providers(request: Request):
     pass
 ```
 
-### Rate Limit Headers
+#### Rate Limit Headers
 
 ```http
 HTTP/1.1 200 OK
@@ -845,9 +999,9 @@ X-RateLimit-Reset: 1696435200
 
 ---
 
-## Caching
+### Caching
 
-### Cache Headers
+#### Cache Headers
 
 ```python
 from fastapi import Response
@@ -866,7 +1020,7 @@ async def get_provider(provider_id: UUID) -> Response:
     )
 ```
 
-### Conditional Requests
+#### Conditional Requests
 
 ```python
 @router.get("/providers/{provider_id}")
@@ -993,6 +1147,84 @@ Include links to related resources:
 
 ---
 
+## Implementation Details
+
+See sections above for detailed implementation guidance:
+
+- Resource Design (Components)
+- HTTP Methods
+- Status Codes
+- URL Structure
+- Request/Response Formats
+- Versioning Strategy
+- Error Handling
+- Pagination
+- Filtering & Sorting
+
+---
+
+## Performance Considerations
+
+### Caching Benefits
+
+**Impact**: Properly implemented caching reduces server load and improves response times.
+
+- **GET requests**: Cache stable resources (e.g., provider details)
+- **Cache-Control headers**: Use `max-age` for time-based expiration
+- **ETags**: Support conditional requests for fresher data validation
+
+**Performance Gain**: 50-90% reduction in API calls for cached resources.
+
+### Pagination Performance
+
+**Impact**: Prevents large dataset transfers that slow responses.
+
+- **Offset-based** (current): Simple but slower for deep pages
+- **Cursor-based** (future): Better performance for large datasets
+- **Default limit**: 100 items prevents accidental large queries
+
+### Stateless Scalability
+
+**Impact**: Stateless design enables horizontal scaling.
+
+- Any server can handle any request (no session affinity)
+- Load balancer distributes traffic evenly
+- Easy to add/remove servers
+
+---
+
+## Testing Strategy
+
+### REST Compliance Testing
+
+- **Contract testing**: Verify API adheres to OpenAPI specification
+- **Status code validation**: Ensure correct HTTP codes returned
+- **URL pattern testing**: Check resource-oriented URL structure
+- **Method testing**: Verify GET is safe, PUT/DELETE are idempotent
+
+### Test Coverage
+
+- **Unit tests**: Schema validation, error response format
+- **Integration tests**: Full endpoint testing with database
+- **E2E tests**: Complete user flows across multiple endpoints
+- **Smoke tests**: Critical path validation (auth, providers, etc.)
+
+**Target**: 85%+ coverage for API endpoint code.
+
+---
+
+## Future Enhancements
+
+🔲 **HATEOAS Implementation** - Add hypermedia links in responses for discoverability  
+🔲 **Cursor-Based Pagination** - Improved performance for large datasets  
+🔲 **Rate Limiting** - Prevent API abuse with Redis-based rate limits  
+🔲 **GraphQL Alternative** - Consider GraphQL for complex client queries  
+🔲 **API Versioning in Headers** - Move from URL to Accept header versioning  
+🔲 **Webhook Support** - Push notifications for async operations  
+🔲 **Bulk Operations** - Batch create/update endpoints for efficiency  
+
+---
+
 ## References
 
 - [REST API Tutorial](https://restfulapi.net/)
@@ -1001,8 +1233,20 @@ Include links to related resources:
 - [FastAPI Best Practices](https://fastapi.tiangolo.com/tutorial/)
 - [HTTP Status Codes](https://httpstatuses.com/)
 
+**Related Dashtam Documents:**
+
+- [JWT Authentication](jwt-authentication.md) - Authentication and authorization patterns
+- [Schemas Design](schemas-design.md) - Request/response schema patterns
+- [Async vs Sync Patterns](async-vs-sync-patterns.md) - Service implementation patterns
+- [JWT Auth Quick Reference](../guides/jwt-auth-quick-reference.md) - Quick reference guide
+- [RESTful API Quick Reference](../guides/restful-api-quick-reference.md) - Quick reference guide
+
 ---
 
-**Document Version:** 1.0  
-**Last Reviewed:** 2025-10-04  
-**Next Review:** 2025-04-04
+## Document Information
+
+**Category:** Architecture  
+**Created:** 2025-10-04  
+**Last Updated:** 2025-10-16  
+**Status:** Active Standard  
+**Applies To:** All API endpoints in Dashtam

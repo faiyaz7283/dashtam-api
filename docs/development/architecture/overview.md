@@ -1,12 +1,169 @@
 # Dashtam Application Architecture Guide
 
-## Overview
+## Table of Contents
 
-Dashtam uses a **dual-environment architecture** with complete isolation between development and testing. Both environments run in Docker but are configured differently and can coexist simultaneously.
+- [Overview](#overview)
+  - [Key Architecture Principles](#key-architecture-principles)
+- [Context](#context)
+- [Architecture Goals](#architecture-goals)
+- [Design Decisions](#design-decisions)
+  - [Decision 1: Dual-Environment Architecture with Shared Containers](#decision-1-dual-environment-architecture-with-shared-containers)
+  - [Decision 2: Idempotent Database Initialization](#decision-2-idempotent-database-initialization)
+  - [Decision 3: Configuration Overlay Pattern](#decision-3-configuration-overlay-pattern)
+- [Components](#components)
+  - [Development Environment](#development-environment)
+  - [Test Environment](#test-environment)
+- [Implementation Details](#implementation-details)
+  - [Environment Coexistence](#environment-coexistence)
+    - [How Environments Interact](#how-environments-interact)
+  - [Database Initialization Flows](#database-initialization-flows)
+    - [Development Database Initialization](#development-database-initialization)
+    - [Test Database Initialization](#test-database-initialization)
+  - [Model Import System](#model-import-system)
+  - [Configuration Management](#configuration-management)
+    - [Settings Hierarchy](#settings-hierarchy)
+    - [Key Configuration Files](#key-configuration-files)
+  - [Typical Workflows](#typical-workflows)
+    - [Development Workflow](#development-workflow)
+    - [Testing Workflow](#testing-workflow)
+    - [Simultaneous Dev and Test (Advanced)](#simultaneous-dev-and-test-advanced)
+  - [Database State Management](#database-state-management)
+    - [Development Database State](#development-database-state)
+    - [Test Database State](#test-database-state)
+  - [Troubleshooting](#troubleshooting)
+    - [Issue: Tests fail with "database does not exist"](#issue-tests-fail-with-database-does-not-exist)
+    - [Issue: Dev database lost after testing](#issue-dev-database-lost-after-testing)
+    - [Issue: Environment variables not loading in tests](#issue-environment-variables-not-loading-in-tests)
+    - [Issue: Tables not created in test database](#issue-tables-not-created-in-test-database)
+    - [Issue: Can't run dev and tests simultaneously](#issue-cant-run-dev-and-tests-simultaneously)
+- [Testing Strategy](#testing-strategy)
+  - [How This Architecture Enables Testing](#how-this-architecture-enables-testing)
+  - [Test Environment Features](#test-environment-features)
+  - [Test Types Supported](#test-types-supported)
+- [Security Considerations](#security-considerations)
+  - [Environment Isolation](#environment-isolation)
+  - [Configuration Security](#configuration-security)
+  - [Database Security](#database-security)
+- [Performance Considerations](#performance-considerations)
+  - [Docker Overhead](#docker-overhead)
+  - [Database Performance](#database-performance)
+  - [Optimization Strategies](#optimization-strategies)
+- [Future Enhancements](#future-enhancements)
+  - [Planned Improvements](#planned-improvements)
+  - [Known Limitations](#known-limitations)
+- [References](#references)
+  - [Related Dashtam Documentation](#related-dashtam-documentation)
+  - [Project Files](#project-files)
+- [Document Information](#document-information)
 
 ---
 
-## 1. Environment Architecture
+## Overview
+
+Dashtam uses a **dual-environment architecture** with complete isolation between development and testing. Both environments run in Docker containers with different configurations, enabling safe concurrent development and testing workflows.
+
+### Key Architecture Principles
+
+1. **Complete Environment Isolation** - Development and testing use separate databases, users, and configurations
+2. **Docker-First Approach** - All environments run in containers for consistency and reproducibility
+3. **Configuration Overlay Pattern** - Base configuration with environment-specific overrides
+4. **Idempotent Initialization** - Database setup scripts safe to run multiple times
+5. **Clean Test State** - Test environment always starts with fresh data
+
+---
+
+## Context
+
+Dashtam's application architecture operates within a containerized development ecosystem, balancing developer productivity with testing reliability.
+
+**Operating Environment:**
+
+- **Platform**: Docker containers on local development machines
+- **Database**: PostgreSQL 17.6 with async drivers (asyncpg)
+- **Cache**: Redis 8.2.1 for session and temporary data
+- **Web Framework**: FastAPI with async/await patterns
+- **Package Management**: UV 0.8.22 for deterministic dependency resolution
+
+**System Constraints:**
+
+- **Local Development**: All services must run on developer machines without external dependencies
+- **Resource Efficiency**: Minimize Docker overhead for fast iteration cycles
+- **Test Isolation**: Tests must not interfere with development data
+- **Reproducibility**: Same environment behavior across all developer machines
+- **SSL Everywhere**: HTTPS required even in development for production parity
+
+**Key Requirements:**
+
+1. **Environment Isolation**: Development and testing must not share state
+2. **Data Persistence**: Development data must survive container restarts
+3. **Clean Test State**: Each test run starts with fresh database
+4. **Easy Switching**: Seamless transitions between development and testing
+5. **Minimal Complexity**: Simple commands for common workflows
+
+---
+
+## Architecture Goals
+
+1. **Complete Isolation** - Separate databases, users, and configurations prevent cross-contamination between environments
+2. **Developer Productivity** - Hot reload, persistent data, and simple commands minimize friction
+3. **Test Reliability** - Clean state for each test run ensures predictable, repeatable results
+4. **Production Parity** - Docker containers match production environment closely
+5. **Operational Simplicity** - Make-based commands abstract Docker complexity
+6. **Resource Efficiency** - Share containers where safe, minimize duplication
+7. **Debugging Support** - Easy access to logs, databases, and running processes
+8. **Flexibility** - Support both isolated and overlapping environment workflows
+
+---
+
+## Design Decisions
+
+### Decision 1: Dual-Environment Architecture with Shared Containers
+
+**Rationale**: Instead of completely separate container sets, use Docker Compose overlay pattern to share infrastructure while isolating data.
+
+**Trade-offs**:
+
+- ✅ **Pro**: Reduced resource usage (one PostgreSQL instance, not two)
+- ✅ **Pro**: Faster startup times (reuse running containers when possible)
+- ✅ **Pro**: Simpler Docker network configuration
+- ❌ **Con**: Cannot run dev and test truly simultaneously (container name conflicts)
+- ❌ **Con**: More complex configuration management
+
+**Alternatives Considered**:
+
+- Completely separate containers with different names → Rejected due to resource overhead
+- Single shared environment → Rejected due to data pollution concerns
+
+### Decision 2: Idempotent Database Initialization
+
+**Rationale**: Development database initialization runs automatically on startup, test initialization runs on-demand with clean slate.
+
+**Trade-offs**:
+
+- ✅ **Pro**: Development "just works" without manual setup
+- ✅ **Pro**: Tests always start clean (predictable state)
+- ✅ **Pro**: Safe to re-run initialization scripts
+- ❌ **Con**: Slight startup delay for development environment
+- ❌ **Con**: Test data lost on each test run (by design)
+
+**Implementation**: `init_db.py` for dev (creates if missing), `init_test_db.py` for tests (drops and recreates).
+
+### Decision 3: Configuration Overlay Pattern
+
+**Rationale**: Use `docker-compose.yml` as base with `docker-compose.test.yml` overlay for test-specific overrides.
+
+**Trade-offs**:
+
+- ✅ **Pro**: DRY principle - shared config in base file
+- ✅ **Pro**: Easy to understand differences (test overlay shows only changes)
+- ✅ **Pro**: Prevents configuration drift
+- ❌ **Con**: Requires understanding Docker Compose override mechanics
+
+**Key Overrides**: App command (`sleep infinity`), environment variables (`.env.test`), database credentials.
+
+---
+
+## Components
 
 ### Development Environment
 
@@ -52,9 +209,11 @@ Dashtam uses a **dual-environment architecture** with complete isolation between
 
 ---
 
-## 2. Environment Coexistence
+## Implementation Details
 
-### How Environments Interact
+### Environment Coexistence
+
+#### How Environments Interact
 
 **Key Point:** The environments **share the same Docker containers** but with different configurations!
 
@@ -93,11 +252,9 @@ make test-setup  # or make test-unit
    - Dev database data persists in volumes
    - Can be restarted with `make up` after testing
 
----
+### Database Initialization Flows
 
-## 3. Database Initialization Flows
-
-### Development Database Initialization
+#### Development Database Initialization
 
 **File:** `src/core/init_db.py`
 
@@ -131,7 +288,7 @@ make test-setup  # or make test-unit
 - Runs in DEBUG mode (from .env)
 - Logs all SQL queries if DB_ECHO=true
 
-### Test Database Initialization
+#### Test Database Initialization
 
 **File:** `src/core/init_test_db.py`
 
@@ -171,9 +328,7 @@ make test-setup  # or make test-unit
 - Only runs when explicitly called
 - Container stays running for tests
 
----
-
-## 4. Model Import System
+### Model Import System
 
 Both initialization scripts must import all models BEFORE calling `SQLModel.metadata.create_all()`. This is because SQLModel uses a metadata registry.
 
@@ -197,9 +352,7 @@ SQLModel.metadata.create_all()  # Now creates all tables!
 - The `table=True` parameter marks it as a database table
 - Relationships are established via foreign keys
 
----
-
-## 5. Configuration Management
+### Configuration Management
 
 ### Settings Hierarchy
 
@@ -256,9 +409,7 @@ Final TestSettings object
 - Mounts .env.test as .env
 - No persistent volumes for postgres
 
----
-
-## 6. Typical Workflows
+### Typical Workflows
 
 ### Development Workflow
 
@@ -324,11 +475,9 @@ make test-clean     # Clean test environment
 make up             # Resume development
 ```
 
----
+### Database State Management
 
-## 7. Database State Management
-
-### Development Database State
+#### Development Database State
 
 **Location:** Docker volume `dashtam_postgres_data`
 
@@ -354,7 +503,7 @@ make build          # Rebuild
 make up             # Fresh start
 ```
 
-### Test Database State
+#### Test Database State
 
 **Location:** Same PostgreSQL instance, different database
 
@@ -370,79 +519,160 @@ make up             # Fresh start
 - No test data pollution
 - Predictable test environment
 
----
+### Troubleshooting
 
-## 8. Common Issues and Solutions
-
-### Issue: Tests fail with "database does not exist"
+#### Issue: Tests fail with "database does not exist"
 
 **Solution:** Run `make test-setup` first to initialize test database
 
-### Issue: Dev database lost after testing
+#### Issue: Dev database lost after testing
 
 **Solution:** Dev database is in a different database (`dashtam` vs `dashtam_test`). Use `make up` to restart dev environment.
 
-### Issue: Environment variables not loading in tests
+#### Issue: Environment variables not loading in tests
 
 **Solution:** Ensure `docker-compose.test.yml` properly overrides and `.env.test` is mounted as `.env`
 
-### Issue: Tables not created in test database
+#### Issue: Tables not created in test database
 
 **Solution:** Verify all models are imported in `init_test_db.py` before `create_all()`
 
-### Issue: Can't run dev and tests simultaneously
+#### Issue: Can't run dev and tests simultaneously
 
 **Solution:** By design. Use `make test-clean` then `make up` to switch back to dev.
 
 ---
 
-## 9. File Reference
+## Testing Strategy
 
-### Core Application Files
+### How This Architecture Enables Testing
 
-- `src/core/config.py` - Settings management
-- `src/core/database.py` - Database connection and session management
-- `src/core/init_db.py` - Development database initialization
-- `src/core/init_test_db.py` - Test database initialization
-- `src/main.py` - FastAPI application entry point
+- **Clean State**: Test database drops all tables before each run, ensuring predictable starting state
+- **Isolated Data**: Test database (`dashtam_test`) completely separate from development database (`dashtam`)
+- **Fast Iteration**: Optimized test database settings (no fsync, no synchronous commits) for speed
+- **Safety Checks**: `init_test_db.py` verifies test environment before destructive operations
 
-### Configuration Files
+### Test Environment Features
 
-- `.env` - Development environment variables
-- `.env.test` - Test environment variables
+- **On-Demand Initialization**: Tests only run when explicitly called via `make test-setup`
+- **No Auto-Start**: App container runs `sleep infinity` allowing manual test execution
+- **Fixture Support**: pytest fixtures provide database sessions, test clients, and mock data
+- **Coverage Tracking**: Tests run with coverage reporting to ensure comprehensive validation
+
+### Test Types Supported
+
+- **Unit Tests**: Isolated component testing with mocked dependencies
+- **Integration Tests**: Database and service integration validation
+- **API Tests**: End-to-end endpoint testing with FastAPI TestClient
+
+---
+
+## Security Considerations
+
+### Environment Isolation
+
+- **Separate Credentials**: Development and test environments use different database users and passwords
+- **No Shared State**: Complete isolation prevents test data leaking into development
+- **SSL in Development**: HTTPS enforced even in local dev for production parity
+
+### Configuration Security
+
+- **Environment Variables**: Sensitive credentials stored in `.env` files (gitignored)
+- **No Hardcoded Secrets**: All secrets loaded from environment, never committed to code
+- **Test Credentials**: Test environment uses mock/test credentials, not real API keys
+
+### Database Security
+
+- **Principle of Least Privilege**: Each environment user has only necessary permissions
+- **Test Safety Checks**: `init_test_db.py` verifies test environment before dropping tables
+- **Volume Isolation**: Test database uses non-persistent volumes, dev uses persistent volumes
+
+---
+
+## Performance Considerations
+
+### Docker Overhead
+
+- **Shared Containers**: Development and test share same PostgreSQL instance to reduce resource usage
+- **Hot Reload**: Development container uses volume mounts for instant code reload without rebuild
+- **Layer Caching**: Docker builds leverage layer caching for fast image rebuilds
+
+### Database Performance
+
+- **Development**: Full ACID compliance with fsync enabled for data safety
+- **Testing**: Optimized for speed with `synchronous_commit=OFF` and reduced durability
+- **Connection Pooling**: SQLAlchemy async engine with connection pooling for efficiency
+
+### Optimization Strategies
+
+- **Selective Container Startup**: Only start containers needed for current task
+- **Volume Reuse**: Development data persists in volumes, avoiding re-initialization
+- **Parallel Execution**: Test database optimizations enable faster test suite execution
+
+---
+
+## Future Enhancements
+
+### Planned Improvements
+
+- **Parallel Environment Support**: Allow simultaneous dev and test with unique container names
+- **CI/CD Integration**: Dedicated CI environment configuration for GitHub Actions
+- **Production Parity**: Production-like docker-compose setup for staging validation
+- **Database Migrations**: Alembic integration for schema version management
+- **Monitoring**: Prometheus/Grafana integration for local performance monitoring
+
+### Known Limitations
+
+- **No Simultaneous Environments**: Cannot run dev and test concurrently due to shared container names
+- **Manual Test Cleanup**: Requires explicit `make test-clean` to remove test environment
+- **Single Database Instance**: PostgreSQL instance shared between environments (resource efficiency trade-off)
+- **Self-Signed Certificates**: Development SSL uses self-signed certs (browser warnings expected)
+
+---
+
+## References
+
+### Related Dashtam Documentation
+
+- [Database Migrations](../infrastructure/database-migrations.md) - Schema migration guide
+- [Docker Setup](../infrastructure/docker-setup.md) - Detailed Docker configuration
+- [Testing Guide](../testing/guide.md) - Comprehensive testing documentation
+
+### Project Files
+
+**Core Application Files:**
+
+- [src/core/config.py](../../../src/core/config.py) - Settings management
+- [src/core/database.py](../../../src/core/database.py) - Database connection and session management
+- [src/core/init_db.py](../../../src/core/init_db.py) - Development database initialization
+- [src/core/init_test_db.py](../../../src/core/init_test_db.py) - Test database initialization
+- [src/main.py](../../../src/main.py) - FastAPI application entry point
+
+**Configuration Files:**
+
+- `.env` - Development environment variables (not in repo)
+- `.env.test` - Test environment variables (not in repo)
 - `docker-compose.yml` - Base Docker configuration
 - `docker-compose.test.yml` - Test environment overrides
 - `Makefile` - Command shortcuts
 
-### Database Models
+**Database Models:**
 
-- `src/models/user.py` - User model
-- `src/models/provider.py` - Provider, Connection, Token, AuditLog models
+- [src/models/user.py](../../../src/models/user.py) - User model
+- [src/models/provider.py](../../../src/models/provider.py) - Provider, Connection, Token, AuditLog models
 
-### Test Files
+**Test Files:**
 
-- `tests/test_config.py` - Test configuration
-- `tests/conftest.py` - Pytest fixtures
-- `tests/unit/` - Unit tests
-- `tests/integration/` - Integration tests
+- [tests/test_config.py](../../../tests/test_config.py) - Test configuration
+- [tests/conftest.py](../../../tests/conftest.py) - Pytest fixtures
+- [tests/unit/](../../../tests/unit/) - Unit tests
+- [tests/integration/](../../../tests/integration/) - Integration tests
 
 ---
 
-## Summary
+## Document Information
 
-The Dashtam application uses a sophisticated **dual-environment architecture** where:
-
-1. **Development and testing are completely isolated** (different databases, users, configs)
-2. **Both run in Docker** with different compose file overlays
-3. **Database initialization is automatic for dev**, on-demand for tests
-4. **Test environment always starts clean** (drops tables on each run)
-5. **Dev data persists** even when running tests
-6. **Switching between environments** is seamless with Make commands
-
-This architecture ensures:
-
-- ✅ No test data pollution
-- ✅ Safe, repeatable testing
-- ✅ Dev environment stability
-- ✅ Complete isolation
-- ✅ Easy workflow switching
+**Category:** Architecture  
+**Created:** 2025-10-04  
+**Last Updated:** 2025-10-17  
+**Applies To:** All Dashtam development and testing workflows

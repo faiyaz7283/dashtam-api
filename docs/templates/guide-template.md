@@ -185,5 +185,3 @@ After completing this guide, consider:
 **Last Updated:** YYYY-MM-DD
 **Difficulty Level:** Beginner | Intermediate | Advanced
 **Estimated Time:** [Time to complete]
-
-[Optional: **Supersedes:** old-guide.md]

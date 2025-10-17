@@ -1122,7 +1122,7 @@ Complete guide to JWT authentication in Dashtam.
 - API reference: `https://localhost:8000/docs`
 ```
 
-**Update**: `docs/development/architecture/improvement-guide.md`
+**Update**: `docs/development/implementation/technical-debt-roadmap.md`
 ```markdown
 ### ~~5. User Authentication System (JWT)~~ ✅ RESOLVED
 
@@ -1245,7 +1245,7 @@ time curl -X GET https://localhost:8000/api/v1/auth/profile \
 - ✅ Updated OpenAPI documentation
 - ✅ Created `docs/development/guides/authentication.md`
 - ✅ Updated `WARP.md` with auth status
-- ✅ Updated `docs/development/architecture/improvement-guide.md`
+- ✅ Updated `docs/development/implementation/technical-debt-roadmap.md`
 - ✅ All 180+ tests passing
 - ✅ Manual testing verified
 - ✅ Performance benchmarks met

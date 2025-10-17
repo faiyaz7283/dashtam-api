@@ -12,6 +12,7 @@ This directory contains standardized templates for all Dashtam documentation. Us
 | [architecture-template.md](architecture-template.md) | System architecture and design docs | Design patterns, system architecture, technical decisions |
 | [guide-template.md](guide-template.md) | Step-by-step how-to guides | Tutorials, setup guides, how-to documentation |
 | [infrastructure-template.md](infrastructure-template.md) | Infrastructure and operations docs | Docker, CI/CD, database, deployment, monitoring |
+| [implementation-template.md](implementation-template.md) | Implementation plans and roadmaps | Implementation plans, technical debt roadmaps, phased rollouts |
 | [testing-template.md](testing-template.md) | Testing documentation | Test strategies, testing guides, QA documentation |
 | [troubleshooting-template.md](troubleshooting-template.md) | Debugging and issue resolution docs | Bug investigations, root cause analysis, solutions |
 | [research-template.md](research-template.md) | Research and ADR documents | Technical research, decision records, options analysis |
@@ -31,6 +32,7 @@ This directory contains standardized templates for all Dashtam documentation. Us
 - **Writing architecture docs?** → Use `architecture-template.md`
 - **Writing how-to guide?** → Use `guide-template.md`
 - **Documenting infrastructure?** → Use `infrastructure-template.md`
+- **Writing implementation plan/roadmap?** → Use `implementation-template.md`
 - **Writing test documentation?** → Use `testing-template.md`
 - **Documenting a bug/issue resolution?** → Use `troubleshooting-template.md`
 - **Researching options/decisions?** → Use `research-template.md`
@@ -70,11 +72,40 @@ All templates follow this general structure:
 
 1. **Title and Brief Description** - Clear, concise intro
 2. **Horizontal Rule** - Visual separator
-3. **Table of Contents** - For navigation (optional for short docs)
+3. **Table of Contents** - For navigation (mandatory for comprehensive templates, optional for short docs)
 4. **Main Content Sections** - Template-specific content
 5. **References Section** - Links to related docs
 6. **Horizontal Rule** - Separator before metadata
 7. **Document Information** - Metadata at bottom (MkDocs-compatible)
+
+### Table of Contents Guidelines
+
+**When TOC is Mandatory:**
+
+- Architecture documents (complex design docs)
+- Infrastructure documents (operational guides)
+- Implementation plans and roadmaps
+- Testing strategy documents
+- Documents > 200 lines
+
+**When TOC is Optional:**
+
+- General documents < 100 lines
+- Simple how-to guides
+- Short troubleshooting docs
+- README files
+
+**When to Add TOC to general-template:**
+
+If your document using general-template exceeds ~150-200 lines or has multiple complex sections, add a TOC manually:
+
+```markdown
+## Table of Contents
+
+- [Section 1](#section-1)
+- [Section 2](#section-2)
+- [Section 3](#section-3)
+```
 
 ### Metadata Fields
 

@@ -78,7 +78,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 | `docs/research/` | 3 | research-template | Medium |
 | `docs/development/historical/` | 12 | N/A (keep as-is) | Low |
 | `docs/development/reviews/` | 2 | general-template | Low |
-| `docs/development/implementation/` | 1 | general-template | Low |
+| `docs/development/implementation/` | 2 | implementation-template | Medium |
 | `docs/development/research/` | 1 | research-template | Medium |
 | Index files | 2 | index-template | High |
 
@@ -281,7 +281,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 | `schemas-design.md` | Well-structured | architecture-template | A - Metadata | Low |
 | `async-vs-sync-patterns.md` | ✅ **COMPLETE** | architecture-template | A - Structural | Medium |
 | `overview.md` | Moderately structured | architecture-template | B - Structural | Medium |
-| `technical-debt-roadmap.md` (moved to implementation/) | Loosely structured | general-template | C - Restructure | High |
+| `technical-debt-roadmap.md` (moved to implementation/) | Loosely structured | implementation-template | C - Restructure | High |
 
 **Infrastructure (4 docs):**
 
@@ -358,11 +358,12 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 | `reviews/REST_API_AUDIT_REPORT_2025-10-05.md` | Well-structured | general-template | A - Metadata | Low |
 | `reviews/DOCUMENTATION_AUDIT_2025-10-05.md` | Well-structured | general-template | A - Metadata | Low |
 
-**Implementation (1 doc):**
+**Implementation (2 docs):**
 
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
-| `implementation/ssl-tls-test-ci-implementation.md` | Moderately structured | general-template | B - Structural | Medium |
+| `implementation/ssl-tls-test-ci-implementation.md` | Moderately structured | implementation-template | B - Structural | Medium |
+| `implementation/technical-debt-roadmap.md` | Loosely structured | implementation-template | C - Restructure | High |
 
 **Testing (2 docs):**
 

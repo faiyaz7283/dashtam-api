@@ -1,58 +1,194 @@
 # Database Migrations with Alembic
 
+Dashtam uses **Alembic** for database schema migrations, providing version-controlled, automated database schema evolution.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+  - [Key Features](#key-features)
+- [Purpose](#purpose)
+- [Components](#components)
+  - [Component 1: Alembic Migration Engine](#component-1-alembic-migration-engine)
+  - [Component 2: Migration Scripts](#component-2-migration-scripts)
+  - [Component 3: Alembic Configuration](#component-3-alembic-configuration)
+  - [Component 4: SQLModel Database Models](#component-4-sqlmodel-database-models)
+  - [Component 5: Docker Integration](#component-5-docker-integration)
+  - [Migration Workflow](#migration-workflow)
+  - [Directory Structure](#directory-structure)
+- [Configuration](#configuration)
+  - [alembic.ini](#alembicini)
+  - [env.py (Migration Environment)](#envpy-migration-environment)
+  - [Ports and Services](#ports-and-services)
+- [Setup Instructions](#setup-instructions)
+  - [Prerequisites](#prerequisites)
+  - [Quick Start Commands](#quick-start-commands)
+  - [Emergency Commands](#emergency-commands)
+  - [Installation Steps](#installation-steps)
+- [Operation](#operation)
+  - [Automatic Migration Execution](#automatic-migration-execution)
+    - [Development Environment](#development-environment)
+    - [Test Environment](#test-environment)
+    - [CI/CD Environment](#cicd-environment)
+  - [Creating New Migrations](#creating-new-migrations)
+    - [Method 1: Autogeneration (Recommended)](#method-1-autogeneration-recommended)
+    - [Method 2: Empty Migration (Manual)](#method-2-empty-migration-manual)
+- [Monitoring](#monitoring)
+  - [Checking Migration Status](#checking-migration-status)
+  - [Logs](#logs)
+  - [Metrics to Monitor](#metrics-to-monitor)
+  - [Health Checks](#health-checks)
+- [Troubleshooting](#troubleshooting)
+  - [Issue 1: Migration Fails on Startup](#issue-1-migration-fails-on-startup)
+  - [Issue 2: Autogeneration Misses Changes](#issue-2-autogeneration-misses-changes)
+  - [Issue 3: Migration Works Locally, Fails in CI](#issue-3-migration-works-locally-fails-in-ci)
+  - [Issue 4: Downgrade Fails](#issue-4-downgrade-fails)
+  - [Issue 5: Timezone Comparison Errors](#issue-5-timezone-comparison-errors)
+  - [Advanced Scenario: Branching and Merge Migrations](#advanced-scenario-branching-and-merge-migrations)
+  - [Data Migrations](#data-migrations)
+  - [Testing Migrations in Isolation](#testing-migrations-in-isolation)
+- [Maintenance](#maintenance)
+  - [Migration Best Practices](#migration-best-practices)
+    - [✅ DO's](#-dos)
+    - [❌ DON'Ts](#-donts)
+- [Security](#security)
+  - [Timezone-Aware Datetime Implementation](#timezone-aware-datetime-implementation)
+    - [Why TIMESTAMPTZ?](#why-timestamptz)
+    - [Implementation](#implementation)
+    - [Converting Existing Columns](#converting-existing-columns)
+- [Performance Optimization](#performance-optimization)
+  - [Integration with CI/CD](#integration-with-cicd)
+- [References](#references)
+  - [Migration Checklist](#migration-checklist)
+  - [Related Documentation](#related-documentation)
+  - [External Resources](#external-resources)
+
+---
+
 ## Overview
 
 Dashtam uses **Alembic** for database schema migrations, providing version-controlled, automated database schema evolution. All environments (development, test, and CI/CD) automatically run migrations on startup, ensuring database schemas are always synchronized with the codebase.
 
-**Migration Philosophy:**
+### Key Features
 
-- ✅ **Automated:** Migrations run automatically on container startup
-- ✅ **Version-controlled:** All schema changes tracked in Git
-- ✅ **Timezone-aware:** All datetime columns use `TIMESTAMPTZ` for UTC compliance
-- ✅ **Async-compatible:** Full support for SQLAlchemy AsyncSession
-- ✅ **Docker-integrated:** All migration operations occur in containers
+- **Automated:** Migrations run automatically on container startup
+- **Version-controlled:** All schema changes tracked in Git
+- **Timezone-aware:** All datetime columns use `TIMESTAMPTZ` for UTC compliance
+- **Async-compatible:** Full support for SQLAlchemy AsyncSession
+- **Docker-integrated:** All migration operations occur in containers
 
----
+## Purpose
 
-## Quick Reference
+The Alembic migration system exists to solve critical challenges in database schema management:
 
-### Common Commands
-
-```bash
-# Generate new migration (autogenerate from models)
-make migrate-create MESSAGE="description of changes"
-
-# Apply migrations (upgrade to latest)
-make migrate-up
-
-# Rollback last migration
-make migrate-down
-
-# View migration history
-make migrate-history
-
-# Check current migration version
-make migrate-current
-
-# Generate migration with empty script (manual)
-make migrate-create-manual MESSAGE="custom migration"
-```
-
-### Emergency Commands
-
-```bash
-# Reset database and apply all migrations from scratch
-make dev-down
-docker volume rm dashtam_dev_postgres_data
-make dev-up  # Migrations run automatically
-
-# View migration status
-make migrate-status
-```
+- **Schema Evolution:** Safely evolve database schemas without manual SQL scripts
+- **Version Control:** Track all database changes in Git alongside code changes
+- **Environment Consistency:** Ensure dev, test, and production databases match exactly
+- **Rollback Safety:** Provide tested downgrade paths for emergency rollbacks
+- **Team Collaboration:** Handle concurrent schema changes from multiple developers
+- **Compliance:** Maintain timezone-aware datetimes for regulatory requirements (PCI-DSS)
 
 ---
 
-## Architecture
+## Components
+
+### Component 1: Alembic Migration Engine
+
+**Purpose:** Core migration management system for database schema evolution
+
+**Technology:** Alembic (SQLAlchemy-based migration framework)
+
+**Dependencies:**
+
+- SQLAlchemy (async support)
+- PostgreSQL 17.6+
+- Docker containers for execution
+
+**Key Capabilities:**
+
+- Autogenerate migrations from SQLModel changes
+- Manual migration script creation
+- Upgrade/downgrade path execution
+- Multi-head branch merging
+
+### Component 2: Migration Scripts
+
+**Purpose:** Version-controlled schema change definitions
+
+**Location:** `alembic/versions/`
+
+**Naming Convention:** `YYYYMMDD_HHMM-{revision_id}_{description}.py`
+
+**Example:** `20251003_2149-bce8c437167b_initial_database_schema_with_timezone_.py`
+
+**Structure:**
+
+```python
+def upgrade() -> None:
+    # Schema changes for upgrade
+    pass
+
+def downgrade() -> None:
+    # Schema changes for rollback
+    pass
+```
+
+### Component 3: Alembic Configuration
+
+**Purpose:** Runtime configuration for migration execution
+
+**Files:**
+
+- `alembic.ini` - Main configuration file
+- `alembic/env.py` - Python environment setup
+- `alembic/script.py.mako` - Migration template
+
+**Key Settings:**
+
+- Database URL (from environment variables)
+- Timezone (UTC)
+- Post-write hooks (ruff formatting/linting)
+- Async engine configuration
+
+### Component 4: SQLModel Database Models
+
+**Purpose:** Source of truth for database schema
+
+**Location:** `src/models/`
+
+**Files:**
+
+- `base.py` - Base model with common fields
+- `user.py` - User authentication models
+- `provider.py` - OAuth provider models
+
+**Role:** Alembic autogeneration compares these models to database state
+
+### Component 5: Docker Integration
+
+**Purpose:** Automated migration execution on container startup
+
+**Implementation:** `docker/Dockerfile` entrypoint
+
+**Command:** `alembic upgrade head && uvicorn src.main:app ...`
+
+**Environments:**
+
+- Development: `make dev-up` triggers migrations
+- Test: `make test-up` triggers migrations
+- CI/CD: GitHub Actions runs migrations before tests
+
+### Migration Workflow
+
+```mermaid
+graph LR
+    A[Modify SQLModel] --> B[Generate Migration]
+    B --> C[Review Migration]
+    C --> D[Test Migration]
+    D --> E[Commit to Git]
+    E --> F[Deploy - Auto Run]
+```
 
 ### Directory Structure
 
@@ -71,17 +207,6 @@ Dashtam/
 │   └── provider.py
 └── docker/
     └── Dockerfile                    # Migration execution in entrypoint
-```
-
-### Migration Workflow
-
-```mermaid
-graph LR
-    A[Modify SQLModel] --> B[Generate Migration]
-    B --> C[Review Migration]
-    C --> D[Test Migration]
-    D --> E[Commit to Git]
-    E --> F[Deploy - Auto Run]
 ```
 
 ---
@@ -149,9 +274,80 @@ def run_migrations_online() -> None:
     # ... async execution logic
 ```
 
+### Ports and Services
+
+| Service | Port | Protocol | Purpose |
+|---------|------|----------|---------|
+| PostgreSQL (dev) | 5432 | TCP | Development database |
+| PostgreSQL (test) | 5433 | TCP | Test database |
+| Alembic (runtime) | N/A | Internal | Migration execution (runs in app container) |
+
+**Note:** Alembic runs inside the application container and connects to PostgreSQL via internal Docker networking.
+
 ---
 
-## Automatic Migration Execution
+## Setup Instructions
+
+### Prerequisites
+
+- [ ] Docker and Docker Compose installed
+- [ ] PostgreSQL container running (`make dev-up` or `make test-up`)
+- [ ] SQLModel database models defined in `src/models/`
+- [ ] Alembic configuration files present (`alembic.ini`, `alembic/env.py`)
+
+### Quick Start Commands
+
+```bash
+# Generate new migration (autogenerate from models)
+make migrate-create MESSAGE="description of changes"
+
+# Apply migrations (upgrade to latest)
+make migrate-up
+
+# Rollback last migration
+make migrate-down
+
+# View migration history
+make migrate-history
+
+# Check current migration version
+make migrate-current
+
+# Generate migration with empty script (manual)
+make migrate-create-manual MESSAGE="custom migration"
+```
+
+### Emergency Commands
+
+```bash
+# Reset database and apply all migrations from scratch
+make dev-down
+docker volume rm dashtam_dev_postgres_data
+make dev-up  # Migrations run automatically
+
+# View migration status
+make migrate-status
+```
+
+### Installation Steps
+
+**Alembic is pre-configured in Dashtam**. No additional installation steps required.
+
+**Verification:**
+
+```bash
+# Check Alembic is available in container
+docker compose -f compose/docker-compose.dev.yml exec app alembic --version
+
+# Expected output:
+# alembic 1.13.0
+```
+
+---
+
+## Operation
+
+### Automatic Migration Execution
 
 ### Development Environment
 
@@ -216,9 +412,7 @@ services:
 3. Tests execute against migrated schema
 4. CI validates migration correctness
 
----
-
-## Creating Migrations
+### Creating New Migrations
 
 ### Method 1: Autogeneration (Recommended)
 
@@ -350,7 +544,9 @@ make migrate-up    # Reapply
 
 ---
 
-## Migration Best Practices
+## Maintenance
+
+### Migration Best Practices
 
 ### ✅ DO's
 
@@ -436,7 +632,9 @@ make migrate-up    # Reapply
 
 ---
 
-## Timezone-Aware Datetime Implementation
+## Security
+
+### Timezone-Aware Datetime Implementation
 
 ### Why TIMESTAMPTZ?
 
@@ -512,6 +710,95 @@ def downgrade() -> None:
         existing_type=sa.TIMESTAMP(timezone=True),
         existing_nullable=False,
     )
+```
+
+---
+
+## Monitoring
+
+### Checking Migration Status
+
+```bash
+# Check current migration version
+make migrate-current
+
+# View full migration history
+make migrate-history
+
+# Check for pending migrations
+make migrate-status
+```
+
+**Expected Output (migrate-current):**
+
+```text
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+Current revision for postgresql+asyncpg://...: bce8c437167b (head)
+```
+
+### Logs
+
+**Development Environment:**
+
+```bash
+# View migration logs in real-time
+make dev-logs
+
+# Filter for migration-specific logs
+make dev-logs | grep -i alembic
+```
+
+**Expected Healthy Log Output:**
+
+```bash
+dashtam-dev-app | Running Alembic migrations...
+dashtam-dev-app | INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+dashtam-dev-app | INFO  [alembic.runtime.migration] Will assume transactional DDL.
+dashtam-dev-app | INFO  [alembic.runtime.migration] Running upgrade  -> bce8c437167b, Initial database schema
+dashtam-dev-app | Alembic migrations completed successfully
+```
+
+**CI/CD Environment:**
+
+Migration logs appear in GitHub Actions workflow output:
+
+```yaml
+- name: Run Tests
+  run: docker compose -f compose/docker-compose.ci.yml up --build
+```
+
+Check "Run Tests" step logs for migration execution status.
+
+### Metrics to Monitor
+
+- **Migration execution time:** Should complete within 10-30 seconds for typical migrations
+- **Migration failures:** Any failed migrations halt application startup (exit code != 0)
+- **Pending migrations:** Use `make migrate-status` to detect unapplied migrations
+- **Database connection:** Failed connections prevent migrations from running
+
+### Health Checks
+
+**Check Database Schema Matches Code:**
+
+```bash
+# Generate migration to detect schema drift
+make migrate-create MESSAGE="schema drift check"
+
+# If autogeneration produces empty migration, schema is synchronized:
+# "No changes in schema detected."
+```
+
+**Verify Migration History Integrity:**
+
+```bash
+# Check for multiple heads (branching issue)
+docker compose -f compose/docker-compose.dev.yml exec app alembic heads
+
+# Expected: Single head revision
+# bce8c437167b (head)
+
+# Multiple heads indicate branching (requires merge migration)
 ```
 
 ---
@@ -617,11 +904,7 @@ from datetime import datetime, timezone
 now = datetime.now(timezone.utc)  # Timezone-aware
 ```
 
----
-
-## Advanced Topics
-
-### Branching and Merge Migrations
+### Advanced Scenario: Branching and Merge Migrations
 
 When multiple developers create migrations simultaneously:
 
@@ -682,7 +965,9 @@ docker compose -f docker-compose.dev.yml exec postgres \
 
 ---
 
-## Integration with CI/CD
+## Performance Optimization
+
+### Integration with CI/CD
 
 ### GitHub Actions Workflow
 
@@ -708,7 +993,9 @@ docker compose -f docker-compose.dev.yml exec postgres \
 
 ---
 
-## Migration Checklist
+## References
+
+### Migration Checklist
 
 Before committing a migration:
 
@@ -721,25 +1008,26 @@ Before committing a migration:
 - [ ] Documentation updated if needed
 - [ ] Added to git with proper commit message
 
----
-
-## Related Documentation
+### Related Documentation
 
 - [Docker Setup](docker-setup.md) - Container configuration
 - [CI/CD Pipeline](ci-cd.md) - Automated testing
 - [Database Models](../../api/models.md) - SQLModel reference
 - [Testing Strategy](../testing/strategy.md) - Test infrastructure
 
----
+### External Resources
 
-## References
-
-- **Alembic Official Docs:** https://alembic.sqlalchemy.org/
-- **SQLAlchemy Async:** https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html
-- **PostgreSQL TIMESTAMPTZ:** https://www.postgresql.org/docs/current/datatype-datetime.html
-- **UV Package Manager:** https://docs.astral.sh/uv/
+- **Alembic Official Docs:** <https://alembic.sqlalchemy.org/>
+- **SQLAlchemy Async:** <https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html>
+- **PostgreSQL TIMESTAMPTZ:** <https://www.postgresql.org/docs/current/datatype-datetime.html>
+- **UV Package Manager:** <https://docs.astral.sh/uv/>
 
 ---
 
-**Last Updated:** October 3, 2025  
+## Document Information
+
+**Document Type:** Infrastructure Guide
+**Last Updated:** 2025-10-17
+**Template Version:** infrastructure-template.md v1.0
 **Migration Version:** `bce8c437167b` (Initial schema with timezone-aware datetimes)
+**Maintainer:** Development Team

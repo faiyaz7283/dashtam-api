@@ -288,7 +288,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
 | `ci-cd.md` | ✅ **COMPLETE** | infrastructure-template | B - Structural | Medium |
-| `database-migrations.md` | Well-structured | infrastructure-template | A - Metadata | Medium |
+| `database-migrations.md` | ✅ **COMPLETE** | infrastructure-template | B - Structural | Medium |
 | `environment-flows.md` | Well-structured | infrastructure-template | A - Metadata | Low |
 | `docker-setup.md` | Mixed content | infrastructure-template | C - Restructure | High |
 
@@ -299,7 +299,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 | `docs/development/index.md` | Basic structure | index-template | B - Structural | Medium |
 
 **Phase 2 Totals:** 10 documents, Medium complexity  
-**Progress:** 6/10 complete (60% - Architecture COMPLETE, Infrastructure 1/4)
+**Progress:** 7/10 complete (70% - Architecture COMPLETE, Infrastructure 2/4)
 
 **✅ PHASE 2 ARCHITECTURE COMPLETE (5/5 docs):**
 
@@ -309,16 +309,17 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 - schemas-design.md ✅ (commit ce9b6c3)
 - overview.md ✅ (commit 28151a5)
 
-**🚧 PHASE 2 INFRASTRUCTURE (1/4 docs):**
+**🚧 PHASE 2 INFRASTRUCTURE (2/4 docs):**
 
 - ci-cd.md ✅ (commit a9bf5cf) - Migrated to infrastructure-template
+- database-migrations.md ✅ (commit 611cca8) - Migrated to infrastructure-template with comprehensive subsections
 
 **🚧 PHASE 2 REMAINING:**
 
-- **Infrastructure (3/4):** database-migrations.md, environment-flows.md, docker-setup.md
+- **Infrastructure (2/4):** environment-flows.md, docker-setup.md
 - **Development Index (0/1):** docs/development/index.md
 
-### Phase 2 Status: IN PROGRESS (6/10 documents, 60%)
+### Phase 2 Status: IN PROGRESS (7/10 documents, 70%)
 
 ### Phase 3: Supporting Docs (15 documents)
 

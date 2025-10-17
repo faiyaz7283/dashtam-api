@@ -1,51 +1,63 @@
-# Architecture Improvement Guide
+# Technical Debt Roadmap
 
 **Living Document**: Track design flaws discovered during development and testing, with recommended best-practice solutions to improve application quality, security, and reliability.
 
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Context](#context)
-   - [Purpose](#purpose)
-   - [Document Scope](#document-scope)
-   - [Target Audience](#target-audience)
-3. [Architecture Goals](#architecture-goals)
-   - [Core Objectives](#core-objectives)
-   - [Success Criteria](#success-criteria)
-4. [Design Decisions](#design-decisions)
-   - [Decision 1: Timezone-Aware Datetime Storage](#decision-1-timezone-aware-datetime-storage)
-   - [Decision 2: Database Migration Framework](#decision-2-database-migration-framework)
-   - [Decision 3: HTTP Connection Timeout Handling](#decision-3-http-connection-timeout-handling)
-   - [Decision 4: OAuth Token Rotation Logic](#decision-4-oauth-token-rotation-logic)
-   - [Decision 5: JWT User Authentication System](#decision-5-jwt-user-authentication-system)
-5. [Core Components](#core-components)
-   - [Priority Classification](#priority-classification)
-   - [P0: Critical Issues](#p0-critical-issues)
-   - [P1: High-Priority Issues](#p1-high-priority-issues)
-   - [P2: Medium Priority Issues](#p2-medium-priority-issues)
-   - [P3: Low Priority (Quality of Life)](#p3-low-priority-quality-of-life)
-6. [Security Considerations](#security-considerations)
-   - [Token Security](#token-security)
-   - [Rate Limiting](#rate-limiting)
-   - [Secret Management](#secret-management)
-   - [Audit Log Context](#audit-log-context)
-7. [Performance Considerations](#performance-considerations)
-   - [HTTP Timeouts](#http-timeouts)
-   - [Rate Limiting Strategy](#rate-limiting-strategy)
-8. [Testing Strategy](#testing-strategy)
-   - [Validation Approach](#validation-approach)
-   - [Test Coverage Requirements](#test-coverage-requirements)
-9. [Deployment Considerations](#deployment-considerations)
-   - [Priority Matrix](#priority-matrix)
-   - [Status Legend](#status-legend)
-   - [Implementation Workflow](#implementation-workflow)
-10. [Future Improvements](#future-improvements)
-    - [P2 Planned Items](#p2-planned-items)
-    - [P3 Enhancement Items](#p3-enhancement-items)
-11. [References](#references)
-    - [External Resources](#external-resources)
-    - [Related Documentation](#related-documentation)
-12. [Document Information](#document-information)
+- [Executive Summary](#executive-summary)
+- [Overview](#overview)
+- [Context](#context)
+- [Goals and Objectives](#architecture-goals)
+- [Recent Achievements](#recent-achievements)
+- [Critical Issues](#critical-issues-must-fix-before-production)
+- [High Priority Issues](#high-priority-issues)
+- [Medium Priority Issues](#medium-priority-issues)
+- [Low Priority (Quality of Life)](#low-priority-quality-of-life)
+- [Session Management Endpoints](#p2-session-management-endpoints)
+- [MkDocs Modern Documentation System](#12-mkdocs-modern-documentation-system)
+- [Tracking and Implementation](#tracking-and-implementation)
+- [Contributing](#contributing-to-this-document)
+- [Review Schedule](#review-schedule)
+- [Recent Activity](#recent-activity-log)
+- [Document Information](#document-information)
+
+---
+
+## Executive Summary
+
+### Objective
+
+Provide a single source of truth for tracking, prioritizing, and executing technical debt improvements across the platform, ensuring quality, security, and reliability.
+
+### Scope
+
+**In Scope:**
+
+- Technical debt items impacting architecture, security, performance, and developer experience
+- Priority-driven execution (P0 → P1 → P2 → P3), aligned with project rules (no rigid timelines)
+- Cross-cutting improvements (schemas, auth, providers, infrastructure)
+
+**Out of Scope:**
+
+- Feature requests (tracked in product backlog)
+- Minor bug fixes (tracked in GitHub Issues)
+- UI/UX polish unrelated to platform integrity
+
+### Impact
+
+**Expected Benefits:**
+
+- Production-ready foundation (P0/P1 complete) with reduced operational and security risk
+- Clear roadmap for P2/P3 improvements with measurable outcomes
+- Faster developer velocity through consistency and standards
+
+**Key Stakeholders:** Architecture, Security, DevOps, Backend, QA
+
+### Status
+
+- Current Status: Active (Living document)
+- Overall Priority: P2 (Security & platform hardening focus)
+- Progress: P0/P1 100% complete → Executing P2 items next
 
 ---
 
@@ -153,7 +165,7 @@ This document serves multiple critical purposes in the Dashtam development workf
 
 The improvement guide supports these architectural objectives:
 
-**1. Security First**
+### Security First
 
 Ensure all critical security issues (P0/P1) are resolved before production:
 
@@ -164,7 +176,7 @@ Ensure all critical security issues (P0/P1) are resolved before production:
 - 🟡 Rate limiting (brute force protection)
 - 🟡 Secret management (credential lifecycle)
 
-**2. Data Integrity**
+### Data Integrity
 
 Maintain accurate, unambiguous financial data:
 
@@ -172,7 +184,7 @@ Maintain accurate, unambiguous financial data:
 - ✅ Database migrations (schema versioning)
 - 🟡 Audit log context (request tracing)
 
-**3. Reliability**
+### Reliability
 
 Prevent system failures and downtime:
 
@@ -180,7 +192,7 @@ Prevent system failures and downtime:
 - ✅ Token rotation (automatic recovery)
 - 🟡 Rate limiting (prevent overload)
 
-**4. Maintainability**
+### Maintainability
 
 Ensure codebase remains clean and extensible:
 
@@ -188,7 +200,7 @@ Ensure codebase remains clean and extensible:
 - 🔴 Error message consistency (developer experience)
 - 🔴 Configuration management (environment portability)
 
-**5. Compliance**
+### Compliance
 
 Meet industry standards and regulatory requirements:
 
@@ -226,7 +238,7 @@ Meet industry standards and regulatory requirements:
 
 ---
 
-## 🎉 Recent Achievements
+## Recent Achievements
 
 ### ✅ Completed Items (October 2025)
 
@@ -1001,3 +1013,15 @@ When you discover a design flaw or improvement opportunity:
 **Document Owner**: Architecture Team  
 **Current Sprint**: P2 Items (Rate Limiting, Session Management, Enhanced Security)  
 **Major Milestone**: ✅ All P0 and P1 items completed - Production-ready foundation achieved
+
+---
+
+## Document Information
+
+**Category:** Implementation Plan
+**Status:** Active
+**Priority:** P2
+**Created:** 2025-10-12
+**Last Updated:** 2025-10-12
+**Owner:** Architecture Team
+**Stakeholders:** Security, DevOps, Backend, QA

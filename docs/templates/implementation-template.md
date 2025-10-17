@@ -412,15 +412,9 @@ command
 ## Document Information
 
 **Category:** Implementation Plan
-
 **Status:** [Draft | Active | Complete | Superseded]
-
 **Priority:** [P0 | P1 | P2 | P3]
-
 **Created:** YYYY-MM-DD
-
 **Last Updated:** YYYY-MM-DD
-
 **Owner:** [Team/Individual responsible]
-
 **Stakeholders:** [List of affected parties]

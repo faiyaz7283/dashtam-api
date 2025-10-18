@@ -141,7 +141,7 @@ Testing strategy, guides, and best practices:
 
 - [Smoke Test Caplog Solution](troubleshooting/smoke-test-caplog-solution.md) - Token extraction troubleshooting and solution
 - [Smoke Test CI Debugging Journey](troubleshooting/smoke-test-ci-debugging-journey.md) - CI environment debugging and session state fixes
-- [Smoke Test Design Comparison](testing/smoke-test-design-comparison.md) - Test implementation patterns
+- [Smoke Test Design Comparison](../research/smoke-test-design-comparison.md) - Test implementation patterns comparison
 
 **Audits:**
 

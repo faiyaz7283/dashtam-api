@@ -334,9 +334,9 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 
 ### Phase 3: Supporting Docs (15 documents)
 
-Phase 3 Progress: 13/15 complete (87%)
+Phase 3 Progress: 14/15 complete (93%)
 
-**Testing (7 docs) - 4/7 complete:**
+**Testing (4 docs) - 4/4 complete:**
 
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
@@ -344,7 +344,6 @@ Phase 3 Progress: 13/15 complete (87%)
 || `testing/strategy.md` | ✅ COMPLETE | testing-template | A - Content Extract + B | High |
 || `guides/testing-best-practices.md` | ✅ COMPLETE | guide-template | B - Structural + Move | Medium |
 || `guides/test-docstring-standards.md` | ✅ COMPLETE | guide-template | B - Structural + Move | Medium |
-| `testing/smoke-test-design-comparison.md` | Moderately structured | research-template | B - Structural | Medium |
 
 **Troubleshooting (5 docs) - 2/5 complete:**
 
@@ -357,17 +356,18 @@ Phase 3 Progress: 13/15 complete (87%)
 | `troubleshooting/env-directory-docker-mount-issue.md` | Well-structured | troubleshooting-template | A - Metadata | Low |
 | `troubleshooting/test-infrastructure-fixture-errors.md` | Well-structured | troubleshooting-template | A - Metadata | Low |
 
-**Research (4 docs):**
+**Research (5 docs) - 1/5 complete:**
 
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
+|| `research/smoke-test-design-comparison.md` | ✅ COMPLETE | research-template | B - Structural + Move | Medium |
 | `research/authentication-approaches-research.md` | Well-structured | research-template | A - Metadata | Low |
 | `research/documentation_guide_research.md` | Well-structured | research-template | A - Metadata | Low |
 | `research/index.md` | Basic structure | index-template | B - Structural | Low |
 | `research/smoke-test-organization-research.md` | Well-structured | research-template | A - Metadata | Low |
 
 **Phase 3 Totals:** 15 documents, Low-Medium complexity  
-**Progress:** 8/15 complete (53%)
+**Progress:** 14/15 complete (93%)
 
 ### Phase 4: Historical & Remaining Docs (12 documents)
 

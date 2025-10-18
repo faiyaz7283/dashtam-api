@@ -14,6 +14,7 @@
 - [Decision](#decision)
 - [Consequences](#consequences)
 - [Implementation](#implementation)
+- [Follow-Up](#follow-up)
 - [References](#references)
 
 ---
@@ -230,6 +231,3 @@ example_code()
 **Last Updated:** YYYY-MM-DD
 **Decision Date:** YYYY-MM-DD
 **Decision Maker(s):** [Team or Individual]
-
-[Optional: **Supersedes:** old-research.md]
-[Optional: **Archive Date:** YYYY-MM-DD (if decision implemented and doc archived)]

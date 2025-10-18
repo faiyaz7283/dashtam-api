@@ -1071,7 +1071,7 @@ This guide implements the following WARP.md requirements:
 
 - WARP.md - Project rules and coding standards
 - [Testing Guide](../testing/guide.md) - Complete testing documentation
-- [Best Practices](../testing/best-practices.md) - Testing best practices
+- [Testing Best Practices](testing-best-practices.md) - Testing patterns and conventions
 
 ---
 

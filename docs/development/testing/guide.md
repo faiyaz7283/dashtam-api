@@ -877,7 +877,7 @@ def test_list_with_pagination(client, db_session, test_user):
 After completing this guide, consider:
 
 - [ ] Read [Testing Strategy](strategy.md) for overall testing approach
-- [ ] Review [Testing Best Practices](best-practices.md) for advanced patterns
+- [ ] Review [Testing Best Practices](../guides/testing-best-practices.md) for advanced patterns
 - [ ] Check [Test Docstring Standards](test-docstring-standards.md) for documentation conventions
 - [ ] Explore [Smoke Test Documentation](../../../tests/smoke/README.md) for end-to-end testing
 
@@ -886,7 +886,7 @@ After completing this guide, consider:
 ### Project Documentation
 
 - [Testing Strategy](strategy.md) - Overall testing approach and philosophy
-- [Testing Best Practices](best-practices.md) - Comprehensive best practices guide
+- [Testing Best Practices](../guides/testing-best-practices.md) - Comprehensive best practices guide
 - [Test Docstring Standards](test-docstring-standards.md) - Docstring conventions for tests
 - [Smoke Test Documentation](../../../tests/smoke/README.md) - Smoke test patterns and utilities
 

@@ -136,7 +136,7 @@ Testing strategy, guides, and best practices:
 
 - [Testing Strategy](testing/strategy.md) - Comprehensive testing strategy (unit, integration, E2E)
 - [Testing Guide](testing/guide.md) - Comprehensive guide for writing tests
-- [Best Practices](testing/best-practices.md) - Testing patterns and conventions
+- [Testing Best Practices](guides/testing-best-practices.md) - Testing patterns and conventions
 - [Test Docstring Standards](testing/test-docstring-standards.md) - Documenting tests properly
 
 **Smoke Testing:**

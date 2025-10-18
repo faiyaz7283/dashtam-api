@@ -606,7 +606,7 @@ source = ["src"]
 ## References
 
 - Testing Guide (guide.md)
-- Best Practices (best-practices.md)
+- Testing Best Practices (../guides/testing-best-practices.md)
 - Test Docstring Standards (test-docstring-standards.md)
 - Async Testing Decision (../architecture/async-testing-decision.md)
 - Async Testing Migration (../historical/async-to-sync-testing-migration.md)

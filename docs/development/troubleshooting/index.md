@@ -1,12 +1,19 @@
 # Troubleshooting
 
-Documentation of critical debugging sessions, issue resolutions, and problem-solving journeys within the Dashtam project.
+Documentation of critical debugging sessions, issue resolutions, and problem-solving journeys within the Dashtam project. Each troubleshooting guide provides a complete narrative from symptom discovery through investigation to final resolution.
 
 ---
 
 ## 📚 Contents
 
-This directory contains detailed troubleshooting guides documenting complex bugs, their investigation, root cause analysis, and final resolutions. Each document provides a complete narrative of the debugging process to help future developers facing similar issues.
+This directory contains detailed troubleshooting guides documenting complex bugs, their investigation, root cause analysis, and final resolutions. These guides serve as a knowledge base for future developers facing similar issues, preserving critical debugging insights and solution patterns.
+
+**What's Here:**
+
+- Async/await and database session issues
+- CI/CD pipeline debugging and fixes
+- Test infrastructure problems and solutions
+- Docker and environment configuration issues
 
 ---
 
@@ -14,20 +21,66 @@ This directory contains detailed troubleshooting guides documenting complex bugs
 
 ```bash
 troubleshooting/
-├── index.md
-└── [troubleshooting-guides.md]
+├── index.md                                      # This file
+├── async-testing-greenlet-errors.md              # SQLAlchemy async session issues
+├── ci-test-failures-trustedhost.md               # CI security middleware blocking
+├── env-directory-docker-mount-issue.md           # Docker mount configuration fix
+├── test-infrastructure-fixture-errors.md         # Pytest fixture resolution
+├── smoke-test-caplog-solution.md                 # Smoke test token extraction
+└── smoke-test-ci-debugging-journey.md            # CI smoke test debugging
 ```
 
 ---
 
 ## 📄 Documents
 
-### Current Troubleshooting Guides
+### Database and Async Issues
 
-- [Async Testing Greenlet Errors](async-testing-greenlet-errors.md) - SQLAlchemy async session issues with pytest
-- [CI Test Failures - TrustedHost Middleware](ci-test-failures-trustedhost.md) - TestClient blocked by security middleware
-- [Test Infrastructure Fixture Errors](test-infrastructure-fixture-errors.md) - Missing fixtures and async test migration issues
-- [Environment Directory Docker Mount Issue](env-directory-docker-mount-issue.md) - Docker mount failure when .env is a directory
+**[Async Testing Greenlet Errors](async-testing-greenlet-errors.md)**
+
+- **Problem**: SQLAlchemy async session issues with pytest
+- **Root Cause**: Improper async/await patterns in database operations
+- **Solution**: Synchronous testing strategy with FastAPI TestClient
+- **Impact**: Resolved greenlet_spawn errors, established testing foundation
+
+### CI/CD and Infrastructure Issues
+
+**[CI Test Failures - TrustedHost Middleware](ci-test-failures-trustedhost.md)**
+
+- **Problem**: TestClient blocked by TrustedHostMiddleware in CI
+- **Root Cause**: Missing "testserver" in ALLOWED_HOSTS configuration
+- **Solution**: Add "testserver" to allowed hosts for test environments
+- **Impact**: All CI tests passing, proper security middleware configuration
+
+**[Environment Directory Docker Mount Issue](env-directory-docker-mount-issue.md)**
+
+- **Problem**: Docker mount failure when .env is a directory
+- **Root Cause**: Directory created at .env path instead of file
+- **Solution**: Remove directory, use proper .env file structure
+- **Impact**: Proper environment variable loading in all containers
+
+### Testing Infrastructure Issues
+
+**[Test Infrastructure Fixture Errors](test-infrastructure-fixture-errors.md)**
+
+- **Problem**: Missing fixtures and async test migration issues
+- **Root Cause**: Incomplete migration from async to sync test patterns
+- **Solution**: Proper fixture organization and synchronous patterns
+- **Impact**: Stable test infrastructure, 295+ tests passing
+
+**[Smoke Test Caplog Solution](smoke-test-caplog-solution.md)**
+
+- **Problem**: Token extraction in smoke tests without Docker CLI
+- **Root Cause**: Need environment-agnostic token capture method
+- **Solution**: Use pytest's caplog fixture for log-based extraction
+- **Impact**: Smoke tests work in dev, test, and CI environments
+
+**[Smoke Test CI Debugging Journey](smoke-test-ci-debugging-journey.md)**
+
+- **Problem**: Smoke tests failing in CI but passing locally
+- **Root Cause**: Timing issues and container startup order
+- **Solution**: Proper health checks and retry logic
+- **Impact**: 22/23 smoke tests passing in CI (96% success rate)
 
 ---
 
@@ -35,13 +88,20 @@ troubleshooting/
 
 **Related Documentation:**
 
-- [Testing Documentation](../testing/index.md)
-- [Infrastructure Documentation](../infrastructure/index.md)
-- [Architecture Documentation](../architecture/index.md)
+- [Testing Documentation](../testing/index.md) - Testing strategy and guides
+- [Infrastructure Documentation](../infrastructure/index.md) - Docker, CI/CD setup
+- [Architecture Documentation](../architecture/index.md) - System design and patterns
 
-**Template:**
+**Templates:**
 
-- [Troubleshooting Template](../../templates/troubleshooting-template.md) - Use this template for new troubleshooting guides
+- [Troubleshooting Template](../../templates/troubleshooting-template.md) - Use for new troubleshooting guides
+- [Template README](../../templates/README.md) - Documentation template system
+
+**External Resources:**
+
+- [SQLAlchemy Async Documentation](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html)
+- [FastAPI Testing Guide](https://fastapi.tiangolo.com/tutorial/testing/)
+- [Pytest Fixtures Documentation](https://docs.pytest.org/en/stable/explanation/fixtures.html)
 
 ---
 
@@ -51,9 +111,10 @@ troubleshooting/
 
 **Related Directories:**
 
-- [Testing](../testing/index.md)
-- [Guides](../guides/index.md)
-- [Infrastructure](../infrastructure/index.md)
+- [Testing](../testing/index.md) - Test strategy and implementation
+- [Guides](../guides/index.md) - How-to guides and tutorials
+- [Infrastructure](../infrastructure/index.md) - Docker and CI/CD
+- [Architecture](../architecture/index.md) - System design
 
 ---
 
@@ -61,11 +122,13 @@ troubleshooting/
 
 When adding new troubleshooting guides to this directory:
 
-1. Use the [troubleshooting template](../../templates/troubleshooting-template.md)
-2. Document the complete debugging journey (symptoms → investigation → solution)
-3. Include root cause analysis and lessons learned
-4. Update this README with a link and description
-5. Run markdown linting: `make lint-md FILE="path/to/file.md"`
+1. **Use the template**: Start with [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+2. **Document the journey**: Include symptoms → investigation → root cause → solution
+3. **Add context**: Explain why the issue occurred and how to prevent it
+4. **Include evidence**: Screenshots, logs, code snippets showing the problem
+5. **Share lessons learned**: What did this teach us about the system?
+6. **Update this index**: Add your new guide to the appropriate section above
+7. **Run linting**: Verify with `make lint-md-file FILE="path/to/file.md"`
 
 ---
 
@@ -73,6 +136,6 @@ When adding new troubleshooting guides to this directory:
 
 **Category:** Index/Navigation
 **Created:** 2025-01-06
-**Last Updated:** 2025-01-06
+**Last Updated:** 2025-10-18
 **Maintainer:** Dashtam Development Team
-**Scope:** Troubleshooting and debugging documentation
+**Scope:** Troubleshooting and debugging documentation for Dashtam project

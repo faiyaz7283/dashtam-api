@@ -334,7 +334,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 
 ### Phase 3: Supporting Docs (15 documents)
 
-Phase 3 Progress: 11/15 complete (73%)
+Phase 3 Progress: 12/15 complete (80%)
 
 **Testing (7 docs) - 4/7 complete:**
 
@@ -344,14 +344,14 @@ Phase 3 Progress: 11/15 complete (73%)
 || `testing/strategy.md` | ✅ COMPLETE | testing-template | A - Content Extract + B | High |
 || `guides/testing-best-practices.md` | ✅ COMPLETE | guide-template | B - Structural + Move | Medium |
 || `guides/test-docstring-standards.md` | ✅ COMPLETE | guide-template | B - Structural + Move | Medium |
-| `testing/smoke-test-caplog-solution.md` | Moderately structured | testing-template | B - Structural | Medium |
 | `testing/smoke-test-ci-debugging-journey.md` | Loosely structured | troubleshooting-template | C - Restructure | Medium |
 | `testing/smoke-test-design-comparison.md` | Moderately structured | research-template | B - Structural | Medium |
 
-**Troubleshooting (4 docs):**
+**Troubleshooting (5 docs) - 1/5 complete:**
 
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
+|| `troubleshooting/smoke-test-caplog-solution.md` | ✅ COMPLETE | troubleshooting-template | B - Structural + Move | Medium |
 | `troubleshooting/async-testing-greenlet-errors.md` | Well-structured | troubleshooting-template | A - Metadata | Low |
 | `troubleshooting/ci-test-failures-trustedhost.md` | Well-structured | troubleshooting-template | A - Metadata | Low |
 | `troubleshooting/env-directory-docker-mount-issue.md` | Well-structured | troubleshooting-template | A - Metadata | Low |

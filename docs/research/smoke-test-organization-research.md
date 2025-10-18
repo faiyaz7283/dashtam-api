@@ -607,7 +607,7 @@ tests/
 
 - **New**: `tests/smoke/test_complete_auth_flow.py` (23 tests)
 - **New**: `tests/smoke/README.md` (comprehensive documentation)
-- **New**: `docs/development/testing/smoke-test-caplog-solution.md` (implementation guide)
+- **New**: `docs/development/troubleshooting/smoke-test-caplog-solution.md` (troubleshooting guide)
 - **Modified**: `Makefile` (added `make test-smoke`)
 - **Modified**: `WARP.md` (updated project rules)
 - **Modified**: `compose/docker-compose.test.yml` (SSL/TLS)
@@ -654,7 +654,7 @@ tests/
 **Project Documentation:**
 
 - [Smoke Test README](../../../tests/smoke/README.md)
-- [Smoke Test Implementation Guide](testing/smoke-test-caplog-solution.md)
+- [Smoke Test Implementation Guide](../development/troubleshooting/smoke-test-caplog-solution.md)
 - [Testing Guide](testing/guide.md)
 - [Testing Best Practices](../development/guides/testing-best-practices.md)
 

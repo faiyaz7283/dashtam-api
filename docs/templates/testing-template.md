@@ -351,5 +351,3 @@ Check `pytest.ini` or `.coveragerc` configuration
 **Last Updated:** YYYY-MM-DD
 **Test Framework:** pytest
 **Coverage Tool:** pytest-cov
-
-[Optional: **Maintainer:** Team or Individual]

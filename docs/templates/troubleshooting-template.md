@@ -22,6 +22,7 @@
 5. [Verification](#verification)
 6. [Lessons Learned](#lessons-learned)
 7. [Future Improvements](#future-improvements)
+8. [References](#references)
 
 ---
 

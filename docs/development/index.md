@@ -50,15 +50,13 @@ docs/development/
 │   ├── database-migrations.md
 │   ├── docker-setup.md
 │   └── environment-flows.md
-├── testing/                # 8 docs - Testing strategy and guides
-│   ├── best-practices.md
+├── testing/                # 7 docs - Testing strategy and guides
 │   ├── DOCSTRING_AUDIT_CONTINUATION.md
 │   ├── guide.md
 │   ├── smoke-test-caplog-solution.md
 │   ├── smoke-test-ci-debugging-journey.md
 │   ├── smoke-test-design-comparison.md
-│   ├── strategy.md
-│   └── test-docstring-standards.md
+│   └── strategy.md
 ├── troubleshooting/        # 5 docs - Problem diagnosis and solutions
 │   ├── async-testing-greenlet-errors.md
 │   ├── ci-test-failures-trustedhost.md
@@ -137,7 +135,7 @@ Testing strategy, guides, and best practices:
 - [Testing Strategy](testing/strategy.md) - Comprehensive testing strategy (unit, integration, E2E)
 - [Testing Guide](testing/guide.md) - Comprehensive guide for writing tests
 - [Testing Best Practices](guides/testing-best-practices.md) - Testing patterns and conventions
-- [Test Docstring Standards](testing/test-docstring-standards.md) - Documenting tests properly
+- [Test Docstring Standards](guides/test-docstring-standards.md) - Documenting tests properly
 
 **Smoke Testing:**
 

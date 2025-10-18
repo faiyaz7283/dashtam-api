@@ -358,7 +358,7 @@ def sample_fixture():
     cleanup(data)
 ```
 
-See: Test Docstring Standards (test-docstring-standards.md) for comprehensive fixture documentation guidelines.
+See: Test Docstring Standards (../guides/test-docstring-standards.md) for comprehensive fixture documentation guidelines.
 
 ## Running Tests
 
@@ -607,7 +607,7 @@ source = ["src"]
 
 - Testing Guide (guide.md)
 - Testing Best Practices (../guides/testing-best-practices.md)
-- Test Docstring Standards (test-docstring-standards.md)
+- Test Docstring Standards (../guides/test-docstring-standards.md)
 - Async Testing Decision (../architecture/async-testing-decision.md)
 - Async Testing Migration (../historical/async-to-sync-testing-migration.md)
 - FastAPI Testing Documentation: https://fastapi.tiangolo.com/tutorial/testing/

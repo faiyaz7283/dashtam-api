@@ -1092,7 +1092,7 @@ This guide implements the following WARP.md requirements:
 ### Project Documentation
 
 - WARP.md - Complete project rules and context
-- [Test Docstring Standards](../testing/test-docstring-standards.md) - Test-specific patterns
+- [Test Docstring Standards](test-docstring-standards.md) - Test-specific patterns
 - [Documentation Implementation Guide](documentation-implementation-guide.md) - MkDocs setup
 
 ---
@@ -1107,4 +1107,4 @@ This guide implements the following WARP.md requirements:
 **Difficulty Level:** Intermediate
 **Target Audience:** Developers, code reviewers, documentation maintainers
 **Prerequisites:** Python knowledge, Google-style docstring familiarity
-**Related Documents:** [Testing Guide](../testing/guide.md), [Test Docstring Standards](../testing/test-docstring-standards.md)
+**Related Documents:** [Testing Guide](../testing/guide.md), [Test Docstring Standards](test-docstring-standards.md)

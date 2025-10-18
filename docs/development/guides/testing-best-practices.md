@@ -731,7 +731,7 @@ After mastering these best practices, consider:
 
 - [ ] Review [Testing Strategy](../testing/strategy.md) for overall philosophy
 - [ ] Read [Testing Guide](../testing/guide.md) for running tests
-- [ ] Study [Test Docstring Standards](../testing/test-docstring-standards.md)
+- [ ] Study [Test Docstring Standards](test-docstring-standards.md)
 - [ ] Explore [Smoke Test Design](../testing/smoke-test-design-comparison.md)
 - [ ] Contribute to test coverage (target: 85%+)
 
@@ -741,7 +741,7 @@ After mastering these best practices, consider:
 
 - [Testing Strategy](../testing/strategy.md) - Overall testing philosophy
 - [Testing Guide](../testing/guide.md) - Running and organizing tests
-- [Test Docstring Standards](../testing/test-docstring-standards.md) - Documenting tests
+- [Test Docstring Standards](test-docstring-standards.md) - Documenting tests
 
 **External Resources:**
 

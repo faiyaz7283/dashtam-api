@@ -926,7 +926,7 @@ nav:
       - Testing:
           - Strategy: development/testing/strategy.md
           - Guide: development/testing/guide.md
-          - Best Practices: development/testing/best-practices.md
+          - Best Practices: development/guides/testing-best-practices.md
       
       - Guides:
           - Git Workflow: development/guides/git-workflow.md

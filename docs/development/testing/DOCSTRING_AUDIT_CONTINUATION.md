@@ -104,7 +104,7 @@ This document tracks progress on adding comprehensive Google-style docstrings to
 - 18 test functions fully documented (+ helper fixtures)
 - Coverage: Complete auth flow (registration → verification → login → logout)
 
-**docs/development/testing/test-docstring-standards.md** ✅
+**docs/development/guides/test-docstring-standards.md** ✅
 
 - 407 lines of comprehensive reference guide
 - Examples for all test patterns
@@ -179,7 +179,7 @@ Provider type endpoints (1 file, 9 tests).
 
 ### Standards Document
 
-See `docs/development/testing/test-docstring-standards.md` for:
+See `docs/development/guides/test-docstring-standards.md` for:
 
 - Module-level docstring format
 - Class-level docstring format
@@ -225,7 +225,7 @@ def test_function_name(self, fixture1: Type1, fixture2: Type2):
 ### Starting a New Session
 
 1. **Read this document** to understand current state
-2. **Reference standards guide:** `docs/development/testing/test-docstring-standards.md`
+2. **Reference standards guide:** `docs/development/guides/test-docstring-standards.md`
 3. **Follow the established pattern** from completed files
 4. **Work file-by-file** through remaining phases
 5. **Test after each file:** Ensure tests still pass

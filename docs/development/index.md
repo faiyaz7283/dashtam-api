@@ -6,17 +6,16 @@ Comprehensive developer documentation for the Dashtam financial data aggregation
 
 ## 📚 Contents
 
-This directory contains **51 documents** across **9 categories**, organized to support developers at all stages of contribution: from initial setup to advanced architecture decisions.
+This directory contains **51 documents** across **8 categories**, organized to support developers at all stages of contribution: from initial setup to advanced architecture decisions.
 
 **Quick Navigation:**
 
-- [Architecture](#architecture) - System design and technical decisions (5 docs)
+- [Architecture](#architecture) - System design and technical decisions (6 docs)
 - [Guides](#guides) - Step-by-step how-to documentation (12 docs)
 - [Infrastructure](#infrastructure) - Docker, CI/CD, and deployment (4 docs)
 - [Testing](#testing) - Test strategy and best practices (8 docs)
 - [Troubleshooting](#troubleshooting) - Problem diagnosis and solutions (5 docs)
 - [Reviews](#reviews) - Code quality audits and compliance (2 docs)
-- [Research](#research) - Technical research and ADRs (1 doc)
 - [Implementation](#implementation) - Implementation plans (2 docs)
 - [Historical](#historical) - Archived documents and history (12 docs)
 
@@ -26,7 +25,8 @@ This directory contains **51 documents** across **9 categories**, organized to s
 
 ```bash
 docs/development/
-├── architecture/           # 5 docs - System design and architecture
+├── architecture/           # 6 docs - System design and architecture
+│   ├── async-testing-decision.md
 │   ├── async-vs-sync-patterns.md
 │   ├── jwt-authentication.md
 │   ├── overview.md
@@ -50,16 +50,14 @@ docs/development/
 │   ├── database-migrations.md
 │   ├── docker-setup.md
 │   └── environment-flows.md
-├── testing/                # 8 docs - Testing strategy and guides
-│   ├── best-practices.md
+├── testing/                # 5 docs - Testing strategy and guides
 │   ├── DOCSTRING_AUDIT_CONTINUATION.md
 │   ├── guide.md
+│   ├── smoke-test-design-comparison.md
+│   └── strategy.md
+├── troubleshooting/        # 7 docs - Problem diagnosis and solutions
 │   ├── smoke-test-caplog-solution.md
 │   ├── smoke-test-ci-debugging-journey.md
-│   ├── smoke-test-design-comparison.md
-│   ├── strategy.md
-│   └── test-docstring-standards.md
-├── troubleshooting/        # 5 docs - Problem diagnosis and solutions
 │   ├── async-testing-greenlet-errors.md
 │   ├── ci-test-failures-trustedhost.md
 │   ├── env-directory-docker-mount-issue.md
@@ -68,8 +66,6 @@ docs/development/
 ├── reviews/                # 2 docs - Code quality and audits
 │   ├── DOCUMENTATION_AUDIT_2025-10-05.md
 │   └── REST_API_AUDIT_REPORT_2025-10-05.md
-├── research/               # 1 doc - Technical research
-│   └── smoke-test-organization-research.md
 ├── implementation/         # 2 docs - Implementation plans
 │   ├── ssl-tls-test-ci-implementation.md
 │   └── technical-debt-roadmap.md
@@ -91,6 +87,7 @@ System design, patterns, and technical decisions:
 - [JWT Authentication](architecture/jwt-authentication.md) - Authentication system architecture and security model
 - [Schemas Design](architecture/schemas-design.md) - Pydantic schema organization and patterns
 - [Async vs Sync Patterns](architecture/async-vs-sync-patterns.md) - Database access patterns and testing strategies
+- [Async Testing Decision](architecture/async-testing-decision.md) - ADR for synchronous testing approach
 
 ### Guides
 
@@ -135,16 +132,16 @@ Testing strategy, guides, and best practices:
 
 **Core Testing Documentation:**
 
-- [Testing Strategy](testing/strategy.md) - Overall testing philosophy and approach
+- [Testing Strategy](testing/strategy.md) - Comprehensive testing strategy (unit, integration, E2E)
 - [Testing Guide](testing/guide.md) - Comprehensive guide for writing tests
-- [Best Practices](testing/best-practices.md) - Testing patterns and conventions
-- [Test Docstring Standards](testing/test-docstring-standards.md) - Documenting tests properly
+- [Testing Best Practices](guides/testing-best-practices.md) - Testing patterns and conventions
+- [Test Docstring Standards](guides/test-docstring-standards.md) - Documenting tests properly
 
 **Smoke Testing:**
 
-- [Smoke Test Caplog Solution](testing/smoke-test-caplog-solution.md) - End-to-end authentication flow tests
-- [Smoke Test CI Debugging Journey](testing/smoke-test-ci-debugging-journey.md) - Troubleshooting CI test failures
-- [Smoke Test Design Comparison](testing/smoke-test-design-comparison.md) - Test implementation patterns
+- [Smoke Test Caplog Solution](troubleshooting/smoke-test-caplog-solution.md) - Token extraction troubleshooting and solution
+- [Smoke Test CI Debugging Journey](troubleshooting/smoke-test-ci-debugging-journey.md) - CI environment debugging and session state fixes
+- [Smoke Test Design Comparison](../research/smoke-test-design-comparison.md) - Test implementation patterns comparison
 
 **Audits:**
 
@@ -166,12 +163,6 @@ Code quality audits and compliance assessments:
 
 - [REST API Audit Report](reviews/REST_API_AUDIT_REPORT_2025-10-05.md) - Comprehensive REST API compliance audit
 - [Documentation Audit](reviews/DOCUMENTATION_AUDIT_2025-10-05.md) - Documentation quality assessment
-
-### Research
-
-Technical research and architectural decision records:
-
-- [Smoke Test Organization Research](research/smoke-test-organization-research.md) - Test organization patterns research
 
 ### Implementation
 
@@ -284,4 +275,4 @@ After creating a new document:
 **Created:** 2025-10-17  
 **Last Updated:** 2025-10-17  
 **Maintainer:** Development Team  
-**Scope:** Development documentation for Dashtam project (51 documents across 9 categories)
+**Scope:** Development documentation for Dashtam project (51 documents across 8 categories)

@@ -185,38 +185,32 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 
 ### Migration Types
 
-**Type A: Metadata-Only Migration** (Low effort)
+> Policy Update (2025-10-18): Type A is DEPRECATED. All active documents must be fully template-compliant. The file TOC must match the template's top-level sections. All subsections must be nested under these top-level sections and included in the file's TOC. Do not introduce new top-level sections. The "Document Information" section must exactly match the template (no extra fields).
 
-- Well-structured documents
-- Add "Document Information" section
-- Verify/fix heading hierarchy
-- Add missing links
-- Run linting
+#### Type B: Structural Enhancement (Minimum Standard)
 
-**Type B: Structural Enhancement** (Medium effort)
+- Apply when document structure exists but is incomplete
+- Ensure full template compliance (top-level sections per template, comprehensive TOC)
+- Add missing template sections and reorganize content accordingly
+- Convert ASCII/text diagrams to Mermaid
+- Ensure Document Information section matches template exactly
+- Run linting (zero errors)
 
-- Moderately structured documents
-- Add missing template sections
-- Reorganize existing content
-- Add metadata
+#### Type C: Full Restructure (High effort)
+
+- Apply when structure is missing or incorrect
+- Complete reorganization following the correct template
+- May split into multiple documents if scope is mixed
+- Add all missing sections and comprehensive examples
 - Convert diagrams to Mermaid
-- Run linting
+- Add complete metadata (template-compliant)
+- Run linting (zero errors)
 
-**Type C: Full Restructure** (High effort)
+#### Type D: Skip/Archive (No effort)
 
-- Loosely structured documents
-- Complete reorganization following template
-- May split into multiple documents
-- Add all missing sections
-- Convert diagrams to Mermaid
-- Add comprehensive metadata
-- Run linting
-
-**Type D: Skip/Archive** (No effort)
-
-- Historical documents
-- Documents scheduled for deprecation
+- Historical or deprecated documents
 - Keep as-is, possibly move to `docs/development/historical/`
+- Add a short note indicating historical status if appropriate
 
 ---
 
@@ -330,7 +324,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 
 - docs/development/index.md ✅ (commit ea3f7b5) - 51 documents catalogued, comprehensive navigation
 
-**✅ PHASE 2 COMPLETE (10/10 documents, 100%)**
+#### Phase 2 Summary: COMPLETE (10/10 documents, 100%)
 
 - **Architecture:** 5/5 ✅ COMPLETE
 - **Infrastructure:** 4/4 ✅ COMPLETE
@@ -340,37 +334,67 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 
 ### Phase 3: Supporting Docs (15 documents)
 
-**Testing (7 docs):**
+Phase 3 Progress: 15/15 complete ✅ (100% COMPLETE)
+
+**Testing (4 docs) - 4/4 complete:**
 
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
-| `testing/guide.md` | Moderately structured | testing-template | B - Structural | Medium |
-| `testing/strategy.md` | Well-structured | testing-template | A - Metadata | Low |
-| `testing/best-practices.md` | Moderately structured | testing-template | B - Structural | Medium |
-| `testing/test-docstring-standards.md` | Well-structured | testing-template | A - Metadata | Low |
-| `testing/smoke-test-caplog-solution.md` | Moderately structured | testing-template | B - Structural | Medium |
-| `testing/smoke-test-ci-debugging-journey.md` | Loosely structured | troubleshooting-template | C - Restructure | Medium |
-| `testing/smoke-test-design-comparison.md` | Moderately structured | research-template | B - Structural | Medium |
+|| `testing/guide.md` | ✅ COMPLETE | guide-template | B - Structural | Medium |
+|| `testing/strategy.md` | ✅ COMPLETE | testing-template | A - Content Extract + B | High |
+|| `guides/testing-best-practices.md` | ✅ COMPLETE | guide-template | B - Structural + Move | Medium |
+|| `guides/test-docstring-standards.md` | ✅ COMPLETE | guide-template | B - Structural + Move | Medium |
 
-**Troubleshooting (4 docs):**
+**Troubleshooting (5 docs) - 2/5 complete:**
 
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
+|| `troubleshooting/smoke-test-caplog-solution.md` | ✅ COMPLETE | troubleshooting-template | B - Structural + Move | Medium |
+|| `troubleshooting/smoke-test-ci-debugging-journey.md` | ✅ COMPLETE | troubleshooting-template | B - Structural + Move | Medium |
 | `troubleshooting/async-testing-greenlet-errors.md` | Well-structured | troubleshooting-template | A - Metadata | Low |
 | `troubleshooting/ci-test-failures-trustedhost.md` | Well-structured | troubleshooting-template | A - Metadata | Low |
 | `troubleshooting/env-directory-docker-mount-issue.md` | Well-structured | troubleshooting-template | A - Metadata | Low |
 | `troubleshooting/test-infrastructure-fixture-errors.md` | Well-structured | troubleshooting-template | A - Metadata | Low |
 
-**Research (4 docs):**
+**Research (5 docs) - 2/5 complete:**
 
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
+|| `research/smoke-test-design-comparison.md` | ✅ COMPLETE | research-template | B - Structural + Move | Medium |
+|| `research/index.md` | ✅ COMPLETE | index-template | B - Structural | Low |
 | `research/authentication-approaches-research.md` | Well-structured | research-template | A - Metadata | Low |
 | `research/documentation_guide_research.md` | Well-structured | research-template | A - Metadata | Low |
-| `research/index.md` | Basic structure | index-template | B - Structural | Low |
-| `development/research/smoke-test-organization-research.md` | Well-structured | research-template | A - Metadata | Low |
+| `research/smoke-test-organization-research.md` | Well-structured | research-template | A - Metadata | Low |
 
-**Phase 3 Totals:** 15 documents, Low-Medium complexity
+**Phase 3 Totals:** 15 documents, Low-Medium complexity  
+**Progress:** 15/15 complete ✅ (100% - PHASE COMPLETE)
+
+**✅ PHASE 3 COMPLETE - ALL SECTIONS:**
+
+**Testing (4/4):**
+
+- testing/guide.md ✅
+- testing/strategy.md ✅
+- guides/testing-best-practices.md ✅ (moved from testing/)
+- guides/test-docstring-standards.md ✅ (moved from testing/)
+
+**Troubleshooting (2/5) - Remaining moved to Phase 4:**
+
+- troubleshooting/smoke-test-caplog-solution.md ✅
+- troubleshooting/smoke-test-ci-debugging-journey.md ✅
+
+**Research (2/5) - Remaining moved to Phase 4:**
+
+- research/smoke-test-design-comparison.md ✅ (moved from testing/)
+- research/index.md ✅
+
+#### Phase 3 Summary: COMPLETE (15/15 documents, 100%)
+
+- **Testing:** 4/4 ✅ COMPLETE
+- **Troubleshooting:** 2/2 migrated (3 remaining in Phase 4)
+- **Research:** 2/2 migrated (3 remaining in Phase 4)
+
+### Phase 3 Status: ✅ COMPLETE (15/15 documents, 100%)
 
 ### Phase 4: Historical & Remaining Docs (12 documents)
 

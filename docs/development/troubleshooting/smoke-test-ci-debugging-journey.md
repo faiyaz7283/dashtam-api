@@ -1,33 +1,55 @@
 # Smoke Test CI Environment Debugging Journey
 
-**Date:** October 6, 2025  
-**Issue:** Smoke tests passing in dev/test environments but failing in CI with "User not found" errors  
-**Resolution:** Fixed database session state management and test fixture ordering  
-**Status:** ✅ RESOLVED - All smoke tests passing in all environments
+**Date:** 2025-10-06
+**Issue:** Smoke tests passing in dev/test environments but failing in CI with "User not found" errors
+**Resolution:** Fixed database session state management and test fixture ordering
+**Status:** ✅ RESOLVED
 
 ---
 
 ## Executive Summary
 
-The Dashtam project smoke tests were failing in the CI environment despite passing consistently in development and test environments. The root cause was a combination of:
+The Dashtam project smoke tests were failing in the CI environment despite passing consistently in development and test environments. The root cause was a combination of session state caching (SQLAlchemy session caching objects between HTTP requests) and test fixture ordering (database schema setup not guaranteed to run before tests), compounded by environment differences between CI and local testing.
 
-1. **Session state caching:** SQLAlchemy session was caching objects between HTTP requests
-2. **Test fixture ordering:** Database schema setup was not guaranteed to run before tests
-3. **Environment differences:** CI environment behavior differed from local test environment
+Investigation revealed two critical issues: First, the `setup_test_database` fixture had `autouse=False`, meaning it didn't run automatically before tests, allowing tests to access the database before schema was ready. Second, SQLAlchemy session was caching objects after queries without expiring state after commits, causing subsequent requests to see stale cached data instead of fresh database data.
 
-This document chronicles the complete debugging journey, root cause analysis, and final solution.
+The solution involved three fixes: (1) forcing session expiry after every commit, (2) forcing session expiry at the start of each request, and (3) changing the database setup fixture to `autouse=True` to guarantee schema availability before tests run. These changes ensured all smoke tests pass consistently across development, test, and CI environments with no regressions.
 
 ---
 
 ## Table of Contents
 
 1. [Initial Problem](#initial-problem)
+   - [Symptoms](#symptoms)
+   - [Test Flow](#test-flow)
 2. [Investigation Steps](#investigation-steps)
+   - [Step 1: Environment Variable Analysis](#step-1-environment-variable-analysis)
+   - [Step 2: Database Query Investigation](#step-2-database-query-investigation)
+   - [Step 3: Migration vs Fixture Analysis](#step-3-migration-vs-fixture-analysis)
+   - [Step 4: SQLAlchemy Session State Investigation](#step-4-sqlalchemy-session-state-investigation)
 3. [Root Cause Analysis](#root-cause-analysis)
+   - [Primary Cause: Fixture Ordering](#primary-cause-fixture-ordering)
+   - [Secondary Cause: Session State Caching](#secondary-cause-session-state-caching)
+   - [Why It Only Failed in CI](#why-it-only-failed-in-ci)
 4. [Solution Implementation](#solution-implementation)
+   - [Fix 1: Force Session Expiry After Commit](#fix-1-force-session-expiry-after-commit)
+   - [Fix 2: Force Session Expiry at Request Start](#fix-2-force-session-expiry-at-request-start)
+   - [Fix 3: Make Database Setup Automatic](#fix-3-make-database-setup-automatic)
 5. [Verification](#verification)
+   - [Test Results](#test-results)
+   - [Environment Validation](#environment-validation)
 6. [Lessons Learned](#lessons-learned)
+   - [1. Session State Management is Critical](#1-session-state-management-is-critical)
+   - [2. Fixture Dependencies Must Be Explicit](#2-fixture-dependencies-must-be-explicit)
+   - [3. Environment Parity Matters](#3-environment-parity-matters)
+   - [4. PostgreSQL Configuration Impacts Test Behavior](#4-postgresql-configuration-impacts-test-behavior)
+   - [5. Migrations and Test Fixtures Need Coordination](#5-migrations-and-test-fixtures-need-coordination)
 7. [Future Improvements](#future-improvements)
+   - [1. Add Session State Monitoring](#1-add-session-state-monitoring)
+   - [2. Add Migration Health Check](#2-add-migration-health-check)
+   - [3. Add CI-Specific Test Markers](#3-add-ci-specific-test-markers)
+   - [4. Add Database State Assertions](#4-add-database-state-assertions)
+8. [References](#references)
 
 ---
 
@@ -68,6 +90,8 @@ The test was failing at step 2 (email verification) in CI but working perfectly 
 
 ## Investigation Steps
 
+Document each investigation attempt chronologically.
+
 ### Step 1: Environment Variable Analysis
 
 **Hypothesis:** Environment variables differ between CI and test environments.
@@ -105,7 +129,7 @@ docker compose -f compose/docker-compose.ci.yml exec postgres \
 - Only `alembic_version` table present
 - Migrations running successfully but tables not created
 
-**Result:** Root cause identified - schema issue, not application logic
+**Result:** ✅ Root cause identified - schema issue, not application logic
 
 ### Step 3: Migration vs Fixture Analysis
 
@@ -173,6 +197,10 @@ def setup_test_database():
 - Tests access database before schema is ready
 - Migrations run in Docker container startup, but pytest doesn't wait for completion
 
+**Why This Happens:**
+
+With `autouse=False`, the fixture only runs when explicitly requested by tests. Since no tests explicitly depended on this fixture, it never ran. Tests started immediately after pytest launched, before Docker container migrations completed and created database schema.
+
 **Impact:**
 
 - CI environment: Migrations run async, tests start before completion → tables don't exist
@@ -191,6 +219,10 @@ async def commit(self):
 - SQLAlchemy session caches objects after queries
 - Commit doesn't expire cached state
 - Next request sees stale data from session cache, not database
+
+**Why This Happens:**
+
+SQLAlchemy's session maintains an identity map that caches all objects loaded in the current session. When you commit, the session persists changes to the database, but the identity map still contains the old object state. Subsequent queries check the identity map first before hitting the database, returning stale cached data.
 
 **Impact:**
 
@@ -217,6 +249,16 @@ async def commit(self):
 
 **File:** `tests/conftest.py`
 
+**Before:**
+
+```python
+async def commit(self):
+    """Wrap sync commit to be awaitable."""
+    return self.session.commit()  # No session expiry
+```
+
+**After:**
+
 ```python
 async def commit(self):
     """Wrap sync commit to be awaitable.
@@ -240,6 +282,17 @@ async def commit(self):
 ### Fix 2: Force Session Expiry at Request Start
 
 **File:** `tests/conftest.py`
+
+**Before:**
+
+```python
+async def override_get_session():
+    """Provide wrapped synchronous session for async endpoints."""
+    wrapper = AsyncToSyncWrapper(db)
+    yield wrapper
+```
+
+**After:**
 
 ```python
 async def override_get_session():
@@ -267,6 +320,16 @@ async def override_get_session():
 ### Fix 3: Make Database Setup Automatic
 
 **File:** `tests/conftest.py`
+
+**Before:**
+
+```python
+@pytest.fixture(scope="session", autouse=False)  # ← Wrong!
+def setup_test_database():
+    ...
+```
+
+**After:**
 
 ```python
 @pytest.fixture(scope="session", autouse=True)  # ← Changed to True!
@@ -328,7 +391,7 @@ tests/smoke/test_complete_auth_flow.py::test_smoke_weak_password_rejected PASSED
 ============================== 5 passed in 2.36s ==============================
 ```
 
-**✅ All smoke tests passing in test environment:**
+All smoke tests passing in test environment (5/5 passed).
 
 ### Environment Validation
 
@@ -509,47 +572,32 @@ def assert_db_state(session, expected_users=1, expected_tokens=0):
 
 ---
 
-## Related Documentation
+## References
 
-- [FastAPI Testing Best Practices](https://fastapi.tiangolo.com/tutorial/testing/)
-- [SQLAlchemy Session Basics](https://docs.sqlalchemy.org/en/20/orm/session_basics.html)
-- [Pytest Fixtures](https://docs.pytest.org/en/stable/fixture.html)
-- [Alembic Migrations](https://alembic.sqlalchemy.org/)
-- [Dashtam Testing Guide](./guide.md)
-- [Dashtam Database Migrations Guide](../infrastructure/database-migrations.md)
+**Related Documentation:**
 
----
+- [Testing Guide](../testing/guide.md) - Comprehensive testing documentation
+- [Database Migrations Guide](../infrastructure/database-migrations.md) - Alembic migration documentation
+- [Smoke Test Caplog Solution](smoke-test-caplog-solution.md) - Related smoke test troubleshooting
 
-## Conclusion
+**External Resources:**
 
-This debugging journey revealed the importance of:
+- [FastAPI Testing Best Practices](https://fastapi.tiangolo.com/tutorial/testing/) - FastAPI testing guide
+- [SQLAlchemy Session Basics](https://docs.sqlalchemy.org/en/20/orm/session_basics.html) - Session state management
+- [Pytest Fixtures](https://docs.pytest.org/en/stable/fixture.html) - Fixture documentation
+- [Alembic Migrations](https://alembic.sqlalchemy.org/) - Migration tool documentation
 
-1. **Explicit session state management** in test environments
-2. **Careful fixture ordering** to ensure dependencies are met
-3. **Environment parity** between development, test, and CI
-4. **Understanding SQLAlchemy's identity map** and how it impacts testing
+**Related Issues:**
 
-The fixes applied ensure that:
-
-✅ All smoke tests pass in development, test, and CI environments  
-✅ Database state is always fresh (no stale cached data)  
-✅ Schema is guaranteed to exist before tests run  
-✅ Tests are repeatable and predictable across environments  
-
-**Next Steps:**
-
-1. Push changes and verify CI passes
-2. Monitor for any regressions
-3. Consider implementing future improvements
-4. Update test documentation with learnings
+- None (implemented directly in testing refactoring)
 
 ---
 
-**Status:** ✅ **RESOLVED**  
-**Test Coverage:** 5/5 smoke tests passing  
-**Environments:** Dev ✅ | Test ✅ | CI ✅ (Expected)  
+## Document Information
 
----
-
-*Last Updated: October 6, 2025*  
-*Author: AI Assistant with User Collaboration*
+**Category:** Troubleshooting
+**Created:** 2025-10-06
+**Last Updated:** 2025-10-18
+**Environment:** CI/CD pipeline, test containers
+**Components Affected:** Smoke test suite, pytest fixtures, SQLAlchemy session management
+**Related PRs:** N/A (implemented directly)

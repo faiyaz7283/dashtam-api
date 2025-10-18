@@ -91,7 +91,6 @@ docs/
 │   ├── historical/     # Historical/archived docs (completed work)
 │   ├── implementation/ # Implementation plans (active)
 │   ├── infrastructure/ # Docker, CI/CD, environments
-│   ├── research/       # Active technical research
 │   ├── reviews/        # Code reviews, audits, assessments
 │   ├── testing/        # Testing strategy and guides
 │   └── troubleshooting/ # Bug investigations and resolutions
@@ -217,7 +216,7 @@ When adding new documentation:
   - `testing/` - Testing strategy and guides
   - `troubleshooting/` - Bug investigations and resolutions
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/` (future)
-- **Research/decisions** → `docs/research/` (active) or `docs/development/research/`
+- **Research/decisions** → `docs/research/` (project-wide ADRs and research)
 - **Historical/archived** → `docs/development/historical/` - Completed work and plans
 
 **See also:**

@@ -1,46 +1,204 @@
 # Dashtam Testing Guide
 
-Quick reference for writing tests following the synchronous testing pattern.
+Quick reference for writing and running tests following the project's synchronous testing pattern with comprehensive examples and best practices.
 
 ---
 
-## Quick Start
+## Table of Contents
 
-```bash
-# Start test environment
-make test-up
+- [Overview](#overview)
+  - [What You'll Learn](#what-youll-learn)
+  - [Testing Goals](#testing-goals)
+  - [Scope](#scope)
+  - [Testing Strategy](#testing-strategy)
+  - [Test Pyramid](#test-pyramid)
+  - [Testing Principles](#testing-principles)
+- [Prerequisites](#prerequisites)
+  - [Required Tools](#required-tools)
+  - [Test Environment Setup](#test-environment-setup)
+  - [Test Data](#test-data)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+  - [Step 1: Understanding Test Types](#step-1-understanding-test-types)
+  - [Step 2: Writing Your First Test](#step-2-writing-your-first-test)
+  - [Step 3: Using Fixtures](#step-3-using-fixtures)
+  - [Step 4: Running Tests](#step-4-running-tests)
+  - [Step 5: Checking Coverage](#step-5-checking-coverage)
+- [Examples](#examples)
+  - [Example 1: Unit Test](#example-1-unit-test)
+  - [Example 2: Integration Test](#example-2-integration-test)
+  - [Example 3: API Test](#example-3-api-test)
+  - [Example 4: Smoke Test](#example-4-smoke-test)
+- [Verification](#verification)
+  - [Verify Tests Pass](#verify-tests-pass)
+  - [Verify Coverage](#verify-coverage)
+  - [Verify Linting](#verify-linting)
+- [Troubleshooting](#troubleshooting)
+  - [Tests Failing Intermittently](#tests-failing-intermittently)
+  - [Slow Tests](#slow-tests)
+  - [Coverage Not Accurate](#coverage-not-accurate)
+  - [Database Cleanup Not Working](#database-cleanup-not-working)
+  - [Test Hangs or Times Out](#test-hangs-or-times-out)
+- [Best Practices](#best-practices)
+  - [General Principles](#general-principles)
+  - [Test Naming](#test-naming)
+  - [Test Isolation](#test-isolation)
+  - [Assertions](#assertions)
+  - [Error Testing](#error-testing)
+  - [Common Patterns](#common-patterns)
+- [Next Steps](#next-steps)
+- [References](#references)
+  - [Project Documentation](#project-documentation)
+  - [External Resources](#external-resources)
+  - [Test Utilities](#test-utilities)
 
-# Run all tests
-make test
+---
 
-# Run specific test category
-make test-unit          # Unit tests only
-make test-integration   # Integration tests only
-make test-smoke         # Smoke tests (end-to-end auth flows)
+## Overview
 
-# Run specific test file
-docker compose -f docker-compose.test.yml exec app uv run pytest tests/unit/services/test_encryption_service.py -v
+This guide provides quick-reference documentation for writing and running tests in the Dashtam project. The project uses a synchronous testing pattern with pytest and FastAPI TestClient to ensure fast, reliable test execution with proper database isolation.
 
-# Run tests with coverage
-docker compose -f docker-compose.test.yml exec app uv run pytest tests/ --cov=src --cov-report=term-missing
+### What You'll Learn
+
+- How to write unit, integration, API, and smoke tests
+- How to use pytest fixtures for test data
+- How to run tests in Docker containers
+- How to check and improve test coverage
+- Best practices for maintainable tests
+
+### Testing Goals
+
+- **Fast Feedback**: Tests execute quickly to enable rapid development iteration
+- **Reliability**: All tests are deterministic and stable across environments
+- **Isolation**: Tests are independent and can run in any order without side effects
+- **Comprehensive Coverage**: Target 85%+ overall coverage with 95%+ on critical components
+
+### Scope
+
+**This guide covers:**
+
+- Unit tests for business logic and services
+- Integration tests for database operations and relationships
+- API tests for HTTP endpoints using TestClient
+- Smoke tests for critical user journeys
+
+**Not covered:**
+
+- Browser-based E2E tests (not yet implemented)
+- Performance/load testing (separate tooling)
+- Security penetration testing (separate process)
+
+### Testing Strategy
+
+The Dashtam project follows a synchronous testing strategy using pytest with FastAPI's TestClient. All tests run in Docker containers with isolated test databases for reliability and consistency.
+
+### Test Pyramid
+
+```mermaid
+graph TD
+    A["Unit Tests (40%)<br/>Fast, isolated, business logic"]
+    B["Integration Tests (30%)<br/>Database operations"]
+    C["API Tests (20%)<br/>HTTP endpoint testing"]
+    D["Smoke Tests (10%)<br/>Critical user journeys"]
+    
+    A --> B
+    B --> C
+    C --> D
+    
+    style A fill:#90EE90
+    style B fill:#FFD700
+    style C fill:#FFA500
+    style D fill:#FF6347
 ```
 
----
+**Test Distribution:**
 
-## Test Categories
+| Test Type | Percentage | Speed | Purpose |
+|-----------|------------|-------|---------|
+| Unit | 40% | Very Fast (< 0.01s) | Test individual functions/classes in isolation |
+| Integration | 30% | Fast (< 0.1s) | Test database operations and relationships |
+| API | 20% | Medium (< 0.2s) | Test HTTP endpoints end-to-end |
+| Smoke | 10% | Medium (< 5s) | Test complete user workflows |
 
-### Unit Tests (`tests/unit/`)
+### Testing Principles
 
-- **Purpose:** Test business logic in isolation
-- **Dependencies:** None (or mocked)
-- **Speed:** Very fast (< 0.01s per test)
-- **Database:** No database access
+- **Synchronous Over Async**: Use `def test_*()` not `async def` for better debugging and tooling support
+- **Real Database for Integration**: Use PostgreSQL test database with automatic cleanup, not mocks
+- **TestClient for APIs**: FastAPI TestClient handles app lifecycle without async complexity
+- **AAA Pattern**: Arrange-Act-Assert structure for clear, maintainable tests
+- **Test Isolation**: Each test is independent with automatic fixture cleanup
 
-**Example:**
+## Prerequisites
 
-```python
+Before starting, ensure you have:
+
+- [x] Docker Desktop installed and running
+- [x] Test environment configured in `env/.env.test`
+- [x] PostgreSQL test database available via Docker Compose
+- [x] Redis test instance available via Docker Compose
+
+### Required Tools
+
+- **Docker Desktop** - Version 4.0+ or higher
+- **Make** - For running test commands
+- **Git** - For version control
+- **Text Editor/IDE** - VS Code, PyCharm, or similar
+
+### Test Environment Setup
+
+```bash
+# Start test environment (PostgreSQL + Redis)
+make test-up
+
+# Verify services are healthy
+make test-status
+
+# View test service logs
+docker compose -f compose/docker-compose.test.yml logs -f
+```
+
+**Expected Output:**
+
+```text
+✅ dashtam-test-postgres is healthy
+✅ dashtam-test-redis is healthy
+✅ dashtam-test-app is healthy
+```
+
+### Test Data
+
+**Automatic Fixtures:** Test data is created automatically via pytest fixtures defined in `tests/conftest.py`:
+
+- `db_session` - Function-scoped database session with automatic cleanup
+- `test_user` - Pre-created user (email: test@example.com)
+- `test_user_2` - Second test user for multi-user scenarios
+- `test_provider` - Pre-created provider for test_user
+- `test_provider_with_connection` - Provider with active connection
+
+**Manual Test Data:** For specific scenarios, create test data in test setup (Arrange phase):
+
+```python path=null start=null
+def test_with_custom_data(db_session: Session, test_user: User):
+    """Test with custom test data."""
+    # Create specific test data
+    provider = Provider(
+        user_id=test_user.id,
+        provider_key="custom_provider",
+        alias="Custom Test Provider"
+    )
+    db_session.add(provider)
+    db_session.commit()
+    # ... test logic ...
+```
+
+## Step-by-Step Instructions
+
+### Step 1: Understanding Test Types
+
+**Unit Tests** (`tests/unit/`) - Test individual functions/classes in isolation:
+
+```python path=null start=null
 def test_encrypt_decrypt_string():
-    """Test basic encryption/decryption."""
+    """Test basic encryption functionality."""
     service = EncryptionService()
     plaintext = "my_secret_token"
     
@@ -51,18 +209,11 @@ def test_encrypt_decrypt_string():
     assert decrypted == plaintext
 ```
 
-### Integration Tests (`tests/integration/`)
+**Integration Tests** (`tests/integration/`) - Test database operations:
 
-- **Purpose:** Test database operations and relationships
-- **Dependencies:** Real PostgreSQL database
-- **Speed:** Fast (< 0.1s per test)
-- **Database:** Uses test database with cleanup
-
-**Example:**
-
-```python
+```python path=null start=null
 def test_create_provider(db_session: Session, test_user: User):
-    """Test creating a provider instance."""
+    """Test creating provider in database."""
     provider = Provider(
         user_id=test_user.id,
         provider_key="schwab",
@@ -73,47 +224,324 @@ def test_create_provider(db_session: Session, test_user: User):
     db_session.refresh(provider)
     
     assert provider.id is not None
-    assert provider.user_id == test_user.id
 ```
 
-### API Tests (`tests/api/`)
+**API Tests** (`tests/api/`) - Test HTTP endpoints:
 
-- **Purpose:** Test HTTP endpoints end-to-end
-- **Dependencies:** Full application stack
-- **Speed:** Medium (< 0.2s per test)
-- **Database:** Uses test database via TestClient
-
-**Example:**
-
-```python
-def test_create_provider_instance(client: TestClient, test_user: User):
-    """Test POST /api/v1/providers/create endpoint."""
-    payload = {
-        "provider_key": "schwab",
-        "alias": "My Schwab Account"
-    }
+```python path=null start=null
+def test_create_provider_endpoint(client: TestClient, test_user: User):
+    """Test POST /api/v1/providers endpoint."""
+    payload = {"provider_key": "schwab", "alias": "My Account"}
     
-    response = client.post("/api/v1/providers/create", json=payload)
+    response = client.post("/api/v1/providers", json=payload)
     
     assert response.status_code == 200
-    data = response.json()
-    assert data["provider_key"] == "schwab"
-    assert data["alias"] == "My Schwab Account"
 ```
 
-### Smoke Tests (`tests/smoke/`)
+**Smoke Tests** (`tests/smoke/`) - Test critical user journeys:
 
-- **Purpose:** Validate critical user journeys are operational
-- **Dependencies:** Full application stack
-- **Speed:** Medium (complete auth flow < 5s)
-- **Database:** Uses test database via TestClient
-- **When to run:** Before deployment, after major changes
+```python path=null start=null
+def test_registration_flow(client: TestClient, caplog):
+    """Test complete registration flow."""
+    # Register → Verify Email → Login
+    # See tests/smoke/README.md for details
+```
 
-**Example:**
+### Step 2: Writing Your First Test
 
-```python
+Follow the **AAA Pattern** (Arrange-Act-Assert):
+
+```python path=null start=null
+def test_example(db_session: Session, test_user: User):
+    """Test description following Google style docstrings.
+    
+    This test verifies [specific behavior being tested].
+    """
+    # Arrange - Set up test data and preconditions
+    provider = Provider(user_id=test_user.id, provider_key="schwab")
+    db_session.add(provider)
+    db_session.commit()
+    
+    # Act - Execute the code under test
+    result = some_function(provider)
+    
+    # Assert - Verify the results
+    assert result is not None
+    assert result.status == "expected_value"
+```
+
+**Test Naming Conventions:**
+
+- **Files**: `test_<module>.py`
+- **Functions**: `test_<feature>_<scenario>()`
+- **Classes**: `Test<Component>` (optional)
+
+**Examples:**
+
+- ✅ `test_user_registration_with_valid_email()`
+- ✅ `test_token_refresh_when_expired()`
+- ❌ `test1()`, `test_user()`
+
+### Step 3: Using Fixtures
+
+**Available Fixtures:**
+
+```python path=null start=null
+# Database fixtures
+db_session: Session  # Function-scoped, auto cleanup
+test_user: User  # Pre-created user
+test_user_2: User  # Second user
+test_provider: Provider  # Pre-created provider
+test_provider_with_connection: Provider  # Provider with connection
+
+# API fixtures
+client: TestClient  # FastAPI TestClient
+superuser_token_headers: dict[str, str]  # Mock superuser auth
+normal_user_token_headers: dict[str, str]  # Mock user auth
+```
+
+**Using Fixtures in Tests:**
+
+```python path=null start=null
+def test_with_fixtures(db_session: Session, test_user: User, client: TestClient):
+    """Test using multiple fixtures."""
+    # db_session provides database access
+    # test_user provides pre-created user
+    # client provides HTTP test client
+    
+    response = client.get(f"/api/v1/users/{test_user.id}")
+    assert response.status_code == 200
+```
+
+### Step 4: Running Tests
+
+**Quick Start Commands:**
+
+```bash
+# Run all tests
+make test
+
+# Run specific test category
+make test-unit          # Unit tests only
+make test-integration   # Integration tests only
+make test-smoke         # Smoke tests
+```
+
+**Run Specific Tests:**
+
+```bash
+# Single test file
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/unit/services/test_encryption_service.py -v
+
+# Single test function
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/unit/services/test_encryption_service.py::test_encrypt_decrypt_string -v
+
+# Tests matching pattern
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/ -k "encryption" -v
+```
+
+**Debug with Print Statements:**
+
+```bash
+# Show print output
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/unit/services/test_encryption_service.py -v -s
+```
+
+**Debug with Breakpoint:**
+
+```python path=null start=null
+def test_example():
+    """Test with debugger."""
+    import pdb; pdb.set_trace()  # Breakpoint
+    result = some_function()
+    assert result == expected
+```
+
+### Step 5: Checking Coverage
+
+```bash
+# Terminal report with missing lines
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/ --cov=src --cov-report=term-missing
+
+# HTML coverage report
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/ --cov=src --cov-report=html
+
+# Open HTML report
+open htmlcov/index.html
+```
+
+**Coverage Goals:**
+
+- **Overall**: 85%+
+- **Critical Components**: 95%+ (encryption, auth, tokens)
+- **API Endpoints**: 90%+
+- **New Code**: 100%
+
+## Examples
+
+### Example 1: Unit Test
+
+```python path=/Users/faiyazhaider/Dashtam/tests/unit/services/test_encryption_service.py start=null
+"""Unit tests for EncryptionService.
+
+Tests encryption/decryption functionality in isolation.
+"""
+
+import pytest
+
+from src.services.encryption_service import EncryptionService
+
+
+class TestEncryptionService:
+    """Test suite for EncryptionService."""
+
+    def test_encrypt_decrypt_string(self):
+        """Test basic encryption and decryption.
+        
+        Verifies that encrypted data can be decrypted back to plaintext.
+        """
+        # Arrange
+        service = EncryptionService()
+        plaintext = "my_secret_token"
+        
+        # Act
+        encrypted = service.encrypt(plaintext)
+        decrypted = service.decrypt(encrypted)
+        
+        # Assert
+        assert encrypted != plaintext
+        assert decrypted == plaintext
+
+    def test_encrypt_handles_unicode(self):
+        """Test encryption with Unicode characters.
+        
+        Verifies proper handling of special characters.
+        """
+        service = EncryptionService()
+        plaintext = "Hello 世界 🌍"
+        
+        encrypted = service.encrypt(plaintext)
+        decrypted = service.decrypt(encrypted)
+        
+        assert decrypted == plaintext
+```
+
+### Example 2: Integration Test
+
+```python path=/Users/faiyazhaider/Dashtam/tests/integration/test_provider_operations.py start=null
+"""Integration tests for provider database operations.
+
+Tests provider CRUD operations and relationships.
+"""
+
+import pytest
+from sqlmodel import Session, select
+
+from src.models.provider import Provider
+from src.models.user import User
+
+
+class TestProviderOperations:
+    """Test suite for provider database operations."""
+
+    def test_create_and_read_provider(self, db_session: Session, test_user: User):
+        """Test creating and reading a provider.
+        
+        Verifies database CRUD operations work correctly.
+        """
+        # Create
+        provider = Provider(
+            user_id=test_user.id,
+            provider_key="schwab",
+            alias="My Schwab Account"
+        )
+        db_session.add(provider)
+        db_session.commit()
+        db_session.refresh(provider)
+        
+        # Read
+        result = db_session.execute(
+            select(Provider).where(Provider.id == provider.id)
+        )
+        fetched = result.scalar_one()
+        
+        # Assert
+        assert fetched.id == provider.id
+        assert fetched.provider_key == "schwab"
+        assert fetched.alias == "My Schwab Account"
+```
+
+### Example 3: API Test
+
+```python path=/Users/faiyazhaider/Dashtam/tests/api/test_provider_endpoints.py start=null
+"""API tests for provider endpoints.
+
+Tests HTTP endpoints using FastAPI TestClient.
+"""
+
+import pytest
+from fastapi import status
+from fastapi.testclient import TestClient
+
+from src.models.user import User
+
+
+class TestProviderEndpoints:
+    """Test suite for provider API endpoints."""
+
+    def test_create_provider(self, client: TestClient, test_user: User):
+        """Test POST /api/v1/providers endpoint.
+        
+        Verifies provider creation via API with valid payload.
+        """
+        payload = {
+            "provider_key": "schwab",
+            "alias": "My Schwab Account"
+        }
+        
+        response = client.post("/api/v1/providers", json=payload)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["provider_key"] == "schwab"
+        assert data["alias"] == "My Schwab Account"
+
+    def test_create_provider_validation_error(self, client: TestClient):
+        """Test validation error handling.
+        
+        Verifies 422 response for invalid payload.
+        """
+        payload = {"provider_key": "invalid"}  # Missing required field
+        
+        response = client.post("/api/v1/providers", json=payload)
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+```
+
+### Example 4: Smoke Test
+
+```python path=/Users/faiyazhaider/Dashtam/tests/smoke/test_auth_flows.py start=null
+"""Smoke tests for authentication flows.
+
+Tests critical user journeys end-to-end.
+"""
+
+import logging
+
+from fastapi.testclient import TestClient
+
+
 def test_complete_registration_flow(client: TestClient, caplog):
-    """Smoke: User can register, verify email, and login."""
+    """Smoke test: Complete user registration flow.
+    
+    Tests registration → email verification → login workflow.
+    """
     # Register
     with caplog.at_level(logging.INFO):
         response = client.post("/api/v1/auth/register", json={
@@ -139,307 +567,264 @@ def test_complete_registration_flow(client: TestClient, caplog):
     assert "access_token" in response.json()
 ```
 
-**Note:** See `tests/smoke/README.md` for complete documentation on smoke tests.
+## Verification
 
----
+### Verify Tests Pass
 
-## Available Fixtures
+```bash
+# Run all tests
+make test
 
-### Database Fixtures
-
-```python
-db_session: Session
-    # Function-scoped database session
-    # Automatically cleans up after each test
-    # Use for integration tests
-
-test_user: User
-    # Pre-created test user
-    # email: test@example.com
-    # Cleaned up automatically
-
-test_user_2: User
-    # Second test user for multi-user scenarios
-    # email: test2@example.com
-
-test_provider: Provider
-    # Pre-created provider for test_user
-    # provider_key: schwab
-    # alias: Test Schwab Account
-
-test_provider_with_connection: Provider
-    # Provider with active connection
-    # Includes ProviderConnection with ACTIVE status
+# Expected output
+# ============================= test session starts ==============================
+# collected 295 items
+# 
+# tests/unit/... PASSED
+# tests/integration/... PASSED
+# tests/api/... PASSED
+# 
+# ============================== 295 passed in 10.23s =============================
 ```
 
-### API Testing Fixtures
+### Verify Coverage
 
-```python
-client: TestClient
-    # FastAPI TestClient for making HTTP requests
-    # Module-scoped for efficiency
-    # Automatically handles app lifecycle
+```bash
+# Check coverage
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/ --cov=src --cov-report=term-missing
 
-superuser_token_headers: dict[str, str]
-    # Mock authentication headers for superuser
-    # Returns: {"Authorization": "Bearer mock_superuser_token"}
-
-normal_user_token_headers: dict[str, str]
-    # Mock authentication headers for normal user
-    # Returns: {"Authorization": "Bearer mock_user_token"}
+# Expected: 85%+ overall coverage
 ```
 
----
+### Verify Linting
 
-## Test Template: Unit Test
+```bash
+# Run linting
+make lint
 
-```python
-"""Unit tests for [module_name].
-
-Description of what is being tested.
-"""
-
-import pytest
-
-from src.[module_path] import [ClassOrFunction]
-
-
-class Test[ClassName]:
-    """Test suite for [ClassName]."""
-
-    def test_basic_functionality(self):
-        """Test basic functionality."""
-        # Arrange
-        instance = [ClassOrFunction]()
-        
-        # Act
-        result = instance.some_method()
-        
-        # Assert
-        assert result == expected_value
-
-    def test_edge_case(self):
-        """Test edge case handling."""
-        instance = [ClassOrFunction]()
-        
-        with pytest.raises(ValueError, match="error message"):
-            instance.some_method(invalid_input)
+# Expected: All checks passed
 ```
 
----
+## Troubleshooting
 
-## Test Template: Integration Test
+### Tests Failing Intermittently
 
-```python
-"""Integration tests for [feature_name].
+**Symptoms:**
 
-Tests database operations and relationships.
-"""
+- Tests pass sometimes, fail other times
+- Different results on different runs
+- Failures disappear when running tests individually
 
-import pytest
-from sqlmodel import Session, select
+**Cause:** Shared state, race conditions, or test dependencies
 
-from src.models.[model] import [Model]
-from src.models.user import User
+**Solution:**
 
-
-class Test[FeatureName]:
-    """Test suite for [feature_name] database operations."""
-
-    def test_create_and_read(self, db_session: Session, test_user: User):
-        """Test creating and reading a record."""
-        # Create
-        record = [Model](
-            user_id=test_user.id,
-            field1="value1",
-            field2="value2"
-        )
-        db_session.add(record)
-        db_session.commit()
-        db_session.refresh(record)
-        
-        # Read
-        result = db_session.execute(
-            select([Model]).where([Model].id == record.id)
-        )
-        fetched = result.scalar_one()
-        
-        # Assert
-        assert fetched.field1 == "value1"
-        assert fetched.field2 == "value2"
-
-    def test_relationship(self, db_session: Session, test_user: User):
-        """Test relationship loading."""
-        from sqlalchemy.orm import selectinload
-        
-        result = db_session.execute(
-            select([Model])
-            .options(selectinload([Model].related))
-            .where([Model].user_id == test_user.id)
-        )
-        record = result.scalar_one()
-        
-        assert record.related is not None
+```bash
+# Run tests in random order to detect dependencies
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/ --randomly-seed=auto
 ```
 
----
+**Fix:**
 
-## Test Template: API Test
+- Ensure test isolation with fresh fixtures
+- Avoid module-level or class-level mutable state
+- Check for test order dependencies
 
-```python
-"""API tests for [endpoint_group].
+### Slow Tests
 
-Tests HTTP endpoints using TestClient.
-"""
+**Symptoms:**
 
-import pytest
-from fastapi import status
-from fastapi.testclient import TestClient
+- Test suite takes too long to run
+- Individual tests taking > 1 second
 
-from src.models.user import User
+**Cause:** Too many integration tests, inefficient setup, missing optimization
 
+**Solution:**
 
-class Test[EndpointGroup]:
-    """Test suite for [endpoint_group] endpoints."""
+```bash
+# Profile slow tests
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/ --durations=10
 
-    def test_create_endpoint(self, client: TestClient, test_user: User):
-        """Test POST /api/v1/[resource] endpoint."""
-        payload = {
-            "field1": "value1",
-            "field2": "value2"
-        }
-        
-        response = client.post("/api/v1/[resource]", json=payload)
-        
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert "id" in data
-        assert data["field1"] == "value1"
-
-    def test_get_endpoint(self, client: TestClient, test_user: User, db_session):
-        """Test GET /api/v1/[resource]/{id} endpoint."""
-        # Setup: Create test data
-        from src.models.[model] import [Model]
-        record = [Model](user_id=test_user.id, field1="value1")
-        db_session.add(record)
-        db_session.commit()
-        db_session.refresh(record)
-        
-        # Test
-        response = client.get(f"/api/v1/[resource]/{record.id}")
-        
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["id"] == str(record.id)
-
-    def test_validation_error(self, client: TestClient):
-        """Test validation error handling."""
-        # Missing required field
-        payload = {"field1": "value1"}
-        
-        response = client.post("/api/v1/[resource]", json=payload)
-        
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    def test_not_found(self, client: TestClient):
-        """Test 404 error handling."""
-        fake_id = "00000000-0000-0000-0000-000000000000"
-        
-        response = client.get(f"/api/v1/[resource]/{fake_id}")
-        
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+# Run only fast unit tests during development
+make test-unit
 ```
 
----
+**Optimization Tips:**
+
+- Use module-scoped fixtures for expensive setup
+- Mock external dependencies in unit tests
+- Use database transactions for cleanup
+- Cache TestClient instance (already done)
+
+### Coverage Not Accurate
+
+**Symptoms:**
+
+- Coverage report shows 0% or incorrect percentages
+- Missing files in coverage report
+
+**Cause:** Missing source files, incorrect paths, coverage misconfiguration
+
+**Solution:**
+
+Check `pyproject.toml` coverage configuration:
+
+```toml
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*", "**/__pycache__/*"]
+```
+
+Regenerate with explicit source:
+
+```bash
+docker compose -f compose/docker-compose.test.yml exec app \
+  uv run pytest tests/ --cov=src --cov-report=term-missing
+```
+
+### Database Cleanup Not Working
+
+**Symptoms:**
+
+- Tests fail due to existing data
+- Unique constraint violations
+- Foreign key errors
+
+**Cause:** Transaction not rolled back, fixture scope mismatch
+
+**Solution:**
+
+Verify `db_session` fixture is function-scoped with rollback:
+
+```python path=null start=null
+@pytest.fixture(scope="function")
+def db_session():
+    """Function-scoped database session with automatic rollback."""
+    # ... setup ...
+    yield session
+    session.rollback()  # Ensure rollback
+    session.close()
+```
+
+### Test Hangs or Times Out
+
+**Symptoms:**
+
+- Test runs indefinitely
+- No output or progress
+- Must kill process manually
+
+**Cause:** Async/await mismatch, infinite loop, deadlock
+
+**Solution:**
+
+- Verify no async functions in synchronous tests
+- Check for infinite loops in test logic
+- Add timeout marker:
+
+```python path=null start=null
+@pytest.mark.timeout(30)
+def test_potentially_slow_operation():
+    """Test with 30-second timeout."""
+    pass
+```
 
 ## Best Practices
 
-### 1. Test Naming
+### General Principles
 
-```python
+- ✅ **Write tests first (TDD)**: When possible, write tests before implementation
+- ✅ **One assertion per test**: Keep tests focused on single behavior
+- ✅ **Independent tests**: Tests should not depend on each other
+- ✅ **Clear test names**: Name describes what is tested, not how
+- ✅ **Fast tests**: Optimize for speed, especially unit tests
+
+### Test Naming
+
+```python path=null start=null
 # ✅ Good - Descriptive, action-oriented
 def test_create_provider_with_valid_data():
+    """Test provider creation with valid data."""
+    pass
+
 def test_encryption_handles_unicode_characters():
-def test_api_returns_404_for_missing_resource():
+    """Test encryption properly handles Unicode."""
+    pass
 
 # ❌ Bad - Vague, unclear purpose
 def test_provider():
+    """Test provider."""
+    pass
+
 def test_encryption():
-def test_api():
+    """Test encryption."""
+    pass
 ```
 
-### 2. Test Structure (AAA Pattern)
+### Test Isolation
 
-```python
-def test_example():
-    # Arrange - Set up test data
-    user = User(email="test@example.com")
-    
-    # Act - Execute the code being tested
-    result = user.get_display_name()
-    
-    # Assert - Verify the results
-    assert result == "test@example.com"
-```
-
-### 3. Test Isolation
-
-```python
+```python path=null start=null
 # ✅ Good - Each test is independent
 def test_create_provider(db_session, test_user):
-    provider = Provider(user_id=test_user.id, ...)
+    """Test provider creation (isolated)."""
+    provider = Provider(user_id=test_user.id, provider_key="schwab")
     db_session.add(provider)
     db_session.commit()
-    # Test uses only its own data
+    assert provider.id is not None
 
-# ❌ Bad - Test depends on previous test
-providers = []  # Module-level shared state
+# ❌ Bad - Shared state
+providers = []  # Module-level state
+
 def test_create_provider():
-    provider = Provider(...)
+    """Test provider creation (BAD)."""
+    provider = Provider(provider_key="schwab")
     providers.append(provider)  # Don't do this!
 ```
 
-### 4. Assertions
+### Assertions
 
-```python
+```python path=null start=null
 # ✅ Good - Clear, specific assertions
 assert provider.id is not None
 assert provider.user_id == test_user.id
 assert provider.status == ProviderStatus.ACTIVE
 
-# ❌ Bad - Vague or missing assertions
+# ❌ Bad - Vague assertions
 assert provider  # What are we checking?
-# No assertions at all
 ```
 
-### 5. Error Testing
+### Error Testing
 
-```python
+```python path=null start=null
 # ✅ Good - Test specific error conditions
 def test_invalid_provider_key_raises_error():
+    """Test error for invalid provider key."""
     with pytest.raises(ValueError, match="Invalid provider key"):
-        provider = Provider(provider_key="invalid", ...)
+        provider = Provider(provider_key="invalid")
 
 # ✅ Good - Test API error responses
 def test_create_provider_with_invalid_key(client):
-    response = client.post("/api/v1/providers/create", 
-                          json={"provider_key": "invalid"})
+    """Test 400 error for invalid key."""
+    response = client.post(
+        "/api/v1/providers",
+        json={"provider_key": "invalid"}
+    )
     assert response.status_code == 400
-    assert "error" in response.json()
 ```
 
----
+### Common Patterns
 
-## Common Patterns
+**Testing Database Relationships:**
 
-### Testing with Database Relationships
-
-```python
+```python path=null start=null
 def test_provider_with_connection(db_session, test_user):
+    """Test provider-connection relationship."""
     # Create parent
-    provider = Provider(user_id=test_user.id, ...)
+    provider = Provider(user_id=test_user.id, provider_key="schwab")
     db_session.add(provider)
-    db_session.flush()  # Get provider.id without committing
+    db_session.flush()  # Get ID without commit
     
     # Create child
     connection = ProviderConnection(provider_id=provider.id)
@@ -449,13 +834,13 @@ def test_provider_with_connection(db_session, test_user):
     
     # Test relationship
     assert provider.connection is not None
-    assert provider.connection.provider_id == provider.id
 ```
 
-### Testing API with Authentication
+**Testing with Authentication:**
 
-```python
+```python path=null start=null
 def test_protected_endpoint(client, normal_user_token_headers):
+    """Test protected endpoint access."""
     headers = normal_user_token_headers
     
     response = client.get("/api/v1/protected", headers=headers)
@@ -463,13 +848,18 @@ def test_protected_endpoint(client, normal_user_token_headers):
     assert response.status_code == 200
 ```
 
-### Testing Pagination
+**Testing Pagination:**
 
-```python
+```python path=null start=null
 def test_list_with_pagination(client, db_session, test_user):
-    # Create test data
+    """Test pagination."""
+    # Create 25 test records
     for i in range(25):
-        provider = Provider(user_id=test_user.id, alias=f"Provider {i}")
+        provider = Provider(
+            user_id=test_user.id,
+            provider_key="schwab",
+            alias=f"Provider {i}"
+        )
         db_session.add(provider)
     db_session.commit()
     
@@ -482,77 +872,35 @@ def test_list_with_pagination(client, db_session, test_user):
     assert data["total"] == 25
 ```
 
-### Testing Error Scenarios
+## Next Steps
 
-```python
-def test_concurrent_updates_handled_correctly(db_session, test_user):
-    # Create initial record
-    provider = Provider(user_id=test_user.id, alias="Original")
-    db_session.add(provider)
-    db_session.commit()
-    
-    # Simulate concurrent update
-    # Session 1 gets the record
-    provider1 = db_session.get(Provider, provider.id)
-    
-    # Session 2 updates it (in real world, different session)
-    provider.alias = "Updated by Session 2"
-    db_session.commit()
-    
-    # Session 1 tries to update
-    provider1.alias = "Updated by Session 1"
-    db_session.commit()
-    
-    # Verify final state
-    db_session.refresh(provider)
-    assert provider.alias == "Updated by Session 1"
-```
+After completing this guide, consider:
 
----
+- [ ] Read [Testing Strategy](strategy.md) for overall testing approach
+- [ ] Review [Testing Best Practices](../guides/testing-best-practices.md) for advanced patterns
+- [ ] Check [Test Docstring Standards](../guides/test-docstring-standards.md) for documentation conventions
+- [ ] Explore [Smoke Test Documentation](../../../tests/smoke/README.md) for end-to-end testing
 
-## Debugging Tests
+## References
 
-### Run Single Test
+### Project Documentation
 
-```bash
-pytest tests/unit/services/test_encryption_service.py::TestEncryptionService::test_encrypt_decrypt_string -v
-```
+- [Testing Strategy](strategy.md) - Overall testing approach and philosophy
+- [Testing Best Practices](../guides/testing-best-practices.md) - Comprehensive best practices guide
+- [Test Docstring Standards](../guides/test-docstring-standards.md) - Docstring conventions for tests
+- [Smoke Test Documentation](../../../tests/smoke/README.md) - Smoke test patterns and utilities
 
-### Run with Print Statements
+### External Resources
 
-```bash
-pytest tests/unit/services/test_encryption_service.py -v -s
-```
+- [pytest Documentation](https://docs.pytest.org/) - Official pytest documentation
+- [FastAPI Testing](https://fastapi.tiangolo.com/tutorial/testing/) - FastAPI testing guide
+- [SQLModel Documentation](https://sqlmodel.tiangolo.com/) - SQLModel ORM documentation
 
-### Run with Debugger
+### Test Utilities
 
-```python
-def test_example():
-    import pdb; pdb.set_trace()  # Breakpoint
-    result = some_function()
-    assert result == expected
-```
+Available in `tests/utils/utils.py`:
 
-### View Full Traceback
-
-```bash
-pytest tests/unit/services/test_encryption_service.py -v --tb=long
-```
-
-### Run Failed Tests Only
-
-```bash
-pytest --lf  # Last failed
-pytest --ff  # Failed first
-```
-
----
-
-## Useful Test Utilities
-
-### Available in `tests/utils/utils.py`
-
-```python
+```python path=null start=null
 from tests.utils.utils import (
     random_lower_string,
     random_email,
@@ -572,105 +920,10 @@ headers = get_superuser_token_headers(client)
 
 ---
 
-## Test Markers
+## Document Information
 
-Mark tests for selective execution:
-
-```python
-@pytest.mark.unit
-def test_business_logic():
-    """Unit test - fast, no dependencies."""
-    pass
-
-@pytest.mark.integration  
-def test_database_operation():
-    """Integration test - uses database."""
-    pass
-
-@pytest.mark.api
-def test_endpoint():
-    """API test - full HTTP cycle."""
-    pass
-
-@pytest.mark.slow
-def test_performance():
-    """Slow test - only run when needed."""
-    pass
-```
-
-Run by marker:
-
-```bash
-pytest -m unit           # Unit tests only
-pytest -m integration    # Integration tests only
-pytest -m "not slow"     # Skip slow tests
-```
-
----
-
-## Coverage
-
-### Generate Coverage Report
-
-```bash
-# Terminal report
-pytest tests/ --cov=src --cov-report=term-missing
-
-# HTML report
-pytest tests/ --cov=src --cov-report=html
-# Open htmlcov/index.html in browser
-```
-
-### Target Coverage
-
-- **Overall:** 85%+
-- **Critical modules** (encryption, auth): 95%+
-- **API endpoints:** 90%+
-- **Models:** 80%+
-
----
-
-## CI/CD Integration
-
-Tests run automatically in CI/CD:
-
-```yaml
-# .github/workflows/test.yml
-- name: Run tests
-  run: |
-    make test-up
-    make test
-    
-- name: Upload coverage
-  uses: codecov/codecov-action@v3
-  with:
-    files: ./coverage.xml
-```
-
----
-
-## Getting Help
-
-1. **Check existing tests:** Look at `tests/unit/services/test_encryption_service.py`, `tests/integration/test_provider_operations.py`, or `tests/api/test_provider_endpoints.py` for examples
-
-2. **Read documentation:**
-   - `TESTING_STRATEGY.md` - Testing approach
-   - `TESTING_MIGRATION_SUMMARY.md` - Migration details
-
-3. **FastAPI testing docs:** https://fastapi.tiangolo.com/tutorial/testing/
-
-4. **pytest docs:** https://docs.pytest.org/
-
----
-
-## Summary
-
-✅ **Write synchronous tests** using `def test_*()` (not `async def`)  
-✅ **Use appropriate fixtures** (`db_session`, `client`, `test_user`)  
-✅ **Follow AAA pattern** (Arrange, Act, Assert)  
-✅ **Test one thing** per test function  
-✅ **Use descriptive names** that explain what is being tested  
-✅ **Clean up automatically** via fixtures (no manual cleanup needed)  
-✅ **Run tests often** during development
-
-Happy testing! 🧪
+**Category:** Guide  
+**Created:** 2025-10-13  
+**Last Updated:** 2025-10-18  
+**Difficulty Level:** Beginner to Intermediate  
+**Estimated Time:** 30-45 minutes to read, ongoing for practice

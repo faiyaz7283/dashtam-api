@@ -48,14 +48,27 @@
 
 ### Test Pyramid
 
-```text
-         /\
-        /  \    E2E Tests (10%)
-       /    \
-      /------\   Integration Tests (30%)
-     /        \
-    /----------\  Unit Tests (60%)
+```mermaid
+graph TD
+    A["Unit Tests (60%)<br/>Fast, isolated, comprehensive"]
+    B["Integration Tests (30%)<br/>Component interactions"]
+    C["E2E Tests (10%)<br/>Full user flows"]
+    
+    A --> B
+    B --> C
+    
+    style A fill:#90EE90
+    style B fill:#FFD700
+    style C fill:#FF6347
 ```
+
+**Distribution:**
+
+| Test Type | Percentage | Speed | Purpose |
+|-----------|------------|-------|----------|
+| Unit | 60% | Very Fast | Test individual functions/classes |
+| Integration | 30% | Fast | Test component interactions |
+| E2E | 10% | Slower | Test complete user workflows |
 
 ### Testing Principles
 
@@ -338,5 +351,3 @@ Check `pytest.ini` or `.coveragerc` configuration
 **Last Updated:** YYYY-MM-DD
 **Test Framework:** pytest
 **Coverage Tool:** pytest-cov
-
-[Optional: **Maintainer:** Team or Individual]

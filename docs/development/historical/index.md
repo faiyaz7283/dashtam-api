@@ -35,6 +35,7 @@ historical/
 - [Infrastructure Migration](infrastructure-migration.md) - Docker infrastructure modernization
 - [Migration Research](migration.md) - General migration notes
 - [Test Coverage Plan](test-coverage-plan.md) - Testing strategy evolution
+- [Async to Sync Testing Migration](async-to-sync-testing-migration.md) - Historical migration from async to sync testing (✅ Completed)
 - [Makefile Improvements](MAKEFILE_IMPROVEMENTS.md) - Command workflow enhancements
 
 ### Project Progress (Historical)

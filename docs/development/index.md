@@ -6,11 +6,11 @@ Comprehensive developer documentation for the Dashtam financial data aggregation
 
 ## 📚 Contents
 
-This directory contains **50 documents** across **8 categories**, organized to support developers at all stages of contribution: from initial setup to advanced architecture decisions.
+This directory contains **51 documents** across **8 categories**, organized to support developers at all stages of contribution: from initial setup to advanced architecture decisions.
 
 **Quick Navigation:**
 
-- [Architecture](#architecture) - System design and technical decisions (5 docs)
+- [Architecture](#architecture) - System design and technical decisions (6 docs)
 - [Guides](#guides) - Step-by-step how-to documentation (12 docs)
 - [Infrastructure](#infrastructure) - Docker, CI/CD, and deployment (4 docs)
 - [Testing](#testing) - Test strategy and best practices (8 docs)
@@ -25,7 +25,8 @@ This directory contains **50 documents** across **8 categories**, organized to s
 
 ```bash
 docs/development/
-├── architecture/           # 5 docs - System design and architecture
+├── architecture/           # 6 docs - System design and architecture
+│   ├── async-testing-decision.md
 │   ├── async-vs-sync-patterns.md
 │   ├── jwt-authentication.md
 │   ├── overview.md
@@ -88,6 +89,7 @@ System design, patterns, and technical decisions:
 - [JWT Authentication](architecture/jwt-authentication.md) - Authentication system architecture and security model
 - [Schemas Design](architecture/schemas-design.md) - Pydantic schema organization and patterns
 - [Async vs Sync Patterns](architecture/async-vs-sync-patterns.md) - Database access patterns and testing strategies
+- [Async Testing Decision](architecture/async-testing-decision.md) - ADR for synchronous testing approach
 
 ### Guides
 
@@ -132,7 +134,7 @@ Testing strategy, guides, and best practices:
 
 **Core Testing Documentation:**
 
-- [Testing Strategy](testing/strategy.md) - Overall testing philosophy and approach
+- [Testing Strategy](testing/strategy.md) - Comprehensive testing strategy (unit, integration, E2E)
 - [Testing Guide](testing/guide.md) - Comprehensive guide for writing tests
 - [Best Practices](testing/best-practices.md) - Testing patterns and conventions
 - [Test Docstring Standards](testing/test-docstring-standards.md) - Documenting tests properly
@@ -275,4 +277,4 @@ After creating a new document:
 **Created:** 2025-10-17  
 **Last Updated:** 2025-10-17  
 **Maintainer:** Development Team  
-**Scope:** Development documentation for Dashtam project (50 documents across 8 categories)
+**Scope:** Development documentation for Dashtam project (51 documents across 8 categories)

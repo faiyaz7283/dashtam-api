@@ -81,7 +81,7 @@ This audit reviews all documentation in the Dashtam project to ensure accuracy, 
 |------|-------|------|----------|--------|----------------|
 | `testing/guide.md` | 612 | 15K | 2025-10-03 | ✅ Current | **KEEP** - Testing guide |
 | `testing/strategy.md` | 590 | 17K | 2025-10-03 | ✅ Current | **KEEP** - Testing strategy |
-| `testing/best-practices.md` | 468 | 12K | 2025-10-03 | ✅ Current | **KEEP** - Best practices |
+| `guides/testing-best-practices.md` | 657 | 24K | 2025-10-18 | ✅ Current | **KEEP** - Testing patterns (moved) |
 | `testing/migration.md` | 408 | 14K | 2025-10-03 | ⚠️ Historical | **ARCHIVE** - Migration complete |
 
 **Analysis**: Testing docs are solid. Migration doc is historical and can be archived.

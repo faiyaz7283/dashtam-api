@@ -315,7 +315,7 @@ N/A - Issue resolved by architectural decision to use synchronous testing
 
 - [Testing Strategy](../testing/strategy.md) - Complete testing approach
 - [Testing Guide](../testing/guide.md) - Practical testing patterns
-- [Testing Best Practices](../testing/best-practices.md) - Standards and patterns
+- [Testing Best Practices](../guides/testing-best-practices.md) - Testing patterns and conventions
 
 **External Resources:**
 

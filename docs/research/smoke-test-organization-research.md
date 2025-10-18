@@ -613,7 +613,7 @@ tests/
 - **Modified**: `compose/docker-compose.test.yml` (SSL/TLS)
 - **Modified**: `compose/docker-compose.ci.yml` (SSL/TLS)
 - **Modified**: `docs/development/testing/guide.md` (smoke test section)
-- **Modified**: `docs/development/testing/best-practices.md` (test pyramid)
+- **Modified**: `docs/development/guides/testing-best-practices.md` (test pyramid)
 
 ## Follow-Up
 
@@ -656,7 +656,7 @@ tests/
 - [Smoke Test README](../../../tests/smoke/README.md)
 - [Smoke Test Implementation Guide](testing/smoke-test-caplog-solution.md)
 - [Testing Guide](testing/guide.md)
-- [Testing Best Practices](testing/best-practices.md)
+- [Testing Best Practices](../development/guides/testing-best-practices.md)
 
 **Industry Research Sources:**
 

@@ -6,7 +6,7 @@ Comprehensive developer documentation for the Dashtam financial data aggregation
 
 ## 📚 Contents
 
-This directory contains **51 documents** across **9 categories**, organized to support developers at all stages of contribution: from initial setup to advanced architecture decisions.
+This directory contains **50 documents** across **8 categories**, organized to support developers at all stages of contribution: from initial setup to advanced architecture decisions.
 
 **Quick Navigation:**
 
@@ -16,7 +16,6 @@ This directory contains **51 documents** across **9 categories**, organized to s
 - [Testing](#testing) - Test strategy and best practices (8 docs)
 - [Troubleshooting](#troubleshooting) - Problem diagnosis and solutions (5 docs)
 - [Reviews](#reviews) - Code quality audits and compliance (2 docs)
-- [Research](#research) - Technical research and ADRs (1 doc)
 - [Implementation](#implementation) - Implementation plans (2 docs)
 - [Historical](#historical) - Archived documents and history (12 docs)
 
@@ -68,8 +67,6 @@ docs/development/
 ├── reviews/                # 2 docs - Code quality and audits
 │   ├── DOCUMENTATION_AUDIT_2025-10-05.md
 │   └── REST_API_AUDIT_REPORT_2025-10-05.md
-├── research/               # 1 doc - Technical research
-│   └── smoke-test-organization-research.md
 ├── implementation/         # 2 docs - Implementation plans
 │   ├── ssl-tls-test-ci-implementation.md
 │   └── technical-debt-roadmap.md
@@ -166,12 +163,6 @@ Code quality audits and compliance assessments:
 
 - [REST API Audit Report](reviews/REST_API_AUDIT_REPORT_2025-10-05.md) - Comprehensive REST API compliance audit
 - [Documentation Audit](reviews/DOCUMENTATION_AUDIT_2025-10-05.md) - Documentation quality assessment
-
-### Research
-
-Technical research and architectural decision records:
-
-- [Smoke Test Organization Research](research/smoke-test-organization-research.md) - Test organization patterns research
 
 ### Implementation
 
@@ -284,4 +275,4 @@ After creating a new document:
 **Created:** 2025-10-17  
 **Last Updated:** 2025-10-17  
 **Maintainer:** Development Team  
-**Scope:** Development documentation for Dashtam project (51 documents across 9 categories)
+**Scope:** Development documentation for Dashtam project (50 documents across 8 categories)

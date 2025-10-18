@@ -13,6 +13,14 @@ This directory contains technical research, architectural decision records (ADRs
   - Industry analysis, user preferences, compliance requirements
   - ✅ Decision: JWT + Refresh Tokens (implemented)
 
+### Testing & CI/CD Research
+
+- **[Smoke Test Organization & SSL/TLS Research](smoke-test-organization-research.md)** - Test organization patterns and SSL/TLS in testing
+  - Smoke test location best practices (85% projects use `tests/` directory)
+  - SSL/TLS production parity (pytest + HTTPS everywhere)
+  - CI/CD integration patterns
+  - ✅ Decision: pytest-based smoke tests with SSL/TLS everywhere (implemented)
+
 ---
 
 ## 📦 Archived Documents

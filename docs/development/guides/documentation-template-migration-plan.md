@@ -330,7 +330,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 
 - docs/development/index.md ✅ (commit ea3f7b5) - 51 documents catalogued, comprehensive navigation
 
-**✅ PHASE 2 COMPLETE (10/10 documents, 100%)**
+#### Phase 2 Summary: COMPLETE (10/10 documents, 100%)
 
 - **Architecture:** 5/5 ✅ COMPLETE
 - **Infrastructure:** 4/4 ✅ COMPLETE
@@ -368,7 +368,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 | `research/authentication-approaches-research.md` | Well-structured | research-template | A - Metadata | Low |
 | `research/documentation_guide_research.md` | Well-structured | research-template | A - Metadata | Low |
 | `research/index.md` | Basic structure | index-template | B - Structural | Low |
-| `development/research/smoke-test-organization-research.md` | Well-structured | research-template | A - Metadata | Low |
+| `research/smoke-test-organization-research.md` | Well-structured | research-template | A - Metadata | Low |
 
 **Phase 3 Totals:** 15 documents, Low-Medium complexity
 

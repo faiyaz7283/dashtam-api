@@ -16,6 +16,7 @@ This directory contains standardized templates for all Dashtam documentation. Us
 | [testing-template.md](testing-template.md) | Testing documentation | Test strategies, testing guides, QA documentation |
 | [troubleshooting-template.md](troubleshooting-template.md) | Debugging and issue resolution docs | Bug investigations, root cause analysis, solutions |
 | [research-template.md](research-template.md) | Research and ADR documents | Technical research, decision records, options analysis |
+| [audit-template.md](audit-template.md) | Audit reports and compliance reviews | REST API audits, documentation audits, security audits, code quality reviews |
 | [api-flow-template.md](api-flow-template.md) | API manual testing flows | User-centric API workflows for manual testing |
 | [index-template.md](index-template.md) | Directory navigation pages | Navigation/index pages (docs/index.md, docs/development/index.md) |
 | [readme-template.md](readme-template.md) | Feature/component READMEs | Feature documentation (env/README.md, tests/smoke/README.md) |
@@ -36,6 +37,7 @@ This directory contains standardized templates for all Dashtam documentation. Us
 - **Writing test documentation?** → Use `testing-template.md`
 - **Documenting a bug/issue resolution?** → Use `troubleshooting-template.md`
 - **Researching options/decisions?** → Use `research-template.md`
+- **Writing audit report/compliance review?** → Use `audit-template.md`
 - **Creating API flow?** → Use `api-flow-template.md`
 - **Creating directory index/navigation?** → Use `index-template.md`
 - **Documenting a feature/component?** → Use `readme-template.md`
@@ -264,6 +266,7 @@ See these examples of well-structured docs:
 - Infrastructure: `docs/development/infrastructure/docker-setup.md`
 - Testing: `docs/development/testing/strategy.md`
 - Research: `docs/research/authentication-approaches-research.md`
+- Audit Report: `docs/development/reviews/REST_API_AUDIT_REPORT_2025-10-05.md`
 
 ### Template Usage Example
 

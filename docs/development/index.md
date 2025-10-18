@@ -50,14 +50,14 @@ docs/development/
 │   ├── database-migrations.md
 │   ├── docker-setup.md
 │   └── environment-flows.md
-├── testing/                # 6 docs - Testing strategy and guides
+├── testing/                # 5 docs - Testing strategy and guides
 │   ├── DOCSTRING_AUDIT_CONTINUATION.md
 │   ├── guide.md
-│   ├── smoke-test-ci-debugging-journey.md
 │   ├── smoke-test-design-comparison.md
 │   └── strategy.md
-├── troubleshooting/        # 6 docs - Problem diagnosis and solutions
+├── troubleshooting/        # 7 docs - Problem diagnosis and solutions
 │   ├── smoke-test-caplog-solution.md
+│   ├── smoke-test-ci-debugging-journey.md
 │   ├── async-testing-greenlet-errors.md
 │   ├── ci-test-failures-trustedhost.md
 │   ├── env-directory-docker-mount-issue.md
@@ -140,7 +140,7 @@ Testing strategy, guides, and best practices:
 **Smoke Testing:**
 
 - [Smoke Test Caplog Solution](troubleshooting/smoke-test-caplog-solution.md) - Token extraction troubleshooting and solution
-- [Smoke Test CI Debugging Journey](testing/smoke-test-ci-debugging-journey.md) - Troubleshooting CI test failures
+- [Smoke Test CI Debugging Journey](troubleshooting/smoke-test-ci-debugging-journey.md) - CI environment debugging and session state fixes
 - [Smoke Test Design Comparison](testing/smoke-test-design-comparison.md) - Test implementation patterns
 
 **Audits:**

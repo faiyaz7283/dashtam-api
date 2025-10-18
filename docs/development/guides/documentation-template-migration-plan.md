@@ -185,38 +185,32 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 
 ### Migration Types
 
-**Type A: Metadata-Only Migration** (Low effort)
+> Policy Update (2025-10-18): Type A is DEPRECATED. All active documents must be fully template-compliant. The file TOC must match the template's top-level sections. All subsections must be nested under these top-level sections and included in the file's TOC. Do not introduce new top-level sections. The "Document Information" section must exactly match the template (no extra fields).
 
-- Well-structured documents
-- Add "Document Information" section
-- Verify/fix heading hierarchy
-- Add missing links
-- Run linting
+#### Type B: Structural Enhancement (Minimum Standard)
 
-**Type B: Structural Enhancement** (Medium effort)
+- Apply when document structure exists but is incomplete
+- Ensure full template compliance (top-level sections per template, comprehensive TOC)
+- Add missing template sections and reorganize content accordingly
+- Convert ASCII/text diagrams to Mermaid
+- Ensure Document Information section matches template exactly
+- Run linting (zero errors)
 
-- Moderately structured documents
-- Add missing template sections
-- Reorganize existing content
-- Add metadata
+#### Type C: Full Restructure (High effort)
+
+- Apply when structure is missing or incorrect
+- Complete reorganization following the correct template
+- May split into multiple documents if scope is mixed
+- Add all missing sections and comprehensive examples
 - Convert diagrams to Mermaid
-- Run linting
+- Add complete metadata (template-compliant)
+- Run linting (zero errors)
 
-**Type C: Full Restructure** (High effort)
+#### Type D: Skip/Archive (No effort)
 
-- Loosely structured documents
-- Complete reorganization following template
-- May split into multiple documents
-- Add all missing sections
-- Convert diagrams to Mermaid
-- Add comprehensive metadata
-- Run linting
-
-**Type D: Skip/Archive** (No effort)
-
-- Historical documents
-- Documents scheduled for deprecation
+- Historical or deprecated documents
 - Keep as-is, possibly move to `docs/development/historical/`
+- Add a short note indicating historical status if appropriate
 
 ---
 
@@ -344,7 +338,7 @@ Dashtam has developed 10 standardized documentation templates to improve consist
 
 | Document | Current State | Template | Migration Type | Complexity |
 |--------------|-------------------|--------------|--------------------|------------|
-| `testing/guide.md` | Moderately structured | testing-template | B - Structural | Medium |
+| `testing/guide.md` | ✅ COMPLETE | guide-template | B - Structural | Medium |
 | `testing/strategy.md` | Well-structured | testing-template | A - Metadata | Low |
 | `testing/best-practices.md` | Moderately structured | testing-template | B - Structural | Medium |
 | `testing/test-docstring-standards.md` | Well-structured | testing-template | A - Metadata | Low |

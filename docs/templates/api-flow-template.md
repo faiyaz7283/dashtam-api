@@ -4,6 +4,22 @@
 
 ---
 
+## Table of Contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [Steps](#steps)
+  - [1) Step title](#1-step-title)
+  - [2) Step title](#2-step-title)
+- [Next Step (optional)](#next-step)
+- [Cleanup (optional)](#cleanup-optional)
+- [Development: Token Extraction (if applicable)](#development-token-extraction)
+- [Troubleshooting](#troubleshooting)
+- [Related Flows](#related-flows)
+- [Document Information](#document-information)
+
+---
+
 ## Purpose
 
 - What is the user trying to accomplish?
@@ -57,6 +73,12 @@ Expected (snippet):
 ```bash
 # command here
 ```
+
+## Next Step
+
+✅ **Continue to:** [Next Flow Name](next-flow.md) - Brief description of what comes next.
+
+(Note: This section is optional - include only if there's a clear next step in a multi-flow sequence)
 
 ## Cleanup (optional)
 

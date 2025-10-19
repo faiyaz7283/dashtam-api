@@ -14,6 +14,7 @@ Disconnect an authorized provider and optionally delete its instance.
   - [3) (Optional) Delete provider instance](#3-optional-delete-provider-instance)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
+- [Document Information](#document-information)
 
 ## Purpose
 

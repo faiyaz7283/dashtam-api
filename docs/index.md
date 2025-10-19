@@ -156,7 +156,7 @@ make lint-md
 
 ## 📝 Naming Conventions
 
-For API flows, use kebab-case filenames and keep each flow focused on a single user journey (not a single HTTP verb). A reusable flow template is available at `docs/api-flows/flow-template.md`.
+For API flows, use kebab-case filenames and keep each flow focused on a single user journey (not a single HTTP verb). A reusable flow template is available at [docs/templates/api-flow-template.md](templates/api-flow-template.md).
 
 ### File Naming
 

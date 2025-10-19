@@ -62,7 +62,6 @@ TEST_PASSWORD='SecurePass123!'
 ```bash
 docs/api-flows/
 ├── README.md                     # Overview and conventions
-├── flow-template.md              # Reusable template for new flows
 ├── auth/
 │   ├── registration.md           # Register a new user (HTTPS)
 │   ├── email-verification.md     # Verify email address
@@ -151,9 +150,10 @@ Financial provider integration workflows:
 
 **Related Documentation:**
 
-- [API Flow Template](../templates/api-flow-template.md) - Template for creating new flows
+- [API Flow Template](../templates/api-flow-template.md) - Template for creating new API flows
+- [Template System Guide](../templates/README.md) - Complete template documentation
 - [Development Guide](../development/) - Developer documentation
-- [Testing Strategy](../development/testing/strategy.md) - Overall testing approach
+- [Testing Strategy](../testing/strategy.md) - Overall testing approach
 
 **External Resources:**
 

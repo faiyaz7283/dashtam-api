@@ -66,10 +66,14 @@ A secure, modern financial data aggregation platform that connects to multiple f
 
 ### Architecture & Documentation 📚
 
+- **Documentation Template System** (PR #33): Complete template migration (46 docs, 100% coverage)
+  - 8 reusable templates for all documentation types
+  - Mandatory Mermaid diagram standards (no image files)
+  - Markdown linting enforcement with markdownlint-cli2
+  - Comprehensive template usage guide
 - **Authentication Architecture**: Comprehensive JWT authentication design (828 lines)
 - **RESTful API Design**: Complete REST API architecture guide (981 lines)
 - **Schema Design**: Pydantic schema organization patterns (1,133 lines)
-- **Implementation Guides**: JWT auth, REST compliance implementation guides (archived after completion)
 - **Code Reviews**: REST API audit achieving 10/10 compliance score
 
 ## 🗺️ Roadmap
@@ -226,11 +230,20 @@ Dashtam/
 ├── tests/                                # Test suite (295 tests, 76% coverage)
 │   ├── unit/                             # Unit tests
 │   ├── integration/                      # Integration tests
-│   └── api/                              # API endpoint tests
+│   ├── api/                              # API endpoint tests
+│   └── smoke/                            # Smoke tests (end-to-end flows)
 ├── alembic/                              # Database migrations
-├── docs/                                 # Documentation
+├── docs/                                 # Documentation (46 docs, 100% template coverage)
+│   ├── templates/                        # Documentation templates (8 types)
 │   ├── development/                      # Development guides
-│   └── research/                         # Architecture research
+│   │   ├── architecture/                 # System architecture
+│   │   ├── guides/                       # How-to guides
+│   │   ├── implementation/               # Implementation plans
+│   │   ├── infrastructure/               # Docker, CI/CD
+│   │   └── troubleshooting/              # Bug investigations
+│   ├── research/                         # Research and ADRs
+│   ├── reviews/                          # Code reviews and audits
+│   └── testing/                          # Testing strategy
 ├── pyproject.toml                        # Project dependencies (UV)
 ├── uv.lock                               # Locked dependency versions
 ├── Makefile                              # Convenience commands

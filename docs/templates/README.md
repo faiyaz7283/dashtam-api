@@ -194,12 +194,11 @@ All templates now use simplified metadata **without the "Status" field**:
 
 **Why No Status Field?**
 
-- Document location indicates status (active vs historical)
+- Document location indicates status (active documentation only)
 - Reduces maintenance overhead
 - Simpler, cleaner metadata
-- Status is implied by directory structure:
-  - `docs/development/*` = Active
-  - `docs/development/historical/*` = Historical/Archived
+- Outdated documents are updated or deleted, not archived
+- Historical context belongs in architecture docs or git history
 
 ---
 
@@ -216,22 +215,19 @@ docs/
 ├── development/            # Developer documentation
 │   ├── architecture/       # System architecture and design
 │   ├── guides/             # How-to guides and tutorials
-│   ├── historical/         # Historical/archived docs (completed work)
 │   ├── implementation/     # Implementation plans (active)
 │   ├── infrastructure/     # Docker, CI/CD, deployment
-│   ├── research/           # Technical research (active)
-│   ├── reviews/            # Code reviews, audits
-│   ├── testing/            # Testing strategy and guides
 │   └── troubleshooting/    # Bug investigations and resolutions
-└── research/               # Research and ADRs (project-wide)
+├── research/               # Research and ADRs (project-wide)
+├── reviews/                # Code reviews, audits (project-wide)
+└── testing/                # Testing strategy and guides (project-wide)
 ```
 
 **Guidelines:**
 
 - **Development docs** → `docs/development/[category]/`
+- **Project-wide docs** → `docs/[category]/` (research, reviews, testing)
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/` (future)
-- **Active research** → `docs/research/` or `docs/development/research/`
-- **Completed/historical docs** → `docs/development/historical/`
 - **Troubleshooting/bug investigations** → `docs/development/troubleshooting/`
 
 ---
@@ -264,9 +260,9 @@ See these examples of well-structured docs:
 - Architecture: `docs/development/architecture/jwt-authentication.md`
 - Guide: `docs/development/guides/git-workflow.md`
 - Infrastructure: `docs/development/infrastructure/docker-setup.md`
-- Testing: `docs/development/testing/strategy.md`
+- Testing: `docs/testing/strategy.md`
 - Research: `docs/research/authentication-approaches-research.md`
-- Audit Report: `docs/development/reviews/REST_API_AUDIT_REPORT_2025-10-05.md`
+- Audit Report: `docs/reviews/REST_API_AUDIT_REPORT_2025-10-05.md`
 
 ### Template Usage Example
 

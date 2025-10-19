@@ -612,7 +612,7 @@ tests/
 - **Modified**: `WARP.md` (updated project rules)
 - **Modified**: `compose/docker-compose.test.yml` (SSL/TLS)
 - **Modified**: `compose/docker-compose.ci.yml` (SSL/TLS)
-- **Modified**: `docs/development/testing/guide.md` (smoke test section)
+- **Modified**: `docs/development/guides/testing-guide.md` (smoke test section)
 - **Modified**: `docs/development/guides/testing-best-practices.md` (test pyramid)
 
 ## Follow-Up

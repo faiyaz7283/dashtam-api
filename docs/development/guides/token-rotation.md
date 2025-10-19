@@ -13,27 +13,13 @@ A comprehensive guide for implementing OAuth token rotation correctly in Dashtam
 - [Prerequisites](#prerequisites)
 - [Step-by-Step Instructions](#step-by-step-instructions)
   - [Step 1: Understand Token Rotation Types](#step-1-understand-token-rotation-types)
-  - [The Two Strategies](#the-two-strategies)
-  - [Visual Example](#visual-example)
-    - [No Rotation Strategy (Most Common)](#no-rotation-strategy-most-common)
-    - [With Rotation Strategy (More Secure)](#with-rotation-strategy-more-secure)
   - [Step 2: Understand Security Benefits](#step-2-understand-security-benefits)
-  - [Security Benefits](#security-benefits)
-  - [Business Impact](#business-impact)
   - [Step 3: Learn Dashtam's Universal System](#step-3-learn-dashtams-universal-system)
-  - [Architecture](#architecture)
-    - [Key Implementation Points](#key-implementation-points)
-  - [Key Points](#key-points)
   - [Step 4: Implement refresh_authentication() Method](#step-4-implement-refresh_authentication-method)
-  - [Step 1: Implement `refresh_authentication()` Method](#step-1-implement-refresh_authentication-method)
-  - [Step 2: What NOT to Do](#step-2-what-not-to-do)
-  - [Step 3: Optional Fields](#step-3-optional-fields)
   - [Step 5: Test Your Implementation](#step-5-test-your-implementation)
 - [Examples](#examples)
   - [Complete Provider Implementation](#complete-provider-implementation)
   - [Testing Token Rotation](#testing-token-rotation)
-  - [Test Scenarios to Cover](#test-scenarios-to-cover)
-  - [Example Test Structure](#example-test-structure)
 - [Verification](#verification)
   - [Check 1: Audit Log Verification](#check-1-audit-log-verification)
   - [Check 2: Token Refresh Flow](#check-2-token-refresh-flow)
@@ -46,7 +32,9 @@ A comprehensive guide for implementing OAuth token rotation correctly in Dashtam
   - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
   - [Security Considerations](#security-considerations)
   - [Implementation Checklist](#implementation-checklist)
+- [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -131,50 +119,48 @@ Review the two token rotation strategies that providers may implement:
 
 ### Visual Example
 
-```text
-NO ROTATION:
-┌──────────────────────────────────────────────┐
-│ Initial Authentication                       │
-│ ➜ access_token: "abc123"                     │
-│ ➜ refresh_token: "xyz789"                    │
-└──────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────┐
-│ First Refresh (30 min later)                 │
-│ Send: refresh_token="xyz789"                 │
-│ Get:  access_token="def456"                  │
-│       (no refresh_token in response)         │
-│ Keep: refresh_token="xyz789" (unchanged)     │
-└──────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────┐
-│ Second Refresh (30 min later)                │
-│ Send: refresh_token="xyz789" (SAME)          │
-│ Get:  access_token="ghi789"                  │
-└──────────────────────────────────────────────┘
+**No Rotation Strategy (Most Common):**
 
-WITH ROTATION:
-┌──────────────────────────────────────────────┐
-│ Initial Authentication                       │
-│ ➜ access_token: "abc123"                     │
-│ ➜ refresh_token: "xyz789"                    │
-└──────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────┐
-│ First Refresh (30 min later)                 │
-│ Send: refresh_token="xyz789"                 │
-│ Get:  access_token="def456"                  │
-│       refresh_token="new999" (NEW!)          │
-│ Save: refresh_token="new999"                 │
-│ Old:  refresh_token="xyz789" (INVALID)       │
-└──────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────┐
-│ Second Refresh (30 min later)                │
-│ Send: refresh_token="new999" (DIFFERENT!)    │
-│ Get:  access_token="ghi789"                  │
-│       refresh_token="new111" (NEW!)          │
-└──────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Provider as OAuth Provider
+    
+    Note over App,Provider: Initial Authentication
+    App->>Provider: Authenticate
+    Provider-->>App: access_token: "abc123"<br/>refresh_token: "xyz789"
+    
+    Note over App,Provider: First Refresh (30 min later)
+    App->>Provider: refresh_token="xyz789"
+    Provider-->>App: access_token="def456"<br/>(no refresh_token in response)
+    Note over App: Keep: refresh_token="xyz789" (UNCHANGED)
+    
+    Note over App,Provider: Second Refresh (30 min later)
+    App->>Provider: refresh_token="xyz789" (SAME)
+    Provider-->>App: access_token="ghi789"
+    Note over App: Keep: refresh_token="xyz789" (UNCHANGED)
+```
+
+**With Rotation Strategy (More Secure):**
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Provider as OAuth Provider
+    
+    Note over App,Provider: Initial Authentication
+    App->>Provider: Authenticate
+    Provider-->>App: access_token: "abc123"<br/>refresh_token: "xyz789"
+    
+    Note over App,Provider: First Refresh (30 min later)
+    App->>Provider: refresh_token="xyz789"
+    Provider-->>App: access_token="def456"<br/>refresh_token="new999" (NEW!)
+    Note over App: Save: refresh_token="new999"<br/>Old token "xyz789" now INVALID
+    
+    Note over App,Provider: Second Refresh (30 min later)
+    App->>Provider: refresh_token="new999" (DIFFERENT!)
+    Provider-->>App: access_token="ghi789"<br/>refresh_token="new111" (NEW!)
+    Note over App: Save: refresh_token="new111"<br/>Old token "new999" now INVALID
 ```
 
 ### Step 2: Understand Security Benefits
@@ -205,40 +191,37 @@ Dashtam uses a **universal rotation detection system** that works for ALL provid
 
 ### Architecture
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  PROVIDER IMPLEMENTATION                            │
-│  (Provider-specific HTTP call)                      │
-│                                                     │
-│  async def refresh_authentication(refresh_token):   │
-│    response = await http.post(...)                  │
-│    tokens = response.json()                         │
-│                                                     │
-│    result = {"access_token": tokens["access_token"]}│
-│                                                     │
-│    # KEY: Only include if provider sent it          │
-│    if "refresh_token" in tokens:                    │
-│        result["refresh_token"] = tokens["refresh"]  │
-│                                                     │
-│    return result                                    │
-└─────────────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────────────┐
-│  TOKEN SERVICE (Universal Logic)                    │
-│  (Automatic rotation detection)                     │
-│                                                     │
-│  if new_tokens.get("refresh_token"):                │
-│    if new_tokens["refresh_token"] != old_token:     │
-│      # ROTATION DETECTED                            │
-│      encrypted_new = encrypt(new_refresh_token)     │
-│      log("Token rotated")                           │
-│    else:                                            │
-│      # SAME TOKEN (edge case)                       │
-│      log("Same token returned")                     │
-│  else:                                              │
-│    # NO ROTATION                                    │
-│    log("No rotation, keeping existing token")       │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Start[Provider Implementation] --> TokenSvc[Token Service]
+    
+    subgraph Provider["PROVIDER IMPLEMENTATION"]
+        direction TB
+        P1["Provider-specific HTTP call"]
+        A1["async def refresh_authentication(refresh_token):<br/>response = await http.post(...)<br/>tokens = response.json()"]
+        A2["result = {'access_token': tokens['access_token']}"]
+        A3["KEY: Only include if provider sent it<br/>if 'refresh_token' in tokens:<br/>    result['refresh_token'] = tokens['refresh_token']"]
+        A4["return result"]
+        
+        P1 -.-> A1
+        A1 --> A2 --> A3 --> A4
+    end
+    
+    subgraph TokenService["TOKEN SERVICE"]
+        direction TB
+        T1["Universal Logic - Automatic rotation detection"]
+        B1{"new_tokens.get('refresh_token')?"}
+        B2{"new_tokens['refresh_token']<br/>!= old_token?"}
+        B3["ROTATION DETECTED<br/>encrypted_new = encrypt(new_refresh_token)<br/>log('Token rotated')"]
+        B4["SAME TOKEN edge case<br/>log('Same token returned')"]
+        B5["NO ROTATION<br/>log('No rotation, keeping existing token')"]
+        
+        T1 -.-> B1
+        B1 -->|Yes| B2
+        B1 -->|No| B5
+        B2 -->|Yes| B3
+        B2 -->|No| B4
+    end
 ```
 
 ### Key Points
@@ -584,6 +567,29 @@ When implementing a new provider:
 - [ ] Document provider's observed rotation behavior
 - [ ] Verify audit logs capture rotation events correctly
 - [ ] Test with real API when possible
+
+## Next Steps
+
+After implementing token rotation for your provider, consider:
+
+- [ ] **Test with Production API** - Verify behavior in production environment (if sandbox differs)
+- [ ] **Document Provider Behavior** - Add notes to provider class about observed rotation behavior
+- [ ] **Monitor Audit Logs** - Set up monitoring for token rotation events in production
+- [ ] **Implement Additional Providers** - Apply learned patterns to other OAuth providers
+- [ ] **Review Security Audit** - Ensure rotation detection meets security compliance requirements
+
+**Related Guides:**
+
+- [Provider Implementation Guide](provider-implementation.md) - Comprehensive provider setup
+- [JWT Authentication Guide](jwt-authentication-api-guide.md) - User authentication patterns
+- [Testing Guide](testing-guide.md) - Comprehensive testing strategies
+
+**Advanced Topics:**
+
+- Implementing token breach detection and forced rotation
+- Setting up automated token rotation monitoring
+- Handling edge cases with multiple concurrent refresh attempts
+- Implementing graceful degradation when rotation fails
 
 ## References
 

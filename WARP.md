@@ -128,8 +128,16 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ **Critical path tests**: Health check, API docs, invalid login, weak password, duplicate email
   - ✅ **Environment agnostic**: Works in dev, test, and CI/CD without modifications
   - ✅ **Documentation**: Comprehensive solution guide and README
-    - ✅ Smoke Test Solution: `docs/development/testing/smoke-test-caplog-solution.md`
+    - ✅ Smoke Test Solution: `docs/testing/smoke-test-caplog-solution.md`
     - ✅ Smoke Test README: `tests/smoke/README.md`
+- ✅ **DOCUMENTATION TEMPLATE SYSTEM COMPLETE** (October 2025, PR #33)
+  - ✅ **Complete template migration**: 46 documents, 100% coverage
+  - ✅ **8 reusable templates**: Guide, architecture, testing, troubleshooting, research, infrastructure, API flow, index/README
+  - ✅ **Mermaid diagram standards**: Mandatory Mermaid syntax for all diagrams (no image files)
+  - ✅ **Markdown linting**: markdownlint-cli2 enforcement with `make lint-md` commands
+  - ✅ **Directory reorganization**: testing/ and reviews/ moved to docs root level (project-wide)
+  - ✅ **Historical directory eliminated**: Update-or-delete paradigm (no archiving)
+  - ✅ **Comprehensive guides**: Template system guide, Mermaid standards, markdown linting
 - ✅ **Core infrastructure at 76% test coverage, production-ready foundation**
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
@@ -1499,14 +1507,12 @@ docs/
 ├── development/               # Developer documentation
 │   ├── architecture/          # System design and architecture
 │   ├── guides/                # How-to guides and tutorials
-│   ├── historical/            # Historical/archived docs (completed work)
 │   ├── implementation/        # Implementation plans (active)
 │   ├── infrastructure/        # Docker, CI/CD, environments
-│   ├── research/              # Active technical research
-│   ├── reviews/               # Code reviews, audits
-│   ├── testing/               # Testing strategy and guides
 │   └── troubleshooting/       # Bug investigations and resolutions
 ├── research/                  # Research and decision records (project-wide)
+├── reviews/                   # Code reviews, audits (project-wide)
+├── testing/                   # Testing strategy and guides (project-wide)
 ├── setup/                     # User setup guides (planned)
 ├── api/                       # API documentation (planned)
 └── guides/                    # User guides (planned)
@@ -1525,18 +1531,14 @@ docs/
 - **Development docs** → `docs/development/[category]/filename.md`
   - Architecture decisions → `docs/development/architecture/`
   - How-to guides → `docs/development/guides/`
-  - Historical/archived docs → `docs/development/historical/`
   - Implementation plans → `docs/development/implementation/`
   - Infrastructure setup → `docs/development/infrastructure/`
-  - Active research → `docs/development/research/`
-  - Code reviews/audits → `docs/development/reviews/`
-  - Testing guides → `docs/development/testing/`
   - Troubleshooting/bug investigations → `docs/development/troubleshooting/`
 
-- **Research & decisions** → `docs/research/filename.md`
-  - Technical research documents
-  - Architectural decision records (ADRs)
-  - Migration plans and notes
+- **Project-wide docs** → `docs/[category]/filename.md` (root level)
+  - Research & ADRs → `docs/research/`
+  - Code reviews/audits → `docs/reviews/`
+  - Testing strategy/guides → `docs/testing/`
 
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/`
   - Installation guides
@@ -1553,7 +1555,7 @@ docs/
 6. ✅ **Create index.md** - For navigation pages in directories (docs/, docs/development/, etc.)
 7. ✅ **Link between documents** - Cross-reference related docs
 8. ✅ **Update docs/index.md** - When adding new sections
-9. ✅ **Archive completed work** - Move to `docs/development/historical/`
+9. ✅ **Keep docs current** - Update or delete outdated content (no archiving)
 10. ✅ **Lint before commit** - Run `make lint-md` to verify quality
 11. ❌ **NEVER scatter documentation** - Follow established directory structure
 12. ❌ **NEVER use image files for diagrams** - Use Mermaid instead
@@ -1730,7 +1732,7 @@ docs/
 
 **3. Test Creation** 🧪
 
-- Create comprehensive tests following `docs/development/testing/guide.md`
+- Create comprehensive tests following `docs/development/guides/testing-guide.md`
 - **Unit tests** for all new services/functions/classes (test in isolation)
 - **Integration tests** for ANY integrated services:
   - Database operations (queries, relationships, transactions)

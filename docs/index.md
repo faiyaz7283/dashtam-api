@@ -208,16 +208,14 @@ When adding new documentation:
 - **Development docs** → `docs/development/[category]/`
   - `architecture/` - System architecture and design patterns
   - `guides/` - How-to guides and tutorials
-  - `historical/` - Completed implementation plans and research
   - `implementation/` - Implementation plans (active)
   - `infrastructure/` - Docker, CI/CD, deployment
-  - `research/` - Active technical research
+  - `troubleshooting/` - Bug investigations and resolutions
+- **Project-wide docs** → `docs/[category]/` (root level)
+  - `research/` - Research and ADRs (architectural decision records)
   - `reviews/` - Code reviews, audits, assessments
   - `testing/` - Testing strategy and guides
-  - `troubleshooting/` - Bug investigations and resolutions
 - **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/` (future)
-- **Research/decisions** → `docs/research/` (project-wide ADRs and research)
-- **Historical/archived** → `docs/development/historical/` - Completed work and plans
 
 **See also:**
 

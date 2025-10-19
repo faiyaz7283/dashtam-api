@@ -6,12 +6,12 @@ Comprehensive developer documentation for the Dashtam financial data aggregation
 
 ## 📚 Contents
 
-This directory contains **51 documents** across **8 categories**, organized to support developers at all stages of contribution: from initial setup to advanced architecture decisions.
+This directory contains **54 documents** across **8 categories**, organized to support developers at all stages of contribution: from initial setup to advanced architecture decisions.
 
 **Quick Navigation:**
 
 - [Architecture](#architecture) - System design and technical decisions (6 docs)
-- [Guides](#guides) - Step-by-step how-to documentation (12 docs)
+- [Guides](#guides) - Step-by-step how-to documentation (15 docs)
 - [Infrastructure](#infrastructure) - Docker, CI/CD, and deployment (4 docs)
 - [Testing](#testing) - Test strategy and best practices (8 docs)
 - [Troubleshooting](#troubleshooting) - Problem diagnosis and solutions (5 docs)
@@ -32,7 +32,7 @@ docs/development/
 │   ├── overview.md
 │   ├── restful-api-design.md
 │   └── schemas-design.md
-├── guides/                 # 12 docs - Development how-to guides
+├── guides/                 # 15 docs - Development how-to guides
 │   ├── docstring-standards.md
 │   ├── docker-refactoring-implementation.md
 │   ├── documentation-implementation-guide.md
@@ -40,6 +40,9 @@ docs/development/
 │   ├── git-quick-reference.md
 │   ├── git-workflow.md
 │   ├── jwt-auth-quick-reference.md
+│   ├── jwt-authentication-api-guide.md
+│   ├── jwt-authentication-database-guide.md
+│   ├── jwt-authentication-services-guide.md
 │   ├── markdown-linting-guide.md
 │   ├── mermaid-diagram-standards.md
 │   ├── restful-api-quick-reference.md
@@ -103,6 +106,12 @@ Step-by-step how-to documentation for developers:
 - [RESTful API Quick Reference](guides/restful-api-quick-reference.md) - Quick guide for building REST-compliant APIs
 - [JWT Auth Quick Reference](guides/jwt-auth-quick-reference.md) - JWT authentication patterns and examples
 - [Token Rotation](guides/token-rotation.md) - OAuth token rotation implementation guide
+
+**JWT Authentication Implementation:**
+
+- [JWT Authentication Database Guide](guides/jwt-authentication-database-guide.md) - Database schema, tables, and migrations for authentication
+- [JWT Authentication Services Guide](guides/jwt-authentication-services-guide.md) - PasswordService, JWTService, EmailService, AuthService implementation
+- [JWT Authentication API Guide](guides/jwt-authentication-api-guide.md) - API endpoints, schemas, and authentication flows
 
 **Code Quality:**
 

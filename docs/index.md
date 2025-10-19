@@ -40,12 +40,17 @@ Documentation for working on the Dashtam project:
 
 - [Development Guide](development/) - Architecture, infrastructure, and testing
   - [Architecture Overview](development/architecture/overview.md)
+  - [JWT Authentication Architecture](development/architecture/jwt-authentication.md) - Complete authentication system design
   - [Technical Debt Roadmap](development/implementation/technical-debt-roadmap.md) - Technical debt tracking and implementation roadmap
   - [Docker Setup](development/infrastructure/docker-setup.md)
-  - [Testing Strategy](development/testing/strategy.md)
-  - [Testing Guide](development/testing/guide.md)
+  - [Testing Strategy](testing/strategy.md)
+  - [Testing Guide](development/guides/testing-guide.md)
   - [Docstring Standards](development/guides/docstring-standards.md) - Comprehensive Python documentation guide
   - [Documentation Implementation](development/guides/documentation-implementation-guide.md) - MkDocs setup guide
+  - **JWT Authentication Guides:**
+    - [Database Guide](development/guides/jwt-authentication-database-guide.md) - Database schema and migrations
+    - [Services Guide](development/guides/jwt-authentication-services-guide.md) - Service implementation details
+    - [API Guide](development/guides/jwt-authentication-api-guide.md) - API endpoints and usage
 
 ### Research & Decisions
 

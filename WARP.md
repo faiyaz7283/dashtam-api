@@ -271,7 +271,7 @@ provider = result.scalar_one_or_none()
 
 - When creating, modifying, or deleting user-facing API endpoints, you MUST also create/modify/delete the corresponding manual API flow guides under `docs/api-flows/`.
 - Organize flows by domain (auth, providers, etc.), not HTTP verb. Each flow represents a user journey (e.g., registration, login, provider onboarding), which may span multiple endpoints.
-- Follow the reusable template: `docs/api-flows/flow-template.md`.
+- Follow the reusable template: `docs/templates/api-flow-template.md`.
 - Keep flows HTTPS-first (dev TLS). Use `curl -k` for self-signed certificates in development.
 - Use environment variables in examples. Never inline real secrets. Prefer placeholders and shell variables (`BASE_URL`, `ACCESS_TOKEN`, etc.).
 - Include: Purpose, Prerequisites, Step-by-step commands, Expected response snippets, Cleanup (when applicable), Troubleshooting.

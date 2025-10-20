@@ -264,6 +264,6 @@ resources:
 
 ## Document Information
 
-**Template:** [infastructure-template.md](infastructure-template.md)
+**Template:** [infrastructure-template.md](infrastructure-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD

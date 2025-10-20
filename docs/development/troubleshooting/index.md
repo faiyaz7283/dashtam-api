@@ -2,8 +2,6 @@
 
 Documentation of critical debugging sessions, issue resolutions, and problem-solving journeys within the Dashtam project. Each troubleshooting guide provides a complete narrative from symptom discovery through investigation to final resolution.
 
----
-
 ## 📚 Contents
 
 This directory contains detailed troubleshooting guides documenting complex bugs, their investigation, root cause analysis, and final resolutions. These guides serve as a knowledge base for future developers facing similar issues, preserving critical debugging insights and solution patterns.
@@ -14,8 +12,6 @@ This directory contains detailed troubleshooting guides documenting complex bugs
 - CI/CD pipeline debugging and fixes
 - Test infrastructure problems and solutions
 - Docker and environment configuration issues
-
----
 
 ## 🗂️ Directory Structure
 
@@ -29,8 +25,6 @@ troubleshooting/
 ├── smoke-test-caplog-solution.md                 # Smoke test token extraction
 └── smoke-test-ci-debugging-journey.md            # CI smoke test debugging
 ```
-
----
 
 ## 📄 Documents
 
@@ -82,8 +76,6 @@ troubleshooting/
 - **Solution**: Proper health checks and retry logic
 - **Impact**: 22/23 smoke tests passing in CI (96% success rate)
 
----
-
 ## 🔗 Quick Links
 
 **Related Documentation:**
@@ -103,8 +95,6 @@ troubleshooting/
 - [FastAPI Testing Guide](https://fastapi.tiangolo.com/tutorial/testing/)
 - [Pytest Fixtures Documentation](https://docs.pytest.org/en/stable/explanation/fixtures.html)
 
----
-
 ## 🗺️ Navigation
 
 **Parent Directory:** [Development Documentation](../index.md)
@@ -115,8 +105,6 @@ troubleshooting/
 - [Guides](../guides/index.md) - How-to guides and tutorials
 - [Infrastructure](../infrastructure/index.md) - Docker and CI/CD
 - [Architecture](../architecture/index.md) - System design
-
----
 
 ## 📝 Contributing
 
@@ -134,8 +122,6 @@ When adding new troubleshooting guides to this directory:
 
 ## Document Information
 
-**Category:** Index/Navigation
+**Template:** [index-template.md](../../templates/troubleshooting-template.md)
 **Created:** 2025-01-06
 **Last Updated:** 2025-10-18
-**Maintainer:** Dashtam Development Team
-**Scope:** Troubleshooting and debugging documentation for Dashtam project

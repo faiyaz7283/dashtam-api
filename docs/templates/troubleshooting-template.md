@@ -6,15 +6,15 @@
 
 ## Table of Contents
 
-1. [Initial Problem](#initial-problem)
-2. [Investigation Steps](#investigation-steps)
-3. [Root Cause Analysis](#root-cause-analysis)
-4. [Solution Implementation](#solution-implementation)
-5. [Verification](#verification)
-6. [Lessons Learned](#lessons-learned)
-7. [Future Improvements](#future-improvements)
-8. [References](#references)
-9. [Document Information](#document-information)
+- [Initial Problem](#initial-problem)
+- [Investigation Steps](#investigation-steps)
+- [Root Cause Analysis](#root-cause-analysis)
+- [Solution Implementation](#solution-implementation)
+- [Verification](#verification)
+- [Lessons Learned](#lessons-learned)
+- [Future Improvements](#future-improvements)
+- [References](#references)
+- [Document Information](#document-information)
 
 ---
 

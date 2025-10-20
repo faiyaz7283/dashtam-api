@@ -7,13 +7,42 @@ A comprehensive quick reference guide for developers using the Dashtam JWT authe
 ## Table of Contents
 
 - [Overview](#overview)
+  - [What You'll Learn](#what-youll-learn)
+  - [When to Use This Guide](#when-to-use-this-guide)
+  - [Authentication Pattern](#authentication-pattern)
+  - [All API Endpoints](#all-api-endpoints)
+  - [Token Lifecycle](#token-lifecycle)
 - [Prerequisites](#prerequisites)
 - [Step-by-Step Instructions](#step-by-step-instructions)
+  - [Step 1: Register a New User](#step-1-register-a-new-user)
+  - [Step 2: Verify Email](#step-2-verify-email)
+  - [Step 3: Login](#step-3-login)
+  - [Step 4: Make Authenticated Requests](#step-4-make-authenticated-requests)
+  - [Step 5: Refresh Access Token](#step-5-refresh-access-token)
+  - [Step 6: Logout](#step-6-logout)
 - [Examples](#examples)
+  - [Example 1: Python Client Implementation](#example-1-python-client-implementation)
+  - [Example 2: JavaScript/TypeScript Client Implementation](#example-2-javascripttypescript-client-implementation)
+  - [Example 3: React Hook Implementation](#example-3-react-hook-implementation)
 - [Verification](#verification)
+  - [Check 1: Registration and Email Verification](#check-1-registration-and-email-verification)
+  - [Check 2: Token Validation](#check-2-token-validation)
+  - [Check 3: Protected Endpoint Access](#check-3-protected-endpoint-access)
+  - [Check 4: Token Expiry Testing](#check-4-token-expiry-testing)
 - [Troubleshooting](#troubleshooting)
+  - [Issue 1: Token Validation Failed](#issue-1-token-validation-failed)
+  - [Issue 2: Refresh Token Not Found or Revoked](#issue-2-refresh-token-not-found-or-revoked)
+  - [Issue 3: Email Not Verified](#issue-3-email-not-verified)
+  - [Issue 4: Account is Locked](#issue-4-account-is-locked)
+  - [Common Error Codes](#common-error-codes)
 - [Best Practices](#best-practices)
+  - [Security Best Practices](#security-best-practices)
+  - [Token Storage Security](#token-storage-security)
+  - [Common Patterns](#common-patterns)
+  - [Quick Reference Card](#quick-reference-card)
+- [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -45,6 +74,38 @@ Use this guide when:
 - **Access Token:** JWT, 30 minutes TTL, stateless
 - **Refresh Token:** Opaque, 30 days TTL, hashed in database
 
+### All API Endpoints
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/v1/auth/register` | POST | No | Register new user |
+| `/api/v1/auth/verify-email` | POST | No | Verify email address |
+| `/api/v1/auth/login` | POST | No | Login with credentials |
+| `/api/v1/auth/refresh` | POST | No* | Get new access token |
+| `/api/v1/auth/logout` | POST | Yes | Revoke refresh token |
+| `/api/v1/auth/password-reset/request` | POST | No | Request password reset |
+| `/api/v1/auth/password-reset/confirm` | POST | No | Confirm password reset |
+| `/api/v1/auth/me` | GET | Yes | Get current user |
+| `/api/v1/auth/me` | PATCH | Yes | Update user profile |
+
+*Requires valid refresh token (not access token)
+
+### Token Lifecycle
+
+```mermaid
+flowchart TD
+    A[Registration] --> B[Email Verification]
+    B -->|Token valid 24h| C[Login]
+    C --> D[Access Token: 30 min<br/>Refresh Token: 30 days]
+    D --> E[Use Access Token<br/>for API Requests]
+    E --> F{After 30 min}
+    F -->|Access Token Expires| G[Use Refresh Token]
+    G --> H[Get NEW Access Token]
+    H --> E
+    E --> I[Logout]
+    I --> J[Refresh Token Revoked]
+```
+
 ## Prerequisites
 
 Before using this guide, ensure you have:
@@ -70,8 +131,6 @@ Before using this guide, ensure you have:
 
 ### Step 1: Register a New User
 
-### 1. Register a New User
-
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -87,7 +146,9 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 }
 ```
 
-### 2. Verify Email
+**What This Does:** Creates a new user account and sends verification email.
+
+### Step 2: Verify Email
 
 ```bash
 # User clicks link in email, or:
@@ -103,7 +164,9 @@ curl -X POST http://localhost:8000/api/v1/auth/verify-email \
 }
 ```
 
-### 3. Login
+**What This Does:** Activates the user account by verifying email ownership.
+
+### Step 3: Login
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/login \
@@ -129,13 +192,15 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
     "last_login_at": "2025-10-04T22:00:00Z"
   }
 }
-
-# Store both tokens securely!
-# - access_token: Use for API requests (expires in 30 min)
-# - refresh_token: Use to get new access token (expires in 30 days)
 ```
 
-### 4. Make Authenticated Requests
+**Important Notes:**
+
+- ⚠️ Store both tokens securely! Access token expires in 30 minutes, refresh token in 30 days.
+- ℹ️ The `access_token` is used for all API requests.
+- ℹ️ The `refresh_token` is used only to get new access tokens.
+
+### Step 4: Make Authenticated Requests
 
 ```bash
 # Use the access token in Authorization header
@@ -148,7 +213,9 @@ curl http://localhost:8000/api/v1/providers \
 }
 ```
 
-### 5. Refresh Access Token (When Expired)
+**What This Does:** Authenticates the request using the JWT access token.
+
+### Step 5: Refresh Access Token
 
 ```bash
 # After 30 minutes, access token expires
@@ -166,11 +233,14 @@ curl -X POST http://localhost:8000/api/v1/auth/refresh \
   "token_type": "bearer",
   "expires_in": 1800
 }
-
-# Update your stored access token
 ```
 
-### 6. Logout
+**Important Notes:**
+
+- ⚠️ Update your stored access token after refresh.
+- ℹ️ The refresh token remains the same (not rotated in Pattern A).
+
+### Step 6: Logout
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/logout \
@@ -184,13 +254,13 @@ curl -X POST http://localhost:8000/api/v1/auth/logout \
 {
   "message": "Logged out successfully"
 }
-
-# Delete stored tokens from client
 ```
+
+**What This Does:** Revokes the refresh token in the database, preventing future token refreshes.
 
 ## Examples
 
-### Python Client Example
+### Example 1: Python Client Implementation
 
 ```python
 import httpx
@@ -302,9 +372,9 @@ if __name__ == "__main__":
     print("✅ Logged out")
 ```
 
----
+**Result:** A fully functional Python authentication client with automatic token refresh.
 
-## JavaScript/TypeScript Client Example
+### Example 2: JavaScript/TypeScript Client Implementation
 
 ```typescript
 interface AuthTokens {
@@ -438,9 +508,9 @@ await auth.logout();
 console.log("✅ Logged out");
 ```
 
----
+**Result:** A type-safe TypeScript authentication client with automatic token refresh.
 
-## React Hook Example
+### Example 3: React Hook Implementation
 
 ```typescript
 import { useState, useEffect, useCallback } from 'react';
@@ -625,6 +695,8 @@ function LoginPage() {
 }
 ```
 
+**Result:** A production-ready React authentication hook with state management and automatic token refresh.
+
 ## Verification
 
 How to verify your authentication integration is working correctly:
@@ -671,68 +743,111 @@ curl -H "Authorization: Bearer your-access-token" \
 
 **Expected Result:** Should return user profile information.
 
----
-
-## All API Endpoints
-
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/api/v1/auth/register` | POST | No | Register new user |
-| `/api/v1/auth/verify-email` | POST | No | Verify email address |
-| `/api/v1/auth/login` | POST | No | Login with credentials |
-| `/api/v1/auth/refresh` | POST | No* | Get new access token |
-| `/api/v1/auth/logout` | POST | Yes | Revoke refresh token |
-| `/api/v1/auth/password-reset/request` | POST | No | Request password reset |
-| `/api/v1/auth/password-reset/confirm` | POST | No | Confirm password reset |
-| `/api/v1/auth/me` | GET | Yes | Get current user |
-| `/api/v1/auth/me` | PATCH | Yes | Update user profile |
-
-*Requires valid refresh token (not access token)
-
----
-
-## Common Patterns
-
-### Auto-Refresh Pattern
+### Check 4: Token Expiry Testing
 
 ```python
-def make_request(url: str, auth_client: DashtamAuth):
-    """Make request with automatic token refresh."""
-    try:
-        return auth_client.get(url)
-    except HTTPException as e:
-        if e.status_code == 401:
-            # Access token expired, refresh it
-            auth_client.refresh()
-            # Retry request
-            return auth_client.get(url)
-        raise
+import jwt
+from datetime import datetime
+
+# Decode token (without verification for inspection)
+token = "eyJhbGci..."
+decoded = jwt.decode(token, options={"verify_signature": False})
+
+# Check expiration
+exp_timestamp = decoded['exp']
+exp_time = datetime.fromtimestamp(exp_timestamp)
+print(f"Token expires at: {exp_time}")
+print(f"Time remaining: {exp_time - datetime.now()}")
 ```
 
-### Token Storage (Security)
-
-**❌ DON'T** (Vulnerable to XSS):
-
-```javascript
-// Storing tokens in localStorage
-localStorage.setItem('access_token', token);
-```
-
-**✅ DO** (More secure):
-
-```javascript
-// Use httpOnly cookies (backend sets it)
-// Or use memory storage (lost on refresh, but safer)
-const [accessToken, setAccessToken] = useState(null);
-```
-
-**🏆 BEST** (Production):
-
-- Access token: Memory (React state)
-- Refresh token: httpOnly cookie (auto-sent)
-- Backend returns `Set-Cookie` header with httpOnly flag
+**Expected Result:** Should show token expiration time and remaining validity period.
 
 ## Troubleshooting
+
+### Issue 1: Token Validation Failed
+
+**Symptoms:**
+
+- API returns 401 Unauthorized
+- Error message: "Token validation failed" or "Invalid token"
+
+**Cause:** Token expired, malformed, or incorrect format.
+
+**Solution:**
+
+```bash
+# Check token format (should be three base64 parts separated by dots)
+echo "Bearer eyJhbGci..." | grep -E '^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+
+# If token expired, refresh it
+curl -X POST http://localhost:8000/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "your-refresh-token"}'
+```
+
+**Additional Checks:**
+
+- Verify token is being sent in correct format: `Authorization: Bearer <token>`
+- Ensure no extra spaces or newlines in token
+- Check token hasn't expired using verification steps above
+
+### Issue 2: Refresh Token Not Found or Revoked
+
+**Symptoms:**
+
+- API returns 401 Unauthorized on refresh request
+- Error message: "Invalid refresh token" or "Refresh token not found"
+
+**Cause:** Token was already used for logout, expired (30 days), or revoked.
+
+**Solution:**
+
+User must login again to get new token pair:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }'
+```
+
+### Issue 3: Email Not Verified
+
+**Symptoms:**
+
+- Login returns 403 Forbidden
+- Error message: "Email not verified"
+
+**Cause:** User registered but didn't verify email address.
+
+**Solution:**
+
+```bash
+# Check email for verification link
+# In dev mode, check application logs for verification token
+
+# Then verify:
+curl -X POST http://localhost:8000/api/v1/auth/verify-email \
+  -H "Content-Type: application/json" \
+  -d '{"token": "verification-token-from-email"}'
+```
+
+### Issue 4: Account is Locked
+
+**Symptoms:**
+
+- Login returns 403 Forbidden
+- Error message: "Account is locked" or "Too many failed attempts"
+
+**Cause:** Too many failed login attempts (10+) triggered account lockout.
+
+**Solution:**
+
+- Wait 1 hour - Account auto-unlocks after lockout period
+- Or contact administrator to manually unlock account
+- Prevention: Use correct credentials, avoid brute force attempts
 
 ### Common Error Codes
 
@@ -746,7 +861,7 @@ const [accessToken, setAccessToken] = useState(null);
 | 403 | `Account is disabled` | Contact support |
 | 403 | `Account is locked` | Wait 1 hour or contact support |
 
-### Example Error Handling
+**Example Error Handling:**
 
 ```python
 try:
@@ -764,31 +879,11 @@ except httpx.HTTPStatusError as e:
         print(f"Error: {e.response.json()['detail']}")
 ```
 
----
-
-## Token Lifecycle
-
-```text
-REGISTRATION
-    ↓
-EMAIL VERIFICATION (token valid 24h)
-    ↓
-LOGIN → Access Token (30 min) + Refresh Token (30 days)
-    ↓
-USE Access Token for API requests
-    ↓
-After 30 min → Access Token EXPIRES
-    ↓
-Use Refresh Token → Get NEW Access Token
-    ↓
-Repeat...
-    ↓
-LOGOUT → Refresh Token REVOKED
-```
-
 ## Best Practices
 
 Follow these best practices for secure and reliable authentication:
+
+### Security Best Practices
 
 - ✅ **Never Log Tokens:** Treat tokens like passwords - never log or expose them
 - ✅ **Always Use HTTPS:** Tokens transmitted over HTTP can be intercepted
@@ -820,114 +915,100 @@ const [accessToken, setAccessToken] = useState(null);
 - Refresh token: httpOnly cookie (auto-sent by browser)
 - Backend returns `Set-Cookie` header with httpOnly flag
 
----
+### Common Patterns
 
-## Testing
-
-### Test Account Creation
-
-```bash
-# Create test user
-curl -X POST http://localhost:8000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "TestPass123!",
-    "name": "Test User"
-  }'
-
-# In development, check logs for verification token
-# (emails are not actually sent in DEBUG mode)
-```
-
-### Check Token Expiry
+#### Auto-Refresh Pattern
 
 ```python
-import jwt
-from datetime import datetime
-
-# Decode token (without verification for inspection)
-token = "eyJhbGci..."
-decoded = jwt.decode(token, options={"verify_signature": False})
-
-# Check expiration
-exp_timestamp = decoded['exp']
-exp_time = datetime.fromtimestamp(exp_timestamp)
-print(f"Token expires at: {exp_time}")
-print(f"Time remaining: {exp_time - datetime.now()}")
+def make_request(url: str, auth_client: DashtamAuth):
+    """Make request with automatic token refresh."""
+    try:
+        return auth_client.get(url)
+    except HTTPException as e:
+        if e.status_code == 401:
+            # Access token expired, refresh it
+            auth_client.refresh()
+            # Retry request
+            return auth_client.get(url)
+        raise
 ```
 
-### Common Authentication Issues
+#### Error Handling Pattern
 
-#### "Token validation failed"
-
-- Check token hasn't expired
-- Verify token is being sent in correct format: `Authorization: Bearer <token>`
-- Ensure no extra spaces or newlines in token
-
-#### "Refresh token not found or revoked"
-
-- Token was already used for logout
-- Token expired (30 days)
-- User needs to login again
-
-#### "Email not verified"
-
-- User must verify email before logging in
-- Check email for verification link
-- In dev mode, check logs for token
-
-#### "Account is locked"
-
-- Too many failed login attempts (10+)
-- Wait 1 hour or contact administrator
-- Account auto-unlocks after lockout period
-
----
-
-## Quick Reference Card
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│                DASHTAM AUTH QUICK REFERENCE             │
-├─────────────────────────────────────────────────────────┤
-│ PATTERN A: JWT Access + Opaque Refresh                  │
-│                                                         │
-│ Access Token:  JWT, 30 min, stateless                   │
-│ Refresh Token: Random, 30 days, hashed in DB            │
-│                                                         │
-│ FLOW:                                                   │
-│ 1. Register → Email verification                        │
-│ 2. Login → Get tokens                                   │
-│ 3. Use access token (Bearer header)                     │
-│ 4. Refresh when expired (30 min)                        │
-│ 5. Logout → Revoke refresh token                        │
-│                                                         │
-│ ENDPOINTS:                                              │
-│ POST   /auth/register      - Register                   │
-│ POST   /auth/verify-email  - Verify email               │
-│ POST   /auth/login         - Login                      │
-│ POST   /auth/refresh       - Refresh token              │
-│ POST   /auth/logout        - Logout                     │
-│ GET    /auth/me            - Get user profile           │
-│ PATCH  /auth/me            - Update profile             │
-│                                                         │
-│ SECURITY:                                               │
-│ ✅ All tokens hashed in database                        │
-│ ✅ Email verification required                          │
-│ ✅ Password complexity enforced                         │
-│ ✅ Account lockout (10 failures → 1h)                   │
-│ ✅ HTTPS only in production                             │
-└─────────────────────────────────────────────────────────┘
+```typescript
+async function authenticatedRequest<T>(endpoint: string): Promise<T> {
+  try {
+    return await api.get<T>(endpoint);
+  } catch (error) {
+    if (error.status === 401) {
+      // Token expired, refresh and retry
+      await auth.refresh();
+      return await api.get<T>(endpoint);
+    }
+    throw error;
+  }
+}
 ```
+
+### Quick Reference Card
+
+```mermaid
+graph TB
+    subgraph "DASHTAM AUTH QUICK REFERENCE"
+        A[Pattern A: JWT Access + Opaque Refresh]
+        
+        B["Access Token:<br/>JWT, 30 min, stateless"]
+        C["Refresh Token:<br/>Random, 30 days, hashed in DB"]
+        
+        D["FLOW"]
+        E["1. Register → Email verification"]
+        F["2. Login → Get tokens"]
+        G["3. Use access token Bearer header"]
+        H["4. Refresh when expired 30 min"]
+        I["5. Logout → Revoke refresh token"]
+        
+        J["ENDPOINTS"]
+        K["POST /auth/register - Register<br/>POST /auth/verify-email - Verify email<br/>POST /auth/login - Login<br/>POST /auth/refresh - Refresh token<br/>POST /auth/logout - Logout<br/>GET /auth/me - Get user profile<br/>PATCH /auth/me - Update profile"]
+        
+        L["SECURITY"]
+        M["✅ All tokens hashed in database<br/>✅ Email verification required<br/>✅ Password complexity enforced<br/>✅ Account lockout 10 failures → 1h<br/>✅ HTTPS only in production"]
+        
+        A --> B
+        A --> C
+        D --> E
+        E --> F
+        F --> G
+        G --> H
+        H --> I
+        J --> K
+        L --> M
+    end
+    
+    style A fill:#e1f5ff
+    style D fill:#fff3e0
+    style J fill:#f3e5f5
+    style L fill:#e8f5e9
+```
+
+## Next Steps
+
+After completing this guide, consider:
+
+- [ ] Review [JWT Authentication Architecture](../architecture/jwt-authentication.md) for complete system design
+- [ ] Explore [Token Rotation Guide](token-rotation.md) for advanced security patterns
+- [ ] Implement [Error Handling Best Practices](testing-best-practices.md) in your client
+- [ ] Set up automated tests for authentication flows
+- [ ] Configure secure token storage in production (httpOnly cookies)
+- [ ] Add monitoring and alerting for authentication failures
+- [ ] Review [REST API Design](../architecture/restful-api-design.md) for API integration patterns
 
 ## References
 
 - [JWT Authentication Architecture](../architecture/jwt-authentication.md) - Complete system architecture and design
 - [API Documentation](http://localhost:8000/docs) - Interactive OpenAPI documentation
-- [Authentication Implementation Guide](authentication-implementation.md) - Detailed implementation guide
 - [Token Rotation Guide](token-rotation.md) - Advanced token security patterns
 - [REST API Design](../architecture/restful-api-design.md) - API design principles
+- [Testing Guide](testing-guide.md) - Authentication testing strategies
 
 ---
 
@@ -935,4 +1016,4 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 
 **Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-04
-**Last Updated:** 2025-10-15
+**Last Updated:** 2025-10-20

@@ -13,13 +13,24 @@ A comprehensive guide for implementing OAuth token rotation correctly in Dashtam
 - [Prerequisites](#prerequisites)
 - [Step-by-Step Instructions](#step-by-step-instructions)
   - [Step 1: Understand Token Rotation Types](#step-1-understand-token-rotation-types)
+    - [The Two Strategies](#the-two-strategies)
+    - [Visual Example](#visual-example)
   - [Step 2: Understand Security Benefits](#step-2-understand-security-benefits)
+    - [Security Benefits](#security-benefits)
+    - [Business Impact](#business-impact)
   - [Step 3: Learn Dashtam's Universal System](#step-3-learn-dashtams-universal-system)
+    - [Architecture](#architecture)
+    - [Key Points](#key-points)
   - [Step 4: Implement refresh_authentication() Method](#step-4-implement-refresh_authentication-method)
+    - [Implementation Details](#implementation-details)
+    - [What NOT to Do](#what-not-to-do)
+    - [Optional Fields](#optional-fields)
   - [Step 5: Test Your Implementation](#step-5-test-your-implementation)
 - [Examples](#examples)
   - [Complete Provider Implementation](#complete-provider-implementation)
   - [Testing Token Rotation](#testing-token-rotation)
+    - [Test Scenarios to Cover](#test-scenarios-to-cover)
+    - [Example Test Structure](#example-test-structure)
 - [Verification](#verification)
   - [Check 1: Audit Log Verification](#check-1-audit-log-verification)
   - [Check 2: Token Refresh Flow](#check-2-token-refresh-flow)
@@ -103,7 +114,7 @@ Review the two token rotation strategies that providers may implement:
 
 **Token Rotation** is a security mechanism where an OAuth provider issues a new refresh token each time you use the old one to get a new access token. The old refresh token is immediately invalidated.
 
-### The Two Strategies
+#### The Two Strategies
 
 1. **No Rotation (Reusable Refresh Token)** - Most Common
    - The refresh token stays the same indefinitely
@@ -117,7 +128,7 @@ Review the two token rotation strategies that providers may implement:
    - The provider's response includes a NEW `refresh_token` field
    - **Example:** Some banking APIs, Plaid (optional)
 
-### Visual Example
+#### Visual Example
 
 **No Rotation Strategy (Most Common):**
 
@@ -169,14 +180,14 @@ Learn why token rotation is important for OAuth security:
 
 **Security Benefits of Token Rotation:**
 
-### Security Benefits
+#### Security Benefits
 
 1. **Limits Token Lifetime:** Even if a refresh token is stolen, it only works once
 2. **Detects Theft:** If someone else uses the token, your next request fails
 3. **Reduces Attack Window:** Stolen tokens have minimal value
 4. **Prevents Replay Attacks:** Old tokens can't be reused
 
-### Business Impact
+#### Business Impact
 
 - **No rotation:** Simpler implementation, but less secure
 - **With rotation:** More secure, but requires careful handling to avoid breaking user sessions
@@ -189,7 +200,7 @@ Understand how Dashtam handles rotation automatically:
 
 Dashtam uses a **universal rotation detection system** that works for ALL providers, regardless of whether they rotate tokens or not.
 
-### Architecture
+#### Architecture
 
 ```mermaid
 flowchart TD
@@ -224,7 +235,7 @@ flowchart TD
     end
 ```
 
-### Key Points
+#### Key Points
 
 1. ✅ **Providers** only return what the API sends (no defaults)
 2. ✅ **TokenService** automatically detects rotation
@@ -238,7 +249,7 @@ Implement the core method that handles token refresh:
 
 **Implementation Pattern:**
 
-### Step 1: Implement `refresh_authentication()` Method
+#### Implementation Details
 
 When implementing a new provider, follow this pattern:
 
@@ -285,7 +296,7 @@ async def refresh_authentication(self, refresh_token: str) -> Dict[str, Any]:
         return result
 ```
 
-### Step 2: What NOT to Do
+#### What NOT to Do
 
 **❌ WRONG - Never default to old token:**
 
@@ -313,7 +324,7 @@ if "refresh_token" in tokens:
 return result
 ```
 
-### Step 3: Optional Fields
+#### Optional Fields
 
 You can include these optional fields if the provider sends them:
 
@@ -385,7 +396,7 @@ class ExampleProvider(BaseProvider):
 
 Comprehensive test suite for token rotation scenarios:
 
-### Test Scenarios to Cover
+#### Test Scenarios to Cover
 
 When implementing a new provider, write tests for these scenarios:
 
@@ -395,7 +406,7 @@ When implementing a new provider, write tests for these scenarios:
 4. **Multiple refreshes in sequence**
 5. **Rotation persistence** (survives database commits)
 
-### Example Test Structure
+#### Example Test Structure
 
 ```python
 @pytest.mark.asyncio

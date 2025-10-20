@@ -30,9 +30,10 @@ Complete guide to setting up and understanding the database schema for JWT authe
   - [Issue 2: Slow Token Validation Queries](#issue-2-slow-token-validation-queries)
   - [Issue 3: Timezone Issues with Timestamps](#issue-3-timezone-issues-with-timestamps)
 - [Best Practices](#best-practices)
-- [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
 - [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -576,7 +577,7 @@ ALTER TABLE users
 - ✅ **Track device info:** Helps users identify suspicious sessions
 - ✅ **Soft deletes for users:** Set `deleted_at` instead of hard delete (audit trail)
 
-## Common Mistakes to Avoid
+### Common Mistakes to Avoid
 
 - ❌ **Storing plain tokens:** Always hash tokens before storage (use bcrypt)
 - ❌ **Using TIMESTAMP instead of TIMESTAMPTZ:** Causes timezone bugs and compliance issues
@@ -605,8 +606,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-19  
-**Last Updated:** 2025-10-19  
-**Difficulty Level:** Intermediate  
-**Estimated Time:** 45 minutes
+**Template:** [guide-template.md](../../templates/guide-template.md)
+**Created:** 2025-10-19
+**Last Updated:** 2025-10-19

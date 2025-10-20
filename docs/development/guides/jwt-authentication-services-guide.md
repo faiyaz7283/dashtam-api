@@ -50,9 +50,10 @@ Complete guide to implementing and understanding the authentication services lay
   - [Issue 3: Email Sending Fails](#issue-3-email-sending-fails)
   - [Issue 4: Account Lockout Not Working](#issue-4-account-lockout-not-working)
 - [Best Practices](#best-practices)
-- [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
 - [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -1551,7 +1552,7 @@ if user.account_locked_until and user.account_locked_until > datetime.now(timezo
 - ✅ **Email enumeration prevention:** Don't reveal if email exists in password reset
 - ✅ **Account lockout:** Protect against brute force attacks
 
-## Common Mistakes to Avoid
+### Common Mistakes to Avoid
 
 - ❌ **Storing plain tokens:** Always hash tokens before database storage
 - ❌ **Using naive datetimes:** Always use timezone-aware datetimes
@@ -1584,8 +1585,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-19  
-**Last Updated:** 2025-10-19  
-**Difficulty Level:** Intermediate  
-**Estimated Time:** 90 minutes
+**Template:** [guide-template.md](../../templates/guide-template.md)
+**Created:** 2025-10-19
+**Last Updated:** 2025-10-19

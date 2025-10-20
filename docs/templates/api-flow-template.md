@@ -9,11 +9,6 @@
 - [Purpose](#purpose)
 - [Prerequisites](#prerequisites)
 - [Steps](#steps)
-  - [1) Step title](#1-step-title)
-  - [2) Step title](#2-step-title)
-- [Next Step (optional)](#next-step)
-- [Cleanup (optional)](#cleanup-optional)
-- [Development: Token Extraction (if applicable)](#development-token-extraction)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
 - [Document Information](#document-information)
@@ -74,34 +69,9 @@ Expected (snippet):
 # command here
 ```
 
-## Next Step
-
-✅ **Continue to:** [Next Flow Name](next-flow.md) - Brief description of what comes next.
-
-(Note: This section is optional - include only if there's a clear next step in a multi-flow sequence)
-
 ## Cleanup (optional)
 
 - Commands to revert or remove test data
-
-## Development: Token Extraction
-
-**For flows requiring email-based tokens (verification, password reset):**
-
-In development mode (`DEBUG=True`), emails are logged to console instead of being sent. Extract tokens from logs:
-
-```bash
-# View recent email logs
-docker logs dashtam-dev-app --tail 100 2>&1 | grep -A 20 '📧 EMAIL'
-
-# Look for the token in the URL:
-# https://localhost:3000/verify-email?token=YOUR_TOKEN_HERE
-
-# Extract and set the token
-export VERIFICATION_TOKEN="<token-from-logs>"
-```
-
-**Why this works**: The `EmailService` automatically operates in development mode when `DEBUG=True`, logging all emails with full content including verification/reset tokens.
 
 ## Troubleshooting
 
@@ -123,8 +93,6 @@ export VERIFICATION_TOKEN="<token-from-logs>"
 
 ## Document Information
 
-**Category:** API Flow
+**Template:** [api-flow-template.md](api-flow-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**API Version:** v1
-**Environment:** Development (HTTPS with self-signed TLS)

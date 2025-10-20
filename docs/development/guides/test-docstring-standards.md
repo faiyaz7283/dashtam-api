@@ -32,6 +32,7 @@ Comprehensive guide for writing Google-style docstrings in test files, following
   - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
 - [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -639,8 +640,6 @@ After mastering test docstring standards, consider:
 
 ## Document Information
 
-**Category:** Guide
+**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-18
-**Difficulty Level:** Intermediate
-**Estimated Time:** 45 minutes

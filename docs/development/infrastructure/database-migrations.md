@@ -1026,8 +1026,6 @@ Before committing a migration:
 
 ## Document Information
 
-**Document Type:** Infrastructure Guide
+**Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
+**Created:** YYYY-MM-DD
 **Last Updated:** 2025-10-17
-**Template Version:** infrastructure-template.md v1.0
-**Migration Version:** `bce8c437167b` (Initial schema with timezone-aware datetimes)
-**Maintainer:** Development Team

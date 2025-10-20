@@ -575,8 +575,6 @@ If modular design proves problematic:
 
 ## Document Information
 
-**Category:** Research
+**Template:** [research-template.md](../templates/research-template.md)
 **Created:** 2025-10-07
 **Last Updated:** 2025-10-18
-**Decision Date:** 2025-10-07
-**Decision Maker(s):** Development Team

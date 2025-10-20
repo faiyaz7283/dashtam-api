@@ -7,55 +7,49 @@ Complete implementation plan for refactoring Docker and build infrastructure to 
 ## Table of Contents
 
 - [Overview](#overview)
+  - [What You'll Learn](#what-youll-learn)
   - [Key Features](#key-features)
-- [Purpose](#purpose)
-- [Components](#components)
-  - [Component 1: Multi-Stage Dockerfile](#component-1-multi-stage-dockerfile)
-  - [Component 2: Docker Compose Configuration](#component-2-docker-compose-configuration)
-  - [Component 3: Environment Configuration](#component-3-environment-configuration)
-- [Configuration](#configuration)
-  - [Environment Variables](#environment-variables)
-  - [Configuration Files](#configuration-files)
-  - [Ports and Services](#ports-and-services)
-- [Setup Instructions](#setup-instructions)
-  - [Prerequisites](#prerequisites)
-  - [Installation Steps](#installation-steps)
-    - [Step 1: Backup Current Configuration](#step-1-backup-current-configuration)
-    - [Step 2: Create Directory Structure](#step-2-create-directory-structure)
-    - [Step 3: Move Configuration Files](#step-3-move-configuration-files)
-    - [Step 4: Update Dockerfile](#step-4-update-dockerfile)
-    - [Step 5: Update Makefile](#step-5-update-makefile)
-- [Operation](#operation)
-  - [Starting the System](#starting-the-system)
-  - [Stopping the System](#stopping-the-system)
-  - [Restarting](#restarting)
-  - [Checking Status](#checking-status)
-- [Monitoring](#monitoring)
-  - [Health Checks](#health-checks)
-  - [Metrics to Monitor](#metrics-to-monitor)
-  - [Logs](#logs)
+  - [Components Overview](#components-overview)
+- [Prerequisites](#prerequisites)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+  - [Step 1: Backup Current Configuration](#step-1-backup-current-configuration)
+  - [Step 2: Create Directory Structure](#step-2-create-directory-structure)
+  - [Step 3: Move Configuration Files](#step-3-move-configuration-files)
+  - [Step 4: Update Dockerfile](#step-4-update-dockerfile)
+  - [Step 5: Update Makefile](#step-5-update-makefile)
+  - [Step 6: Configure Environment Variables](#step-6-configure-environment-variables)
+- [Examples](#examples)
+  - [Example 1: Starting the Development Environment](#example-1-starting-the-development-environment)
+  - [Example 2: Rebuilding After Changes](#example-2-rebuilding-after-changes)
+- [Verification](#verification)
+  - [Check 1: Verify Container User](#check-1-verify-container-user)
+  - [Check 2: Verify Health Status](#check-2-verify-health-status)
+  - [Check 3: Monitor Logs](#check-3-monitor-logs)
 - [Troubleshooting](#troubleshooting)
   - [Issue 1: Permission Denied Errors](#issue-1-permission-denied-errors)
   - [Issue 2: Environment Variables Not Loading](#issue-2-environment-variables-not-loading)
   - [Issue 3: Build Failures](#issue-3-build-failures)
-- [Maintenance](#maintenance)
-  - [Regular Tasks](#regular-tasks)
-  - [Backup Procedures](#backup-procedures)
-  - [Update Procedures](#update-procedures)
-- [Security](#security)
-  - [Security Considerations](#security-considerations)
-  - [Access Control](#access-control)
-  - [Network Security](#network-security)
-- [Performance Optimization](#performance-optimization)
-  - [Performance Tuning](#performance-tuning)
-  - [Resource Limits](#resource-limits)
+- [Best Practices](#best-practices)
+  - [Security Best Practices](#security-best-practices)
+  - [Performance Best Practices](#performance-best-practices)
+  - [Maintenance Best Practices](#maintenance-best-practices)
+- [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
 ## Overview
 
 This infrastructure refactoring addresses critical security, maintainability, and development workflow issues identified in the Docker and build system audit. The refactoring implements best practices for container security, dependency management, and development environment consistency.
+
+### What You'll Learn
+
+- How to implement non-root container execution for enhanced security
+- How to organize Docker files with modern UV package management
+- How to set up environment-specific configurations (dev, test, CI, production)
+- How to troubleshoot common Docker infrastructure issues
+- Best practices for secure and performant Docker deployments
 
 ### Key Features
 
@@ -65,7 +59,7 @@ This infrastructure refactoring addresses critical security, maintainability, an
 - **Environment isolation**: Dedicated configurations for dev, test, CI, and production
 - **Security hardening**: Proper file permissions and access controls
 
-## Purpose
+### Components Overview
 
 The Docker infrastructure refactoring solves several critical problems:
 
@@ -75,125 +69,36 @@ The Docker infrastructure refactoring solves several critical problems:
 - **Environment management**: Organizes configuration files for better maintainability
 - **Development experience**: Improves developer workflow and onboarding
 
-## Components
+**Architecture Components:**
 
-### Component 1: Multi-Stage Dockerfile
+1. **Multi-Stage Dockerfile** - Unified container definition supporting development, testing, and production
+2. **Docker Compose Configuration** - Environment-specific service orchestration
+3. **Environment Configuration** - Centralized environment variable management
 
-**Purpose:** Unified container definition supporting development, testing, and production environments
+## Prerequisites
 
-**Technology:** Docker multi-stage builds with UV package manager
-
-**Dependencies:**
-
-- ghcr.io/astral-sh/uv:0.8.22-python3.13-trixie-slim base image
-- Non-root appuser (UID 1000)
-- pyproject.toml and uv.lock files
-
-**Key Features:**
-
-- Base stage: Common setup for all environments
-- Development stage: Hot reload with full tooling
-- Builder stage: Production dependency installation
-- Production stage: Minimal runtime
-- Callback stage: OAuth callback handler
-
-### Component 2: Docker Compose Configuration
-
-**Purpose:** Environment-specific service orchestration
-
-**Technology:** Docker Compose with environment file integration
-
-**Dependencies:**
-
-- PostgreSQL 17.6 (database)
-- Redis 8.2.1 (cache)
-- Environment configuration files
-
-**Structure:**
-
-- `compose/docker-compose.dev.yml` - Development environment
-- `compose/docker-compose.test.yml` - Test environment  
-- `compose/docker-compose.ci.yml` - CI/CD environment
-- `compose/docker-compose.prod.yml` - Production template
-
-### Component 3: Environment Configuration
-
-**Purpose:** Centralized environment variable management
-
-**Technology:** Environment files with Docker Compose integration
-
-**Structure:**
-
-- `env/.env.dev` - Development settings (gitignored)
-- `env/.env.test` - Test settings (gitignored)
-- `env/.env.ci` - CI settings (committed, no secrets)
-- `env/.env.prod.example` - Production template
-
-## Configuration
-
-### Environment Variables
-
-```bash
-# Database Configuration
-POSTGRES_USER=dashtam_user
-POSTGRES_PASSWORD=your_password_here
-POSTGRES_DB=dashtam_db
-POSTGRES_PORT=5432
-
-# Redis Configuration
-REDIS_PORT=6379
-
-# Application Configuration
-APP_PORT=8000
-DEBUG=true
-```
-
-### Configuration Files
-
-**File:** `docker/Dockerfile`
-
-```dockerfile
-# Multi-stage Dockerfile with non-root user
-FROM ghcr.io/astral-sh/uv:0.8.22-python3.13-trixie-slim AS base
-# ... (see full implementation below)
-```
-
-**Purpose:** Unified container definition for all environments
-
-**File:** `compose/docker-compose.dev.yml`
-
-```yaml
-name: dashtam-dev
-services:
-  app:
-    env_file:
-      - ../env/.env.dev
-    # ... (see full configuration below)
-```
-
-**Purpose:** Development environment orchestration
-
-### Ports and Services
-
-| Service | Port | Protocol | Purpose |
-|---------|------|----------|---------|
-| FastAPI App | 8000 | HTTPS | Main application |
-| PostgreSQL | 5432 | TCP | Database |
-| Redis | 6379 | TCP | Cache and sessions |
-| OAuth Callback | 8182 | HTTPS | OAuth redirect handler |
-
-## Setup Instructions
-
-### Prerequisites
+Before starting, ensure you have:
 
 - [ ] Docker Desktop installed and running
 - [ ] Make utility available
 - [ ] Git repository with current codebase
 - [ ] Existing pyproject.toml and uv.lock files
 
-### Installation Steps
+**Required Tools:**
 
-#### Step 1: Backup Current Configuration
+- Docker Desktop - Latest version
+- Make - For project commands
+- UV 0.8.22+ - Python package manager
+
+**Required Knowledge:**
+
+- Familiarity with Docker and Docker Compose
+- Basic understanding of multi-stage builds
+- Understanding of environment variables
+
+## Step-by-Step Instructions
+
+### Step 1: Backup Current Configuration
 
 ```bash
 # Create backups of critical files
@@ -307,44 +212,67 @@ test-up:
     @docker compose -f compose/docker-compose.test.yml --env-file env/.env.test up -d
 ```
 
-## Operation
+### Step 6: Configure Environment Variables
 
-### Starting the System
+Create environment files for each environment with appropriate values:
 
 ```bash
-# Start development environment
+# Create development environment file
+cp env/.env.example env/.env.dev
+
+# Edit with development values
+vim env/.env.dev
+```
+
+**Required Variables:**
+
+```bash
+# Database Configuration
+POSTGRES_USER=dashtam_user
+POSTGRES_PASSWORD=your_password_here
+POSTGRES_DB=dashtam_db
+POSTGRES_PORT=5432
+
+# Redis Configuration
+REDIS_PORT=6379
+
+# Application Configuration
+APP_PORT=8000
+DEBUG=true
+```
+
+**Service Ports:**
+
+| Service | Port | Protocol | Purpose |
+|---------|------|----------|---------|
+| FastAPI App | 8000 | HTTPS | Main application |
+| PostgreSQL | 5432 | TCP | Database |
+| Redis | 6379 | TCP | Cache and sessions |
+| OAuth Callback | 8182 | HTTPS | OAuth redirect handler |
+
+**What This Does:** Sets up environment-specific configuration for each deployment environment.
+
+## Examples
+
+### Example 1: Starting the Development Environment
+
+Complete workflow for starting and managing the development environment:
+
+```bash
+# 1. Start all services
 make dev-up
 
-# Or directly with docker compose
-docker compose -f compose/docker-compose.dev.yml up -d
-```
-
-### Stopping the System
-
-```bash
-# Stop development environment
-make dev-down
-
-# Or directly with docker compose
-docker compose -f compose/docker-compose.dev.yml down
-```
-
-### Restarting
-
-```bash
-# Restart development environment
-make dev-restart
-```
-
-### Checking Status
-
-```bash
-# Check service status
+# 2. Check service status
 make dev-status
 
-# Or directly check
-docker compose -f compose/docker-compose.dev.yml ps
+# 3. View logs
+make dev-logs
+
+# 4. Stop services when done
+make dev-down
 ```
+
+**Result:** Development environment running with all services healthy.
 
 **Expected Output:**
 
@@ -354,38 +282,67 @@ dashtam-dev-app        dashtam-dev-app      "sh -c 'uv run alemb…"   app      
 dashtam-dev-postgres   postgres:17.6        "docker-entrypoint.s…"   postgres            About a minute ago   Up About a minute (healthy)   0.0.0.0:5432->5432/tcp
 ```
 
-## Monitoring
+### Example 2: Rebuilding After Changes
 
-### Health Checks
+When you make changes to Dockerfile or dependencies:
+
+```bash
+# 1. Stop current environment
+make dev-down
+
+# 2. Rebuild with no cache
+make dev-rebuild
+
+# 3. Start with fresh build
+make dev-up
+
+# 4. Verify build success
+make dev-status
+```
+
+**Result:** Fresh Docker images with latest changes applied.
+
+## Verification
+
+### Check 1: Verify Container User
+
+```bash
+# Check container user
+docker compose -f compose/docker-compose.dev.yml exec app whoami
+```
+
+**Expected Result:** Should output `appuser` (never root)
+
+### Check 2: Verify Health Status
 
 ```bash
 # Check application health
 curl -k https://localhost:8000/health
 
-# Check container health
-docker compose -f compose/docker-compose.dev.yml exec app whoami
+# Check all service health
+docker compose -f compose/docker-compose.dev.yml ps
 ```
 
-### Metrics to Monitor
+**Expected Result:** All services show "healthy" status
 
-- **Container user**: Should always be "appuser" (never root)
-- **File ownership**: All files should be owned by appuser:appuser
-- **Build performance**: Leverages layer caching for faster builds
-- **Memory usage**: Production containers use minimal resources
+**Metrics to Verify:**
 
-### Logs
+- Container user is "appuser" (non-root)
+- All files owned by appuser:appuser
+- Services respond to health checks
+- No permission errors in logs
 
-**Location:** Docker container logs
-
-**Viewing Logs:**
+### Check 3: Monitor Logs
 
 ```bash
 # View application logs
 docker compose -f compose/docker-compose.dev.yml logs app
 
 # Follow logs in real-time
-docker compose -f compose/docker-compose.dev.yml logs -f app
+make dev-logs
 ```
+
+**Expected Result:** No errors, successful startup messages, no permission denied errors
 
 ## Troubleshooting
 
@@ -471,64 +428,58 @@ uv lock
 docker compose -f compose/docker-compose.dev.yml build --no-cache
 ```
 
-## Maintenance
+## Best Practices
 
-### Regular Tasks
+### Security Best Practices
 
-- **Daily:** Check container health and logs
-- **Weekly:** Update base images and dependencies  
-- **Monthly:** Review and optimize Docker layer caching
+✅ **Non-root Execution**
 
-### Backup Procedures
+- Always run containers as non-root user (appuser, UID 1000)
+- Prevents privilege escalation attacks
+- Maintains file permission consistency
 
-```bash
-# Backup critical files before changes
-cp pyproject.toml pyproject.toml.backup
-cp uv.lock uv.lock.backup
-cp -r compose compose.backup
-```
+✅ **Secret Management**
 
-### Update Procedures
+- Never commit environment files to version control
+- Use `.gitignore` for all `.env.*` files (except `.example`)
+- Rotate secrets regularly in production
 
-```bash
-# Update UV version in Dockerfile
-# Update base image versions
-# Rebuild all environments
-make dev-rebuild
-make test-rebuild
-```
+✅ **Minimal Attack Surface**
 
-## Security
+- Production images contain only required dependencies
+- Use multi-stage builds to exclude development tools
+- Regularly update base images for security patches
 
-### Security Considerations
+✅ **Network Isolation**
 
-- **Non-root execution**: All containers run as appuser (UID 1000) to prevent privilege escalation
-- **Minimal attack surface**: Production images contain only required dependencies
-- **Secret management**: Environment files are gitignored and never committed
-- **Network isolation**: Services communicate through dedicated Docker networks
-
-### Access Control
-
-All containers enforce non-root user execution. File permissions are managed through proper ownership (appuser:appuser) and Docker volume mounts.
-
-### Network Security
-
-- Services isolated in dedicated Docker networks
+- Services communicate through dedicated Docker networks
 - HTTPS enforced with SSL certificates
-- Internal service communication through service names
+- Internal service communication uses service names (not IPs)
 
-## Performance Optimization
+### Performance Best Practices
 
-### Performance Tuning
+✅ **Layer Caching Optimization**
 
-- **Layer caching**: Optimized Dockerfile layer ordering for maximum cache hits
-- **Multi-stage builds**: Separate build and runtime stages to minimize image size
-- **Lockfile builds**: UV uses frozen lockfile for fast, reproducible builds
+- Copy dependency files (`pyproject.toml`, `uv.lock`) before source code
+- Maximize cache hits during rebuilds
+- Order Dockerfile instructions from least to most frequently changing
 
-### Resource Limits
+✅ **Multi-Stage Builds**
+
+- Separate build and runtime stages
+- Minimize production image size
+- Exclude development dependencies from production
+
+✅ **Lockfile Builds**
+
+- Use `uv sync --frozen` for deterministic builds
+- Ensures reproducible environments across machines
+- Fast, cached dependency installation
+
+✅ **Resource Limits**
 
 ```yaml
-# Example resource limits for production
+# Production resource limits
 services:
   app:
     deploy:
@@ -541,6 +492,57 @@ services:
           memory: 2G
 ```
 
+### Maintenance Best Practices
+
+✅ **Regular Maintenance Schedule**
+
+- **Daily**: Check container health and logs
+- **Weekly**: Update base images and dependencies
+- **Monthly**: Review and optimize Docker layer caching
+- **Quarterly**: Audit security configurations
+
+✅ **Backup Procedures**
+
+```bash
+# Always backup before major changes
+cp pyproject.toml pyproject.toml.backup
+cp uv.lock uv.lock.backup
+cp -r compose compose.backup
+```
+
+✅ **Update Workflow**
+
+```bash
+# 1. Update UV version in Dockerfile
+# 2. Update base image versions
+# 3. Test in development first
+make dev-rebuild
+make test
+
+# 4. Then update other environments
+make test-rebuild
+```
+
+✅ **File Ownership**
+
+- All files should be owned by `appuser:appuser`
+- Fix permissions if needed: `chown -R appuser:appuser /app`
+- Verify with: `ls -la` inside container
+
+## Next Steps
+
+After completing the Docker infrastructure refactoring, consider these next steps:
+
+- [ ] **Set up CI/CD integration** - Configure GitHub Actions to use the new Docker structure
+- [ ] **Implement production deployment** - Use `docker-compose.prod.yml` as template for production
+- [ ] **Configure monitoring** - Add Prometheus/Grafana for production monitoring
+- [ ] **Set up log aggregation** - Implement centralized logging (ELK stack or CloudWatch)
+- [ ] **Document team workflows** - Create runbooks for common operations
+- [ ] **Test disaster recovery** - Verify backup and restore procedures work correctly
+- [ ] **Optimize for production** - Fine-tune resource limits based on actual usage patterns
+- [ ] **Security audit** - Perform comprehensive security review of Docker configuration
+- [ ] **Add health monitoring** - Implement comprehensive health checks for all services
+
 ## References
 
 - [Docker Multi-Stage Builds](https://docs.docker.com/develop/dev-best-practices/)
@@ -552,9 +554,6 @@ services:
 
 ## Document Information
 
-**Category:** Infrastructure
+**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-15
-**Component Type:** Docker, Container orchestration, Build system
-
-**Maintainer:** Dashtam Development Team

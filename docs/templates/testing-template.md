@@ -17,6 +17,7 @@
 - [Common Patterns](#common-patterns)
 - [Troubleshooting](#troubleshooting)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -346,8 +347,6 @@ Check `pytest.ini` or `.coveragerc` configuration
 
 ## Document Information
 
-**Category:** Testing
+**Template:** [testing-template.md](testing-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Test Framework:** pytest
-**Coverage Tool:** pytest-cov

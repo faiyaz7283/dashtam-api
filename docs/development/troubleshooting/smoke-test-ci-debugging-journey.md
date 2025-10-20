@@ -595,9 +595,6 @@ def assert_db_state(session, expected_users=1, expected_tokens=0):
 
 ## Document Information
 
-**Category:** Troubleshooting
+**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
 **Created:** 2025-10-06
 **Last Updated:** 2025-10-18
-**Environment:** CI/CD pipeline, test containers
-**Components Affected:** Smoke test suite, pytest fixtures, SQLAlchemy session management
-**Related PRs:** N/A (implemented directly)

@@ -44,9 +44,10 @@ Complete guide to implementing and using the authentication API endpoints in Das
   - [Issue 3: CORS Errors in Browser](#issue-3-cors-errors-in-browser)
   - [Issue 4: Slow Response Times](#issue-4-slow-response-times)
 - [Best Practices](#best-practices)
-- [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
 - [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -1343,7 +1344,7 @@ class PasswordService:
 - ✅ **Track IP and user agent**: Useful for security monitoring
 - ✅ **Test all endpoints**: Manual curl tests + automated pytest
 
-## Common Mistakes to Avoid
+### Common Mistakes to Avoid
 
 - ❌ **Missing Content-Type header**: Always use `Content-Type: application/json`
 - ❌ **Returning 500 for validation errors**: Use 400 or 422 instead
@@ -1377,8 +1378,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-19  
-**Last Updated:** 2025-10-19  
-**Difficulty Level:** Intermediate  
-**Estimated Time:** 90 minutes
+**Template:** [guide-template.md](../../templates/guide-template.md)
+**Created:** 2025-10-19
+**Last Updated:** 2025-10-19

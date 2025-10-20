@@ -8,7 +8,7 @@ End-to-end smoke test covering the complete authentication lifecycle from regist
 
 - [Purpose](#purpose)
 - [Prerequisites](#prerequisites)
-- [Complete Flow Steps](#complete-flow-steps)
+- [Steps](#steps)
   - [Step 1: User Registration](#step-1-user-registration)
   - [Step 2: Email Verification](#step-2-email-verification)
   - [Step 3: Login](#step-3-login)
@@ -18,7 +18,6 @@ End-to-end smoke test covering the complete authentication lifecycle from regist
   - [Step 7: Password Reset Request](#step-7-password-reset-request)
   - [Step 8: Password Reset Confirmation](#step-8-password-reset-confirmation)
   - [Step 9: Logout (Refresh Token Revocation)](#step-9-logout-refresh-token-revocation)
-- [Smoke Test Summary](#smoke-test-summary)
 - [Troubleshooting](#troubleshooting)
   - [Registration fails with 409 Conflict](#registration-fails-with-409-conflict)
   - [Cannot extract token from logs](#cannot-extract-token-from-logs)
@@ -26,10 +25,10 @@ End-to-end smoke test covering the complete authentication lifecycle from regist
   - [Refresh token still works after logout](#refresh-token-still-works-after-logout)
   - [Access token rejected after logout](#access-token-rejected-after-logout)
   - [SSL certificate errors](#ssl-certificate-errors)
-- [Cleanup (Optional)](#cleanup-optional)
 - [Related Flows](#related-flows)
-- [Notes](#notes)
 - [Document Information](#document-information)
+
+---
 
 ## Purpose
 
@@ -50,7 +49,7 @@ Run a full authentication lifecycle smoke test from registration through logout.
   export FRONTEND_URL="https://localhost:3000"
   ```
 
-## Complete Flow Steps
+## Steps
 
 ### Step 1: User Registration
 
@@ -332,32 +331,7 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" \
 
 See: [JWT Authentication - Logout Behavior](../../development/architecture/jwt-authentication.md#flow-5-logout)
 
-## Smoke Test Summary
-
-**Endpoints Tested:**
-
-1. ✅ `POST /api/v1/auth/register` - User registration
-2. ✅ `POST /api/v1/auth/verify-email` - Email verification
-3. ✅ `POST /api/v1/auth/login` - User login
-4. ✅ `GET /api/v1/auth/me` - Get user profile
-5. ✅ `PATCH /api/v1/auth/me` - Update user profile
-6. ✅ `POST /api/v1/auth/refresh` - Token refresh
-7. ✅ `POST /api/v1/auth/password-resets` - Request password reset
-8. ✅ `GET /api/v1/password-resets/{token}` - Verify reset token
-9. ✅ `POST /api/v1/password-resets/{token}/confirm` - Confirm password reset
-10. ✅ `POST /api/v1/auth/logout` - Logout and revoke refresh token
-
-**Features Verified:**
-
-- ✅ User registration with validation
-- ✅ Email verification with token extraction from logs
-- ✅ JWT authentication (access + refresh tokens)
-- ✅ Token refresh (access token rotation, refresh stays same)
-- ✅ Password reset flow with token
-- ✅ **🔒 Password reset session revocation** (security enhancement)
-- ✅ Profile management (GET/PATCH)
-- ✅ Token revocation (logout behavior)
-- ✅ Stateless JWT pattern (access tokens valid after logout)
+**✅ Smoke Test Complete!** This flow tested 10 endpoints and verified: user registration, email verification, JWT authentication, token refresh, password reset with session revocation, profile management, and logout behavior. All major auth components are operational.
 
 ## Troubleshooting
 
@@ -435,16 +409,6 @@ docker logs dashtam-dev-app --tail 50 | grep -i "auth"
 curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 ```
 
-## Cleanup (Optional)
-
-**To remove test user** (when admin endpoints available):
-
-```bash
-# Future: DELETE /api/v1/admin/users/{id}
-```
-
-**For now:** Test users remain in database. Use unique emails for each smoke test run.
-
 ## Related Flows
 
 - [Registration](registration.md) - Detailed registration flow
@@ -453,21 +417,12 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 - [Password Reset](password-reset.md) - Password reset details
 - [JWT Authentication Architecture](../../development/architecture/jwt-authentication.md) - Complete auth design
 
-## Notes
-
-- **Development Mode:** Emails logged to console (no AWS SES needed)
-- **Token Extraction:** All email tokens available in Docker logs
-- **Logout Behavior:** Only refresh tokens revoked immediately (JWT Pattern A)
-- **🔒 Password Reset Security:** All sessions automatically logged out (Test 13 verifies this)
-- **Test Isolation:** Use unique email per test run to avoid conflicts
-- **Expected Duration:** ~2-3 minutes for complete smoke test
+**Notes:** Emails are logged to console in development mode (no AWS SES needed). All email tokens are available in Docker logs. Use unique email per test run to avoid conflicts. Test users remain in database (no delete endpoint yet).
 
 ---
 
 ## Document Information
 
-**Category:** API Flow  
-**Created:** 2025-10-15  
-**Last Updated:** 2025-10-15  
-**API Version:** v1  
-**Environment:** Development (HTTPS with self-signed TLS)
+**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15

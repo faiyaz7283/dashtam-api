@@ -42,6 +42,7 @@ Architectural decision record documenting the choice of synchronous testing with
   - [If Async Testing Becomes Necessary](#if-async-testing-becomes-necessary)
   - [Potential Scenarios](#potential-scenarios)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -498,7 +499,6 @@ Should we need to test async code paths directly in the future:
 
 ## Document Information
 
-**Category:** Architecture
+**Template:** [architecture-template.md](../../templates/architecture-template.md)
 **Created:** 2025-09-20
 **Last Updated:** 2025-10-18
-**Applies To:** All test code (unit, integration, API tests)

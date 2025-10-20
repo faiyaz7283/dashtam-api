@@ -380,13 +380,6 @@ def test_testclient_can_access_api(client: TestClient):
 
 ## Document Information
 
-**Category:** Troubleshooting
+**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
 **Created:** 2025-10-02
 **Last Updated:** 2025-10-17
-**Status:** ✅ RESOLVED (TrustedHostMiddleware configuration fixed)
-**Environment:** CI/CD
-**Components Affected:** FastAPI TrustedHostMiddleware, TestClient, docker-compose.ci.yml
-**Resolution:** Added "testserver" to allowed_hosts configuration
-**Related Docs:** [CI/CD Documentation](../infrastructure/ci-cd.md), [Testing Guide](../testing/guide.md)
-
-Result: Complete resolution with improved understanding and documentation

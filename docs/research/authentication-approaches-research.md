@@ -1258,9 +1258,6 @@ uv add py-webauthn  # WebAuthn/FIDO2 implementation
 
 ## Document Information
 
-**Category:** Research
+**Template:** [research-template.md](../templates/research-template.md)
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-17
-**Decision Date:** 2025-10-05
-**Decision Maker(s):** Dashtam Engineering Team
-**Status:** Decision Made - JWT + Refresh Token (Phase 1 implementation in progress)

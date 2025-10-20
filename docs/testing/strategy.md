@@ -618,8 +618,6 @@ source = ["src"]
 
 ## Document Information
 
-Category: Testing
-Created: 2025-09-20
-Last Updated: 2025-10-18
-Test Framework: pytest
-Coverage Tool: pytest-cov
+**Template:** [testing-template.md](../templates/testing-template.md)
+**Created:** YYYY-MM-DD
+**Last Updated:** YYYY-MM-DD

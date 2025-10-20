@@ -1,5 +1,9 @@
 # Dashtam Application Architecture Guide
 
+Comprehensive guide to Dashtam's dual-environment architecture, explaining how development and testing environments coexist with complete isolation while sharing Docker containers efficiently.
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -36,10 +40,6 @@
     - [Issue: Environment variables not loading in tests](#issue-environment-variables-not-loading-in-tests)
     - [Issue: Tables not created in test database](#issue-tables-not-created-in-test-database)
     - [Issue: Can't run dev and tests simultaneously](#issue-cant-run-dev-and-tests-simultaneously)
-- [Testing Strategy](#testing-strategy)
-  - [How This Architecture Enables Testing](#how-this-architecture-enables-testing)
-  - [Test Environment Features](#test-environment-features)
-  - [Test Types Supported](#test-types-supported)
 - [Security Considerations](#security-considerations)
   - [Environment Isolation](#environment-isolation)
   - [Configuration Security](#configuration-security)
@@ -48,6 +48,10 @@
   - [Docker Overhead](#docker-overhead)
   - [Database Performance](#database-performance)
   - [Optimization Strategies](#optimization-strategies)
+- [Testing Strategy](#testing-strategy)
+  - [How This Architecture Enables Testing](#how-this-architecture-enables-testing)
+  - [Test Environment Features](#test-environment-features)
+  - [Test Types Supported](#test-types-supported)
 - [Future Enhancements](#future-enhancements)
   - [Planned Improvements](#planned-improvements)
   - [Known Limitations](#known-limitations)
@@ -69,8 +73,6 @@ Dashtam uses a **dual-environment architecture** with complete isolation between
 3. **Configuration Overlay Pattern** - Base configuration with environment-specific overrides
 4. **Idempotent Initialization** - Database setup scripts safe to run multiple times
 5. **Clean Test State** - Test environment always starts with fresh data
-
----
 
 ## Context
 
@@ -100,8 +102,6 @@ Dashtam's application architecture operates within a containerized development e
 4. **Easy Switching**: Seamless transitions between development and testing
 5. **Minimal Complexity**: Simple commands for common workflows
 
----
-
 ## Architecture Goals
 
 1. **Complete Isolation** - Separate databases, users, and configurations prevent cross-contamination between environments
@@ -112,8 +112,6 @@ Dashtam's application architecture operates within a containerized development e
 6. **Resource Efficiency** - Share containers where safe, minimize duplication
 7. **Debugging Support** - Easy access to logs, databases, and running processes
 8. **Flexibility** - Support both isolated and overlapping environment workflows
-
----
 
 ## Design Decisions
 
@@ -161,8 +159,6 @@ Dashtam's application architecture operates within a containerized development e
 
 **Key Overrides**: App command (`sleep infinity`), environment variables (`.env.test`), database credentials.
 
----
-
 ## Components
 
 ### Development Environment
@@ -206,8 +202,6 @@ Dashtam's application architecture operates within a containerized development e
 - Clean database state for each test run
 
 **Startup Command:** `make test-setup`
-
----
 
 ## Implementation Details
 
@@ -541,7 +535,45 @@ make up             # Fresh start
 
 **Solution:** By design. Use `make test-clean` then `make up` to switch back to dev.
 
----
+## Security Considerations
+
+### Environment Isolation
+
+- **Separate Credentials**: Development and test environments use different database users and passwords
+- **No Shared State**: Complete isolation prevents test data leaking into development
+- **SSL in Development**: HTTPS enforced even in local dev for production parity
+
+### Configuration Security
+
+- **Environment Variables**: Sensitive credentials stored in `.env` files (gitignored)
+- **No Hardcoded Secrets**: All secrets loaded from environment, never committed to code
+- **Test Credentials**: Test environment uses mock/test credentials, not real API keys
+
+### Database Security
+
+- **Principle of Least Privilege**: Each environment user has only necessary permissions
+- **Test Safety Checks**: `init_test_db.py` verifies test environment before dropping tables
+- **Volume Isolation**: Test database uses non-persistent volumes, dev uses persistent volumes
+
+## Performance Considerations
+
+### Docker Overhead
+
+- **Shared Containers**: Development and test share same PostgreSQL instance to reduce resource usage
+- **Hot Reload**: Development container uses volume mounts for instant code reload without rebuild
+- **Layer Caching**: Docker builds leverage layer caching for fast image rebuilds
+
+### Database Performance
+
+- **Development**: Full ACID compliance with fsync enabled for data safety
+- **Testing**: Optimized for speed with `synchronous_commit=OFF` and reduced durability
+- **Connection Pooling**: SQLAlchemy async engine with connection pooling for efficiency
+
+### Optimization Strategies
+
+- **Selective Container Startup**: Only start containers needed for current task
+- **Volume Reuse**: Development data persists in volumes, avoiding re-initialization
+- **Parallel Execution**: Test database optimizations enable faster test suite execution
 
 ## Testing Strategy
 
@@ -565,52 +597,6 @@ make up             # Fresh start
 - **Integration Tests**: Database and service integration validation
 - **API Tests**: End-to-end endpoint testing with FastAPI TestClient
 
----
-
-## Security Considerations
-
-### Environment Isolation
-
-- **Separate Credentials**: Development and test environments use different database users and passwords
-- **No Shared State**: Complete isolation prevents test data leaking into development
-- **SSL in Development**: HTTPS enforced even in local dev for production parity
-
-### Configuration Security
-
-- **Environment Variables**: Sensitive credentials stored in `.env` files (gitignored)
-- **No Hardcoded Secrets**: All secrets loaded from environment, never committed to code
-- **Test Credentials**: Test environment uses mock/test credentials, not real API keys
-
-### Database Security
-
-- **Principle of Least Privilege**: Each environment user has only necessary permissions
-- **Test Safety Checks**: `init_test_db.py` verifies test environment before dropping tables
-- **Volume Isolation**: Test database uses non-persistent volumes, dev uses persistent volumes
-
----
-
-## Performance Considerations
-
-### Docker Overhead
-
-- **Shared Containers**: Development and test share same PostgreSQL instance to reduce resource usage
-- **Hot Reload**: Development container uses volume mounts for instant code reload without rebuild
-- **Layer Caching**: Docker builds leverage layer caching for fast image rebuilds
-
-### Database Performance
-
-- **Development**: Full ACID compliance with fsync enabled for data safety
-- **Testing**: Optimized for speed with `synchronous_commit=OFF` and reduced durability
-- **Connection Pooling**: SQLAlchemy async engine with connection pooling for efficiency
-
-### Optimization Strategies
-
-- **Selective Container Startup**: Only start containers needed for current task
-- **Volume Reuse**: Development data persists in volumes, avoiding re-initialization
-- **Parallel Execution**: Test database optimizations enable faster test suite execution
-
----
-
 ## Future Enhancements
 
 ### Planned Improvements
@@ -627,8 +613,6 @@ make up             # Fresh start
 - **Manual Test Cleanup**: Requires explicit `make test-clean` to remove test environment
 - **Single Database Instance**: PostgreSQL instance shared between environments (resource efficiency trade-off)
 - **Self-Signed Certificates**: Development SSL uses self-signed certs (browser warnings expected)
-
----
 
 ## References
 
@@ -672,7 +656,6 @@ make up             # Fresh start
 
 ## Document Information
 
-**Category:** Architecture  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-17  
-**Applies To:** All Dashtam development and testing workflows
+**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-17

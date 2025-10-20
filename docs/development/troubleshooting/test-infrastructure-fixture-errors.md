@@ -461,11 +461,6 @@ Verified that all existing functionality remained intact:
 
 ## Document Information
 
-**Category:** Troubleshooting
+**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
 **Created:** 2025-10-02
 **Last Updated:** 2025-10-17
-**Status:** ✅ RESOLVED (Fixture added, async tests archived)
-**Environment:** CI/CD, pytest
-**Components Affected:** tests/conftest.py, 5 async test files, pytest.ini
-**Resolution:** Added test_settings fixture registration, archived unmigrated async tests to separate directory
-**Related Docs:** [Testing Strategy](../testing/strategy.md), [Testing Migration](../testing/migration.md)

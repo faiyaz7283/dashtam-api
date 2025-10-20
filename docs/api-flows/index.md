@@ -1,32 +1,12 @@
 # API Flows (Manual Testing)
 
-## Table of Contents
-
-- [📚 Contents](#-contents)
-- [🗺️ Directory Structure](#️-directory-structure)
-- [Development: Email Token Extraction](#development-email-token-extraction)
-- [Expected HTTP Status Codes](#expected-http-status-codes)
-- [Important: Logout Behavior](#important-logout-behavior)
-- [📝 Documents](#-documents)
-  - [Authentication Flows](#authentication-flows)
-  - [Provider Flows](#provider-flows)
-- [🔗 Quick Links](#-quick-links)
-- [🗺️ Navigation](#️-navigation)
-- [📝 Contributing](#-contributing)
-  - [Flow Creation Guidelines](#flow-creation-guidelines)
-- [Document Information](#document-information)
-
 This section provides end-to-end, HTTPS-first guides for manually testing real user flows against the development environment (TLS-enabled), mirroring production usage as closely as possible.
-
----
 
 ## 📚 Contents
 
 Comprehensive manual testing flows for the Dashtam API, organized by domain and user journey. All flows use HTTPS with self-signed certificates for development environment testing.
 
----
-
-## 🗺️ Directory Structure
+## 🗂️ Directory Structure
 
 ```bash
 api-flows/
@@ -123,8 +103,6 @@ This is **correct behavior** for stateless JWT architecture (Pattern A - industr
 
 **See**: [JWT Authentication - Logout Behavior](../development/architecture/jwt-authentication.md#flow-5-logout) for detailed explanation.
 
----
-
 ## 📝 Documents
 
 ### Authentication Flows
@@ -144,7 +122,6 @@ Financial provider integration workflows:
 - [Provider Onboarding](providers/provider-onboarding.md) - OAuth setup and connection
 - [Provider Token Refresh](providers/provider-refresh.md) - Token refresh and rotation
 
----
 
 ## 🔗 Quick Links
 
@@ -161,7 +138,6 @@ Financial provider integration workflows:
 - [HTTP Status Codes](https://httpstatuses.com/) - Status code reference
 - [JWT.io](https://jwt.io/) - JWT token decoder
 
----
 
 ## 🗺️ Navigation
 
@@ -171,9 +147,8 @@ Financial provider integration workflows:
 
 - [Development Documentation](../development/index.md)
 - [Templates](../templates/README.md)
-- [Testing Guides](../development/testing/)
+- [Testing](../testing/)
 
----
 
 ## 📝 Contributing
 
@@ -199,8 +174,6 @@ When adding new API flow documents:
 
 ## Document Information
 
-**Category:** Index/Navigation
+**Template:** [index-template.md](../templates/index-template.md)
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-15
-**Maintainer:** Development Team
-**Scope:** API manual testing flows index

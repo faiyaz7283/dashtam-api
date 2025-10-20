@@ -592,9 +592,6 @@ fi
 
 ## Document Information
 
-**Category:** Troubleshooting
+**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
 **Created:** 2025-10-06
 **Last Updated:** 2025-10-18
-**Environment:** Test containers, CI/CD pipeline
-**Components Affected:** Smoke test suite, EmailService logging
-**Related PRs:** N/A (implemented directly in test refactoring)

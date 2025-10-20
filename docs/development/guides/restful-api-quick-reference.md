@@ -13,41 +13,21 @@ A comprehensive quick reference guide for developers building RESTful APIs follo
 - [Step-by-Step Instructions](#step-by-step-instructions)
   - [Step 1: Choose Correct HTTP Method](#step-1-choose-correct-http-method)
   - [Step 2: Select Appropriate Status Codes](#step-2-select-appropriate-status-codes)
-    - [Success (2xx)](#success-2xx)
-    - [Client Errors (4xx)](#client-errors-4xx)
-    - [Server Errors (5xx)](#server-errors-5xx)
   - [Step 3: Design RESTful URLs](#step-3-design-restful-urls)
-    - [✅ Good](#-good)
-    - [❌ Bad](#-bad)
   - [Step 4: Implement Request/Response Schemas](#step-4-implement-requestresponse-schemas)
   - [Step 5: Add Authentication and Authorization](#step-5-add-authentication-and-authorization)
   - [Step 6: Handle Common Patterns](#step-6-handle-common-patterns)
+    - [Pattern 1: Resource Existence Check](#pattern-1-resource-existence-check)
+    - [Pattern 2: Duplicate Check](#pattern-2-duplicate-check)
+    - [Pattern 3: Pagination](#pattern-3-pagination)
+    - [Pattern 4: Filtering](#pattern-4-filtering)
+    - [Pattern 5: Sorting](#pattern-5-sorting)
+    - [Pattern 6: Query Parameter Conventions](#pattern-6-query-parameter-conventions)
 - [Examples](#examples)
-  - [Complete Endpoint Implementation](#complete-endpoint-implementation)
-- [Request/Response Schemas](#requestresponse-schemas)
-  - [Request Schema (POST/PATCH)](#request-schema-postpatch)
-  - [Response Schema](#response-schema)
-  - [Paginated Response](#paginated-response)
-  - [Error Response](#error-response)
-- [Common Patterns](#common-patterns)
-  - [Pattern 1: Resource Existence Check](#pattern-1-resource-existence-check)
-  - [Pattern 2: Authorization Check](#pattern-2-authorization-check)
-  - [Pattern 3: Duplicate Check](#pattern-3-duplicate-check)
-  - [Pattern 4: Pagination](#pattern-4-pagination)
-  - [Pattern 5: Filtering](#pattern-5-filtering)
-  - [Pattern 6: Sorting](#pattern-6-sorting)
-- [Query Parameter Conventions](#query-parameter-conventions)
-- [Error Handling Examples](#error-handling-examples)
-  - [Validation Error (422)](#validation-error-422)
-  - [Not Found (404)](#not-found-404)
-  - [Forbidden (403)](#forbidden-403)
-  - [Conflict (409)](#conflict-409)
-- [Authentication Pattern](#authentication-pattern)
-- [Naming Conventions](#naming-conventions)
-  - [Resources (URLs)](#resources-urls)
-  - [Fields (JSON)](#fields-json)
-  - [Booleans](#booleans)
-  - [Dates](#dates)
+  - [Example 1: Complete CRUD Endpoint Implementation](#example-1-complete-crud-endpoint-implementation)
+  - [Example 2: Comprehensive Test Suite](#example-2-comprehensive-test-suite)
+  - [Example 3: Error Handling](#example-3-error-handling)
+  - [Example 4: Naming Conventions](#example-4-naming-conventions)
 - [Verification](#verification)
   - [Check 1: HTTP Method and Status Code Verification](#check-1-http-method-and-status-code-verification)
   - [Check 2: Response Format Consistency](#check-2-response-format-consistency)
@@ -56,17 +36,17 @@ A comprehensive quick reference guide for developers building RESTful APIs follo
   - [Issue 1: Wrong Status Code Returned](#issue-1-wrong-status-code-returned)
   - [Issue 2: Inconsistent Response Format](#issue-2-inconsistent-response-format)
   - [Issue 3: Validation Errors Not Helpful](#issue-3-validation-errors-not-helpful)
+  - [Issue 4: Authorization Bypass](#issue-4-authorization-bypass)
 - [Best Practices](#best-practices)
+  - [API Design Principles](#api-design-principles)
+  - [Schema Design Patterns](#schema-design-patterns)
+  - [Security Best Practices](#security-best-practices)
+  - [Testing Best Practices](#testing-best-practices)
   - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-  - [Testing Template](#testing-template)
-- [Quick Checklist](#quick-checklist)
-- [Common Mistakes to Avoid](#common-mistakes-to-avoid-1)
-  - [❌ Mistake 1: Verbs in URLs](#-mistake-1-verbs-in-urls)
-  - [❌ Mistake 2: Wrong Status Codes](#-mistake-2-wrong-status-codes)
-  - [❌ Mistake 3: No Pagination](#-mistake-3-no-pagination)
-  - [❌ Mistake 4: Exposing Implementation Details](#-mistake-4-exposing-implementation-details)
-  - [❌ Mistake 5: Inconsistent Response Formats](#-mistake-5-inconsistent-response-formats)
+  - [Quick Checklist](#quick-checklist)
+- [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -120,25 +100,28 @@ Before using this guide, ensure you have:
 
 ### Step 1: Choose Correct HTTP Method
 
-Use this reference to select the appropriate HTTP method for your endpoint:
+Use this reference to select the appropriate HTTP method for your endpoint.
 
 **HTTP Methods Reference:**
 
 | Method | Purpose | Request Body | Response Body | Idempotent | Safe |
 |--------|---------|--------------|---------------|------------|------|
-| GET | Retrieve resource(s) | ❌ No | ✅ Yes | ✅ | ✅ |
-| POST | Create resource | ✅ Yes | ✅ Yes | ❌ | ❌ |
-| PUT | Replace resource | ✅ Yes | ✅ Yes | ✅ | ❌ |
-| PATCH | Update resource | ✅ Yes | ✅ Yes | ❌ | ❌ |
-| DELETE | Remove resource | ❌ No | Optional | ✅ | ❌ |
+| GET | Retrieve resource(s) | No | Yes | Yes | Yes |
+| POST | Create resource | Yes | Yes | No | No |
+| PUT | Replace resource | Yes | Yes | Yes | No |
+| PATCH | Update resource | Yes | Yes | No | No |
+| DELETE | Remove resource | No | Optional | Yes | No |
+
+**What This Means:**
+
+- **Idempotent:** Multiple identical requests have the same effect as a single request
+- **Safe:** Request does not modify server state (read-only)
 
 ### Step 2: Select Appropriate Status Codes
 
-Choose the correct HTTP status code based on the operation result:
+Choose the correct HTTP status code based on the operation result.
 
-**Status Code Reference:**
-
-### Success (2xx)
+**Success Status Codes (2xx):**
 
 ```python
 200  # OK - GET, PUT, PATCH success
@@ -147,7 +130,7 @@ Choose the correct HTTP status code based on the operation result:
 204  # No Content - DELETE success
 ```
 
-### Client Errors (4xx)
+**Client Error Status Codes (4xx):**
 
 ```python
 400  # Bad Request - Invalid data
@@ -159,7 +142,7 @@ Choose the correct HTTP status code based on the operation result:
 429  # Too Many Requests - Rate limit
 ```
 
-### Server Errors (5xx)
+**Server Error Status Codes (5xx):**
 
 ```python
 500  # Internal Server Error
@@ -168,11 +151,9 @@ Choose the correct HTTP status code based on the operation result:
 
 ### Step 3: Design RESTful URLs
 
-Follow these URL patterns for consistent, RESTful endpoint design:
+Follow these URL patterns for consistent, RESTful endpoint design.
 
-**URL Design Patterns:**
-
-### ✅ Good
+**Good URL Patterns:**
 
 ```text
 GET    /api/v1/providers                    # List all
@@ -184,7 +165,7 @@ GET    /api/v1/users/{id}/providers         # Nested resource
 POST   /api/v1/providers/{id}/refresh       # Action (exception)
 ```
 
-### ❌ Bad
+**Bad URL Patterns (Avoid These):**
 
 ```text
 GET    /api/v1/getProviders                 # Verb in URL
@@ -193,633 +174,449 @@ GET    /api/v1/provider                     # Singular for collection
 PATCH  /api/v1/updateProvider/{id}          # Verb in URL
 ```
 
+**URL Design Rules:**
+
+- Use plural nouns for resources (`/providers`, not `/provider`)
+- No verbs in URLs (use HTTP methods instead)
+- Use hyphens for multi-word resources (`/provider-connections`)
+- Keep URLs hierarchical (`/users/{id}/providers`)
+
 ### Step 4: Implement Request/Response Schemas
 
-Design Pydantic schemas for request validation and response serialization. See Examples section for complete schema implementations.
+Design Pydantic schemas for request validation and response serialization.
 
-### Step 5: Add Authentication and Authorization
+**Request Schema (POST/PATCH):**
 
-Include authentication dependencies and authorization checks. See Examples section for authentication patterns.
-
-### Step 6: Handle Common Patterns
-
-Implement pagination, filtering, and sorting as needed. See Examples section for common patterns.
-
-## Examples
-
-### Complete Endpoint Implementation
-
-Here's a complete REST API endpoint implementation following all Dashtam patterns:
-
-```python
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from uuid import UUID
-from typing import Optional, List
-
-router = APIRouter()
-
-# LIST - Get collection
-@router.get("/providers")
-async def list_providers(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(50, ge=1, le=100),
-    status: Optional[str] = None,
-    sort: str = "created_at",
-    order: str = "desc",
-    current_user: User = Depends(get_current_user)
-) -> PaginatedResponse[ProviderResponse]:
-    """List all providers with pagination and filtering."""
-    providers = await get_providers_service(
-        user_id=current_user.id,
-        skip=(page - 1) * per_page,
-        limit=per_page,
-        status=status,
-        sort=sort,
-        order=order
-    )
-    return providers
-
-# GET - Retrieve single resource
-@router.get("/providers/{provider_id}")
-async def get_provider(
-    provider_id: UUID,
-    current_user: User = Depends(get_current_user)
-) -> ProviderResponse:
-    """Get a specific provider by ID."""
-    provider = await get_provider_service(provider_id)
-    
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Provider {provider_id} not found"
-        )
-    
-    if provider.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have access to this provider"
-        )
-    
-    return provider
-
-# POST - Create resource
-@router.post("/providers", status_code=status.HTTP_201_CREATED)
-async def create_provider(
-    request: CreateProviderRequest,
-    current_user: User = Depends(get_current_user)
-) -> ProviderResponse:
-    """Create a new provider."""
-    # Check for duplicates
-    existing = await get_provider_by_alias(current_user.id, request.alias)
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Provider with alias '{request.alias}' already exists"
-        )
-    
-    provider = await create_provider_service(request, current_user.id)
-    return provider
-
-# PATCH - Update resource
-@router.patch("/providers/{provider_id}")
-async def update_provider(
-    provider_id: UUID,
-    request: UpdateProviderRequest,
-    current_user: User = Depends(get_current_user)
-) -> ProviderResponse:
-    """Update a provider (partial update)."""
-    provider = await get_provider_service(provider_id)
-    
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Provider {provider_id} not found"
-        )
-    
-    if provider.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have access to this provider"
-        )
-    
-    updated = await update_provider_service(provider_id, request)
-    return updated
-
-# DELETE - Remove resource
-@router.delete("/providers/{provider_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_provider(
-    provider_id: UUID,
-    current_user: User = Depends(get_current_user)
-) -> None:
-    """Delete a provider."""
-    provider = await get_provider_service(provider_id)
-    
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Provider {provider_id} not found"
-        )
-    
-    if provider.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have access to this provider"
-        )
-    
-    await delete_provider_service(provider_id)
-    # No return with 204
-```
-
----
-
-## Request/Response Schemas
-
-### Request Schema (POST/PATCH)
-
-```python
-from pydantic import BaseModel, Field, field_validator
+```python path=null start=null
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class CreateProviderRequest(BaseModel):
-    """Schema for creating a new provider."""
-    provider_key: str = Field(..., min_length=1, max_length=50)
-    alias: str = Field(..., min_length=1, max_length=100)
-    
-    @field_validator('alias')
-    @classmethod
-    def alias_must_not_be_whitespace(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError('Alias cannot be empty or whitespace')
-        return v.strip()
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "provider_key": "schwab",
-                "alias": "My Retirement Account"
-            }
-        }
+    """Request schema for creating a provider."""
+    provider_key: str = Field(..., description="Provider identifier")
+    alias: str = Field(..., min_length=1, description="Display name")
 
 class UpdateProviderRequest(BaseModel):
-    """Schema for updating a provider (all fields optional)."""
-    alias: Optional[str] = Field(None, min_length=1, max_length=100)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "alias": "Updated Account Name"
-            }
-        }
+    """Request schema for updating a provider."""
+    alias: Optional[str] = Field(None, min_length=1)
 ```
 
-### Response Schema
+**Response Schema:**
 
-```python
+```python path=null start=null
 from datetime import datetime
 from uuid import UUID
 
 class ProviderResponse(BaseModel):
-    """Schema for provider responses."""
+    """Response schema for provider endpoints."""
     id: UUID
-    user_id: UUID
     provider_key: str
     alias: str
+    is_connected: bool
     created_at: datetime
     updated_at: datetime
-    connection_status: Optional[str] = None
-    
+
     class Config:
-        from_attributes = True
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174000",
-                "user_id": "223e4567-e89b-12d3-a456-426614174000",
-                "provider_key": "schwab",
-                "alias": "My Retirement Account",
-                "created_at": "2025-10-04T10:00:00Z",
-                "updated_at": "2025-10-04T10:00:00Z",
-                "connection_status": "active"
-            }
-        }
+        from_attributes = True  # Pydantic v2
 ```
 
-### Paginated Response
+**Paginated Response:**
 
-```python
+```python path=null start=null
 from typing import Generic, TypeVar, List
 
 T = TypeVar('T')
 
 class PaginatedResponse(BaseModel, Generic[T]):
-    """Generic paginated response schema."""
+    """Generic paginated response."""
     items: List[T]
     total: int
     page: int
     per_page: int
-    pages: int
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "items": [...],
-                "total": 100,
-                "page": 1,
-                "per_page": 50,
-                "pages": 2
-            }
-        }
 ```
 
-### Error Response
+**Error Response:**
 
-```python
+```python path=null start=null
 class ErrorResponse(BaseModel):
-    """Standard error response schema."""
+    """Standard error response format."""
     detail: str
     error_code: Optional[str] = None
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    path: Optional[str] = None
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "detail": "Provider not found",
-                "error_code": "PROVIDER_NOT_FOUND",
-                "timestamp": "2025-10-04T10:00:00Z",
-                "path": "/api/v1/providers/123"
-            }
-        }
 ```
 
----
+### Step 5: Add Authentication and Authorization
 
-## Common Patterns
+Include authentication dependencies and authorization checks.
 
-### Pattern 1: Resource Existence Check
+**Authentication Dependency:**
 
-```python
-provider = await get_provider_service(provider_id)
-if not provider:
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Provider {provider_id} not found"
-    )
-```
-
-### Pattern 2: Authorization Check
-
-```python
-if provider.user_id != current_user.id:
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="You don't have access to this provider"
-    )
-```
-
-### Pattern 3: Duplicate Check
-
-```python
-existing = await get_provider_by_alias(current_user.id, request.alias)
-if existing:
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail=f"Provider with alias '{request.alias}' already exists"
-    )
-```
-
-### Pattern 4: Pagination
-
-```python
-skip = (page - 1) * per_page
-items = await get_items(skip=skip, limit=per_page)
-total = await count_items()
-
-return PaginatedResponse(
-    items=items,
-    total=total,
-    page=page,
-    per_page=per_page,
-    pages=math.ceil(total / per_page)
-)
-```
-
-### Pattern 5: Filtering
-
-```python
-query = select(Provider).where(Provider.user_id == current_user.id)
-
-if status:
-    query = query.where(Provider.status == status)
-if provider_key:
-    query = query.where(Provider.provider_key == provider_key)
-if search:
-    query = query.where(Provider.alias.ilike(f"%{search}%"))
-
-result = await session.execute(query)
-return result.scalars().all()
-```
-
-### Pattern 6: Sorting
-
-```python
-# Validate sort field against whitelist
-allowed_fields = ["created_at", "updated_at", "alias"]
-if sort not in allowed_fields:
-    raise HTTPException(400, f"Cannot sort by '{sort}'")
-
-# Apply sorting
-if order == "desc":
-    query = query.order_by(getattr(Model, sort).desc())
-else:
-    query = query.order_by(getattr(Model, sort).asc())
-```
-
----
-
-## Query Parameter Conventions
-
-```python
-# Pagination
-?page=2&per_page=50
-
-# Filtering
-?status=active&provider_key=schwab
-
-# Sorting
-?sort=created_at&order=desc
-
-# Search
-?search=retirement&q=401k
-
-# Date ranges
-?created_after=2025-01-01&created_before=2025-12-31
-
-# Field selection (sparse fieldsets)
-?fields=id,name,email
-
-# Include related resources
-?include=connection,tokens
-
-# Combined
-?page=1&per_page=25&status=active&sort=created_at&order=desc
-```
-
----
-
-## Error Handling Examples
-
-### Validation Error (422)
-
-```json
-{
-  "detail": "Validation error",
-  "error_code": "VALIDATION_ERROR",
-  "timestamp": "2025-10-04T10:00:00Z",
-  "errors": [
-    {
-      "field": "email",
-      "message": "Invalid email format",
-      "type": "value_error.email"
-    }
-  ]
-}
-```
-
-### Not Found (404)
-
-```json
-{
-  "detail": "Provider 123e4567-e89b-12d3-a456-426614174000 not found",
-  "error_code": "PROVIDER_NOT_FOUND",
-  "timestamp": "2025-10-04T10:00:00Z"
-}
-```
-
-### Forbidden (403)
-
-```json
-{
-  "detail": "You don't have access to this provider",
-  "error_code": "FORBIDDEN",
-  "timestamp": "2025-10-04T10:00:00Z"
-}
-```
-
-### Conflict (409)
-
-```json
-{
-  "detail": "Provider with alias 'My Account' already exists",
-  "error_code": "PROVIDER_CONFLICT",
-  "timestamp": "2025-10-04T10:00:00Z"
-}
-```
-
----
-
-## Authentication Pattern
-
-```python
+```python path=null start=null
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    session: AsyncSession = Depends(get_session)
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> User:
     """Validate JWT token and return current user."""
     token = credentials.credentials
-    
-    try:
-        # Decode and validate JWT
-        payload = jwt_service.decode_token(token)
-        jwt_service.verify_token_type(payload, "access")
-        user_id = jwt_service.get_user_id_from_token(token)
-        
-        # Get user from database
-        user = await get_user_by_id(session, user_id)
-        
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found"
-            )
-        
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Account is inactive"
-            )
-        
-        return user
-        
-    except JWTError as e:
+    user = await verify_jwt_token(token)
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
-            headers={"WWW-Authenticate": "Bearer"}
+            detail="Invalid authentication credentials"
         )
+    return user
+```
 
-# Usage in endpoints
-@router.get("/providers")
+**Authorization Check:**
+
+```python path=null start=null
+async def verify_provider_ownership(
+    provider_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+) -> Provider:
+    """Verify user owns the provider."""
+    result = await session.execute(
+        select(Provider).where(
+            Provider.id == provider_id,
+            Provider.user_id == current_user.id
+        )
+    )
+    provider = result.scalar_one_or_none()
+    
+    if not provider:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Provider not found"
+        )
+    
+    return provider
+```
+
+### Step 6: Handle Common Patterns
+
+Implement common API patterns for robust endpoints.
+
+#### Pattern 1: Resource Existence Check
+
+```python path=null start=null
+# Check if resource exists before operation
+result = await session.execute(
+    select(Provider).where(Provider.id == provider_id)
+)
+provider = result.scalar_one_or_none()
+
+if not provider:
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Provider not found"
+    )
+```
+
+#### Pattern 2: Duplicate Check
+
+```python path=null start=null
+# Check for duplicates before creation
+result = await session.execute(
+    select(Provider).where(
+        Provider.user_id == user_id,
+        Provider.alias == alias
+    )
+)
+existing = result.scalar_one_or_none()
+
+if existing:
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Provider with this alias already exists"
+    )
+```
+
+#### Pattern 3: Pagination
+
+```python path=null start=null
 async def list_providers(
-    current_user: User = Depends(get_current_user)  # Automatic auth
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=100),
+    session: AsyncSession = Depends(get_session)
 ):
-    pass
+    """List providers with pagination."""
+    # Get total count
+    count_result = await session.execute(
+        select(func.count(Provider.id))
+    )
+    total = count_result.scalar_one()
+    
+    # Get paginated items
+    offset = (page - 1) * per_page
+    result = await session.execute(
+        select(Provider)
+        .offset(offset)
+        .limit(per_page)
+    )
+    providers = result.scalars().all()
+    
+    return PaginatedResponse(
+        items=providers,
+        total=total,
+        page=page,
+        per_page=per_page
+    )
 ```
 
----
+#### Pattern 4: Filtering
 
-## Naming Conventions
-
-### Resources (URLs)
-
-```python
-✅ /providers          # Plural nouns
-✅ /users
-✅ /tokens
-✅ /user-preferences   # Kebab-case for multi-word
-
-❌ /provider           # Singular
-❌ /getProviders       # Verb
-❌ /userPreferences    # camelCase
+```python path=null start=null
+async def list_providers(
+    is_connected: Optional[bool] = Query(None),
+    provider_key: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_session)
+):
+    """List providers with optional filters."""
+    stmt = select(Provider)
+    
+    if is_connected is not None:
+        stmt = stmt.where(Provider.is_connected == is_connected)
+    
+    if provider_key is not None:
+        stmt = stmt.where(Provider.provider_key == provider_key)
+    
+    result = await session.execute(stmt)
+    return result.scalars().all()
 ```
 
-### Fields (JSON)
+#### Pattern 5: Sorting
 
-```python
-✅ snake_case          # Python convention
-{
-    "provider_key": "schwab",
-    "created_at": "2025-10-04T10:00:00Z",
-    "is_active": true
-}
+```python path=null start=null
+from typing import Literal
 
-❌ camelCase
-{
-    "providerKey": "schwab",
-    "createdAt": "2025-10-04T10:00:00Z"
-}
+async def list_providers(
+    sort_by: Literal["created_at", "alias"] = Query("created_at"),
+    sort_order: Literal["asc", "desc"] = Query("desc"),
+    session: AsyncSession = Depends(get_session)
+):
+    """List providers with sorting."""
+    stmt = select(Provider)
+    
+    # Apply sorting
+    if sort_order == "asc":
+        stmt = stmt.order_by(getattr(Provider, sort_by).asc())
+    else:
+        stmt = stmt.order_by(getattr(Provider, sort_by).desc())
+    
+    result = await session.execute(stmt)
+    return result.scalars().all()
 ```
 
-### Booleans
+#### Pattern 6: Query Parameter Conventions
 
-```python
-✅ is_active, has_connection, can_edit
-❌ active, connection, editable
+```python path=null start=null
+# Pagination
+page: int = Query(1, ge=1)
+per_page: int = Query(50, ge=1, le=100)
+
+# Filtering
+is_active: Optional[bool] = Query(None)
+provider_key: Optional[str] = Query(None)
+
+# Sorting
+sort_by: str = Query("created_at")
+sort_order: Literal["asc", "desc"] = Query("desc")
+
+# Search
+search: Optional[str] = Query(None, min_length=2)
 ```
 
-### Dates
+## Examples
 
-```python
-✅ created_at, updated_at, deleted_at, expires_at
-❌ created, creation_date, date_created
+### Example 1: Complete CRUD Endpoint Implementation
+
+This example shows a complete provider endpoint with all CRUD operations.
+
+**Router Implementation:**
+
+```python path=null start=null
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+from uuid import UUID
+from typing import Optional
+
+from src.core.database import get_session
+from src.schemas.provider import (
+    CreateProviderRequest,
+    UpdateProviderRequest,
+    ProviderResponse,
+    PaginatedProviderResponse
+)
+from src.models.provider import Provider
+from src.api.deps import get_current_user
+from src.models.user import User
+
+router = APIRouter(prefix="/api/v1/providers", tags=["providers"])
+
+@router.get("", response_model=PaginatedProviderResponse)
+async def list_providers(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    List all providers for the current user.
+    
+    Supports pagination with page and per_page query parameters.
+    """
+    # Get total count
+    count_result = await session.execute(
+        select(func.count(Provider.id)).where(
+            Provider.user_id == current_user.id
+        )
+    )
+    total = count_result.scalar_one()
+    
+    # Get paginated items
+    offset = (page - 1) * per_page
+    result = await session.execute(
+        select(Provider)
+        .where(Provider.user_id == current_user.id)
+        .offset(offset)
+        .limit(per_page)
+    )
+    providers = result.scalars().all()
+    
+    return {
+        "items": providers,
+        "total": total,
+        "page": page,
+        "per_page": per_page
+    }
+
+@router.get("/{provider_id}", response_model=ProviderResponse)
+async def get_provider(
+    provider_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Get a specific provider by ID."""
+    result = await session.execute(
+        select(Provider).where(
+            Provider.id == provider_id,
+            Provider.user_id == current_user.id
+        )
+    )
+    provider = result.scalar_one_or_none()
+    
+    if not provider:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Provider not found"
+        )
+    
+    return provider
+
+@router.post("", response_model=ProviderResponse, status_code=status.HTTP_201_CREATED)
+async def create_provider(
+    request: CreateProviderRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Create a new provider."""
+    # Check for duplicate alias
+    result = await session.execute(
+        select(Provider).where(
+            Provider.user_id == current_user.id,
+            Provider.alias == request.alias
+        )
+    )
+    existing = result.scalar_one_or_none()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Provider with this alias already exists"
+        )
+    
+    # Create provider
+    provider = Provider(
+        user_id=current_user.id,
+        provider_key=request.provider_key,
+        alias=request.alias
+    )
+    session.add(provider)
+    await session.commit()
+    await session.refresh(provider)
+    
+    return provider
+
+@router.patch("/{provider_id}", response_model=ProviderResponse)
+async def update_provider(
+    provider_id: UUID,
+    request: UpdateProviderRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Update an existing provider."""
+    # Get provider with ownership check
+    result = await session.execute(
+        select(Provider).where(
+            Provider.id == provider_id,
+            Provider.user_id == current_user.id
+        )
+    )
+    provider = result.scalar_one_or_none()
+    
+    if not provider:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Provider not found"
+        )
+    
+    # Update fields
+    if request.alias is not None:
+        provider.alias = request.alias
+    
+    await session.commit()
+    await session.refresh(provider)
+    
+    return provider
+
+@router.delete("/{provider_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_provider(
+    provider_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Delete a provider."""
+    # Get provider with ownership check
+    result = await session.execute(
+        select(Provider).where(
+            Provider.id == provider_id,
+            Provider.user_id == current_user.id
+        )
+    )
+    provider = result.scalar_one_or_none()
+    
+    if not provider:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Provider not found"
+        )
+    
+    await session.delete(provider)
+    await session.commit()
 ```
 
-## Verification
+### Example 2: Comprehensive Test Suite
 
-How to verify your REST API endpoints are working correctly:
+This example shows a complete test suite for provider endpoints.
 
-### Check 1: HTTP Method and Status Code Verification
+**Test Implementation:**
 
-```bash
-# Test each endpoint returns correct status
-curl -X GET http://localhost:8000/api/v1/providers -H "Authorization: Bearer token"
-# Expected: 200 OK
-
-curl -X POST http://localhost:8000/api/v1/providers -H "Authorization: Bearer token" \
-  -d '{"provider_key":"schwab","alias":"test"}'
-# Expected: 201 Created
-```
-
-### Check 2: Response Format Consistency
-
-```bash
-# Verify paginated response format
-curl http://localhost:8000/api/v1/providers | jq
-# Expected: {"items": [...], "total": N, "page": 1, "per_page": 50}
-```
-
-### Check 3: Error Handling
-
-```bash
-# Test 404 handling
-curl http://localhost:8000/api/v1/providers/nonexistent-id
-# Expected: 404 with proper error format
-```
-
-## Troubleshooting
-
-### Issue 1: Wrong Status Code Returned
-
-**Symptoms:**
-
-- POST endpoint returns 200 instead of 201
-- DELETE endpoint returns 200 instead of 204
-
-**Solution:**
-
-```python
-# Add explicit status codes
-@router.post("/providers", status_code=status.HTTP_201_CREATED)
-@router.delete("/providers/{id}", status_code=status.HTTP_204_NO_CONTENT)
-```
-
-### Issue 2: Inconsistent Response Format
-
-**Symptoms:**
-
-- Different endpoints return different JSON structures
-- Missing pagination in collection endpoints
-
-**Solution:**
-
-- Use consistent schema classes (ProviderResponse, PaginatedResponse)
-- Always return same fields in same order
-
-### Issue 3: Validation Errors Not Helpful
-
-**Symptoms:**
-
-- Generic "validation failed" messages
-- No field-specific error details
-
-**Solution:**
-
-```python
-# Use Pydantic field validation with clear messages
-class CreateProviderRequest(BaseModel):
-    alias: str = Field(..., min_length=1, description="Provider display name")
-```
-
-## Best Practices
-
-Follow these best practices for consistent, maintainable REST APIs:
-
-- ✅ **Use Plural Nouns:** `/providers`, not `/provider`
-- ✅ **HTTP Method Semantics:** GET for retrieval, POST for creation, etc.
-- ✅ **Consistent Status Codes:** 200/201/204 for success, 400/404/409 for client errors
-- ✅ **Resource-Based URLs:** `/providers/{id}`, not `/getProvider`
-- ✅ **Pagination for Collections:** Always paginate list endpoints
-- ✅ **Authentication Required:** Protect all endpoints except public ones
-- ✅ **Authorization Checks:** Verify user owns resources
-- ✅ **Input Validation:** Use Pydantic schemas for all requests
-- ✅ **Error Response Format:** Consistent error structure across all endpoints
-
-### Common Mistakes to Avoid
-
-- ❌ **Verbs in URLs:** `/getProviders`, `/createProvider`
-- ❌ **Wrong Status Codes:** Returning 200 for POST creation
-- ❌ **No Pagination:** Returning unbounded lists
-- ❌ **Inconsistent Naming:** Mixing camelCase and snake_case
-- ❌ **Missing Auth:** Unprotected sensitive endpoints
-- ❌ **Poor Error Messages:** Generic "Bad Request" without details
-
-### Testing Template
-
-```python
+```python path=null start=null
 import pytest
 from fastapi.testclient import TestClient
 from uuid import uuid4
@@ -931,9 +728,343 @@ class TestProviderEndpoints:
         assert response.status_code == 403  # No auth header
 ```
 
----
+### Example 3: Error Handling
 
-## Quick Checklist
+This example shows proper error handling for different scenarios.
+
+**Validation Error (422):**
+
+```python path=null start=null
+# Request with invalid data
+{
+    "alias": "",  # Too short
+    "provider_key": "invalid"
+}
+
+# Response
+{
+    "detail": [
+        {
+            "loc": ["body", "alias"],
+            "msg": "String should have at least 1 character",
+            "type": "string_too_short"
+        }
+    ]
+}
+```
+
+**Not Found Error (404):**
+
+```python path=null start=null
+# Response for non-existent resource
+{
+    "detail": "Provider not found"
+}
+```
+
+**Forbidden Error (403):**
+
+```python path=null start=null
+# Response when user tries to access another user's resource
+{
+    "detail": "Provider not found"  # Don't reveal existence
+}
+```
+
+**Conflict Error (409):**
+
+```python path=null start=null
+# Response when creating duplicate resource
+{
+    "detail": "Provider with this alias already exists"
+}
+```
+
+### Example 4: Naming Conventions
+
+Follow these naming conventions for consistency.
+
+**Resources (URLs):**
+
+```text
+/providers        # Plural, lowercase
+/provider-types   # Hyphen for multi-word
+/oauth-tokens     # Consistent format
+```
+
+**Fields (JSON):**
+
+```python path=null start=null
+# Use snake_case for all fields
+{
+    "provider_key": "schwab",
+    "is_connected": true,
+    "created_at": "2025-10-20T12:00:00Z",
+    "user_id": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+**Booleans:**
+
+```python path=null start=null
+# Good
+is_active
+has_connection
+can_edit
+
+# Bad
+active
+connection
+editable
+```
+
+**Dates:**
+
+```python path=null start=null
+# Good
+created_at
+updated_at
+deleted_at
+expires_at
+
+# Bad
+created
+creation_date
+date_created
+```
+
+## Verification
+
+How to verify your REST API endpoints are working correctly.
+
+### Check 1: HTTP Method and Status Code Verification
+
+Test each endpoint returns correct HTTP status codes.
+
+```bash
+# Test GET endpoint (200 OK)
+curl -X GET https://localhost:8000/api/v1/providers \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -k
+
+# Test POST endpoint (201 Created)
+curl -X POST https://localhost:8000/api/v1/providers \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"provider_key":"schwab","alias":"test"}' \
+  -k
+
+# Test DELETE endpoint (204 No Content)
+curl -X DELETE https://localhost:8000/api/v1/providers/$PROVIDER_ID \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -k
+```
+
+**Expected Results:**
+
+- GET returns 200 with JSON body
+- POST returns 201 with created resource
+- DELETE returns 204 with no body
+
+### Check 2: Response Format Consistency
+
+Verify all endpoints return consistent JSON structures.
+
+```bash
+# Verify paginated response format
+curl https://localhost:8000/api/v1/providers \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -k | jq
+
+# Expected format:
+# {
+#   "items": [...],
+#   "total": 10,
+#   "page": 1,
+#   "per_page": 50
+# }
+```
+
+### Check 3: Error Handling
+
+Test error scenarios return proper status codes and messages.
+
+```bash
+# Test 404 handling
+curl https://localhost:8000/api/v1/providers/nonexistent-id \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -k
+
+# Expected: 404 with {"detail": "Provider not found"}
+
+# Test 401 handling (no auth)
+curl https://localhost:8000/api/v1/providers -k
+
+# Expected: 401 or 403 with auth error message
+```
+
+## Troubleshooting
+
+### Issue 1: Wrong Status Code Returned
+
+**Symptoms:**
+
+- POST endpoint returns 200 instead of 201
+- DELETE endpoint returns 200 instead of 204
+- Successful operations return incorrect status codes
+
+**Cause:** Missing explicit status_code parameter in route decorator.
+
+**Solution:**
+
+```python path=null start=null
+# Add explicit status codes to route decorators
+@router.post("/providers", status_code=status.HTTP_201_CREATED)
+async def create_provider(...):
+    return provider
+
+@router.delete("/providers/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_provider(...):
+    # Return None or nothing for 204
+    pass
+```
+
+### Issue 2: Inconsistent Response Format
+
+**Symptoms:**
+
+- Different endpoints return different JSON structures
+- Missing pagination in collection endpoints
+- Field names vary between endpoints
+
+**Cause:** Not using consistent schema classes for responses.
+
+**Solution:**
+
+```python path=null start=null
+# Use consistent schema classes
+@router.get("/providers", response_model=PaginatedProviderResponse)
+@router.get("/providers/{id}", response_model=ProviderResponse)
+@router.post("/providers", response_model=ProviderResponse)
+
+# Define standard response schemas
+class PaginatedProviderResponse(BaseModel):
+    items: List[ProviderResponse]
+    total: int
+    page: int
+    per_page: int
+```
+
+### Issue 3: Validation Errors Not Helpful
+
+**Symptoms:**
+
+- Generic "validation failed" messages
+- No field-specific error details
+- Users don't know what to fix
+
+**Cause:** Missing or poor field validation in Pydantic schemas.
+
+**Solution:**
+
+```python path=null start=null
+# Use Pydantic field validation with clear messages
+class CreateProviderRequest(BaseModel):
+    alias: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Provider display name"
+    )
+    provider_key: str = Field(
+        ...,
+        pattern="^[a-z_]+$",
+        description="Provider identifier (lowercase, underscores only)"
+    )
+```
+
+### Issue 4: Authorization Bypass
+
+**Symptoms:**
+
+- Users can access other users' resources
+- No ownership checks in endpoints
+- Security vulnerabilities
+
+**Cause:** Missing authorization checks in endpoint logic.
+
+**Solution:**
+
+```python path=null start=null
+# Always check resource ownership
+result = await session.execute(
+    select(Provider).where(
+        Provider.id == provider_id,
+        Provider.user_id == current_user.id  # Ownership check
+    )
+)
+provider = result.scalar_one_or_none()
+
+if not provider:
+    # Return 404, don't reveal if resource exists
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Provider not found"
+    )
+```
+
+## Best Practices
+
+Follow these best practices for consistent, maintainable REST APIs.
+
+### API Design Principles
+
+- **Use Plural Nouns:** `/providers`, not `/provider`
+- **HTTP Method Semantics:** GET for retrieval, POST for creation, PATCH for updates
+- **Consistent Status Codes:** 200/201/204 for success, 400/404/409 for client errors
+- **Resource-Based URLs:** `/providers/{id}`, not `/getProvider`
+- **Pagination for Collections:** Always paginate list endpoints
+- **Authentication Required:** Protect all endpoints except public ones
+- **Authorization Checks:** Verify user owns resources before operations
+- **Input Validation:** Use Pydantic schemas for all requests
+- **Error Response Format:** Consistent error structure across all endpoints
+
+### Schema Design Patterns
+
+- **Separate Request/Response Schemas:** Different models for input and output
+- **Optional Fields for Updates:** Use `Optional[T]` for PATCH requests
+- **Field Validation:** Add `Field()` with constraints and descriptions
+- **Type Safety:** Use proper types (UUID, datetime, enums)
+- **from_attributes:** Enable for ORM model conversion (Pydantic v2)
+
+### Security Best Practices
+
+- **Always Authenticate:** Require JWT tokens for protected endpoints
+- **Check Ownership:** Verify user owns resources before access
+- **Don't Reveal Existence:** Return 404 for both missing and unauthorized resources
+- **Rate Limiting:** Implement rate limits for API protection
+- **Input Sanitization:** Validate and sanitize all user input
+- **HTTPS Only:** Use TLS for all API communication
+
+### Testing Best Practices
+
+- **Test All Methods:** GET, POST, PATCH, DELETE for each resource
+- **Test Error Cases:** 404, 409, 422, 403, 401 scenarios
+- **Test Pagination:** Verify page boundaries and limits
+- **Test Authorization:** Verify users can't access others' resources
+- **Test Validation:** Verify Pydantic validation works correctly
+
+### Common Mistakes to Avoid
+
+- **Verbs in URLs:** Don't use `/getProviders`, `/createProvider`
+- **Wrong Status Codes:** Don't return 200 for POST creation (use 201)
+- **No Pagination:** Don't return unbounded lists
+- **Inconsistent Naming:** Don't mix camelCase and snake_case
+- **Missing Auth:** Don't leave sensitive endpoints unprotected
+- **Poor Error Messages:** Don't return generic "Bad Request" without details
+- **Exposing Implementation:** Don't leak database details or SQL in responses
+
+### Quick Checklist
 
 Before deploying a new endpoint, verify:
 
@@ -952,107 +1083,35 @@ Before deploying a new endpoint, verify:
 - [ ] Documented in OpenAPI/Swagger
 - [ ] Follows existing patterns
 
----
+## Next Steps
 
-## Common Mistakes to Avoid
+After mastering REST API patterns, consider:
 
-### ❌ Mistake 1: Verbs in URLs
-
-```python
-# Bad
-@router.get("/getProviders")
-@router.post("/createProvider")
-
-# Good
-@router.get("/providers")
-@router.post("/providers")
-```
-
-### ❌ Mistake 2: Wrong Status Codes
-
-```python
-# Bad
-@router.post("/providers")
-async def create_provider(...):
-    return provider  # Returns 200, should be 201
-
-# Good
-@router.post("/providers", status_code=status.HTTP_201_CREATED)
-async def create_provider(...):
-    return provider
-```
-
-### ❌ Mistake 3: No Pagination
-
-```python
-# Bad
-@router.get("/providers")
-async def list_providers():
-    return await get_all_providers()  # Returns unbounded list
-
-# Good
-@router.get("/providers")
-async def list_providers(
-    page: int = 1,
-    per_page: int = 50
-):
-    return await get_providers_paginated(page, per_page)
-```
-
-### ❌ Mistake 4: Exposing Implementation Details
-
-```python
-# Bad
-{
-    "id": 123,  # Internal DB ID
-    "table_name": "providers",
-    "sql_query": "SELECT ..."
-}
-
-# Good
-{
-    "id": "123e4567-e89b-12d3-a456-426614174000",  # UUID
-    "provider_key": "schwab",
-    "alias": "My Account"
-}
-```
-
-### ❌ Mistake 5: Inconsistent Response Formats
-
-```python
-# Bad
-@router.get("/providers/{id}")
-async def get_provider(id):
-    return provider  # Returns Provider object
-
-@router.get("/providers")
-async def list_providers():
-    return {"data": providers, "count": 10}  # Different format
-
-# Good - Consistent formats
-@router.get("/providers/{id}")
-async def get_provider(id) -> ProviderResponse:
-    return provider
-
-@router.get("/providers")
-async def list_providers() -> PaginatedResponse[ProviderResponse]:
-    return {"items": providers, "total": 10, ...}
-```
+- [ ] Review existing endpoints for REST compliance
+- [ ] Add comprehensive tests for all endpoints
+- [ ] Implement pagination for collection endpoints
+- [ ] Add filtering and sorting where appropriate
+- [ ] Document all endpoints in OpenAPI/Swagger
+- [ ] Review error handling and status codes
+- [ ] Implement rate limiting for API protection
+- [ ] Add request/response logging for debugging
+- [ ] Set up API monitoring and alerting
+- [ ] Review [RESTful API Design Architecture](../architecture/restful-api-design.md)
 
 ## References
 
-- [RESTful API Design Architecture](../architecture/restful-api-design.md) - Complete REST API architecture and design principles
-- [JWT Authentication Quick Reference](jwt-auth-quick-reference.md) - Authentication patterns for API endpoints  
-- [FastAPI Documentation](https://fastapi.tiangolo.com) - Official FastAPI framework documentation
-- [HTTP Status Codes Reference](https://httpstatuses.com) - Complete HTTP status code definitions
-- [REST API Best Practices](https://restfulapi.net) - Industry standard REST API patterns
+- [RESTful API Design Architecture](../architecture/restful-api-design.md) - Complete architecture guide
+- [REST API Audit Report](../../reviews/REST_API_AUDIT_REPORT_2025-10-05.md) - Compliance review
+- [Schema Design Patterns](../architecture/schemas-design.md) - Pydantic schema guide
+- [Testing Guide](testing-guide.md) - Complete testing documentation
+- [FastAPI Documentation](https://fastapi.tiangolo.com/) - Official FastAPI docs
+- [Pydantic v2 Documentation](https://docs.pydantic.dev/2.0/) - Schema validation
+- [HTTP Status Codes](https://httpstatuses.com/) - Complete reference
 
 ---
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-15  
-**Difficulty Level:** Intermediate  
-**Estimated Time:** 45-60 minutes
+**Template:** [guide-template.md](../../templates/guide-template.md)
+**Created:** 2025-10-05
+**Last Updated:** 2025-10-20

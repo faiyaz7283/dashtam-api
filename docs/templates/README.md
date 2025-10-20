@@ -118,12 +118,17 @@ All templates include standard metadata at the **bottom** of the document:
 
 ## Document Information
 
-**Category:** [Template Category]
+**Template:** [link-to-template-file.md]
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
 
-[Optional fields as needed per template]
 ```
+
+**Important Changes (2025-10-19):**
+
+- **"Template:" field (required)**: Replaced "Category" with "Template" to clearly link to the template file being used
+- **Link to template**: The Template field must be a relative markdown link to the actual template file
+- **Example**: `**Template:** [guide-template.md](../../templates/guide-template.md)`
 
 **Why at the bottom?**
 
@@ -172,15 +177,157 @@ All templates include standard metadata at the **bottom** of the document:
 
 ---
 
+## ✅ Document Structure Standards (CRITICAL)
+
+**Updated:** 2025-10-19
+
+All documentation files MUST follow these structural requirements:
+
+### 1. Table of Contents (TOC) Requirements
+
+**CRITICAL RULE: Each Template's TOC Defines Mandatory Top-Level Sections**
+
+🔴 **The TOC in each template file defines the MANDATORY top-level sections that ALL documents using that template MUST have.**
+
+For example:
+- All documents using `guide-template.md` MUST have: Overview, Prerequisites, Step-by-Step Instructions, Examples, Verification, Troubleshooting, Best Practices, Next Steps, References, Document Information
+- All documents using `architecture-template.md` MUST have: Overview, Context, Architecture Goals, Design Decisions, Components, Implementation Details, Security Considerations, Performance Considerations, Testing Strategy, Future Enhancements, References, Document Information
+
+**Document Requirements:**
+
+- ✅ **ALL top-level sections from the template TOC MUST be present** in the document
+- ✅ **Documents CAN add subsections** under the mandatory top-level sections
+- ✅ **ALL subsections in the document MUST be listed in the document's TOC** with proper indentation (2 spaces)
+- ✅ **"Document Information" MUST be the last item** in every TOC
+- ✅ **TOC entries must match section headings exactly**
+
+**What this means:**
+- You CANNOT skip any top-level section from your template's TOC
+- You CAN add subsections like "## Design Decisions" → "### Decision 1: Pattern Choice"
+- You MUST list all these subsections in your document's TOC
+- If a section doesn't apply, include it with "N/A" or "Not applicable" content
+
+**Optional for short documents** (general template < 150 lines, README files, index files):
+
+- TOC can be omitted if document is very short and simple
+- When added, still follow all TOC requirements above
+
+**Example Correct TOC:**
+
+```markdown
+## Table of Contents
+
+- [Overview](#overview)
+- [Section 1](#section-1)
+  - [Subsection 1.1](#subsection-11)
+  - [Subsection 1.2](#subsection-12)
+- [Section 2](#section-2)
+- [References](#references)
+- [Document Information](#document-information)
+```
+
+### 2. Horizontal Divider Rules (EXACTLY 3)
+
+Every document MUST have exactly **three horizontal dividers (`---`)**:
+
+1. **First divider**: After title/description, ABOVE the TOC
+2. **Second divider**: BELOW the TOC, before main content
+3. **Third divider**: ABOVE "Document Information" section
+
+**Example Structure:**
+
+```markdown
+# Document Title
+
+Brief description.
+
+---  <!-- Divider 1: Above TOC -->
+
+## Table of Contents
+
+- [Section 1](#section-1)
+- [Document Information](#document-information)
+
+---  <!-- Divider 2: Below TOC -->
+
+## Section 1
+
+Content here.
+
+---  <!-- Divider 3: Above Document Information -->
+
+## Document Information
+
+**Template:** [template-name.md](link/to/template.md)
+**Created:** YYYY-MM-DD
+**Last Updated:** YYYY-MM-DD
+```
+
+### 3. Document Information Format (SIMPLIFIED)
+
+All documents MUST use this simplified format:
+
+```markdown
+---
+
+## Document Information
+
+**Template:** [template-name.md](../../templates/template-name.md)
+**Created:** YYYY-MM-DD
+**Last Updated:** YYYY-MM-DD
+```
+
+**Required Fields:**
+
+- **Template**: Relative markdown link to the template file (NOT "Category")
+- **Created**: Document creation date (YYYY-MM-DD)
+- **Last Updated**: Last modification date (YYYY-MM-DD)
+
+**Template Link Examples by Directory:**
+
+- `docs/api-flows/auth/` → `../../templates/api-flow-template.md`
+- `docs/development/architecture/` → `../../templates/architecture-template.md`
+- `docs/development/guides/` → `../../templates/guide-template.md`
+- `docs/development/infrastructure/` → `../../templates/infrastructure-template.md`
+- `docs/development/troubleshooting/` → `../../templates/troubleshooting-template.md`
+- `docs/research/` → `../templates/research-template.md`
+- `docs/reviews/` → `../templates/audit-template.md`
+- `docs/testing/` → `../templates/testing-template.md`
+
+**Migration of Extra Metadata:**
+
+If existing documents have additional fields in Document Information:
+
+- **"Status" field**: Remove (document location indicates status)
+- **"API Version" field**: Keep for API flow documents only
+- **"Environment" field**: Keep for infrastructure/troubleshooting docs only
+- **Other fields**: Analyze and migrate to appropriate content sections or remove
+
+### 4. Compliance Checklist
+
+Before committing any documentation:
+
+- [ ] **All mandatory top-level sections from template TOC are present** in the document
+- [ ] **All subsections in document body are listed in document TOC** with proper indentation
+- [ ] **"Document Information" is the last item** in TOC
+- [ ] Document has exactly 3 horizontal dividers in correct positions
+- [ ] Document Information uses "Template:" field with correct relative link to template
+- [ ] Document Information has only required fields (Template, Created, Last Updated) plus template-specific optional fields
+- [ ] All extra metadata migrated to content sections or removed
+- [ ] Markdown linting passes: `make lint-md FILE="path/to/file.md"`
+- [ ] Document structure matches the template file structure
+
+---
+
 ## 📋 Metadata Standards
 
-### Simplified Metadata (Updated 2025-01-06)
+### Simplified Metadata (Updated 2025-10-19)
 
 All templates now use simplified metadata **without the "Status" field**:
 
 **Required Fields:**
 
-- **Category**: Template-specific category (Architecture, Guide, Testing, Troubleshooting, etc.)
+- **Template**: Relative markdown link to the template file (e.g., `[guide-template.md](../../templates/guide-template.md)`)
 - **Created**: Document creation date (YYYY-MM-DD)
 - **Last Updated**: Last modification date (YYYY-MM-DD)
 
@@ -291,11 +438,12 @@ Proper structure with:
 - Troubleshooting
 - Metadata at bottom:
 
-  ```text
+  ```markdown
+  ---
+  
   ## Document Information
   
-  **Status:** Active
-  **Category:** Guide
+  **Template:** [guide-template.md](../../templates/guide-template.md)
   **Created:** 2025-10-13
   **Last Updated:** 2025-10-13
   ```

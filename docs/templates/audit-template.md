@@ -16,6 +16,7 @@
 - [Action Items](#action-items)
 - [Historical Context](#historical-context)
 - [Related Documentation](#related-documentation)
+- [Document Information](#document-information)
 
 ---
 
@@ -36,8 +37,6 @@
 ### Changes Since Last Audit
 
 [If this is a follow-up audit, summarize what changed since the previous audit]
-
----
 
 ## Audit Metadata
 
@@ -60,8 +59,6 @@
 - **Current/Historical**: [Is this an active audit or historical record?]
 - **Follow-up Required**: Yes/No
 
----
-
 ## Audit Objectives
 
 [What were the goals of this audit? What questions were we trying to answer?]
@@ -77,8 +74,6 @@
 - [Criterion 1]
 - [Criterion 2]
 - [Criterion 3]
-
----
 
 ## Scope and Methodology
 
@@ -117,8 +112,6 @@
 - [Standard 2: e.g., Security best practices]
 - [Standard 3: e.g., Documentation completeness]
 
----
-
 ## Findings
 
 [Detailed findings organized by category or severity]
@@ -147,19 +140,13 @@
 
 [How to address this finding, if applicable]
 
----
-
 #### Finding 1.2: [Finding Title]
 
 [Repeat structure for additional findings]
 
----
-
 ### Category 2: [Category Name]
 
 [Continue with additional categories as needed]
-
----
 
 ## Compliance Assessment
 
@@ -192,8 +179,6 @@
 | 5-6 | ⚠️ Fair | Moderate issues, action required |
 | 0-4 | ❌ Poor | Critical issues, significant work needed |
 
----
-
 ## Recommendations
 
 [Actionable recommendations organized by priority]
@@ -219,8 +204,6 @@
 
 [Low-priority recommendations or optimizations]
 
----
-
 ## Action Items
 
 [Specific, trackable action items derived from recommendations]
@@ -240,8 +223,6 @@
 - [ ] **Action 5**: [Description]
 - [ ] **Action 6**: [Description]
 
----
-
 ## Historical Context
 
 [Optional: Context about previous audits or the evolution of the audited area]
@@ -260,8 +241,6 @@
 | Compliance Score | X/10 | Y/10 | ↑/↓ Z |
 | Open Issues | N | M | ↑/↓ P |
 | Coverage | X% | Y% | ↑/↓ Z% |
-
----
 
 ## Related Documentation
 
@@ -289,10 +268,6 @@
 
 ## Document Information
 
-**Category:** Audit Report
-**Audit Type:** [REST API / Documentation / Security / Code Quality / Infrastructure / etc.]
-**Audit Date:** YYYY-MM-DD
-**Report Created:** YYYY-MM-DD
+**Template:** [audit-template.md](audit-template.md)
+**Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Auditor:** [Name/Team]
-**Related Audits:** [Links to previous/related audits if applicable]

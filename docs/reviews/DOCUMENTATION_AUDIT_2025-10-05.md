@@ -24,8 +24,17 @@ Comprehensive audit of Dashtam project documentation reviewing 43 markdown files
   - [Category 7: Development Root Files](#category-7-development-root-files)
   - [Category 8: Docs Root Files](#category-8-docs-root-files)
   - [Category 9: Redundancy Analysis](#category-9-redundancy-analysis)
+    - [Finding 9.1: JWT Authentication Redundancy (4 files)](#finding-91-jwt-authentication-redundancy-4-files)
+    - [Finding 9.2: REST API Compliance Redundancy (4 files)](#finding-92-rest-api-compliance-redundancy-4-files)
+    - [Finding 9.3: Architecture Overview Redundancy (2 files)](#finding-93-architecture-overview-redundancy-2-files)
   - [Category 10: Naming Convention Issues](#category-10-naming-convention-issues)
+    - [Finding 10.1: Inconsistent Casing](#finding-101-inconsistent-casing)
+    - [Finding 10.2: Inconsistent Date Formats](#finding-102-inconsistent-date-formats)
+    - [Finding 10.3: File Type Indicators](#finding-103-file-type-indicators)
   - [Category 11: Content Accuracy Issues](#category-11-content-accuracy-issues)
+    - [Finding 11.1: Outdated Test Coverage References](#finding-111-outdated-test-coverage-references)
+    - [Finding 11.2: Outdated Project Status](#finding-112-outdated-project-status)
+    - [Finding 11.3: Outdated Endpoint References](#finding-113-outdated-endpoint-references)
 - [Compliance Assessment](#compliance-assessment)
   - [Documentation Quality Metrics](#documentation-quality-metrics)
   - [Organization Score](#organization-score)
@@ -35,12 +44,19 @@ Comprehensive audit of Dashtam project documentation reviewing 43 markdown files
   - [Documentation Structure Improvements](#documentation-structure-improvements)
 - [Action Items](#action-items)
   - [Phase 1: Archive & Delete (Cleanup)](#phase-1-archive--delete-cleanup)
+    - [DELETE Files](#delete-files)
+    - [ARCHIVE Files](#archive-files)
   - [Phase 2: Merge & Consolidate](#phase-2-merge--consolidate)
+    - [MERGE Files](#merge-files)
   - [Phase 3: Update Content](#phase-3-update-content)
+    - [UPDATE Files](#update-files)
+    - [KEEP AS-IS Files](#keep-as-is-files)
   - [Phase 4: Verify Links](#phase-4-verify-links)
+    - [Proposed Naming Conventions](#proposed-naming-conventions)
 - [Historical Context](#historical-context)
   - [Metrics Summary](#metrics-summary)
 - [Related Documentation](#related-documentation)
+- [Document Information](#document-information)
 
 ---
 
@@ -68,8 +84,6 @@ This audit reviews all documentation in the Dashtam project to ensure accuracy, 
 
 **Recommended Actions**: Archive 13 completed implementation plans and research docs, delete 1 duplicate, update 6 files with current metrics.
 
----
-
 ## Audit Metadata
 
 **Audit Information:**
@@ -91,8 +105,6 @@ This audit reviews all documentation in the Dashtam project to ensure accuracy, 
 - **Current/Historical**: Historical record (point-in-time snapshot)
 - **Follow-up Required**: Yes (cleanup actions recommended)
 
----
-
 ## Audit Objectives
 
 Review all Dashtam project documentation to assess quality, identify issues, and provide actionable recommendations for improvement.
@@ -110,8 +122,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 - Identification of redundant or outdated content
 - Clear recommendations for cleanup and improvement
 - Actionable plan for maintaining documentation quality
-
----
 
 ## Scope and Methodology
 
@@ -156,8 +166,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 - **Accuracy**: Status, metrics, and references up to date
 - **Naming**: Consistent conventions across files
 
----
-
 ## Findings
 
 ### Category 1: Architecture Documents
@@ -175,8 +183,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 | `architecture/overview.md` | 411 | 12K | 2025-10-03 | ⚠️ Needs update | **UPDATE** - Update status/coverage |
 
 **Analysis**: Architecture docs are strong but could be consolidated. The `comprehensive-review` is a point-in-time document that should be archived.
-
----
 
 ### Category 2: Implementation Guides
 
@@ -197,8 +203,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 **Analysis**: Three large implementation plans (JWT auth, authentication, REST API) are now complete and should be archived. Quick references are valuable and should remain.
 
----
-
 ### Category 3: Review Documents
 
 **Status**: ⚠️ Needs Cleanup (3 files, 2 redundant)
@@ -210,8 +214,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 | `reviews/rest-api-compliance-review.md` | 995 | 24K | 2025-10-04 | ⚠️ Redundant | **ARCHIVE** - Superseded by audit reports |
 
 **Analysis**: The undated audit report should be removed. The compliance review is redundant with the new audit reports.
-
----
 
 ### Category 4: Infrastructure Documents
 
@@ -226,8 +228,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 **Analysis**: All infrastructure docs are current and valuable.
 
----
-
 ### Category 5: Testing Documents
 
 **Status**: ✅ Good (4 files, 1 historical)
@@ -240,8 +240,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 | `testing/migration.md` | 408 | 14K | 2025-10-03 | ⚠️ Historical | **ARCHIVE** - Migration complete |
 
 **Analysis**: Testing docs are solid. Migration doc is historical and can be archived.
-
----
 
 ### Category 6: Research Documents
 
@@ -266,8 +264,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 **Analysis**: Several research docs describe completed work and should be archived.
 
----
-
 ### Category 7: Development Root Files
 
 **Status**: ⚠️ Needs Cleanup (3 files, 2 completed)
@@ -280,8 +276,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 **Analysis**: Two completed improvement/debugging docs should be archived.
 
----
-
 ### Category 8: Docs Root Files
 
 **Status**: ✅ Good (1 file)
@@ -291,8 +285,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 | `docs/README.md` | 74 | 2.6K | 2025-10-03 | ✅ Current | **UPDATE** - Add naming conventions |
 
 **Analysis**: README is current but could benefit from standardized naming conventions.
-
----
 
 ### Category 9: Redundancy Analysis
 
@@ -309,8 +301,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 **Recommendation**: Archive the two implementation plans (work complete). Merge `auth-quick-reference` into `jwt-auth-quick-reference`.
 
----
-
 #### Finding 9.2: REST API Compliance Redundancy (4 files)
 
 **Status**: ⚠️ Warning
@@ -324,8 +314,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 **Recommendation**: Archive implementation plan and review. Delete undated audit report. Keep dated audit report.
 
----
-
 #### Finding 9.3: Architecture Overview Redundancy (2 files)
 
 **Status**: ⚠️ Warning
@@ -336,8 +324,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 - `architecture/comprehensive-review-2025-10-03.md` (1,125 lines) - **POINT-IN-TIME → ARCHIVE**
 
 **Recommendation**: Archive comprehensive review. Update overview with current info.
-
----
 
 ### Category 10: Naming Convention Issues
 
@@ -354,8 +340,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 **Recommendation**: Standardize on kebab-case for all documentation files.
 
----
-
 #### Finding 10.2: Inconsistent Date Formats
 
 **Status**: ⚠️ Warning
@@ -366,8 +350,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 - ⚠️ Inconsistent: `comprehensive-review-2025-10-03.md` (embedded date)
 
 **Recommendation**: Use consistent date format: `{topic}-{type}-YYYY-MM-DD.md` for dated documents.
-
----
 
 #### Finding 10.3: File Type Indicators
 
@@ -387,8 +369,6 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 - `-reference.md` - Quick references
 - `-plan.md` - Implementation plans (archive when done)
 - `-review.md` or `-audit-YYYY-MM-DD.md` - Reviews/audits with dates
-
----
 
 ### Category 11: Content Accuracy Issues
 
@@ -411,8 +391,6 @@ Many docs reference old coverage numbers:
 
 **Impact**: Misleads users about current project state
 
----
-
 #### Finding 11.2: Outdated Project Status
 
 **Status**: ⚠️ Warning
@@ -431,8 +409,6 @@ Several docs reference "P1 Implementation" or "JWT auth pending"
 
 **Impact**: Incorrect status information
 
----
-
 #### Finding 11.3: Outdated Endpoint References
 
 **Status**: ℹ️ Info
@@ -444,8 +420,6 @@ Some docs reference old endpoints (e.g., `/auth/{provider_id}/authorize`)
 - **Current**: New endpoint structure post-REST compliance
 
 **Recommendation**: Review and update any remaining endpoint documentation.
-
----
 
 ## Compliance Assessment
 
@@ -475,8 +449,6 @@ Some docs reference old endpoints (e.g., `/auth/{provider_id}/authorize`)
 - ⚠️ 14 files need archiving or deletion (completed work)
 - ⚠️ 6 files need status/coverage updates
 - ⚠️ Naming conventions need standardization
-
----
 
 ## Recommendations
 
@@ -575,8 +547,6 @@ Add to `docs/README.md`:
 - `research/` - Research and decision records
   - `archived/` - Completed research and historical docs
 
----
-
 ## Action Items
 
 ### Phase 1: Archive & Delete (Cleanup)
@@ -601,8 +571,6 @@ Add to `docs/README.md`:
 - [ ] Check all internal links still work
 - [ ] Update any broken references
 - [ ] Verify cross-document references
-
----
 
 ## Historical Context
 
@@ -641,8 +609,6 @@ After this cleanup, the documentation will be:
 - ✅ Better organized with clear historical archive
 
 **Estimated Effort**: 2-3 hours for complete cleanup and updates
-
----
 
 ## Related Documentation
 

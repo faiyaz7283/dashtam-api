@@ -41,7 +41,7 @@ Documentation for working on the Dashtam project:
 - [Development Guide](development/) - Architecture, infrastructure, and testing
   - [Architecture Overview](development/architecture/overview.md)
   - [JWT Authentication Architecture](development/architecture/jwt-authentication.md) - Complete authentication system design
-  - [Technical Debt Roadmap](development/implementation/technical-debt-roadmap.md) - Technical debt tracking and implementation roadmap
+  - [Technical Debt Roadmap](development/technical-debt-roadmap.md) - Technical debt tracking and development planning
   - [Docker Setup](development/infrastructure/docker-setup.md)
   - [Testing Strategy](testing/strategy.md)
   - [Testing Guide](development/guides/testing-guide.md)

@@ -69,9 +69,9 @@ docs/development/
 ├── reviews/                # 2 docs - Code quality and audits
 │   ├── DOCUMENTATION_AUDIT_2025-10-05.md
 │   └── REST_API_AUDIT_REPORT_2025-10-05.md
-├── implementation/         # 2 docs - Implementation plans
-│   ├── ssl-tls-test-ci-implementation.md
-│   └── technical-debt-roadmap.md
+├── implementation/         # 1 doc - Implementation plans
+│   └── ssl-tls-test-ci-implementation.md
+├── technical-debt-roadmap.md  # Technical debt tracking and planning
 ├── historical/             # 12 docs - Archived documentation
 │   └── [Various historical documents]
 └── index.md                # This file
@@ -178,7 +178,10 @@ Code quality audits and compliance assessments:
 Implementation plans for features and improvements:
 
 - [SSL/TLS Test CI Implementation](implementation/ssl-tls-test-ci-implementation.md) - SSL testing in CI/CD
-- [Technical Debt Roadmap](implementation/technical-debt-roadmap.md) - Planned improvements and refactoring
+
+### Project Planning
+
+- [Technical Debt Roadmap](technical-debt-roadmap.md) - Technical debt tracking and development planning
 
 ### Historical
 

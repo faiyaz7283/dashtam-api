@@ -44,6 +44,7 @@ Comprehensive testing strategy for the Dashtam financial data aggregation platfo
   - [Issue 2: Slow Tests](#issue-2-slow-tests)
   - [Issue 3: Coverage Not Accurate](#issue-3-coverage-not-accurate)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 

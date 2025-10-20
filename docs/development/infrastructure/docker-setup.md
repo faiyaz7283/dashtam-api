@@ -26,6 +26,10 @@ Comprehensive guide to Dashtam's Docker-based multi-environment infrastructure w
 - [Setup Instructions](#setup-instructions)
   - [Prerequisites](#prerequisites)
   - [First-Time Setup](#first-time-setup)
+    - [Step 1: Clone Repository](#step-1-clone-repository)
+    - [Step 2: Generate SSL Certificates](#step-2-generate-ssl-certificates)
+    - [Step 3: Create Environment Files](#step-3-create-environment-files)
+    - [Step 4: Start Development Environment](#step-4-start-development-environment)
   - [SSL Certificates](#ssl-certificates)
 - [Operation](#operation)
   - [Development Workflow](#development-workflow)
@@ -52,6 +56,7 @@ Comprehensive guide to Dashtam's Docker-based multi-environment infrastructure w
   - [CI/CD Optimizations](#cicd-optimizations)
   - [Development Speed](#development-speed)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 

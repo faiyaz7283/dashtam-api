@@ -18,18 +18,27 @@ Documentation of development, test, and CI/CD environment workflows with detaile
 - [Configuration](#configuration)
   - [Environment Files](#environment-files)
   - [Docker Compose Files](#docker-compose-files)
-  - [Configuration Loading Hierarchy](#configuration-loading-hierarchy)
   - [Ports and Services](#ports-and-services)
 - [Setup Instructions](#setup-instructions)
   - [Prerequisites](#prerequisites)
   - [Starting Development Environment](#starting-development-environment)
+    - [Step 1: Start All Services](#step-1-start-all-services)
+    - [Step 2: Verify Services](#step-2-verify-services)
+    - [Step 3: Access Application](#step-3-access-application)
   - [Starting Test Environment](#starting-test-environment)
+    - [Step 1: Setup Test Environment](#step-1-setup-test-environment)
+    - [Step 2: Run Tests](#step-2-run-tests)
+    - [Step 3: Clean Up](#step-3-clean-up)
   - [Switching Between Environments](#switching-between-environments)
 - [Operation](#operation)
   - [Development Workflow](#development-workflow)
+  - [Development Environment Flow](#development-environment-flow)
   - [Test Environment Flow](#test-environment-flow)
-  - [Environment Switching](#environment-switching)
   - [Database State Management](#database-state-management)
+  - [Database State Comparison](#database-state-comparison)
+  - [Environment Switching](#environment-switching)
+  - [Environment Switching Flow](#environment-switching-flow)
+  - [Configuration Loading Hierarchy](#configuration-loading-hierarchy)
 - [Monitoring](#monitoring)
   - [Container Status](#container-status)
   - [Database Status](#database-status)
@@ -49,6 +58,7 @@ Documentation of development, test, and CI/CD environment workflows with detaile
 - [References](#references)
   - [Key Takeaways](#key-takeaways)
   - [Related Documentation](#related-documentation)
+- [Document Information](#document-information)
 
 ---
 
@@ -75,8 +85,6 @@ The multi-environment workflow exists to solve critical development and testing 
 - **CI/CD Compatibility:** Use same Docker setup locally and in GitHub Actions
 - **Safety:** Prevent accidental modification of development data during testing
 - **Debugging:** Allow inspection of development state without test interference
-
----
 
 ## Components
 
@@ -177,8 +185,6 @@ The multi-environment workflow exists to solve critical development and testing 
 # = Test configuration
 ```
 
----
-
 ## Configuration
 
 ### Environment Files
@@ -238,8 +244,6 @@ DATABASE_URL=postgresql+asyncpg://dashtam_test_user:test_password@postgres:5432/
 | Redis | 6379 | 6380 | TCP | Cache (dev: index 0, test: index 1) |
 
 **Note:** Test environment reuses same ports but with different internal configuration.
-
----
 
 ## Setup Instructions
 
@@ -356,13 +360,11 @@ make up          # Starts dev (data intact!)
 
 **Important:** Cannot run both simultaneously - container name conflicts.
 
----
-
 ## Operation
 
 ### Development Workflow
 
-## Development Environment Flow
+### Development Environment Flow
 
 ```mermaid
 flowchart TD
@@ -408,9 +410,7 @@ flowchart TD
     style Cb_Title fill:#f3e5f5
 ```
 
----
-
-## Test Environment Flow
+### Test Environment Flow
 
 ```mermaid
 flowchart TD
@@ -457,11 +457,9 @@ flowchart TD
     style Cb_Title fill:#f3e5f5
 ```
 
----
-
 ### Database State Management
 
-## Database State Comparison
+### Database State Comparison
 
 ```mermaid
 graph TB
@@ -502,11 +500,9 @@ graph TB
     style Isolation fill:#ffebee
 ```
 
----
-
 ### Environment Switching
 
-## Environment Switching Flow
+### Environment Switching Flow
 
 ```mermaid
 flowchart TD
@@ -552,8 +548,6 @@ flowchart TD
     Note["No .env volume mounts<br/>Docker Compose loads env files"]
     Dev --> Note
 ```
-
----
 
 ## Monitoring
 
@@ -627,8 +621,6 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml logs -f app
 - **Success:** "Migrations completed successfully", "Uvicorn running on..."
 - **Database Ready:** "database system is ready to accept connections"
 - **Test DB Initialized:** "Test database initialized successfully"
-
----
 
 ## Troubleshooting
 
@@ -719,8 +711,6 @@ docker compose exec app uv run python src/core/init_test_db.py
 
 **Cause:** Test setup not run before tests, or `init_test_db.py` failed silently.
 
----
-
 ## Maintenance
 
 ### Best Practices
@@ -763,8 +753,6 @@ docker compose exec app uv run python src/core/init_test_db.py
    - Only runs after all checks pass
    - Requires explicit TESTING=true flag
    - Logs all operations for audit trail
-
----
 
 ## Security
 
@@ -815,8 +803,6 @@ if not settings.TESTING:
 - Testing: `.env.test` file (mounted as `.env` in container)
 - Pydantic Settings classes enforce type safety
 
----
-
 ## Performance Optimization
 
 ### Test Database Optimizations
@@ -845,8 +831,6 @@ SET full_page_writes = OFF;
 - Development database uses standard PostgreSQL settings
 - Full durability for real OAuth tokens and provider configs
 - Matches production behavior
-
----
 
 ## References
 

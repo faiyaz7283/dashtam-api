@@ -1,66 +1,49 @@
 # Modern UV Package Management Guide
 
+A comprehensive guide for using UV (version 0.8.22+) as the modern Python package manager in Dashtam, covering installation, workflows, Docker integration, and best practices.
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
-- [Core Concepts](#core-concepts)
-  - [Project vs Package Management](#project-vs-package-management)
-- [Installation](#installation)
-  - [In Docker (Recommended for Dashtam)](#in-docker-recommended-for-dashtam)
-  - [On Host Machine (macOS)](#on-host-machine-macos)
-- [Command Reference](#command-reference)
-  - [Project Initialization](#project-initialization)
-    - [Initialize New Project](#initialize-new-project)
-  - [Adding Dependencies](#adding-dependencies)
-    - [Add Production Dependencies](#add-production-dependencies)
-    - [Add Development Dependencies](#add-development-dependencies)
-    - [Add Optional Dependencies](#add-optional-dependencies)
-  - [Removing Dependencies](#removing-dependencies)
-  - [Syncing Environment](#syncing-environment)
-  - [Lockfile Management](#lockfile-management)
-  - [Running Commands](#running-commands)
-  - [Virtual Environment Management](#virtual-environment-management)
-  - [Legacy pip Interface](#legacy-pip-interface)
-- [Dashtam Workflow](#dashtam-workflow)
-  - [Adding New Dependency](#adding-new-dependency)
-  - [After Pulling Changes](#after-pulling-changes)
-  - [Upgrading Dependencies](#upgrading-dependencies)
-  - [Development Dependencies](#development-dependencies)
-  - [Checking What's Installed](#checking-whats-installed)
-- [Docker Integration](#docker-integration)
-  - [Multi-Stage Dockerfile with UV](#multi-stage-dockerfile-with-uv)
-  - [Best Practices for Docker](#best-practices-for-docker)
-- [Configuration Files](#configuration-files)
-  - [pyproject.toml](#pyprojecttoml)
-  - [uv.lock](#uvlock)
-  - [.gitignore](#gitignore)
-- [Migration from pip/poetry](#migration-from-pippoetry)
-  - [From pip + requirements.txt](#from-pip--requirementstxt)
-  - [From poetry](#from-poetry)
+  - [What You'll Learn](#what-youll-learn)
+  - [When to Use This Guide](#when-to-use-this-guide)
+  - [Why UV](#why-uv)
+  - [Core Concepts](#core-concepts)
+- [Prerequisites](#prerequisites)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+  - [Step 1: Install UV](#step-1-install-uv)
+  - [Step 2: Initialize Project](#step-2-initialize-project)
+  - [Step 3: Manage Dependencies](#step-3-manage-dependencies)
+  - [Step 4: Sync Environment](#step-4-sync-environment)
+  - [Step 5: Run Commands](#step-5-run-commands)
+  - [Step 6: Integrate with Docker](#step-6-integrate-with-docker)
+- [Examples](#examples)
+  - [Example 1: Adding New Dependency in Dashtam](#example-1-adding-new-dependency-in-dashtam)
+  - [Example 2: After Pulling Changes](#example-2-after-pulling-changes)
+  - [Example 3: Upgrading Dependencies](#example-3-upgrading-dependencies)
+  - [Example 4: Docker Multi-Stage Build](#example-4-docker-multi-stage-build)
+  - [Example 5: Migration from pip](#example-5-migration-from-pip)
+- [Verification](#verification)
+  - [Check 1: UV Installation](#check-1-uv-installation)
+  - [Check 2: Dependencies Installed](#check-2-dependencies-installed)
+  - [Check 3: Environment Synced](#check-3-environment-synced)
 - [Troubleshooting](#troubleshooting)
-  - [Common Issues](#common-issues)
-    - ["No module named 'package'"](#no-module-named-package)
-    - ["uv: command not found"](#uv-command-not-found)
-    - [Environment out of sync](#environment-out-of-sync)
-    - [Dependency conflicts](#dependency-conflicts)
-  - [Debug Commands](#debug-commands)
-- [Performance Tips](#performance-tips)
-  - [Caching](#caching)
-  - [Docker Layer Caching](#docker-layer-caching)
-  - [Parallel Installation](#parallel-installation)
+  - [Issue 1: No module named package](#issue-1-no-module-named-package)
+  - [Issue 2: uv command not found](#issue-2-uv-command-not-found)
+  - [Issue 3: Environment Out of Sync](#issue-3-environment-out-of-sync)
+  - [Issue 4: Dependency Conflicts](#issue-4-dependency-conflicts)
 - [Best Practices](#best-practices)
-  - [✅ DO](#-do)
-  - [❌ DON'T](#-dont)
-- [Comparison with Other Tools](#comparison-with-other-tools)
+  - [Command Usage](#command-usage)
+  - [Version Control](#version-control)
+  - [Docker Integration](#docker-integration)
+  - [Performance Optimization](#performance-optimization)
+  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+  - [Quick Command Cheat Sheet](#quick-command-cheat-sheet)
+- [Next Steps](#next-steps)
 - [References](#references)
-- [Changelog](#changelog)
-- [Quick Command Cheat Sheet](#quick-command-cheat-sheet)
-
-**Document Purpose:** Comprehensive guide for using UV (version 0.8.22+) as the modern Python package manager in Dashtam.
-
-**Last Updated:** 2025-10-04  
-**UV Version:** 0.8.22+  
-**Status:** Active Standard
+- [Document Information](#document-information)
 
 ---
 
@@ -68,39 +51,83 @@
 
 UV is an extremely fast Python package manager and resolver, written in Rust. It's designed as a drop-in replacement for pip, pip-tools, poetry, and other Python package management tools.
 
-**Why UV?**
+### What You'll Learn
 
-- ⚡ **10-100x faster** than pip
-- 🔒 **Deterministic resolution** with lockfiles
-- 🎯 **Modern Python workflow** (replaces pip, poetry, pipenv)
-- 🐳 **Docker-optimized** with official container images
-- 📦 **Universal resolver** handles all dependency scenarios
+- How to install and configure UV in Docker and on host machines
+- Modern Python dependency management with UV project mode
+- Adding, removing, and upgrading dependencies
+- Syncing environments after pulling changes
+- Docker integration with official UV images
+- Migrating from pip or poetry to UV
+- Troubleshooting common UV issues
 
----
+### When to Use This Guide
 
-## Core Concepts
+Use this guide when:
 
-### Project vs Package Management
+- Setting up Dashtam development environment
+- Adding new Python dependencies to the project
+- Updating existing dependencies
+- Troubleshooting dependency installation issues
+- Migrating from pip or poetry
+- Optimizing Docker builds with UV
+
+### Why UV
+
+- **10-100x faster** than pip for package installation
+- **Deterministic resolution** with lockfiles (reproducible builds)
+- **Modern Python workflow** following PEP 621 standards
+- **Docker-optimized** with official container images
+- **Universal resolver** handles complex dependency scenarios
+- **No separate tools needed** (replaces pip, poetry, pipenv)
+
+### Core Concepts
 
 UV distinguishes between two modes:
 
-1. **Project Management** (`uv add`, `uv sync`, `uv lock`)
-   - For applications with `pyproject.toml`
-   - Manages project dependencies in a lockfile
-   - Creates and manages virtual environments
+**Project Management Mode** (Modern - Dashtam uses this):
 
-2. **Package Management** (`uv pip`)
-   - Legacy pip-compatible interface
-   - For one-off package installations
-   - Compatible with `requirements.txt`
+- Uses `uv add`, `uv sync`, `uv lock` commands
+- Manages dependencies in `pyproject.toml` and `uv.lock`
+- Creates and manages virtual environments automatically
+- For applications with modern Python project structure
 
-**Dashtam uses Project Management mode** - this is the modern approach.
+**Package Management Mode** (Legacy):
 
----
+- Uses `uv pip` commands (pip-compatible interface)
+- For one-off package installations
+- Compatible with `requirements.txt`
+- Use only when absolutely necessary for legacy compatibility
 
-## Installation
+## Prerequisites
 
-### In Docker (Recommended for Dashtam)
+Before using this guide, ensure you have:
+
+- [ ] Docker Desktop installed (for containerized development)
+- [ ] Basic understanding of Python package management
+- [ ] Access to Dashtam repository
+- [ ] Terminal access to development environment
+
+**Required Tools:**
+
+- Docker Desktop - Latest version (for containerized UV)
+- Python 3.13 - Required version for Dashtam
+- UV 0.8.22+ - Latest version recommended
+
+**Required Knowledge:**
+
+- Basic command line usage
+- Understanding of Python virtual environments
+- Familiarity with dependency management concepts
+- Basic Docker commands
+
+## Step-by-Step Instructions
+
+### Step 1: Install UV
+
+Choose installation method based on your environment.
+
+**In Docker (Recommended for Dashtam):**
 
 ```dockerfile
 # Use official UV image with Python 3.13
@@ -113,54 +140,72 @@ ENV UV_COMPILE_BYTECODE=1 \
     PATH="/app/.venv/bin:$PATH"
 ```
 
-### On Host Machine (macOS)
+**On Host Machine (macOS):**
 
 ```bash
-# Via Homebrew (recommended for macOS)
+# Via Homebrew (recommended)
 brew install uv
 
 # Via curl
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Via pip (not recommended - defeats the purpose!)
-pip install uv
+# Verify installation
+uv --version
 ```
 
----
+**What This Does:**
 
-## Command Reference
+- Downloads and installs UV binary
+- Sets up UV in system PATH
+- Enables modern Python package management
 
-### Project Initialization
+### Step 2: Initialize Project
 
-#### Initialize New Project
+Initialize UV project structure for new or existing projects.
+
+**For New Projects:**
 
 ```bash
 # Create new project with pyproject.toml
 uv init --app --name myproject --python 3.13
 
-# Initialize in existing directory
-uv init --app --name dashtam --python 3.13 --no-readme
+# What gets created:
+# - pyproject.toml (project configuration)
+# - .python-version (Python version pinning)
+# - src/myproject/ (source directory)
 ```
 
-**Options:**
-
-- `--app`: Create an application (not a library)
-- `--name`: Project name
-- `--python`: Python version requirement
-- `--no-readme`: Skip README.md creation
-
-### Adding Dependencies
-
-#### Add Production Dependencies
+**For Existing Projects (Like Dashtam):**
 
 ```bash
-# Add single package (latest version)
+# Initialize in existing directory
+uv init --app --name dashtam --python 3.13 --no-readme
+
+# Add existing dependencies from requirements.txt
+uv add --requirements requirements.txt
+uv add --dev --requirements requirements-dev.txt
+```
+
+**Important Notes:**
+
+- `--app` flag indicates application (not a library)
+- `--python 3.13` sets Python version requirement
+- `--no-readme` skips README.md creation if already exists
+
+### Step 3: Manage Dependencies
+
+Add, remove, and update project dependencies.
+
+**Adding Production Dependencies:**
+
+```bash
+# Add latest version
 uv add boto3
 
 # Add specific version
 uv add "boto3==1.40.45"
 
-# Add with version constraint
+# Add with version constraints
 uv add "boto3>=1.40.0,<2.0.0"
 
 # Add multiple packages
@@ -170,34 +215,17 @@ uv add boto3 requests httpx
 uv add --requirements requirements.txt
 ```
 
-#### Add Development Dependencies
+**Adding Development Dependencies:**
 
 ```bash
-# Add dev dependencies
+# Add dev tools
 uv add --dev pytest pytest-cov ruff
 
 # Add from requirements-dev.txt
 uv add --dev --requirements requirements-dev.txt
 ```
 
-#### Add Optional Dependencies
-
-```bash
-# Add to specific extras group
-uv add --optional docs sphinx sphinx-rtd-theme
-
-# Add to dependency group
-uv add --group test pytest pytest-asyncio
-```
-
-**Key Points:**
-
-- ✅ **Use `uv add`** - NOT `uv pip install`
-- ✅ Updates `pyproject.toml` and `uv.lock` automatically
-- ✅ Installs immediately into virtual environment
-- ✅ Resolves dependencies intelligently
-
-### Removing Dependencies
+**Removing Dependencies:**
 
 ```bash
 # Remove package
@@ -210,182 +238,74 @@ uv remove boto3 requests
 uv remove --dev pytest
 ```
 
-### Syncing Environment
+**What Happens When Adding:**
+
+1. UV resolves all dependencies
+2. Updates `pyproject.toml` with new dependency
+3. Updates `uv.lock` with exact resolved versions
+4. Installs package into `.venv` immediately
+5. Compiles bytecode for faster imports
+
+### Step 4: Sync Environment
+
+Keep your environment synchronized with project dependencies.
+
+**Basic Sync:**
 
 ```bash
-# Sync environment with lockfile (install/update/remove as needed)
+# Sync with lockfile (install/update/remove as needed)
 uv sync
 
-# Sync only production dependencies (no dev)
+# Sync only production dependencies
 uv sync --no-dev
 
 # Force reinstall all packages
 uv sync --reinstall
-
-# Sync without installing project itself
-uv sync --no-install-project
 ```
 
-**When to use `uv sync`:**
+**When to Sync:**
 
 - After pulling changes from git
-- After modifying `pyproject.toml` manually
 - After switching branches with different dependencies
-- When virtual environment is corrupted
+- After manually editing `pyproject.toml`
+- When virtual environment seems corrupted
+- After team member updates dependencies
 
-### Lockfile Management
+### Step 5: Run Commands
 
-```bash
-# Update lockfile without installing
-uv lock
+Execute Python scripts and commands with project dependencies.
 
-# Update specific package to latest version
-uv lock --upgrade-package boto3
-
-# Update all packages to latest compatible versions
-uv lock --upgrade
-```
-
-### Running Commands
+**Running Scripts:**
 
 ```bash
-# Run Python script with project dependencies
+# Run Python script
 uv run python script.py
 
 # Run module
 uv run -m pytest
 
-# Run installed tool
+# Run installed CLI tool
 uv run uvicorn src.main:app --reload
 
 # Run with specific Python version
 uv run --python 3.13 python script.py
 ```
 
-**Benefits of `uv run`:**
+**Benefits of uv run:**
 
-- Ensures correct virtual environment is used
-- No need to activate venv manually
+- Ensures correct virtual environment is active
+- No manual venv activation needed
 - Consistent across all environments
+- Works in CI/CD without modifications
 
-### Virtual Environment Management
+### Step 6: Integrate with Docker
 
-```bash
-# Create virtual environment
-uv venv
+Configure Docker to use UV for fast, deterministic builds.
 
-# Create with specific Python version
-uv venv --python 3.13
-
-# Create in custom location
-uv venv .venv
-
-# Activate (manual - not usually needed with `uv run`)
-source .venv/bin/activate  # Unix
-.venv\Scripts\activate     # Windows
-```
-
-### Legacy pip Interface
-
-```bash
-# Only use when absolutely necessary for legacy compatibility
-uv pip install package-name
-uv pip uninstall package-name
-uv pip list
-uv pip freeze
-```
-
-**⚠️ Warning:** Avoid `uv pip` commands in modern projects. Use `uv add` instead.
-
----
-
-## Dashtam Workflow
-
-### Adding New Dependency
-
-**Scenario:** You need to add a new package (e.g., `boto3`)
-
-```bash
-# 1. Add package using modern UV command
-docker compose -f docker-compose.dev.yml exec app uv add boto3
-
-# Alternative: Add with version constraint
-docker compose -f docker-compose.dev.yml exec app uv add "boto3>=1.40.0"
-
-# 2. Verify installation
-docker compose -f docker-compose.dev.yml exec app python -c "import boto3; print(boto3.__version__)"
-
-# 3. Commit changes (pyproject.toml and uv.lock updated automatically)
-git add pyproject.toml uv.lock
-git commit -m "Add boto3 for AWS SES integration"
-```
-
-**What Happens:**
-
-1. UV resolves dependencies
-2. Updates `pyproject.toml` with new dependency
-3. Updates `uv.lock` with resolved versions
-4. Installs package into `.venv`
-5. Compiles bytecode for faster imports
-
-### After Pulling Changes
-
-**Scenario:** Teammate added dependencies, you pulled their branch
-
-```bash
-# Sync your environment with the updated lockfile
-docker compose -f docker-compose.dev.yml exec app uv sync
-
-# Verify everything works
-docker compose -f docker-compose.dev.yml exec app uv run pytest
-```
-
-### Upgrading Dependencies
-
-**Scenario:** Update to latest compatible versions
-
-```bash
-# Update specific package
-docker compose -f docker-compose.dev.yml exec app uv lock --upgrade-package fastapi
-
-# Update all packages
-docker compose -f docker-compose.dev.yml exec app uv lock --upgrade
-
-# Apply updates
-docker compose -f docker-compose.dev.yml exec app uv sync
-```
-
-### Development Dependencies
-
-**Scenario:** Add testing or development tools
-
-```bash
-# Add dev dependencies
-docker compose -f docker-compose.dev.yml exec app uv add --dev pytest pytest-asyncio pytest-cov
-
-# Add linting tools
-docker compose -f docker-compose.dev.yml exec app uv add --dev ruff black mypy
-```
-
-### Checking What's Installed
-
-```bash
-# Show dependency tree
-docker compose -f docker-compose.dev.yml exec app uv tree
-
-# Show installed packages (legacy)
-docker compose -f docker-compose.dev.yml exec app uv pip list
-```
-
----
-
-## Docker Integration
-
-### Multi-Stage Dockerfile with UV
+**Basic Docker Configuration:**
 
 ```dockerfile
-# syntax=docker/dockerfile:1
-
+# Use official UV image
 FROM ghcr.io/astral-sh/uv:0.8.22-python3.13-trixie-slim AS base
 
 # Set UV environment
@@ -398,178 +318,270 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Development stage
-FROM base AS development
+# Copy project files (lockfile first for caching)
+COPY pyproject.toml uv.lock ./
 
-# Copy project files
-COPY pyproject.toml uv.lock* ./
-COPY requirements*.txt ./
-
-# Initialize project if needed
-RUN if [ ! -f "pyproject.toml" ]; then \
-        uv init --app --name dashtam --python 3.13 --no-readme; \
-    fi
-
-# Add dependencies from requirements.txt (migration phase)
-RUN uv add --requirements requirements.txt && \
-    uv add --dev --requirements requirements-dev.txt
+# Sync dependencies
+RUN uv sync --no-dev
 
 # Copy application code
 COPY . .
 
-# Sync environment
-RUN uv sync
-
-# Run with uv
-CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Run application
+CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0"]
 ```
 
-### Best Practices for Docker
+**Layer Caching Optimization:**
 
-1. **Copy lockfile first** for better caching:
+```dockerfile
+# Good: Copy lockfile first
+COPY pyproject.toml uv.lock ./
+RUN uv sync --no-dev
+COPY . .
 
-   ```dockerfile
-   COPY pyproject.toml uv.lock* ./
-   ```
-
-2. **Use multi-stage builds** for smaller production images:
-
-   ```dockerfile
-   FROM base AS builder
-   RUN uv sync --no-dev
-   
-   FROM python:3.13-slim AS production
-   COPY --from=builder /app/.venv /app/.venv
-   ```
-
-3. **Set UV environment variables** for optimal performance:
-
-   ```dockerfile
-   ENV UV_COMPILE_BYTECODE=1 \
-       UV_LINK_MODE=copy
-   ```
-
----
-
-## Configuration Files
-
-### pyproject.toml
-
-UV uses `pyproject.toml` for project configuration (PEP 621 standard).
-
-```toml
-[project]
-name = "dashtam"
-version = "0.1.0"
-description = "Financial data aggregation platform"
-requires-python = ">=3.13"
-dependencies = [
-    "fastapi>=0.100.0",
-    "uvicorn[standard]>=0.23.0",
-    "sqlmodel>=0.0.18",
-    "boto3>=1.40.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
-    "pytest-cov>=4.1.0",
-    "ruff>=0.5.0",
-]
-
-[tool.uv]
-dev-dependencies = [
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
-]
-
-[tool.uv.sources]
-# Optional: specify package sources
-# mypackage = { git = "https://github.com/user/repo.git" }
+# Bad: Invalidates cache on any code change
+COPY . .
+RUN uv sync --no-dev
 ```
 
-### uv.lock
+## Examples
 
-**DO NOT EDIT MANUALLY** - Generated and managed by UV.
+### Example 1: Adding New Dependency in Dashtam
 
-- Contains exact resolved versions
-- Platform-specific hashes for security
-- Ensures reproducible installations
-- Should be committed to git
+Complete workflow for adding a new package in containerized development.
 
-### .gitignore
+**Scenario:** Add boto3 for AWS SES integration
 
-```gitignore
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+```bash
+# 1. Add package in Docker container
+docker compose -f compose/docker-compose.dev.yml exec app uv add boto3
 
-# Virtual environments
-.venv/
-venv/
-ENV/
-env/
+# 2. Verify installation
+docker compose -f compose/docker-compose.dev.yml exec app \
+  python -c "import boto3; print(boto3.__version__)"
 
-# UV cache
-.uv/
+# 3. Check what was updated
+git status
+# Shows: pyproject.toml and uv.lock modified
 
-# Don't ignore lockfile!
-# uv.lock  ❌ DO NOT ADD THIS
+# 4. Commit changes
+git add pyproject.toml uv.lock
+git commit -m "feat(deps): add boto3 for AWS SES integration"
 ```
 
----
+**What Gets Updated:**
 
-## Migration from pip/poetry
+- `pyproject.toml`: Adds `boto3>=1.40.0` to dependencies
+- `uv.lock`: Locks boto3 and all its dependencies with exact versions
+- `.venv/`: Package installed immediately
 
-### From pip + requirements.txt
+### Example 2: After Pulling Changes
+
+Sync your environment after teammate adds dependencies.
+
+**Scenario:** Pull branch with new dependencies
+
+```bash
+# 1. Pull changes
+git pull origin feature/new-dependencies
+
+# 2. Check what changed
+git diff HEAD@{1} -- pyproject.toml uv.lock
+
+# 3. Sync environment
+docker compose -f compose/docker-compose.dev.yml exec app uv sync
+
+# 4. Verify everything works
+docker compose -f compose/docker-compose.dev.yml exec app uv run pytest
+```
+
+**Expected Output:**
+
+```text
+Resolved 50 packages in 1.2s
+Installed 5 packages in 500ms
+```
+
+### Example 3: Upgrading Dependencies
+
+Update packages to latest compatible versions.
+
+**Scenario:** Update FastAPI to latest version
+
+```bash
+# 1. Update specific package
+docker compose -f compose/docker-compose.dev.yml exec app \
+  uv lock --upgrade-package fastapi
+
+# 2. Apply updates
+docker compose -f compose/docker-compose.dev.yml exec app uv sync
+
+# 3. Test application
+docker compose -f compose/docker-compose.dev.yml exec app uv run pytest
+
+# 4. If tests pass, commit
+git add uv.lock
+git commit -m "chore(deps): upgrade fastapi to latest version"
+```
+
+**Update All Packages:**
+
+```bash
+# Update all to latest compatible versions
+docker compose -f compose/docker-compose.dev.yml exec app \
+  uv lock --upgrade
+
+docker compose -f compose/docker-compose.dev.yml exec app uv sync
+```
+
+### Example 4: Docker Multi-Stage Build
+
+Optimize Docker image size with multi-stage builds.
+
+**Complete Multi-Stage Dockerfile:**
+
+```dockerfile
+# syntax=docker/dockerfile:1
+
+# Base stage with UV
+FROM ghcr.io/astral-sh/uv:0.8.22-python3.13-trixie-slim AS base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+# Builder stage
+FROM base AS builder
+
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install production dependencies only
+RUN uv sync --no-dev --frozen
+
+# Production stage
+FROM python:3.13-slim AS production
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Set PATH to use venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+USER appuser
+
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**Result:** Production image ~200MB smaller than development image.
+
+### Example 5: Migration from pip
+
+Migrate existing pip-based project to UV.
+
+**Scenario:** Convert Dashtam from pip to UV
 
 ```bash
 # 1. Initialize UV project
 uv init --app --name dashtam --python 3.13
 
-# 2. Add all dependencies from requirements.txt
+# 2. Add all dependencies
 uv add --requirements requirements.txt
 uv add --dev --requirements requirements-dev.txt
 
-# 3. Generate lockfile
-uv lock
+# 3. Verify lockfile created
+ls -la uv.lock
 
-# 4. Verify everything works
-uv sync
-uv run pytest
+# 4. Test in clean environment
+docker compose -f compose/docker-compose.test.yml up --build
 
-# 5. (Optional) Keep requirements.txt for legacy compatibility
+# 5. If successful, commit UV files
+git add pyproject.toml uv.lock
+git commit -m "build: migrate from pip to UV package management"
+
+# 6. (Optional) Keep requirements.txt for compatibility
 uv pip compile pyproject.toml -o requirements.txt
 ```
 
-### From poetry
+## Verification
+
+### Check 1: UV Installation
+
+Verify UV is properly installed and accessible.
 
 ```bash
-# 1. Export poetry dependencies
-poetry export -f requirements.txt --output requirements.txt
+# Check UV version
+uv --version
+# Expected: uv 0.8.22 or higher
 
-# 2. Initialize UV project
-uv init --app --name dashtam --python 3.13
+# Check UV in Docker
+docker compose -f compose/docker-compose.dev.yml exec app uv --version
 
-# 3. Add dependencies
-uv add --requirements requirements.txt
-
-# 4. Remove poetry files
-rm poetry.lock pyproject.toml  # Backup first!
+# Check UV configuration
+uv config list
 ```
 
----
+**Expected Result:** UV version displays without errors.
+
+### Check 2: Dependencies Installed
+
+Verify all dependencies are properly installed.
+
+```bash
+# Show dependency tree
+uv tree
+
+# Check specific package
+uv tree --package fastapi
+
+# List installed packages
+uv pip list
+
+# In Docker
+docker compose -f compose/docker-compose.dev.yml exec app uv tree
+```
+
+**Expected Result:** All dependencies listed with correct versions.
+
+### Check 3: Environment Synced
+
+Verify environment matches lockfile.
+
+```bash
+# Validate lockfile
+uv lock --check
+
+# Show what would change (dry run)
+uv sync --dry-run
+
+# Verify by running tests
+uv run pytest
+```
+
+**Expected Result:** "Environment is already synced" or tests pass successfully.
 
 ## Troubleshooting
 
-### Common Issues
+### Issue 1: No module named package
 
-#### "No module named 'package'"
+**Symptoms:**
 
-**Problem:** Package not installed in virtual environment
+- ImportError when running Python code
+- Module not found errors in tests
+- Application crashes on import
+
+**Cause:** Package not installed or virtual environment not synced.
 
 **Solution:**
 
@@ -577,27 +589,46 @@ rm poetry.lock pyproject.toml  # Backup first!
 # Sync environment with lockfile
 uv sync
 
-# Or add package if missing
+# Or add package if genuinely missing
 uv add package-name
+
+# Force reinstall if corrupted
+uv sync --reinstall
 ```
 
-#### "uv: command not found"
+### Issue 2: uv command not found
 
-**Problem:** UV not available in Docker container
+**Symptoms:**
+
+- "uv: command not found" error
+- Commands fail in Docker container
+- UV not available in PATH
+
+**Cause:** UV not installed or not in PATH.
 
 **Solution:**
 
 ```bash
-# Check UV installation
-docker compose -f docker-compose.dev.yml exec app which uv
+# Check if UV exists in Docker
+docker compose -f compose/docker-compose.dev.yml exec app which uv
 
 # If missing, rebuild container
-docker compose -f docker-compose.dev.yml build --no-cache
+docker compose -f compose/docker-compose.dev.yml build --no-cache
+
+# On host machine, reinstall UV
+brew install uv  # macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Linux/Unix
 ```
 
-#### Environment out of sync
+### Issue 3: Environment Out of Sync
 
-**Problem:** Lockfile and installed packages don't match
+**Symptoms:**
+
+- Different versions than expected
+- Import errors after pulling changes
+- Lockfile and installed packages mismatch
+
+**Cause:** Environment not synced after lockfile changes.
 
 **Solution:**
 
@@ -609,52 +640,102 @@ uv sync --reinstall
 rm -rf .venv
 uv venv
 uv sync
+
+# In Docker, rebuild
+docker compose -f compose/docker-compose.dev.yml up --build
 ```
 
-#### Dependency conflicts
+### Issue 4: Dependency Conflicts
 
-**Problem:** UV can't resolve compatible versions
+**Symptoms:**
+
+- UV cannot resolve compatible versions
+- Conflicting version requirements
+- Resolution fails with error messages
+
+**Cause:** Incompatible version constraints in dependencies.
 
 **Solution:**
 
 ```bash
-# Try loosening version constraints in pyproject.toml
-# Change: "package==1.0.0"
-# To: "package>=1.0.0"
+# Check conflict details
+uv add package-name --verbose
 
-# Or exclude problematic versions
+# Loosen version constraints in pyproject.toml
+# Change: "package==1.0.0"
+# To: "package>=1.0.0,<2.0.0"
+
+# Exclude problematic versions
 uv add "package>=1.0.0,!=1.5.0"
+
+# Update lockfile
+uv lock
 ```
 
-### Debug Commands
+## Best Practices
+
+### Command Usage
+
+**Always Use Modern Commands:**
+
+- Use `uv add` for adding dependencies (not `uv pip install`)
+- Use `uv remove` for removing dependencies
+- Use `uv sync` after pulling changes
+- Use `uv run` to execute commands with project dependencies
+- Use `uv lock` to update lockfile without installing
+
+**Avoid Legacy Commands:**
+
+- Avoid `uv pip install` (use `uv add` instead)
+- Avoid `uv pip uninstall` (use `uv remove` instead)
+- Never mix UV with pip/poetry in same project
+
+### Version Control
+
+**Always Commit:**
+
+- Commit `pyproject.toml` (project configuration)
+- Commit `uv.lock` (exact dependency versions)
+- Commit `.python-version` (Python version pinning)
+
+**Never Commit:**
+
+- Never commit `.venv/` directory
+- Never commit `__pycache__/` directories
+- Never commit `.uv/` cache directory
+
+**Handling Merge Conflicts:**
 
 ```bash
-# Show UV version
-uv --version
-
-# Show UV configuration
-uv config list
-
-# Show dependency tree
-uv tree
-
-# Show why a package is installed
-uv tree --package boto3 --invert
-
-# Show locked versions
-uv pip list
-
-# Validate lockfile
-uv lock --check
+# When uv.lock has conflicts
+git checkout --theirs uv.lock  # Or --ours
+uv lock  # Regenerate lockfile
+uv sync  # Test resolution
 ```
 
----
+### Docker Integration
 
-## Performance Tips
+**Layer Caching Best Practices:**
 
-### Caching
+```dockerfile
+# Copy lockfile first (rarely changes)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --no-dev
 
-UV automatically caches downloaded packages:
+# Copy code last (changes frequently)
+COPY . .
+```
+
+**Multi-Stage Optimization:**
+
+- Use builder stage for dependency installation
+- Copy only `.venv` to production stage
+- Use `--frozen` flag for deterministic builds
+- Set `UV_COMPILE_BYTECODE=1` for faster startup
+
+### Performance Optimization
+
+**UV Caching:**
 
 ```bash
 # Show cache location
@@ -667,102 +748,100 @@ uv cache size
 uv cache clean
 ```
 
-### Docker Layer Caching
+**Parallel Installation:**
+
+- UV automatically parallelizes installations
+- No configuration needed
+- Significantly faster than pip
+
+**Bytecode Compilation:**
 
 ```dockerfile
-# ✅ GOOD: Copy lockfile first for better caching
-COPY pyproject.toml uv.lock ./
-RUN uv sync --no-dev
-COPY . .
-
-# ❌ BAD: Invalidates cache on any code change
-COPY . .
-RUN uv sync --no-dev
+# Enable in Docker for faster imports
+ENV UV_COMPILE_BYTECODE=1
 ```
 
-### Parallel Installation
+### Common Mistakes to Avoid
 
-UV automatically parallelizes installations - no configuration needed!
+**Don't Do These:**
 
----
+- Don't use `uv pip install` in modern projects (use `uv add`)
+- Don't edit `uv.lock` manually (always regenerate with `uv lock`)
+- Don't commit `.venv/` directory to git
+- Don't mix UV with pip/poetry in same project
+- Don't ignore lockfile merge conflicts (resolve carefully)
+- Don't use `pip` inside UV-managed projects
 
-## Best Practices
+**Do These Instead:**
 
-### ✅ DO
+- Use `uv add` for all dependency additions
+- Let UV manage `uv.lock` automatically
+- Add `.venv/` to `.gitignore`
+- Choose one tool (UV) and stick with it
+- Resolve lockfile conflicts then regenerate
+- Use UV commands exclusively
 
-- Use `uv add` for adding dependencies
-- Commit `uv.lock` to version control
-- Use `uv sync` after pulling changes
-- Use `uv run` to run commands with project dependencies
-- Keep `pyproject.toml` organized and documented
-- Use version constraints (`>=`, `<`, `!=`) appropriately
-- Test in clean environment before deploying
+### Quick Command Cheat Sheet
 
-### ❌ DON'T
-
-- Use `uv pip install` in modern projects (legacy only)
-- Edit `uv.lock` manually
-- Commit `.venv/` directory
-- Mix UV with other package managers (pip, poetry) in same project
-- Use `pip` inside UV-managed projects
-- Ignore lockfile merge conflicts (resolve carefully!)
-
----
-
-## Comparison with Other Tools
-
-| Feature | UV | pip | poetry | pipenv |
-|---------|-----|-----|--------|--------|
-| **Speed** | ⚡⚡⚡⚡⚡ | ⚡ | ⚡⚡ | ⚡⚡ |
-| **Lockfile** | ✅ | ❌ | ✅ | ✅ |
-| **Resolver** | ✅ Fast | ❌ Slow | ✅ Slow | ✅ Very Slow |
-| **Docker Support** | ✅ Official images | ⚠️ Manual | ⚠️ Manual | ⚠️ Manual |
-| **PEP 621 Support** | ✅ | ❌ | ⚠️ Partial | ❌ |
-| **Ease of Use** | ⚡⚡⚡⚡⚡ | ⚡⚡⚡ | ⚡⚡⚡⚡ | ⚡⚡⚡ |
-
----
-
-## References
-
-- [UV Documentation](https://docs.astral.sh/uv/)
-- [UV GitHub Repository](https://github.com/astral-sh/uv)
-- [PEP 621 - Storing project metadata in pyproject.toml](https://peps.python.org/pep-0621/)
-- [Dashtam Docker Configuration](../../docker/Dockerfile)
-
----
-
-## Changelog
-
-| Date | Change | Author |
-|------|--------|--------|
-| 2025-10-04 | Initial comprehensive UV guide created | Dashtam Team |
-| 2025-10-04 | Added Docker integration examples | Dashtam Team |
-| 2025-10-04 | Added troubleshooting section | Dashtam Team |
-
----
-
-## Quick Command Cheat Sheet
+**Common Commands:**
 
 ```bash
-# Common Commands
+# Dependency Management
 uv add package              # Add dependency
 uv add --dev package        # Add dev dependency
 uv remove package           # Remove dependency
 uv sync                     # Sync environment with lockfile
 uv lock                     # Update lockfile
-uv run python script.py     # Run with project dependencies
-uv tree                     # Show dependency tree
+uv lock --upgrade           # Upgrade all packages
 
-# Docker Commands (Dashtam-specific)
-docker compose -f docker-compose.dev.yml exec app uv add package
-docker compose -f docker-compose.dev.yml exec app uv sync
-docker compose -f docker-compose.dev.yml exec app uv run pytest
-docker compose -f docker-compose.dev.yml exec app uv tree
+# Running Code
+uv run python script.py     # Run script
+uv run -m pytest            # Run module
+uv run uvicorn app:main     # Run server
+
+# Information
+uv tree                     # Show dependency tree
+uv pip list                 # List installed packages
+uv --version                # Show UV version
 ```
 
----
+**Docker Commands (Dashtam-Specific):**
 
-**Remember:** UV is designed to be fast and intuitive. When in doubt, `uv --help` or `uv <command> --help` provides excellent inline documentation!
+```bash
+# Add dependency in container
+docker compose -f compose/docker-compose.dev.yml exec app uv add package
+
+# Sync environment
+docker compose -f compose/docker-compose.dev.yml exec app uv sync
+
+# Run tests
+docker compose -f compose/docker-compose.dev.yml exec app uv run pytest
+
+# Show dependencies
+docker compose -f compose/docker-compose.dev.yml exec app uv tree
+```
+
+## Next Steps
+
+After mastering UV package management, consider:
+
+- [ ] Review [Docker Refactoring Implementation Guide](docker-refactoring-implementation.md)
+- [ ] Set up automated dependency updates with Dependabot
+- [ ] Configure pre-commit hooks for lockfile validation
+- [ ] Implement dependency security scanning
+- [ ] Explore UV workspaces for monorepo projects
+- [ ] Set up UV caching in CI/CD pipeline
+- [ ] Document project-specific UV workflows
+- [ ] Train team members on UV best practices
+
+## References
+
+- [UV Documentation](https://docs.astral.sh/uv/) - Official UV documentation
+- [UV GitHub Repository](https://github.com/astral-sh/uv) - Source code and issues
+- [PEP 621](https://peps.python.org/pep-0621/) - Project metadata standard
+- [Dashtam Docker Configuration](../../docker/Dockerfile) - Project Dockerfile
+- [Dashtam WARP.md](../../../WARP.md) - Project rules for UV usage
+- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/) - Docker optimization
 
 ---
 
@@ -770,4 +849,4 @@ docker compose -f docker-compose.dev.yml exec app uv tree
 
 **Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-04
-**Last Updated:** 2025-10-15
+**Last Updated:** 2025-10-20

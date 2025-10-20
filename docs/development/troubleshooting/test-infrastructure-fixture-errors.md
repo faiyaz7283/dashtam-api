@@ -1,21 +1,8 @@
 # Test Infrastructure Fixture Errors
 
-**Date:** 2025-10-02
-**Issue:** 148/187 tests failing - missing fixture and unmigrated async tests
-**Resolution:** Added test_settings fixture, archived unmigrated async tests
-**Status:** ✅ RESOLVED
-
----
-
-## Executive Summary
-
 When attempting to merge Git Flow PR #1, CI tests failed with 148 out of 187 tests failing due to two root causes: (1) missing `test_settings` fixture that was defined but not registered in conftest.py, and (2) unmigrated async test files from early CI/CD setup that used incompatible async/await patterns with the synchronous testing strategy.
 
 The investigation revealed that during the async-to-synchronous testing migration, new test files were created successfully, but old async test files were left behind and never deleted or updated. These orphaned tests were being collected by pytest, causing failures. The solution involved adding the missing fixture to conftest.py and archiving the 5 unmigrated async test files to `tests_old_unmigrated_archived/` directory.
-
-**Duration**: ~2 hours investigation + fix
-**Impact**: Blocked PR merge, 79% test failure rate
-**Resolution**: All 39 migrated tests now pass (100%)
 
 ---
 
@@ -27,16 +14,21 @@ The investigation revealed that during the async-to-synchronous testing migratio
    - [Actual Behavior](#actual-behavior)
    - [Impact](#impact)
 2. [Investigation Steps](#investigation-steps)
-   - [Phase 1: Fixture Error Analysis](#phase-1-fixture-error-analysis)
-   - [Phase 2: Async Test Discovery](#phase-2-async-test-discovery)
+   - [Step 1: Fixture Error Analysis](#step-1-fixture-error-analysis)
+   - [Step 2: Async Test Discovery](#step-2-async-test-discovery)
 3. [Root Cause Analysis](#root-cause-analysis)
    - [Primary Cause](#primary-cause)
      - [Issue 1: Missing test_settings Fixture Registration](#issue-1-missing-test_settings-fixture-registration)
      - [Issue 2: Unmigrated Async Tests](#issue-2-unmigrated-async-tests)
    - [Contributing Factors](#contributing-factors)
+     - [Factor 1: Migration Documentation Gap](#factor-1-migration-documentation-gap)
+     - [Factor 2: Lack of Regular Test Execution](#factor-2-lack-of-regular-test-execution)
 4. [Solution Implementation](#solution-implementation)
    - [Approach](#approach)
    - [Changes Made](#changes-made)
+     - [Change 1: tests/conftest.py - Add Missing Fixture](#change-1-testsconftestpy---add-missing-fixture)
+     - [Change 2: Archive Unmigrated Async Tests](#change-2-archive-unmigrated-async-tests)
+     - [Change 3: pytest.ini - Exclude Archived Tests](#change-3-pytestini---exclude-archived-tests)
    - [Implementation Steps](#implementation-steps)
 5. [Verification](#verification)
    - [Test Results](#test-results)
@@ -44,7 +36,7 @@ The investigation revealed that during the async-to-synchronous testing migratio
    - [Regression Testing](#regression-testing)
 6. [Lessons Learned](#lessons-learned)
    - [Technical Insights](#technical-insights)
-   - [Debugging Methodology Analysis](#debugging-methodology-analysis)
+   - [Process Improvements](#process-improvements)
    - [Best Practices](#best-practices)
 7. [Future Improvements](#future-improvements)
    - [Short-Term Actions](#short-term-actions)
@@ -80,11 +72,9 @@ CI collected 187 tests (including old unmigrated async tests), with 148 tests fa
 - **Affected Components:** CI/CD pipeline, pytest collection, Git Flow PR merge
 - **User Impact:** Blocked PR merges, misleading test failure rate, development workflow disruption
 
----
-
 ## Investigation Steps
 
-### Phase 1: Fixture Error Analysis
+### Step 1: Fixture Error Analysis
 
 1. **Examined pytest error output**
 
@@ -112,7 +102,7 @@ CI collected 187 tests (including old unmigrated async tests), with 148 tests fa
 
    **Discovery**: Missing import in conftest.py
 
-### Phase 2: Async Test Discovery
+### Step 2: Async Test Discovery
 
 1. **Analyzed TypeError messages**
 
@@ -150,8 +140,6 @@ CI collected 187 tests (including old unmigrated async tests), with 148 tests fa
    - test_model_persistence.py: 23 tests (~20 failing)
 
    **Total**: ~150 old async tests causing failures
-
----
 
 ## Root Cause Analysis
 
@@ -196,8 +184,6 @@ Migration documentation (`TESTING_MIGRATION_SUMMARY.md`) described the strategy 
 #### Factor 2: Lack of Regular Test Execution
 
 Tests weren't run regularly during Git Flow implementation work, allowing the issue to accumulate undetected until CI run.
-
----
 
 ## Solution Implementation
 
@@ -268,8 +254,6 @@ norecursedirs = tests/tests_old_unmigrated
 5. **Ran full test suite** to verify fix
 6. **Updated documentation** to reflect changes
 
----
-
 ## Verification
 
 ### Test Results
@@ -332,8 +316,6 @@ Verified that all existing functionality remained intact:
 - ✅ CI pipeline completes successfully
 - ✅ No impact on test execution time
 
----
-
 ## Lessons Learned
 
 ### Technical Insights
@@ -343,7 +325,7 @@ Verified that all existing functionality remained intact:
 3. **Fixture registration requires explicit imports**: Defining a fixture isn't enough - it must be imported in conftest.py
 4. **Historical context matters**: Understanding why old async tests existed (early experiments) explained why they were never migrated
 
-### Debugging Methodology Analysis
+### Process Improvements
 
 **What Worked Well:**
 
@@ -375,8 +357,6 @@ Verified that all existing functionality remained intact:
 - ✅ Use clear naming conventions for shared fixtures
 - ✅ Document fixture scope and purpose
 - ✅ Verify fixtures are available where needed
-
----
 
 ## Future Improvements
 
@@ -433,8 +413,6 @@ Verified that all existing functionality remained intact:
    - Create migration checklist template
    - Require cleanup verification in PRs
    - Automated detection of orphaned test files
-
----
 
 ## References
 

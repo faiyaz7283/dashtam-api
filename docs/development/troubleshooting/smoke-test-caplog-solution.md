@@ -1,14 +1,5 @@
 # Smoke Test Token Extraction - Troubleshooting Guide
 
-**Date:** 2025-10-06
-**Issue:** Smoke tests failed to extract tokens using Docker logs command inside containers
-**Resolution:** Replaced Docker CLI dependency with pytest's caplog fixture for log capture
-**Status:** ✅ RESOLVED
-
----
-
-## Executive Summary
-
 The original smoke tests (`scripts/test-api-flows.sh`) relied on `docker logs` command to extract email verification and password reset tokens from container logs. This approach failed when tests ran inside Docker containers (test and CI environments) because the Docker CLI was not available within containers, and containers cannot introspect their own logs.
 
 Investigation revealed that pytest's built-in `caplog` fixture provides a superior solution for log capture during test execution. The caplog fixture captures application logs in-memory without requiring external tools, works in all environments (dev, test, CI/CD), and provides better error messages and debugging capabilities.
@@ -19,41 +10,42 @@ Implementation replaced shell script token extraction with pure Python log parsi
 
 ## Table of Contents
 
-1. [Initial Problem](#initial-problem)
-   - [Symptoms](#symptoms)
-   - [Expected Behavior](#expected-behavior)
-   - [Actual Behavior](#actual-behavior)
-   - [Impact](#impact)
-2. [Investigation Steps](#investigation-steps)
-   - [Step 1: Container Environment Analysis](#step-1-container-environment-analysis)
-   - [Step 2: Alternative Log Capture Methods](#step-2-alternative-log-capture-methods)
-   - [Step 3: Token Extraction Pattern Design](#step-3-token-extraction-pattern-design)
-3. [Root Cause Analysis](#root-cause-analysis)
-   - [Primary Cause](#primary-cause)
-   - [Contributing Factors](#contributing-factors)
-     - [Factor 1: Shell Script Complexity](#factor-1-shell-script-complexity)
-     - [Factor 2: Race Conditions](#factor-2-race-conditions)
-     - [Factor 3: Maintenance Burden](#factor-3-maintenance-burden)
-4. [Solution Implementation](#solution-implementation)
-   - [Approach](#approach)
-   - [Changes Made](#changes-made)
-     - [Change 1: Token Extraction Function](#change-1-token-extraction-function)
-     - [Change 2: Fixture with Caplog Integration](#change-2-fixture-with-caplog-integration)
-     - [Change 3: Log Capture in Test Functions](#change-3-log-capture-in-test-functions)
-   - [Implementation Steps](#implementation-steps)
-5. [Verification](#verification)
-   - [Test Results](#test-results)
-   - [Verification Steps](#verification-steps)
-   - [Regression Testing](#regression-testing)
-6. [Lessons Learned](#lessons-learned)
-   - [Technical Insights](#technical-insights)
-   - [Process Improvements](#process-improvements)
-   - [Best Practices](#best-practices)
-7. [Future Improvements](#future-improvements)
-   - [Short-Term Actions](#short-term-actions)
-   - [Long-Term Improvements](#long-term-improvements)
-   - [Monitoring & Prevention](#monitoring--prevention)
-8. [References](#references)
+- [Initial Problem](#initial-problem)
+  - [Symptoms](#symptoms)
+  - [Expected Behavior](#expected-behavior)
+  - [Actual Behavior](#actual-behavior)
+  - [Impact](#impact)
+- [Investigation Steps](#investigation-steps)
+  - [Step 1: Container Environment Analysis](#step-1-container-environment-analysis)
+  - [Step 2: Alternative Log Capture Methods](#step-2-alternative-log-capture-methods)
+  - [Step 3: Token Extraction Pattern Design](#step-3-token-extraction-pattern-design)
+- [Root Cause Analysis](#root-cause-analysis)
+  - [Primary Cause](#primary-cause)
+  - [Contributing Factors](#contributing-factors)
+    - [Factor 1: Shell Script Complexity](#factor-1-shell-script-complexity)
+    - [Factor 2: Race Conditions](#factor-2-race-conditions)
+    - [Factor 3: Maintenance Burden](#factor-3-maintenance-burden)
+- [Solution Implementation](#solution-implementation)
+  - [Approach](#approach)
+  - [Changes Made](#changes-made)
+    - [Change 1: Token Extraction Function](#change-1-token-extraction-function)
+    - [Change 2: Fixture with Caplog Integration](#change-2-fixture-with-caplog-integration)
+    - [Change 3: Log Capture in Test Functions](#change-3-log-capture-in-test-functions)
+  - [Implementation Steps](#implementation-steps)
+- [Verification](#verification)
+  - [Test Results](#test-results)
+  - [Verification Steps](#verification-steps)
+  - [Regression Testing](#regression-testing)
+- [Lessons Learned](#lessons-learned)
+  - [Technical Insights](#technical-insights)
+  - [Process Improvements](#process-improvements)
+  - [Best Practices](#best-practices)
+- [Future Improvements](#future-improvements)
+  - [Short-Term Actions](#short-term-actions)
+  - [Long-Term Improvements](#long-term-improvements)
+  - [Monitoring & Prevention](#monitoring--prevention)
+- [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -90,8 +82,6 @@ Tests failed when attempting to execute `docker logs` command from within test c
 - **Severity:** High (blocked critical smoke tests)
 - **Affected Components:** Smoke test suite, CI/CD pipeline, test environment
 - **User Impact:** Unable to run comprehensive authentication flow tests in containerized environments
-
----
 
 ## Investigation Steps
 
@@ -180,8 +170,6 @@ def extract_token_from_caplog(caplog, pattern: str) -> str:
 
 **Result:** ✅ Extraction pattern proven effective
 
----
-
 ## Root Cause Analysis
 
 ### Primary Cause
@@ -222,8 +210,6 @@ Multiple tests running in parallel could race to extract tokens from shared log 
 #### Factor 3: Maintenance Burden
 
 Shell script token extraction logic separate from Python test code, requiring context switching and duplication of regex patterns.
-
----
 
 ## Solution Implementation
 
@@ -403,8 +389,6 @@ Log capture happens automatically during test execution, no external commands ne
    make test-smoke  # Works in all environments
    ```
 
----
-
 ## Verification
 
 ### Test Results
@@ -478,8 +462,6 @@ make test
 Zero regressions introduced
 ```
 
----
-
 ## Lessons Learned
 
 ### Technical Insights
@@ -517,8 +499,6 @@ Zero regressions introduced
 - Extract reusable test utilities into well-documented helper functions
 - Keep test data extraction logic close to test code (same language, same file)
 - Prefer in-memory test data over external file/log parsing when possible
-
----
 
 ## Future Improvements
 
@@ -567,8 +547,6 @@ if grep -r "docker logs" tests/; then
     exit 1
 fi
 ```
-
----
 
 ## References
 

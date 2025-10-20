@@ -1,14 +1,5 @@
 # Smoke Test CI Environment Debugging Journey
 
-**Date:** 2025-10-06
-**Issue:** Smoke tests passing in dev/test environments but failing in CI with "User not found" errors
-**Resolution:** Fixed database session state management and test fixture ordering
-**Status:** ✅ RESOLVED
-
----
-
-## Executive Summary
-
 The Dashtam project smoke tests were failing in the CI environment despite passing consistently in development and test environments. The root cause was a combination of session state caching (SQLAlchemy session caching objects between HTTP requests) and test fixture ordering (database schema setup not guaranteed to run before tests), compounded by environment differences between CI and local testing.
 
 Investigation revealed two critical issues: First, the `setup_test_database` fixture had `autouse=False`, meaning it didn't run automatically before tests, allowing tests to access the database before schema was ready. Second, SQLAlchemy session was caching objects after queries without expiring state after commits, causing subsequent requests to see stale cached data instead of fresh database data.
@@ -19,37 +10,38 @@ The solution involved three fixes: (1) forcing session expiry after every commit
 
 ## Table of Contents
 
-1. [Initial Problem](#initial-problem)
-   - [Symptoms](#symptoms)
-   - [Test Flow](#test-flow)
-2. [Investigation Steps](#investigation-steps)
-   - [Step 1: Environment Variable Analysis](#step-1-environment-variable-analysis)
-   - [Step 2: Database Query Investigation](#step-2-database-query-investigation)
-   - [Step 3: Migration vs Fixture Analysis](#step-3-migration-vs-fixture-analysis)
-   - [Step 4: SQLAlchemy Session State Investigation](#step-4-sqlalchemy-session-state-investigation)
-3. [Root Cause Analysis](#root-cause-analysis)
-   - [Primary Cause: Fixture Ordering](#primary-cause-fixture-ordering)
-   - [Secondary Cause: Session State Caching](#secondary-cause-session-state-caching)
-   - [Why It Only Failed in CI](#why-it-only-failed-in-ci)
-4. [Solution Implementation](#solution-implementation)
-   - [Fix 1: Force Session Expiry After Commit](#fix-1-force-session-expiry-after-commit)
-   - [Fix 2: Force Session Expiry at Request Start](#fix-2-force-session-expiry-at-request-start)
-   - [Fix 3: Make Database Setup Automatic](#fix-3-make-database-setup-automatic)
-5. [Verification](#verification)
-   - [Test Results](#test-results)
-   - [Environment Validation](#environment-validation)
-6. [Lessons Learned](#lessons-learned)
-   - [1. Session State Management is Critical](#1-session-state-management-is-critical)
-   - [2. Fixture Dependencies Must Be Explicit](#2-fixture-dependencies-must-be-explicit)
-   - [3. Environment Parity Matters](#3-environment-parity-matters)
-   - [4. PostgreSQL Configuration Impacts Test Behavior](#4-postgresql-configuration-impacts-test-behavior)
-   - [5. Migrations and Test Fixtures Need Coordination](#5-migrations-and-test-fixtures-need-coordination)
-7. [Future Improvements](#future-improvements)
-   - [1. Add Session State Monitoring](#1-add-session-state-monitoring)
-   - [2. Add Migration Health Check](#2-add-migration-health-check)
-   - [3. Add CI-Specific Test Markers](#3-add-ci-specific-test-markers)
-   - [4. Add Database State Assertions](#4-add-database-state-assertions)
-8. [References](#references)
+- [Initial Problem](#initial-problem)
+  - [Symptoms](#symptoms)
+  - [Test Flow](#test-flow)
+- [Investigation Steps](#investigation-steps)
+  - [Step 1: Environment Variable Analysis](#step-1-environment-variable-analysis)
+  - [Step 2: Database Query Investigation](#step-2-database-query-investigation)
+  - [Step 3: Migration vs Fixture Analysis](#step-3-migration-vs-fixture-analysis)
+  - [Step 4: SQLAlchemy Session State Investigation](#step-4-sqlalchemy-session-state-investigation)
+- [Root Cause Analysis](#root-cause-analysis)
+  - [Primary Cause: Fixture Ordering](#primary-cause-fixture-ordering)
+  - [Secondary Cause: Session State Caching](#secondary-cause-session-state-caching)
+  - [Why It Only Failed in CI](#why-it-only-failed-in-ci)
+- [Solution Implementation](#solution-implementation)
+  - [Fix 1: Force Session Expiry After Commit](#fix-1-force-session-expiry-after-commit)
+  - [Fix 2: Force Session Expiry at Request Start](#fix-2-force-session-expiry-at-request-start)
+  - [Fix 3: Make Database Setup Automatic](#fix-3-make-database-setup-automatic)
+- [Verification](#verification)
+  - [Test Results](#test-results)
+  - [Environment Validation](#environment-validation)
+- [Lessons Learned](#lessons-learned)
+  - [1. Session State Management is Critical](#1-session-state-management-is-critical)
+  - [2. Fixture Dependencies Must Be Explicit](#2-fixture-dependencies-must-be-explicit)
+  - [3. Environment Parity Matters](#3-environment-parity-matters)
+  - [4. PostgreSQL Configuration Impacts Test Behavior](#4-postgresql-configuration-impacts-test-behavior)
+  - [5. Migrations and Test Fixtures Need Coordination](#5-migrations-and-test-fixtures-need-coordination)
+- [Future Improvements](#future-improvements)
+  - [1. Add Session State Monitoring](#1-add-session-state-monitoring)
+  - [2. Add Migration Health Check](#2-add-migration-health-check)
+  - [3. Add CI-Specific Test Markers](#3-add-ci-specific-test-markers)
+  - [4. Add Database State Assertions](#4-add-database-state-assertions)
+- [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -85,8 +77,6 @@ The comprehensive smoke test (`test_complete_authentication_flow`) performs an 1
 10. Logout
 
 The test was failing at step 2 (email verification) in CI but working perfectly in local environments.
-
----
 
 ## Investigation Steps
 
@@ -179,8 +169,6 @@ async def commit(self):
 
 **Result:** ✅ Secondary issue identified - session state management
 
----
-
 ## Root Cause Analysis
 
 ### Primary Cause: Fixture Ordering
@@ -240,8 +228,6 @@ SQLAlchemy's session maintains an identity map that caches all objects loaded in
 3. **Database Speed:** CI database (GitHub Actions) slower than local Docker
 4. **Migration Timing:** Migrations complete at different times relative to test start
 5. **Session Lifecycle:** FastAPI TestClient session lifecycle differs slightly in CI
-
----
 
 ## Solution Implementation
 
@@ -371,8 +357,6 @@ def setup_test_database():
 - Works in both CI (migrations) and local (table creation) environments
 - Guarantees schema availability
 
----
-
 ## Verification
 
 ### Test Results
@@ -402,8 +386,6 @@ All smoke tests passing in test environment (5/5 passed).
 | CI | ❌ Failing | ✅ Expected Passing* | Fix applied |
 
 *\*CI validation will occur when changes are pushed and GitHub Actions runs*
-
----
 
 ## Lessons Learned
 
@@ -509,8 +491,6 @@ def setup_test_database():
     drop_tables()
 ```
 
----
-
 ## Future Improvements
 
 ### 1. Add Session State Monitoring
@@ -569,8 +549,6 @@ def assert_db_state(session, expected_users=1, expected_tokens=0):
 ```
 
 **Benefit:** Catch session caching issues earlier in test execution.
-
----
 
 ## References
 

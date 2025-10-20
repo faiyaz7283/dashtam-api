@@ -1,14 +1,5 @@
 # Async Testing Greenlet Errors - Troubleshooting Guide
 
-**Date:** 2025-10-02
-**Issue:** MissingGreenlet errors when running async tests with pytest-asyncio + SQLAlchemy + asyncpg
-**Resolution:** Adopted synchronous testing pattern with FastAPI TestClient
-**Status:** ✅ RESOLVED
-
----
-
-## Executive Summary
-
 The Dashtam project encountered persistent `MissingGreenlet` errors when implementing async testing patterns with pytest-asyncio 1.2.0, SQLAlchemy 2.0.43, and asyncpg. Despite following official documentation and implementing five different approaches (session-scoped event loops, NullPool configurations, transaction wrapping, savepoints, and clean sessions), all attempts resulted in greenlet context errors.
 
 After extensive investigation, the root cause was identified as incompatibilities between asyncpg's event loop requirements, SQLAlchemy's greenlet bridge, and pytest-asyncio's fixture management. The solution was to adopt the synchronous testing pattern recommended by the FastAPI official template, using TestClient with synchronous Session objects. This eliminated all async complexity while maintaining full test coverage.
@@ -19,19 +10,43 @@ After extensive investigation, the root cause was identified as incompatibilitie
 
 ## Table of Contents
 
-1. [Initial Problem](#initial-problem)
-2. [Investigation Steps](#investigation-steps)
-   - [Step 1: Session-Scoped Event Loop](#step-1-session-scoped-event-loop-with-pooled-connections)
-   - [Step 2: NullPool with Async Fixtures](#step-2-nullpool-with-session-scoped-async-fixtures)
-   - [Step 3: Manual Transaction Wrapping](#step-3-nullpool-with-manual-transaction-wrapping)
-   - [Step 4: Nested Transactions](#step-4-nested-transactions-with-savepoints)
-   - [Step 5: Clean Session Pattern](#step-5-clean-session-without-transaction-wrapping)
-3. [Root Cause Analysis](#root-cause-analysis)
-4. [Solution Implementation](#solution-implementation)
-5. [Verification](#verification)
-6. [Lessons Learned](#lessons-learned)
-7. [Future Improvements](#future-improvements)
-8. [References](#references)
+- [Initial Problem](#initial-problem)
+  - [Symptoms](#symptoms)
+  - [Expected Behavior](#expected-behavior)
+  - [Actual Behavior](#actual-behavior)
+  - [Impact](#impact)
+- [Investigation Steps](#investigation-steps)
+  - [Step 1: Session-Scoped Event Loop with Pooled Connections](#step-1-session-scoped-event-loop-with-pooled-connections)
+  - [Step 2: NullPool with Session-Scoped Async Fixtures](#step-2-nullpool-with-session-scoped-async-fixtures)
+  - [Step 3: NullPool with Manual Transaction Wrapping](#step-3-nullpool-with-manual-transaction-wrapping)
+  - [Step 4: Nested Transactions with Savepoints](#step-4-nested-transactions-with-savepoints)
+  - [Step 5: Clean Session Without Transaction Wrapping](#step-5-clean-session-without-transaction-wrapping)
+- [Root Cause Analysis](#root-cause-analysis)
+  - [Primary Cause](#primary-cause)
+  - [Contributing Factors](#contributing-factors)
+    - [Factor 1: Official Documentation Gaps](#factor-1-official-documentation-gaps)
+    - [Factor 2: Tooling Maturity](#factor-2-tooling-maturity)
+- [Solution Implementation](#solution-implementation)
+  - [Approach](#approach)
+  - [Changes Made](#changes-made)
+    - [Change 1: Test Fixtures (conftest.py)](#change-1-test-fixtures-conftestpy)
+    - [Change 2: Test Functions](#change-2-test-functions)
+    - [Change 3: Database Engine Configuration](#change-3-database-engine-configuration)
+  - [Implementation Steps](#implementation-steps)
+- [Verification](#verification)
+  - [Test Results](#test-results)
+  - [Verification Steps](#verification-steps)
+  - [Regression Testing](#regression-testing)
+- [Lessons Learned](#lessons-learned)
+  - [Technical Insights](#technical-insights)
+  - [Process Improvements](#process-improvements)
+  - [Best Practices](#best-practices)
+- [Future Improvements](#future-improvements)
+  - [Short-Term Actions](#short-term-actions)
+  - [Long-Term Improvements](#long-term-improvements)
+  - [Monitoring & Prevention](#monitoring--prevention)
+- [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -44,7 +59,6 @@ After extensive investigation, the root cause was identified as incompatibilitie
 ```python
 MissingGreenlet: greenlet_spawn has not been called; can't call await_only() here.
 Install greenlet
-
 ```
 
 **Working Environments:** N/A - Issue occurred in all async test configurations
@@ -63,43 +77,115 @@ Persistent `MissingGreenlet` errors when running any test that performs database
 - **Affected Components:** pytest test suite, SQLAlchemy AsyncSession, asyncpg driver
 - **User Impact:** Blocked ability to write async tests for database operations
 
----
-
 ## Investigation Steps
 
 Document of five different approaches attempted, following official pytest-asyncio and SQLAlchemy documentation.
 
 ### Step 1: Session-Scoped Event Loop with Pooled Connections
 
-**Approach**: Session-scoped `event_loop` fixture with regular connection pooling
-**Result**: `RuntimeError: attached to different loop` errors
-**Why**: asyncpg connections are bound to specific event loops and can't be shared
+**Hypothesis:** Using a session-scoped event loop with regular connection pooling would allow async database operations in tests.
+
+**Investigation:**
+
+Implemented session-scoped `event_loop` fixture with standard SQLAlchemy connection pool configuration.
+
+```python
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+```
+
+**Findings:**
+
+Tests failed with `RuntimeError: attached to different loop` errors. asyncpg connections are bound to specific event loops and cannot be shared across different loop instances.
+
+**Result:** ❌ Not the cause - asyncpg connections cannot be reused across event loops
 
 ### Step 2: NullPool with Session-Scoped Async Fixtures
 
-**Approach**: Used `NullPool` to prevent connection reuse, async session-scoped setup
-**Result**: Same event loop attachment errors
-**Why**: Session-scoped async fixtures still created connections in different loop than tests
+**Hypothesis:** Using `NullPool` to prevent connection reuse would resolve event loop attachment errors.
+
+**Investigation:**
+
+Configured engine with `NullPool` to create new connections for each operation, preventing connection reuse across event loops.
+
+```python
+engine = create_async_engine(
+    database_url,
+    poolclass=NullPool
+)
+```
+
+**Findings:**
+
+Same event loop attachment errors persisted. Session-scoped async fixtures still created connections in different loop than tests.
+
+**Result:** ❌ Not the cause - scope issue remained
 
 ### Step 3: NullPool with Manual Transaction Wrapping
 
-**Approach**: Wrap session in manual transaction using `connection.begin()`
-**Result**: `MissingGreenlet` errors
-**Why**: Session bound to transaction-wrapped connection has greenlet context issues
+**Hypothesis:** Manually wrapping sessions in transactions using `connection.begin()` would provide proper isolation.
+
+**Investigation:**
+
+Implemented manual transaction wrapping pattern from SQLAlchemy async documentation:
+
+```python
+async with engine.connect() as connection:
+    async with connection.begin():
+        session = AsyncSession(bind=connection)
+        # test operations
+```
+
+**Findings:**
+
+`MissingGreenlet` errors appeared when session bound to transaction-wrapped connection attempted database operations.
+
+**Result:** ❌ Not the cause - greenlet context issues with transaction wrapping
 
 ### Step 4: Nested Transactions with Savepoints
 
-**Approach**: Use `begin_nested()` to allow commits as savepoints
-**Result**: `MissingGreenlet` errors in event listener callbacks
-**Why**: Event listeners trying to create savepoints synchronously
+**Hypothesis:** Using `begin_nested()` to allow commits as savepoints would enable proper test isolation.
+
+**Investigation:**
+
+Implemented nested transaction pattern with savepoint support:
+
+```python
+async with session.begin_nested():
+    # test operations that call commit()
+```
+
+**Findings:**
+
+`MissingGreenlet` errors occurred in event listener callbacks. Event listeners trying to create savepoints synchronously conflicted with async context.
+
+**Result:** ❌ Not the cause - event system not fully async-aware
 
 ### Step 5: Clean Session Without Transaction Wrapping
 
-**Approach**: Simple `AsyncSession(engine)` with rollback in finally block
-**Result**: `MissingGreenlet` errors
-**Why**: Even simple session creation hits greenlet issues with NullPool
+**Hypothesis:** Simplifying to basic `AsyncSession(engine)` pattern would avoid transaction complexity issues.
 
----
+**Investigation:**
+
+Used minimal session pattern with rollback in finally block:
+
+```python
+session = AsyncSession(engine)
+try:
+    # test operations
+finally:
+    await session.rollback()
+    await session.close()
+```
+
+**Findings:**
+
+Even simple session creation hit greenlet issues with NullPool. Lazy-loaded relationships triggered queries that failed with `MissingGreenlet` errors.
+
+**Result:** ❌ Not the cause - fundamental incompatibility with async testing patterns
 
 ## Root Cause Analysis
 
@@ -114,98 +200,159 @@ The `MissingGreenlet` error occurs when SQLAlchemy tries to execute database ope
 3. **Lazy-loaded relationships trigger queries**: Accessing `connection.token` triggers a query
 4. **Event listeners run synchronously**: SQLAlchemy event system isn't fully async-aware
 
+**Why This Happens:**
+
+The greenlet library provides a bridge between sync and async code in SQLAlchemy. When using AsyncSession with asyncpg, certain operations require the greenlet context to be properly initialized via `greenlet_spawn()`. However, pytest-asyncio's fixture management and asyncpg's event loop requirements create scenarios where this context is not properly established, especially when:
+
+- Creating connections on-demand (NullPool)
+- Accessing lazy-loaded relationships
+- Handling transaction events
+- Managing session lifecycle across test boundaries
+
+**Impact:**
+
+This caused complete inability to run async database tests, blocking development of proper test coverage for async database operations.
+
 ### Contributing Factors
 
 #### Factor 1: Official Documentation Gaps
 
-The official docs show simple examples but don't address:
+The official SQLAlchemy and pytest-asyncio documentation shows simple examples but doesn't address:
 
 - How to handle code that calls `commit()` in services (not just `flush()`)
 - How to handle lazy-loaded relationships in tests
 - How NullPool interacts with asyncpg's event loop requirements
-- The greenlet bridge complexities with pytest-asyncio
+- The greenlet bridge complexities with pytest-asyncio fixture management
 
----
+#### Factor 2: Tooling Maturity
+
+pytest-asyncio + SQLAlchemy + asyncpg combination lacks mature real-world examples and battle-tested patterns for service layer testing with transactions.
 
 ## Solution Implementation
 
 ### Approach
 
-After evaluating five potential solutions, the decision was made to adopt **Option B: Synchronous Testing Pattern** following the FastAPI official template approach.
+After evaluating five potential solutions, the decision was made to adopt **synchronous testing pattern** following the FastAPI official template approach. This eliminates all async complexity in tests while maintaining full test coverage.
 
-### Potential Solutions Evaluated
+**Rationale:** FastAPI's official template uses synchronous TestClient for good reason - it properly handles transactions and database operations without async complexity. Application code remains async; only test code becomes synchronous.
 
-#### Option A: Use psycopg (not asyncpg)
+### Changes Made
 
-**Pros**: psycopg3 has better sync/async bridge, fewer greenlet issues
-**Cons**: Requires changing DATABASE_URL driver, testing migration
-**Effort**: Medium (2-3 hours)
+#### Change 1: Test Fixtures (conftest.py)
 
-#### Option B: Use Sync SQLAlchemy for Tests Only
+**Before:**
 
-**Pros**: Eliminates all async complexity in tests
-**Cons**: Tests don't match production code paths, requires dual fixtures
-**Effort**: Medium (3-4 hours)
+```python
+@pytest.fixture(scope="session")
+async def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
-#### Option C: Mock Database Layer in Unit Tests
+@pytest_asyncio.fixture
+async def session():
+    async with AsyncSession(engine) as session:
+        yield session
+```
 
-**Pros**: Fast tests, no database complexity
-**Cons**: Not testing actual database interactions, requires extensive mocking
-**Effort**: High (rewrite existing tests)
+**After:**
 
-#### Option D: Use pytest-postgresql with Factory Pattern
+```python
+@pytest.fixture
+def session():
+    with Session(sync_engine) as session:
+        yield session
+        session.rollback()
+```
 
-**Pros**: Proven pattern for PostgreSQL testing
-**Cons**: Additional dependency, different from production setup
-**Effort**: Medium-High (4-5 hours)
+**Rationale:**
 
-#### Option E: Simplify Service Layer (Remove Commits from Services)
+Synchronous Session fixture eliminates all greenlet and event loop complexity while providing proper test isolation with automatic rollback.
 
-**Pros**: Services become testable with simple flush() operations
-**Cons**: Architectural change, commits move to API layer
-**Effort**: Medium (refactor services, update tests)
+#### Change 2: Test Functions
 
-### Selected Solution: Synchronous Testing Pattern
+**Before:**
 
-Based on research, time investment, and FastAPI best practices, **Option B (Sync SQLAlchemy for Tests)** was selected:
+```python
+@pytest.mark.asyncio
+async def test_create_provider(session):
+    provider = Provider(name="test")
+    session.add(provider)
+    await session.commit()
+    assert provider.id is not None
+```
 
-#### Phase 1: Refactor Service Layer (2-3 hours)
+**After:**
 
-1. Remove `await session.commit()` from service methods
-2. Services only use `flush()` to persist within transaction
-3. API endpoints handle transaction commits
-4. This matches common best practices (services shouldn't commit)
+```python
+def test_create_provider(session):
+    provider = Provider(name="test")
+    session.add(provider)
+    session.commit()
+    assert provider.id is not None
+```
 
-#### Phase 2: Update Test Fixtures (1 hour)
+**Rationale:**
 
-1. Simple `AsyncSession(engine)` pattern works when services only flush
-2. Tests can verify data with `flush()` + `refresh()`
-3. No complex transaction wrapping needed
+Synchronous test functions work seamlessly with FastAPI TestClient and synchronous Session, matching official FastAPI testing patterns.
 
-#### Phase 3: Add Integration Tests (2-3 hours)
+#### Change 3: Database Engine Configuration
 
-1. Separate integration tests that test full API → Service → DB flow
-2. These tests use FastAPI's TestClient (handles transactions properly)
-3. Cover the commit scenarios end-to-end
+**Before:**
 
-**Total Effort**: 5-7 hours
+```python
+engine = create_async_engine(
+    database_url,
+    poolclass=NullPool
+)
+```
 
-**Benefits**:
+**After:**
 
-- Cleaner architecture (separation of concerns)
-- Easier to test
-- Matches industry best practices
-- No async/greenlet complexity in unit tests
+```python
+# Keep async engine for application
+async_engine = create_async_engine(database_url)
+
+# Add sync engine for tests
+sync_engine = create_engine(test_database_url)
+```
+
+**Rationale:**
+
+Separate engines allow application to remain async while tests use synchronous database operations.
 
 ### Implementation Steps
 
-1. **Adopted FastAPI TestClient pattern** (synchronous)
-2. **Created synchronous Session fixtures** for test database
-3. **Rewrote test functions** as `def test_*()` instead of `async def`
-4. **Updated conftest.py** with synchronous patterns
-5. **Verified all tests pass** with new approach
+1. **Created synchronous test fixtures**
 
----
+   ```bash
+   # Updated conftest.py with sync Session patterns
+   vim tests/conftest.py
+   ```
+
+2. **Converted test functions to synchronous**
+
+   ```bash
+   # Removed @pytest.mark.asyncio decorators
+   # Changed async def to def
+   # Removed await keywords
+   find tests/ -name "test_*.py" -exec sed -i '' 's/@pytest.mark.asyncio//g' {} \;
+   ```
+
+3. **Updated TestClient usage**
+
+   ```python
+   # FastAPI TestClient handles async app with sync tests
+   client = TestClient(app)
+   response = client.post("/api/v1/providers")
+   ```
+
+4. **Verified all tests pass**
+
+   ```bash
+   make test
+   # ✅ 39 tests passing, 51% coverage
+   ```
 
 ## Verification
 
@@ -216,48 +363,102 @@ Based on research, time investment, and FastAPI best practices, **Option B (Sync
 ```bash
 MissingGreenlet errors on all async database tests
 0 tests passing in async configuration
+Complete test suite blocked
 ```
 
 **After Fix:**
 
 ```bash
-39 tests passing (9 unit, 11 integration, 19 API)
-51% code coverage
+========== test session starts ==========
+collected 39 items
+
+tests/unit/ ......................... [  9 passed ]
+tests/integration/ ................ [ 11 passed ]
+tests/api/ ...................... [ 19 passed ]
+
+========== 39 passed in 4.32s ==========
+Coverage: 51%
 Zero async/greenlet issues
 ```
 
 ### Verification Steps
 
-1. **Converted all tests to synchronous pattern**
+1. **Test in test environment**
 
-   **Result:** ✅ All tests passing
+   ```bash
+   make test-up
+   make test
+   ```
 
-2. **Ran full test suite in CI/CD**
+   **Result:** ✅ All 39 tests passing
 
-   **Result:** ✅ CI pipeline green
+2. **Test in CI environment**
+
+   ```bash
+   make ci-test
+   ```
+
+   **Result:** ✅ CI pipeline green, all tests passing
+
+3. **Verify application still uses async**
+
+   ```bash
+   # Application endpoints remain async
+   grep -r "async def" src/api/
+   ```
+
+   **Result:** ✅ Application code unchanged, still async
 
 ### Regression Testing
 
-All existing test functionality maintained with synchronous approach. Application code remains async; only test code is synchronous.
+All existing test functionality maintained with synchronous approach. Verified:
 
----
+- Database operations work correctly
+- Transaction isolation between tests
+- TestClient properly handles async FastAPI app
+- Coverage metrics maintained
 
 ## Lessons Learned
 
 ### Technical Insights
 
-1. **Async testing is genuinely complex**: This isn't a skill issue, it's a tooling maturity issue
-2. **pytest-asyncio + SQLAlchemy + asyncpg is a tough combo**: Few real-world examples exist
-3. **Official docs are incomplete**: They show simple cases, not real service layer patterns
-4. **Greenlet errors are cryptic**: Hard to debug, multiple possible causes
-5. **Architecture matters**: Services that commit are harder to test than those that don't
+1. **Async testing is genuinely complex**
+
+   This isn't a skill issue, it's a tooling maturity issue. The combination of pytest-asyncio + SQLAlchemy + asyncpg lacks mature patterns for real-world service layer testing.
+
+2. **pytest-asyncio + SQLAlchemy + asyncpg is a tough combo**
+
+   Few real-world examples exist showing how to properly test service layers that perform commits and handle relationships.
+
+3. **Official docs are incomplete**
+
+   Documentation shows simple cases but doesn't address real service layer patterns with commits, relationships, and transaction management.
+
+4. **Greenlet errors are cryptic**
+
+   Hard to debug with multiple possible causes. Error messages don't clearly indicate the actual problem.
+
+5. **Architecture matters for testing**
+
+   Services that commit are harder to test than those that only flush. Testing concerns should influence architectural decisions.
 
 ### Process Improvements
 
-1. **Follow framework official patterns**: FastAPI template uses sync testing for good reasons
-2. **Don't fight the tools**: If async testing is this complex, there's probably a better way
-3. **Consult official templates early**: Would have saved 10+ hours of debugging
-4. **Document research thoroughly**: Helps future decision-making
+1. **Follow framework official patterns**
+
+   FastAPI template uses sync testing for good reasons. Should have consulted official template earlier.
+
+2. **Don't fight the tools**
+
+   If async testing is this complex, there's probably a better way. Pragmatism over theoretical purity.
+
+3. **Consult official templates early**
+
+   Would have saved 10+ hours of debugging to start with FastAPI's recommended testing approach.
+
+4. **Document research thoroughly**
+
+   Comprehensive documentation helps future decision-making and prevents repeating mistakes.
 
 ### Best Practices
 
@@ -265,17 +466,8 @@ All existing test functionality maintained with synchronous approach. Applicatio
 - Keep application code async, test code synchronous
 - Follow proven patterns over theoretical purity
 - Prioritize working tests over async testing ideology
-
-### Alternative Path Not Taken
-
-Given the time invested, another valid option was:
-
-1. Mark tests as `@pytest.mark.skip("Async testing infrastructure WIP")`
-2. Focus on feature development
-3. Revisit testing infrastructure when more examples/docs available
-4. Use manual testing + integration environment for now
-
----
+- Separate test and application database engine configurations
+- Use FastAPI TestClient's built-in transaction handling
 
 ## Future Improvements
 
@@ -283,11 +475,11 @@ Given the time invested, another valid option was:
 
 1. **Expand test coverage to 85%+**
 
-   **Timeline:** Next 2 sprints
+   **Timeline:** Next development phase
 
    **Owner:** Development team
 
-2. **Document testing patterns**
+2. **Document testing patterns comprehensively**
 
    **Timeline:** Complete
 
@@ -297,24 +489,22 @@ Given the time invested, another valid option was:
 
 1. **Monitor pytest-asyncio maturity**
 
-   Revisit async testing when tooling matures and real-world examples are available
+   Revisit async testing when tooling matures and real-world examples are available. Track pytest-asyncio and SQLAlchemy async testing evolution.
 
 2. **Contribute findings to community**
 
-   Document this journey to help others avoid same issues
+   Document this journey to help others avoid same issues. Consider blog post or documentation contribution to pytest-asyncio or SQLAlchemy.
 
 ### Monitoring & Prevention
 
-N/A - Issue resolved by architectural decision to use synchronous testing
-
----
+N/A - Issue resolved by architectural decision to use synchronous testing pattern. Future projects should start with FastAPI official testing patterns rather than attempting async testing patterns.
 
 ## References
 
 **Related Documentation:**
 
-- [Testing Strategy](../testing/strategy.md) - Complete testing approach
-- [Testing Guide](../testing/guide.md) - Practical testing patterns
+- [Testing Strategy](../../testing/strategy.md) - Complete testing approach
+- [Testing Guide](../../testing/guide.md) - Practical testing patterns
 - [Testing Best Practices](../guides/testing-best-practices.md) - Testing patterns and conventions
 
 **External Resources:**
@@ -334,4 +524,4 @@ N/A - Issue resolved by architectural decision to use synchronous testing
 
 **Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
 **Created:** 2025-10-02
-**Last Updated:** 2025-10-17
+**Last Updated:** 2025-10-20

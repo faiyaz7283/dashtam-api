@@ -16,7 +16,14 @@ A comprehensive guide to testing patterns, conventions, and best practices for t
   - [Step 3: Writing Integration Tests](#step-3-writing-integration-tests)
   - [Step 4: Writing API Tests](#step-4-writing-api-tests)
   - [Step 5: Using Fixtures and Mocks](#step-5-using-fixtures-and-mocks)
+    - [Common Fixtures](#common-fixtures)
+    - [Database Session Fixture](#database-session-fixture)
+    - [Test User Fixture](#test-user-fixture)
+    - [Test Client Fixture](#test-client-fixture)
+    - [Mocking Strategies](#mocking-strategies)
   - [Step 6: Meeting Coverage Guidelines](#step-6-meeting-coverage-guidelines)
+    - [Target Coverage](#target-coverage)
+    - [What to Test](#what-to-test)
 - [Examples](#examples)
   - [Example 1: Complete Unit Test](#example-1-complete-unit-test)
   - [Example 2: Integration Test with Database](#example-2-integration-test-with-database)
@@ -36,6 +43,7 @@ A comprehensive guide to testing patterns, conventions, and best practices for t
   - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
 - [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 

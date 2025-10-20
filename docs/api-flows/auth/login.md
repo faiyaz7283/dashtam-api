@@ -18,6 +18,8 @@ Log in as a verified user, capture tokens, call a protected endpoint, refresh, a
 - [Related Flows](#related-flows)
 - [Document Information](#document-information)
 
+---
+
 ## Purpose
 
 Authenticate a user and validate token-based access to protected resources.
@@ -232,8 +234,6 @@ curl -sk "$BASE_URL/api/v1/auth/me" \
 
 ## Document Information
 
-**Category:** API Flow  
-**Created:** 2025-10-15  
-**Last Updated:** 2025-10-15  
-**API Version:** v1  
-**Environment:** Development (HTTPS with self-signed TLS)
+**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15

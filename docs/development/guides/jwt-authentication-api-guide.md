@@ -1377,8 +1377,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-19  
-**Last Updated:** 2025-10-19  
-**Difficulty Level:** Intermediate  
-**Estimated Time:** 90 minutes
+**Template:** [guide-template.md](../../templates/guide-template.md)
+**Created:** 2025-10-19
+**Last Updated:** 2025-10-19

@@ -17,6 +17,7 @@
 - [Testing Strategy](#testing-strategy)
 - [Future Enhancements](#future-enhancements)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -166,7 +167,6 @@ src/
 
 ## Document Information
 
-**Category:** Architecture
+**Template:** [architecture-template.md](architecture-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Applies To:** [Scope - e.g., "All API endpoints", "Authentication system", etc.]

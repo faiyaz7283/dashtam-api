@@ -933,8 +933,6 @@ print(f"Time remaining: {exp_time - datetime.now()}")
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-15  
-**Difficulty Level:** Intermediate  
-**Estimated Time:** 30-45 minutes
+**Template:** [guide-template.md](../../templates/guide-template.md)
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-15

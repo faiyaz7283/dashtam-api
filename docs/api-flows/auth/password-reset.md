@@ -14,11 +14,11 @@ Request a password reset, verify a token, and confirm the new password using the
   - [3) Verify reset token (optional)](#3-verify-reset-token-optional)
   - [4) Confirm password reset](#4-confirm-password-reset)
   - [5) Test login with new password](#5-test-login-with-new-password)
-- [🔒 Security Note: Session Revocation](#-security-note-session-revocation)
-- [Next Step](#next-step)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
 - [Document Information](#document-information)
+
+---
 
 ## Purpose
 
@@ -188,28 +188,9 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/login" \
 }
 ```
 
-✅ Password reset successful!
+✅ **Password reset successful!**
 
-## 🔒 Security Note: Session Revocation
-
-**Important**: When you complete a password reset, **all active sessions are automatically logged out** for security.
-
-**What happens:**
-
-- ✅ All refresh tokens are revoked immediately
-- ⚠️ Existing access tokens remain valid for ~30 minutes (then expire)
-- ✅ Cannot get new access tokens (refresh is blocked)
-- ✅ Must re-login on all devices with new password
-
-**Why this is important:**
-If your password was compromised, revoking all sessions ensures that an attacker cannot continue accessing your account, even if they already have tokens.
-
-**Testing session revocation:**
-See [Complete Auth Flow](complete-auth-flow.md) for full end-to-end testing including session revocation verification (Tests 13 & 13a).
-
-## Next Step
-
-**Continue to:** [Login Flow](login.md) to use the new password on all devices.
+**🔒 Security Note:** When you complete a password reset, **all active sessions are automatically logged out** for security. All refresh tokens are revoked immediately (existing access tokens remain valid for ~30 minutes until expiration). You must re-login on all devices with the new password. See [Complete Auth Flow](complete-auth-flow.md) for session revocation testing.
 
 ## Troubleshooting
 
@@ -244,8 +225,6 @@ See [Complete Auth Flow](complete-auth-flow.md) for full end-to-end testing incl
 
 ## Document Information
 
-**Category:** API Flow  
-**Created:** 2025-10-15  
-**Last Updated:** 2025-10-15  
-**API Version:** v1  
-**Environment:** Development (HTTPS with self-signed TLS)
+**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15

@@ -14,6 +14,7 @@
 - [Examples](#examples)
 - [Troubleshooting](#troubleshooting)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -41,8 +42,6 @@ feature-name/
 └── README.md
 ```
 
----
-
 ## Prerequisites
 
 Before using [Feature Name], ensure you have:
@@ -55,8 +54,6 @@ Before using [Feature Name], ensure you have:
 
 - Optional requirement 1
 - Optional requirement 2
-
----
 
 ## Installation/Setup
 
@@ -93,8 +90,6 @@ verify-command --check
 [Expected output here]
 ```
 
----
-
 ## Configuration
 
 ### Configuration Files
@@ -129,8 +124,6 @@ OPTIONAL_SETTING=value
 |----------|-------------|---------|----------|
 | `VAR_NAME_1` | Description | `default` | Yes |
 | `VAR_NAME_2` | Description | `default` | No |
-
----
 
 ## Usage
 
@@ -178,8 +171,6 @@ command step3
 alternative-command
 ```
 
----
-
 ## Examples
 
 ### Example 1: [Simple Example]
@@ -220,8 +211,6 @@ command --step3 --output result.txt
 # Real-world usage
 real-world-command --production --config prod.yml
 ```
-
----
 
 ## Troubleshooting
 
@@ -280,8 +269,6 @@ If you encounter issues not covered here:
 2. Review [related guides](../docs/development/guides/)
 3. Open an issue on [GitHub](https://github.com/username/repo/issues)
 
----
-
 ## References
 
 **Related Documentation:**
@@ -303,9 +290,6 @@ If you encounter issues not covered here:
 
 ## Document Information
 
-**Category:** Feature Documentation
+**Template:** [readme-template.md](readme-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Maintainer:** [Team/Person Name]
-**Version Compatibility:** [Version range if applicable]
-**Related Components:** [List of related components/features]

@@ -79,6 +79,6 @@ echo "Replace with actual example"
 
 ## Document Information
 
-**Category:** General
+**Template:** [general-template.md](general-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD

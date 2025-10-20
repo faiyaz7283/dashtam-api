@@ -1,14 +1,5 @@
 # [Issue Title] - Troubleshooting Guide
 
-**Date:** YYYY-MM-DD
-**Issue:** [Brief one-sentence description of the problem]
-**Resolution:** [One-sentence summary of the fix]
-**Status:** ✅ RESOLVED | 🚧 IN PROGRESS | ❌ UNRESOLVED
-
----
-
-## Executive Summary
-
 [2-3 paragraph summary of the issue, investigation, and resolution. Include key findings and final solution.]
 
 ---
@@ -23,6 +14,7 @@
 6. [Lessons Learned](#lessons-learned)
 7. [Future Improvements](#future-improvements)
 8. [References](#references)
+9. [Document Information](#document-information)
 
 ---
 
@@ -54,8 +46,6 @@
 - **Severity:** Critical | High | Medium | Low
 - **Affected Components:** [List affected systems/features]
 - **User Impact:** [How users were affected]
-
----
 
 ## Investigation Steps
 
@@ -101,8 +91,6 @@ Document each investigation attempt chronologically. For each step, include:
 
 [Repeat for each investigation step]
 
----
-
 ## Root Cause Analysis
 
 ### Primary Cause
@@ -133,8 +121,6 @@ Document each investigation attempt chronologically. For each step, include:
 **Factor 2: [Name]**
 
 [Description of contributing factor]
-
----
 
 ## Solution Implementation
 
@@ -200,8 +186,6 @@ Document each investigation attempt chronologically. For each step, include:
 
 [Continue for all steps]
 
----
-
 ## Verification
 
 ### Test Results
@@ -242,8 +226,6 @@ Document each investigation attempt chronologically. For each step, include:
 
 [Describe any additional testing performed to ensure no regressions]
 
----
-
 ## Lessons Learned
 
 ### Technical Insights
@@ -273,8 +255,6 @@ Document each investigation attempt chronologically. For each step, include:
 - Best practice 1
 - Best practice 2
 - Best practice 3
-
----
 
 ## Future Improvements
 
@@ -311,8 +291,6 @@ Document each investigation attempt chronologically. For each step, include:
 [commands here]
 ```
 
----
-
 ## References
 
 **Related Documentation:**
@@ -334,9 +312,6 @@ Document each investigation attempt chronologically. For each step, include:
 
 ## Document Information
 
-**Category:** Troubleshooting
+**Template:** [troubleshooting-template.md](troubleshooting-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Environment:** [Dev/Test/CI/Production]
-**Components Affected:** [List of affected components]
-**Related PRs:** #XX, #YY

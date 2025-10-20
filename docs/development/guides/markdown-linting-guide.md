@@ -836,10 +836,6 @@ Progressive implementation through phases, with benefits visible from Phase 1 on
 
 ## Document Information
 
-**Category:** Guide
+**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-11
 **Last Updated:** 2025-10-15
-**Difficulty Level:** Intermediate
-**Target Audience:** Developers, documentation maintainers, DevOps engineers
-**Prerequisites:** Basic Markdown knowledge, Docker familiarity
-**Related Documents:** [Docstring Standards Guide](docstring-standards.md), [Documentation Implementation Guide](documentation-implementation-guide.md)

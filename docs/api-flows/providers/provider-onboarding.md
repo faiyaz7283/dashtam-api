@@ -13,10 +13,11 @@ Create a provider instance, obtain an authorization URL, complete the OAuth flow
   - [2) Request authorization URL](#2-request-authorization-url)
   - [3) Authorize in browser](#3-authorize-in-browser)
   - [4) Verify connection status](#4-verify-connection-status)
-- [Cleanup (optional)](#cleanup-optional)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
 - [Document Information](#document-information)
+
+---
 
 ## Purpose
 
@@ -155,22 +156,14 @@ curl -sk "$BASE_URL/api/v1/providers/$PROVIDER_ID" \
 
 ✅ **Provider connected successfully!**
 
-## Cleanup (optional)
-
-To disconnect and remove the provider:
+**Optional - To disconnect and remove the provider:**
 
 ```bash
 curl -sk -X DELETE "$BASE_URL/api/v1/providers/$PROVIDER_ID" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | python3 -m json.tool
 ```
 
-**Expected Response (HTTP 200 OK):**
-
-```json
-{
-  "message": "Provider disconnected successfully"
-}
-```
+Expected: HTTP 200 OK with message "Provider disconnected successfully". See [Provider Disconnect](provider-disconnect.md) for detailed disconnection flow.
 
 ## Troubleshooting
 
@@ -201,8 +194,6 @@ curl -sk -X DELETE "$BASE_URL/api/v1/providers/$PROVIDER_ID" \
 
 ## Document Information
 
-**Category:** API Flow  
-**Created:** 2025-10-15  
-**Last Updated:** 2025-10-15  
-**API Version:** v1  
-**Environment:** Development (HTTPS with self-signed TLS)
+**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15

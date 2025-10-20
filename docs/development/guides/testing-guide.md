@@ -922,8 +922,6 @@ headers = get_superuser_token_headers(client)
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-13  
-**Last Updated:** 2025-10-18  
-**Difficulty Level:** Beginner to Intermediate  
-**Estimated Time:** 30-45 minutes to read, ongoing for practice
+**Template:** [guide-template.md](../../templates/guide-template.md)
+**Created:** 2025-10-13
+**Last Updated:** 2025-10-18

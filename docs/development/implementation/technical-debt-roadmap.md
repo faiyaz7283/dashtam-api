@@ -1018,10 +1018,6 @@ When you discover a design flaw or improvement opportunity:
 
 ## Document Information
 
-**Category:** Implementation Plan
-**Status:** Active
-**Priority:** P2
+**Template:** [implementation-template.md](../../templates/implementation-template.md)
 **Created:** 2025-10-12
 **Last Updated:** 2025-10-12
-**Owner:** Architecture Team
-**Stakeholders:** Security, DevOps, Backend, QA

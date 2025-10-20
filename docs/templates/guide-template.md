@@ -15,6 +15,7 @@
 - [Best Practices](#best-practices)
 - [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -180,8 +181,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Category:** Guide
+**Template:** [guide-template.md](guide-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Difficulty Level:** Beginner | Intermediate | Advanced
-**Estimated Time:** [Time to complete]

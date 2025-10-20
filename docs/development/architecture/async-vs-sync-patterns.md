@@ -29,6 +29,7 @@ Define when to use async vs sync patterns in Dashtam, following industry best pr
     - [2. Call Sync from Async (Not Async from Sync)](#2-call-sync-from-async-not-async-from-sync)
     - [3. Use Dependency Injection for Services](#3-use-dependency-injection-for-services)
     - [4. Keep Service Initialization Lightweight](#4-keep-service-initialization-lightweight)
+- [Security Considerations](#security-considerations)
 - [Performance Considerations](#performance-considerations)
   - [When CPU-Bound Work Blocks](#when-cpu-bound-work-blocks)
   - [Current Performance Profile](#current-performance-profile)
@@ -41,6 +42,7 @@ Define when to use async vs sync patterns in Dashtam, following industry best pr
   - [Step 2: Update Endpoints](#step-2-update-endpoints)
   - [Step 3: Deprecate Sync Methods](#step-3-deprecate-sync-methods)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -95,8 +97,6 @@ Dashtam is built on FastAPI with async/await patterns for I/O operations and syn
 - **FastAPI Best Practices**: Leverage framework capabilities effectively
 - **Maintainability**: Simple patterns that reduce cognitive load
 - **Testing Simplicity**: Patterns that are straightforward to test
-
----
 
 ## Design Decisions
 
@@ -170,8 +170,6 @@ async def login(request: LoginRequest):  # Endpoint is async
 
 **Next Review**: When production metrics indicate performance issues with sync services.
 
----
-
 ## Components
 
 ### Component 1: I/O-Bound Services (Async Pattern)
@@ -214,8 +212,6 @@ class TokenService:
 - HTTP requests with `httpx.AsyncClient`
 - Must `await` I/O operations
 
----
-
 ### Component 2: CPU-Bound Services (Sync Pattern)
 
 **Example - EncryptionService, PasswordService:**
@@ -251,8 +247,6 @@ class PasswordService:
 - Libraries are synchronous (passlib, cryptography)
 - Can be called from async code without issues
 - Simpler to test and reason about
-
----
 
 ### Component 3: Service Classification
 
@@ -292,8 +286,6 @@ class PasswordService:
 - Operations taking >100ms that would benefit from parallelism
 - NOT needed initially - add when performance profiling shows need
 
----
-
 ## Implementation Details
 
 ### FastAPI Endpoint Pattern
@@ -332,8 +324,6 @@ async def login(
 - Must `await` async functions (auth_service.get_user_by_email)
 - FastAPI handles the sync/async bridge automatically
 
----
-
 ### Current Service Classification
 
 #### Async Services (I/O-bound)
@@ -351,8 +341,6 @@ async def login(
 | `EncryptionService` | AES encryption/decryption | CPU (cryptography) |
 | `PasswordService` | Bcrypt hashing/verification | CPU (passlib) |
 | `JWTService` | JWT encoding/decoding | CPU (python-jose) |
-
----
 
 ### Best Practices
 
@@ -424,45 +412,16 @@ class BadService:
         self.data = self.load_from_database()  # Sync I/O in __init__!
 ```
 
----
+## Security Considerations
 
-## Testing Strategy
+The async/sync design patterns have minimal direct security implications, as security is handled by dedicated services (PasswordService, JWTService, etc.) rather than by the async/sync pattern choice itself.
 
-### Testing Async Services
+**Key Points:**
 
-```python
-# Use pytest-asyncio for async tests
-@pytest.mark.asyncio
-async def test_auth_service(test_session: AsyncSession):
-    """Test async service."""
-    service = AuthService(test_session)
-    
-    # Must await async methods
-    user = await service.register_user(
-        email="test@example.com",
-        password="SecurePass123!",
-        name="Test User"
-    )
-    
-    assert user.email == "test@example.com"
-```
-
-### Testing Sync Services
-
-```python
-# Regular synchronous tests
-def test_password_service():
-    """Test sync service."""
-    service = PasswordService()
-    
-    # Direct calls, no await
-    hashed = service.hash_password("MyPassword123!")
-    
-    assert service.verify_password("MyPassword123!", hashed) is True
-    assert service.verify_password("WrongPassword", hashed) is False
-```
-
----
+- **Thread Safety**: Synchronous services (PasswordService, JWTService) are stateless and thread-safe by design
+- **Event Loop Isolation**: Async services properly isolate database sessions per request using FastAPI dependency injection
+- **No Shared State**: Both async and sync services avoid mutable shared state to prevent race conditions
+- **Secure Libraries**: Using battle-tested libraries (bcrypt, python-jose) regardless of async/sync pattern
 
 ## Performance Considerations
 
@@ -523,7 +482,41 @@ Monitor these metrics in production to determine if async wrappers are needed:
 
 **Action**: If any of the above occur, implement async wrappers using `run_in_executor` (see Future Enhancements).
 
----
+## Testing Strategy
+
+### Testing Async Services
+
+```python
+# Use pytest-asyncio for async tests
+@pytest.mark.asyncio
+async def test_auth_service(test_session: AsyncSession):
+    """Test async service."""
+    service = AuthService(test_session)
+    
+    # Must await async methods
+    user = await service.register_user(
+        email="test@example.com",
+        password="SecurePass123!",
+        name="Test User"
+    )
+    
+    assert user.email == "test@example.com"
+```
+
+### Testing Sync Services
+
+```python
+# Regular synchronous tests
+def test_password_service():
+    """Test sync service."""
+    service = PasswordService()
+    
+    # Direct calls, no await
+    hashed = service.hash_password("MyPassword123!")
+    
+    assert service.verify_password("MyPassword123!", hashed) is True
+    assert service.verify_password("WrongPassword", hashed) is False
+```
 
 ## Future Enhancements
 
@@ -561,8 +554,6 @@ def hash_password(self, password: str) -> str:
     return self.pwd_context.hash(password)
 ```
 
----
-
 ## References
 
 - [FastAPI Async SQL Databases](https://fastapi.tiangolo.com/advanced/async-sql-databases/)
@@ -574,7 +565,6 @@ def hash_password(self, password: str) -> str:
 
 ## Document Information
 
-**Category:** Architecture  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-16  
-**Applies To:** All Dashtam services and API endpoints
+**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-16

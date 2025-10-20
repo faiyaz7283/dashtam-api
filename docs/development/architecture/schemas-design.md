@@ -1,5 +1,9 @@
 # API Schemas Architecture & Design
 
+Comprehensive guide to Pydantic schema design patterns, validation strategies, and architectural decisions for Dashtam's API data contracts.
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -11,9 +15,6 @@
   - [Pydantic Models](#pydantic-models)
   - [Key Components](#key-components)
   - [Data Flow](#data-flow)
-- [Why Separate Schemas?](#why-separate-schemas)
-  - [Historical Context](#historical-context)
-  - [Architectural Principles](#architectural-principles)
 - [Components](#components)
   - [Directory Structure](#directory-structure)
   - [Module Organization](#module-organization)
@@ -59,9 +60,6 @@
     - [Example 3: PATCH with Optional Fields](#example-3-patch-with-optional-fields)
   - [Migration Guide](#migration-guide)
     - [Migrating Inline Schemas to Separate Files](#migrating-inline-schemas-to-separate-files)
-- [Testing Strategy](#testing-strategy)
-  - [Unit Testing Schemas](#unit-testing-schemas)
-  - [Integration Testing with Endpoints](#integration-testing-with-endpoints)
 - [Security Considerations](#security-considerations)
   - [Data Validation at API Boundary](#data-validation-at-api-boundary)
   - [Sensitive Data Protection](#sensitive-data-protection)
@@ -70,6 +68,9 @@
   - [Validation Overhead](#validation-overhead)
   - [Response Serialization](#response-serialization)
   - [Schema Compilation](#schema-compilation)
+- [Testing Strategy](#testing-strategy)
+  - [Unit Testing Schemas](#unit-testing-schemas)
+  - [Integration Testing with Endpoints](#integration-testing-with-endpoints)
 - [Future Enhancements](#future-enhancements)
   - [Planned Improvements](#planned-improvements)
   - [Known Limitations](#known-limitations)
@@ -92,8 +93,6 @@ Schemas in Dashtam are **Pydantic models** that define the structure, validation
 3. **Documentation Generation** - Automatically generate OpenAPI/Swagger docs
 4. **Type Safety** - Provide IDE autocomplete and static type checking
 5. **Data Transformation** - Convert between API formats and internal models
-
----
 
 ## Context
 
@@ -123,8 +122,6 @@ Dashtam's API schemas operate within a FastAPI-based architecture, serving as th
 4. **Developer Experience**: Clear error messages and IDE autocomplete
 5. **Security**: Never expose sensitive internal data in responses
 
----
-
 ## Architecture Goals
 
 1. **Data Validation** - Ensure all incoming data meets requirements before reaching business logic
@@ -135,8 +132,6 @@ Dashtam's API schemas operate within a FastAPI-based architecture, serving as th
 6. **Security by Design** - Prevent exposure of sensitive data through strict response schema control
 7. **Developer Experience** - Provide clear validation errors and examples for API consumers
 8. **Maintainability** - Centralized schema management for easier updates and versioning
-
----
 
 ## Design Decisions
 
@@ -182,11 +177,9 @@ flowchart TD
     style G fill:#e1f5ff
 ```
 
----
+### Why Separate Schemas?
 
-## Why Separate Schemas?
-
-### Historical Context
+**Historical Context:**
 
 **Before** (Inline Approach):
 
@@ -235,15 +228,13 @@ async def get_providers() -> List[ProviderTypeInfo]:
 - ✅ Clear separation of concerns
 - ✅ Easier to maintain and evolve
 
-### Architectural Principles
+**Architectural Principles:**
 
 1. **Separation of Concerns** - Schemas handle data structure, endpoints handle logic
 2. **DRY (Don't Repeat Yourself)** - One schema definition, used everywhere
 3. **Single Responsibility** - Each schema has one job
 4. **Open/Closed Principle** - Easy to extend without modifying existing code
 5. **Interface Segregation** - Specific schemas for specific purposes
-
----
 
 ## Components
 
@@ -364,8 +355,6 @@ from src.schemas import auth, provider
 async def login(request: auth.LoginRequest):
     # ...
 ```
-
----
 
 ## Implementation Details
 
@@ -1056,7 +1045,44 @@ async def update_profile(
     return UserResponse.from_orm(current_user)
 ```
 
----
+## Security Considerations
+
+### Data Validation at API Boundary
+
+- **Request Validation**: All incoming data validated before reaching business logic
+- **Type Safety**: Pydantic ensures type correctness and prevents type confusion attacks
+- **Input Sanitization**: Field constraints prevent injection attacks (SQL, NoSQL, command injection)
+
+### Sensitive Data Protection
+
+- **Response Filtering**: Never expose password hashes, tokens, or internal IDs in response schemas
+- **Field Exclusion**: Use separate response schemas that explicitly exclude sensitive fields
+- **Example Validation**: Ensure example data in schemas doesn't contain real credentials
+
+### Validation Security
+
+- **Length Limits**: All string fields have `max_length` constraints to prevent DOS attacks
+- **Email Validation**: Use `EmailStr` type to prevent email header injection
+- **Custom Validators**: Implement password complexity, allowed characters, format validation
+
+## Performance Considerations
+
+### Validation Overhead
+
+- **Sub-millisecond Performance**: Pydantic v2 validation is highly optimized (Rust core)
+- **Lazy Validation**: Validation only occurs when data is accessed
+- **Schema Caching**: Pydantic caches schema compilation for reuse
+
+### Response Serialization
+
+- **Efficient JSON Serialization**: FastAPI uses optimized JSON serialization
+- **Field Exclusion**: Use `response_model_exclude` for large objects when needed
+- **Pagination**: Always paginate list responses to prevent large payload overhead
+
+### Schema Compilation
+
+- **Startup Overhead**: Schemas compiled at application startup (one-time cost)
+- **Reusability**: Share common schemas across endpoints to reduce compilation overhead
 
 ## Testing Strategy
 
@@ -1209,51 +1235,6 @@ make test
 open http://localhost:8000/docs
 ```
 
----
-
-## Security Considerations
-
-### Data Validation at API Boundary
-
-- **Request Validation**: All incoming data validated before reaching business logic
-- **Type Safety**: Pydantic ensures type correctness and prevents type confusion attacks
-- **Input Sanitization**: Field constraints prevent injection attacks (SQL, NoSQL, command injection)
-
-### Sensitive Data Protection
-
-- **Response Filtering**: Never expose password hashes, tokens, or internal IDs in response schemas
-- **Field Exclusion**: Use separate response schemas that explicitly exclude sensitive fields
-- **Example Validation**: Ensure example data in schemas doesn't contain real credentials
-
-### Validation Security
-
-- **Length Limits**: All string fields have `max_length` constraints to prevent DOS attacks
-- **Email Validation**: Use `EmailStr` type to prevent email header injection
-- **Custom Validators**: Implement password complexity, allowed characters, format validation
-
----
-
-## Performance Considerations
-
-### Validation Overhead
-
-- **Sub-millisecond Performance**: Pydantic v2 validation is highly optimized (Rust core)
-- **Lazy Validation**: Validation only occurs when data is accessed
-- **Schema Caching**: Pydantic caches schema compilation for reuse
-
-### Response Serialization
-
-- **Efficient JSON Serialization**: FastAPI uses optimized JSON serialization
-- **Field Exclusion**: Use `response_model_exclude` for large objects when needed
-- **Pagination**: Always paginate list responses to prevent large payload overhead
-
-### Schema Compilation
-
-- **Startup Overhead**: Schemas compiled at application startup (one-time cost)
-- **Reusability**: Share common schemas across endpoints to reduce compilation overhead
-
----
-
 ## Future Enhancements
 
 ### Planned Improvements
@@ -1269,8 +1250,6 @@ open http://localhost:8000/docs
 - **Manual Schema Updates**: Schema changes require manual updates to maintain consistency
 - **Limited Datetime Validation**: No built-in validation for business-specific date rules
 - **Complex Nested Validation**: Deeply nested schemas can be challenging to validate comprehensively
-
----
 
 ## References
 
@@ -1296,7 +1275,6 @@ open http://localhost:8000/docs
 
 ## Document Information
 
-**Category:** Architecture  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-16  
-**Applies To:** All Dashtam API endpoints
+**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-16

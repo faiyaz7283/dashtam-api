@@ -885,8 +885,6 @@ SET full_page_writes = OFF;
 
 ## Document Information
 
-**Document Type:** Infrastructure Guide
+**Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
+**Created:** YYYY-MM-DD
 **Last Updated:** 2025-10-17
-**Template Version:** infrastructure-template.md v1.0
-**Environment Configuration:** Development, Testing, CI/CD
-**Maintainer:** Development Team

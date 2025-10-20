@@ -16,6 +16,7 @@
 - [Implementation](#implementation)
 - [Follow-Up](#follow-up)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -226,8 +227,6 @@ example_code()
 
 ## Document Information
 
-**Category:** Research
+**Template:** [research-template.md](research-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Decision Date:** YYYY-MM-DD
-**Decision Maker(s):** [Team or Individual]

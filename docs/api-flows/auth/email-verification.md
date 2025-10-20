@@ -11,10 +11,11 @@ Verify a user's email using the HTTPS-enabled development environment.
 - [Steps](#steps)
   - [1) Extract verification token from logs](#1-extract-verification-token-from-logs)
   - [2) Verify email](#2-verify-email)
-- [Next Step](#next-step)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
 - [Document Information](#document-information)
+
+---
 
 ## Purpose
 
@@ -103,10 +104,6 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/verify-email" \
   -d "{\"token\":\"$VERIFICATION_TOKEN\"}" | python3 -m json.tool
 ```
 
-## Next Step
-
-✅ **Continue to:** [Login Flow](login.md) to authenticate and get access tokens.
-
 ## Troubleshooting
 
 - **400 Bad Request - "Invalid or already used verification token"**:
@@ -133,8 +130,6 @@ curl -sk -X POST "$BASE_URL/api/v1/auth/verify-email" \
 
 ## Document Information
 
-**Category:** API Flow  
-**Created:** 2025-10-15  
-**Last Updated:** 2025-10-15  
-**API Version:** v1  
-**Environment:** Development (HTTPS with self-signed TLS)
+**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15

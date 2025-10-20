@@ -18,6 +18,7 @@
 - [Security](#security)
 - [Performance Optimization](#performance-optimization)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -263,9 +264,6 @@ resources:
 
 ## Document Information
 
-**Category:** Infrastructure
+**Template:** [infastructure-template.md](infastructure-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Component Type:** [Docker, Database, Cache, CI/CD, etc.]
-
-[Optional: **Maintainer:** Team or Individual]

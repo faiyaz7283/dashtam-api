@@ -11,11 +11,11 @@ Register a new user using the HTTPS-enabled development environment.
 - [Steps](#steps)
   - [1) Register](#1-register)
   - [2) Extract verification token from logs](#2-extract-verification-token-from-logs)
-- [Next Step](#next-step)
-- [Cleanup (optional)](#cleanup-optional)
 - [Troubleshooting](#troubleshooting)
 - [Related Flows](#related-flows)
 - [Document Information](#document-information)
+
+---
 
 ## Purpose
 
@@ -109,17 +109,6 @@ echo "Verification token: $VERIFICATION_TOKEN"
 
 **Why this works**: The `EmailService` automatically operates in development mode when `DEBUG=True`, logging all emails with full content including verification tokens.
 
-## Next Step
-
-✅ **Continue to:** [Email Verification Flow](email-verification.md) to verify your email and activate the account.
-
-## Cleanup (optional)
-
-```bash
-# Users cannot be deleted via API yet (future admin endpoint)
-# For now, test users remain in the database
-```
-
 ## Troubleshooting
 
 - **400 Bad Request - "Email already registered":**
@@ -148,8 +137,6 @@ echo "Verification token: $VERIFICATION_TOKEN"
 
 ## Document Information
 
-**Category:** API Flow  
-**Created:** 2025-10-15  
-**Last Updated:** 2025-10-15  
-**API Version:** v1  
-**Environment:** Development (HTTPS with self-signed TLS)
+**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Created:** 2025-10-15
+**Last Updated:** 2025-10-15

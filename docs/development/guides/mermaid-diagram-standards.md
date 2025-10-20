@@ -505,10 +505,6 @@ erDiagram
 
 ## Document Information
 
-**Category:** Guide
+**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-13
 **Last Updated:** 2025-10-15
-**Difficulty Level:** Beginner
-**Target Audience:** Developers, documentation writers, technical writers
-**Prerequisites:** Basic Markdown knowledge, understanding of diagrams
-**Related Documents:** [Markdown Linting Guide](markdown-linting-guide.md), [Documentation Implementation Guide](documentation-implementation-guide.md)

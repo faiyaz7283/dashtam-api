@@ -609,8 +609,6 @@ After implementing token rotation for your provider, consider:
 
 ## Document Information
 
-**Category:** Guide  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-15  
-**Difficulty Level:** Advanced  
-**Estimated Time:** 60-90 minutes
+**Template:** [guide-template.md](../../templates/guide-template.md)
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-15

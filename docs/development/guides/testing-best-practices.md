@@ -754,8 +754,6 @@ After mastering these best practices, consider:
 
 ## Document Information
 
-**Category:** Guide
+**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-09-20
 **Last Updated:** 2025-10-18
-**Difficulty Level:** Intermediate
-**Estimated Time:** 2-3 hours to master all patterns

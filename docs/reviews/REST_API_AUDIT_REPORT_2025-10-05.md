@@ -693,10 +693,6 @@ tests/api/test_auth_endpoints.py      # Tests for deprecated router
 
 ## Document Information
 
-**Category:** Audit Report
-**Audit Type:** REST API Compliance
-**Audit Date:** 2025-10-05
-**Report Created:** 2025-10-05
+**Template:** [audit-template.md](../templates/audit-template.md)
+**Created:** YYYY-MM-DD
 **Last Updated:** 2025-10-18
-**Auditor:** AI Assistant
-**Related Audits:** [REST API Compliance Review (2025-10-04)](rest-api-compliance-review.md) - Previous audit (9.5/10)

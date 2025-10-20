@@ -2,13 +2,9 @@
 
 [Brief description of this directory/section and its purpose in the project]
 
----
-
 ## 📚 Contents
 
 [Brief overview of what's contained in this directory]
-
----
 
 ## 🗂️ Directory Structure
 
@@ -22,8 +18,6 @@
 │   └── file4.md
 └── README.md
 ```
-
----
 
 ## 📄 Documents
 
@@ -41,8 +35,6 @@ Brief description of this subdirectory's purpose.
 - [Document 3](subdirectory2/file3.md) - Brief description
 - [Document 4](subdirectory2/file4.md) - Brief description
 
----
-
 ## 🔗 Quick Links
 
 **Related Documentation:**
@@ -55,8 +47,6 @@ Brief description of this subdirectory's purpose.
 - [External Resource 1](https://example.com)
 - [External Resource 2](https://example.com)
 
----
-
 ## 🗺️ Navigation
 
 **Parent Directory:** [../index.md](../index.md)
@@ -65,8 +55,6 @@ Brief description of this subdirectory's purpose.
 
 - [Related Directory 1](../related-dir1/index.md)
 - [Related Directory 2](../related-dir2/index.md)
-
----
 
 ## 📝 Contributing
 
@@ -81,8 +69,6 @@ When adding new documents to this directory:
 
 ## Document Information
 
-**Category:** Index/Navigation
+**Template:** [index-template.md](index-template.md)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
-**Maintainer:** [Team/Person Name]
-**Scope:** [Brief description of scope]

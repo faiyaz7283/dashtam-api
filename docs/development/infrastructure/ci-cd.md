@@ -641,8 +641,6 @@ postgres:
 
 ## Document Information
 
-**Category:** Infrastructure
+**Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
 **Created:** 2025-10-12
 **Last Updated:** 2025-01-17
-**Component Type:** CI/CD
-**Maintainer:** DevOps Team

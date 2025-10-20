@@ -768,10 +768,6 @@ docker compose -f docker-compose.dev.yml exec app uv tree
 
 ## Document Information
 
-**Category:** Guide
+**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-15
-**Difficulty Level:** Intermediate
-**Target Audience:** Developers, DevOps engineers, Python package managers
-**Prerequisites:** Basic Python knowledge, Docker familiarity
-**Related Documents:** [Docker Setup Guide](../infrastructure/docker-setup.md)

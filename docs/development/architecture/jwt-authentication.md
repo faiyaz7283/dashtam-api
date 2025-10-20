@@ -1,5 +1,9 @@
 # JWT Authentication Architecture
 
+Industry-standard JWT authentication system using Pattern A (JWT access tokens + opaque refresh tokens) for secure, scalable, and revocable user authentication.
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -40,6 +44,10 @@
   - [API Endpoints](#api-endpoints)
     - [Authentication Endpoints](#authentication-endpoints)
     - [Example Requests](#example-requests)
+      - [Register](#register)
+      - [Login](#login)
+      - [Protected Endpoint](#protected-endpoint)
+      - [Refresh Token](#refresh-token)
   - [Services Architecture](#services-architecture)
     - [AuthService](#authservice)
     - [PasswordService](#passwordservice)
@@ -74,8 +82,6 @@ Dashtam implements **Pattern A** JWT authentication, the industry-standard appro
 
 This architecture provides secure, scalable authentication for the Dashtam financial data aggregation platform, supporting multi-device sessions, email verification, password reset, and session management.
 
----
-
 ## Context
 
 ### Operating Environment
@@ -104,8 +110,6 @@ Dashtam is a FastAPI-based REST API platform that requires:
 4. **Compliance**: Industry-standard security practices (OWASP, OAuth 2.0)
 5. **Revocability**: Ability to revoke sessions on logout or password reset
 
----
-
 ## Architecture Goals
 
 1. **Industry Standard Compliance** - Use proven patterns adopted by 95% of production systems (Auth0, GitHub, Google)
@@ -114,8 +118,6 @@ Dashtam is a FastAPI-based REST API platform that requires:
 4. **Performance at Scale** - Stateless access tokens enable horizontal scaling without database bottlenecks
 5. **Easy Revocation** - Opaque refresh tokens are simpler to revoke than JWT-based alternatives
 6. **Developer Experience** - Clear separation between stateless (access) and stateful (refresh) tokens
-
----
 
 ## Design Decisions
 
@@ -204,8 +206,6 @@ REFRESH TOKEN (Opaque):
 2. **Horizontal scalability** - Stateless access tokens enable load balancing
 3. **Security** - Token hashing protects against database compromise
 4. **Simplicity** - Opaque tokens are simpler than JWT for refresh use case
-
----
 
 ## Components
 
@@ -356,8 +356,6 @@ for token_record in all_tokens:
 # No match found
 raise AuthenticationError("Invalid token")
 ```
-
----
 
 ## Implementation Details
 
@@ -695,11 +693,9 @@ After password reset:
 
 **Industry Standard:** Password reset → revoke all refresh tokens (Google, GitHub, Auth0)
 
----
+### Database Schema
 
-## Database Schema
-
-### `users` Table
+#### `users` Table
 
 ```sql
 CREATE TABLE users (
@@ -730,7 +726,7 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email ON users(email);
 ```
 
-### `refresh_tokens` Table
+#### `refresh_tokens` Table
 
 ```sql
 CREATE TABLE refresh_tokens (
@@ -761,7 +757,7 @@ CREATE INDEX idx_refresh_tokens_is_revoked ON refresh_tokens(is_revoked);
 CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 ```
 
-### `email_verification_tokens` Table
+#### `email_verification_tokens` Table
 
 ```sql
 CREATE TABLE email_verification_tokens (
@@ -781,7 +777,7 @@ CREATE INDEX idx_email_verification_tokens_user_id ON email_verification_tokens(
 CREATE INDEX idx_email_verification_tokens_expires_at ON email_verification_tokens(expires_at);
 ```
 
-### `password_reset_tokens` Table
+#### `password_reset_tokens` Table
 
 ```sql
 CREATE TABLE password_reset_tokens (
@@ -803,11 +799,9 @@ CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)
 CREATE INDEX idx_password_reset_tokens_expires_at ON password_reset_tokens(expires_at);
 ```
 
----
+### API Endpoints
 
-## API Endpoints
-
-### Authentication Endpoints
+#### Authentication Endpoints
 
 | Endpoint | Method | Purpose | Auth Required |
 |----------|--------|---------|---------------|
@@ -823,9 +817,9 @@ CREATE INDEX idx_password_reset_tokens_expires_at ON password_reset_tokens(expir
 
 *Requires valid refresh token, not access token
 
-### Example Requests
+#### Example Requests
 
-#### Register
+##### Register
 
 ```bash
 POST /api/v1/auth/register
@@ -843,7 +837,7 @@ Content-Type: application/json
 }
 ```
 
-#### Login
+##### Login
 
 ```bash
 POST /api/v1/auth/login
@@ -872,7 +866,7 @@ Content-Type: application/json
 }
 ```
 
-#### Protected Endpoint
+##### Protected Endpoint
 
 ```bash
 GET /api/v1/providers
@@ -884,7 +878,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-#### Refresh Token
+##### Refresh Token
 
 ```bash
 POST /api/v1/auth/refresh
@@ -903,8 +897,6 @@ Content-Type: application/json
 }
 ```
 
----
-
 ### Services Architecture
 
 ```bash
@@ -915,7 +907,7 @@ src/services/
 └── email_service.py      # Email sending (verification, reset, etc.)
 ```
 
-### AuthService
+#### AuthService
 
 **Responsibility:** Orchestrate all authentication workflows
 
@@ -939,7 +931,7 @@ class AuthService:
     async def _create_password_reset_token(user_id) -> Tuple[str, PasswordResetToken]
 ```
 
-### PasswordService
+#### PasswordService
 
 **Responsibility:** Password hashing and validation (sync)
 
@@ -953,7 +945,7 @@ class PasswordService:
     def needs_rehash(hashed: str) -> bool
 ```
 
-### JWTService
+#### JWTService
 
 **Responsibility:** JWT generation and validation (sync)
 
@@ -967,8 +959,6 @@ class JWTService:
     def get_user_id_from_token(token) -> UUID
     def get_token_jti(token) -> UUID  # Deprecated for opaque tokens
 ```
-
----
 
 ## Security Considerations
 
@@ -1049,78 +1039,6 @@ EMAIL_VERIFICATION_RESEND = 3 per hour per email
 REFRESH_TOKEN_USAGE = 10 per hour per token
 ```
 
----
-
-## Testing Strategy
-
-### Test Pyramid
-
-**Test Distribution:**
-
-| Test Level | Coverage | Focus |
-|------------|----------|-------|
-| **E2E Tests** | 10% | Full authentication flows end-to-end |
-| **Integration Tests** | 20% | API endpoint testing, database operations |
-| **Unit Tests** | 70% | Service methods, token validation, business logic |
-
-**Rationale:** The pyramid structure emphasizes a solid foundation of fast unit tests, with fewer but more comprehensive integration and E2E tests at higher levels.
-
-### Test Coverage Requirements
-
-| Component | Target Coverage |
-|-----------|----------------|
-| **AuthService** | 95%+ |
-| **PasswordService** | 95%+ |
-| **JWTService** | 90%+ |
-| **API Endpoints** | 85%+ |
-| **Overall** | 85%+ |
-
-### Key Test Scenarios
-
-✅ **Registration**
-
-- Valid registration
-- Duplicate email
-- Weak password
-- Email sending failure
-
-✅ **Email Verification**
-
-- Valid token
-- Expired token
-- Already used token
-- Invalid token
-
-✅ **Login**
-
-- Valid credentials
-- Invalid password
-- Unverified email
-- Inactive account
-- Locked account
-
-✅ **Token Refresh**
-
-- Valid refresh token
-- Expired refresh token
-- Revoked refresh token
-- Invalid refresh token
-
-✅ **Logout**
-
-- Valid logout
-- Already revoked token
-- Invalid token
-
-✅ **Password Reset**
-
-- Request reset
-- Valid reset token
-- Expired reset token
-- Weak new password
-
----
-
 ## Performance Considerations
 
 ### Stateless Access Tokens
@@ -1196,7 +1114,73 @@ Performance: 99.8% stateless
 - **Performance:** ~300ms is acceptable for auth endpoints
 - **Future-proof:** As CPUs get faster, 12 rounds remains secure
 
----
+## Testing Strategy
+
+### Test Pyramid
+
+**Test Distribution:**
+
+| Test Level | Coverage | Focus |
+|------------|----------|-------|
+| **E2E Tests** | 10% | Full authentication flows end-to-end |
+| **Integration Tests** | 20% | API endpoint testing, database operations |
+| **Unit Tests** | 70% | Service methods, token validation, business logic |
+
+**Rationale:** The pyramid structure emphasizes a solid foundation of fast unit tests, with fewer but more comprehensive integration and E2E tests at higher levels.
+
+### Test Coverage Requirements
+
+| Component | Target Coverage |
+|-----------|----------------|
+| **AuthService** | 95%+ |
+| **PasswordService** | 95%+ |
+| **JWTService** | 90%+ |
+| **API Endpoints** | 85%+ |
+| **Overall** | 85%+ |
+
+### Key Test Scenarios
+
+✅ **Registration**
+
+- Valid registration
+- Duplicate email
+- Weak password
+- Email sending failure
+
+✅ **Email Verification**
+
+- Valid token
+- Expired token
+- Already used token
+- Invalid token
+
+✅ **Login**
+
+- Valid credentials
+- Invalid password
+- Unverified email
+- Inactive account
+- Locked account
+
+✅ **Token Refresh**
+
+- Valid refresh token
+- Expired refresh token
+- Revoked refresh token
+- Invalid refresh token
+
+✅ **Logout**
+
+- Valid logout
+- Already revoked token
+- Invalid token
+
+✅ **Password Reset**
+
+- Request reset
+- Valid reset token
+- Expired reset token
+- Weak new password
 
 ## Future Enhancements
 
@@ -1208,8 +1192,6 @@ Performance: 99.8% stateless
 🔲 **Security Events** - Email notifications for suspicious activity  
 🔲 **Refresh Token Families** - Detect token reuse attacks  
 🔲 **IP Whitelisting** - Restrict login by IP (optional)  
-
----
 
 ## References
 
@@ -1233,8 +1215,6 @@ Performance: 99.8% stateless
 
 ## Document Information
 
-**Category:** Architecture  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-16  
-**Status:** ✅ Production Ready  
-**Applies To:** All Dashtam authentication flows
+**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-16

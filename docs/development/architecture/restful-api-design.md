@@ -1,5 +1,9 @@
 # RESTful API Architecture
 
+Comprehensive RESTful API design standards and conventions for Dashtam's financial data platform, ensuring consistency, scalability, and industry best practices compliance.
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -15,41 +19,42 @@
   - [Resource Naming](#resource-naming)
   - [Resource Hierarchy](#resource-hierarchy)
   - [Special Cases](#special-cases)
-- [HTTP Methods](#http-methods)
-  - [Standard Methods](#standard-methods)
-  - [Method Usage](#method-usage)
-    - [GET - Retrieve Resources](#get---retrieve-resources)
-    - [POST - Create Resources](#post---create-resources)
-    - [PUT - Replace Resources](#put---replace-resources)
-    - [PATCH - Update Resources](#patch---update-resources)
-    - [DELETE - Remove Resources](#delete---remove-resources)
-- [Status Codes](#status-codes)
-  - [Success Codes (2xx)](#success-codes-2xx)
-  - [Client Error Codes (4xx)](#client-error-codes-4xx)
-  - [Server Error Codes (5xx)](#server-error-codes-5xx)
-  - [Status Code Examples](#status-code-examples)
-- [URL Structure](#url-structure)
-  - [Base URL Format](#base-url-format)
-  - [URL Conventions](#url-conventions)
-  - [Query Parameters](#query-parameters)
-- [Request/Response Formats](#requestresponse-formats)
-  - [Content Type](#content-type)
-  - [Request Format](#request-format)
-  - [Response Format](#response-format)
-  - [Date/Time Format](#datetime-format)
-- [Versioning Strategy](#versioning-strategy)
-  - [URI Versioning (Current Approach)](#uri-versioning-current-approach)
-  - [Version in Code](#version-in-code)
-- [Error Handling](#error-handling)
-  - [Standard Error Response](#standard-error-response)
-  - [Error Examples](#error-examples)
-  - [Exception Handling](#exception-handling)
-- [Pagination](#pagination)
-  - [Offset-Based Pagination (Current)](#offset-based-pagination-current)
-  - [Cursor-Based Pagination (Future)](#cursor-based-pagination-future)
-- [Filtering & Sorting](#filtering--sorting)
-  - [Filtering](#filtering)
-  - [Sorting](#sorting)
+- [Implementation Details](#implementation-details)
+  - [HTTP Methods](#http-methods)
+    - [Standard Methods](#standard-methods)
+    - [Method Usage](#method-usage)
+  - [Status Codes](#status-codes)
+    - [Success Codes (2xx)](#success-codes-2xx)
+    - [Client Error Codes (4xx)](#client-error-codes-4xx)
+    - [Server Error Codes (5xx)](#server-error-codes-5xx)
+    - [Status Code Examples](#status-code-examples)
+  - [URL Structure](#url-structure)
+    - [Base URL Format](#base-url-format)
+    - [URL Conventions](#url-conventions)
+    - [Query Parameters](#query-parameters)
+  - [Request/Response Formats](#requestresponse-formats)
+    - [Content Type](#content-type)
+    - [Request Format](#request-format)
+    - [Response Format](#response-format)
+    - [Date/Time Format](#datetime-format)
+  - [Versioning Strategy](#versioning-strategy)
+    - [URI Versioning (Current Approach)](#uri-versioning-current-approach)
+    - [Version in Code](#version-in-code)
+  - [Error Handling](#error-handling)
+    - [Standard Error Response](#standard-error-response)
+    - [Error Examples](#error-examples)
+    - [Exception Handling](#exception-handling)
+  - [Pagination](#pagination)
+    - [Offset-Based Pagination (Current)](#offset-based-pagination-current)
+    - [Cursor-Based Pagination (Future)](#cursor-based-pagination-future)
+  - [Filtering & Sorting](#filtering--sorting)
+    - [Filtering](#filtering)
+    - [Sorting](#sorting)
+  - [HATEOAS](#hateoas)
+    - [Hypermedia Links (Optional)](#hypermedia-links-optional)
+  - [Best Practices](#best-practices)
+    - [Do's ✅](#dos-)
+    - [Don'ts ❌](#donts-)
 - [Security Considerations](#security-considerations)
   - [Authentication & Authorization](#authentication--authorization)
     - [Authentication](#authentication)
@@ -60,12 +65,6 @@
   - [Caching](#caching)
     - [Cache Headers](#cache-headers)
     - [Conditional Requests](#conditional-requests)
-- [HATEOAS](#hateoas)
-  - [Hypermedia Links (Optional)](#hypermedia-links-optional)
-- [Best Practices](#best-practices)
-  - [Do's ✅](#dos-)
-  - [Don'ts ❌](#donts-)
-- [Implementation Details](#implementation-details)
 - [Performance Considerations](#performance-considerations)
   - [Caching Benefits](#caching-benefits)
   - [Pagination Performance](#pagination-performance)
@@ -84,8 +83,6 @@
 This document establishes the RESTful API design standards for the Dashtam application. All API endpoints must follow these guidelines to ensure consistency, maintainability, and adherence to industry best practices.
 
 Dashtam implements a REST-compliant API architecture that provides a uniform interface for financial data access across web, mobile, and third-party integrations.
-
----
 
 ## Context
 
@@ -115,8 +112,6 @@ Dashtam's API serves as the primary interface for all client applications access
 4. **Client-agnostic**: Works for web, mobile, and API integrations
 5. **Standards compliance**: Follow REST architectural constraints
 
----
-
 ## Architecture Goals
 
 1. **Resource-Oriented Design** - Model API around resources (nouns) not actions (verbs)
@@ -125,8 +120,6 @@ Dashtam's API serves as the primary interface for all client applications access
 4. **Uniform Interface** - Consistent patterns, conventions, and error handling across all endpoints
 5. **Layered Architecture** - Support intermediaries (proxies, load balancers, API gateways) transparently
 6. **Industry Standards Compliance** - Follow RESTful API best practices and HTTP specifications
-
----
 
 ## Design Decisions
 
@@ -254,8 +247,6 @@ flowchart LR
 - Added complexity in infrastructure
 - Potential latency from additional hops
 
----
-
 ## Components
 
 ### Resource Naming
@@ -305,9 +296,9 @@ POST /auth/logout               # Logout action
 
 **Note:** These are acceptable when the operation is truly an action, not a resource state change.
 
----
+## Implementation Details
 
-## HTTP Methods
+### HTTP Methods
 
 ### Standard Methods
 
@@ -443,9 +434,7 @@ async def delete_provider(
 - Return 404 if already deleted
 - Idempotent (multiple deletes = same result)
 
----
-
-## Status Codes
+### Status Codes
 
 ### Success Codes (2xx)
 
@@ -525,9 +514,7 @@ class CreateProviderRequest(BaseModel):
     alias: str = Field(..., min_length=1, max_length=100)
 ```
 
----
-
-## URL Structure
+### URL Structure
 
 ### Base URL Format
 
@@ -593,9 +580,7 @@ async def list_providers(
     pass
 ```
 
----
-
-## Request/Response Formats
+### Request/Response Formats
 
 ### Content Type
 
@@ -675,9 +660,7 @@ created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 "created_at": "2025-10-04T10:00:00-04:00"  # With timezone offset
 ```
 
----
-
-## Versioning Strategy
+### Versioning Strategy
 
 ### URI Versioning (Current Approach)
 
@@ -718,9 +701,7 @@ api_router = APIRouter(prefix="/v1")
 app.include_router(api_router, prefix="/api")
 ```
 
----
-
-## Error Handling
+### Error Handling
 
 ### Standard Error Response
 
@@ -801,9 +782,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 ```
 
----
-
-## Pagination
+### Pagination
 
 ### Offset-Based Pagination (Current)
 
@@ -865,9 +844,7 @@ async def list_providers(
     }
 ```
 
----
-
-## Filtering & Sorting
+### Filtering & Sorting
 
 ### Filtering
 
@@ -931,123 +908,7 @@ async def list_providers(
 GET /api/v1/providers?sort=created_at&order=desc
 ```
 
----
-
-## Security Considerations
-
-### Authentication & Authorization
-
-#### Authentication
-
-Use Bearer tokens (JWT):
-
-```http
-GET /api/v1/providers
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-#### Authorization
-
-Check permissions in dependencies:
-
-```python
-async def get_current_verified_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    if not current_user.email_verified:
-        raise HTTPException(
-            status_code=403,
-            detail="Email verification required"
-        )
-    return current_user
-
-@router.post("/providers")
-async def create_provider(
-    request: CreateProviderRequest,
-    current_user: User = Depends(get_current_verified_user)  # Verified only
-):
-    pass
-```
-
----
-
-### Rate Limiting
-
-#### Implementation (Future)
-
-```python
-from fastapi import Request
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-
-limiter = Limiter(key_func=get_remote_address)
-
-@router.get("/providers")
-@limiter.limit("100/minute")  # 100 requests per minute
-async def list_providers(request: Request):
-    pass
-```
-
-#### Rate Limit Headers
-
-```http
-HTTP/1.1 200 OK
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1696435200
-```
-
----
-
-### Caching
-
-#### Cache Headers
-
-```python
-from fastapi import Response
-
-@router.get("/providers/{provider_id}")
-async def get_provider(provider_id: UUID) -> Response:
-    provider = await get_provider_service(provider_id)
-    
-    return Response(
-        content=provider.json(),
-        headers={
-            "Cache-Control": "private, max-age=3600",  # Cache for 1 hour
-            "ETag": f'"{hash(provider)}"',  # Entity tag
-            "Last-Modified": provider.updated_at.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        }
-    )
-```
-
-#### Conditional Requests
-
-```python
-@router.get("/providers/{provider_id}")
-async def get_provider(
-    provider_id: UUID,
-    if_none_match: Optional[str] = Header(None),
-    if_modified_since: Optional[str] = Header(None)
-):
-    provider = await get_provider_service(provider_id)
-    etag = f'"{hash(provider)}"'
-    
-    # Check ETag
-    if if_none_match == etag:
-        return Response(status_code=304)  # Not Modified
-    
-    # Check Last-Modified
-    if if_modified_since:
-        client_time = datetime.strptime(if_modified_since, "%a, %d %b %Y %H:%M:%S GMT")
-        if provider.updated_at <= client_time:
-            return Response(status_code=304)
-    
-    return provider
-```
-
----
-
-## HATEOAS
+### HATEOAS
 
 ### Hypermedia Links (Optional)
 
@@ -1075,9 +936,7 @@ Include links to related resources:
 }
 ```
 
----
-
-## Best Practices
+### Best Practices
 
 ### Do's ✅
 
@@ -1145,23 +1004,113 @@ Include links to related resources:
 10. **Don't ignore performance**
     - Cache, paginate, index
 
----
+## Security Considerations
 
-## Implementation Details
+### Authentication & Authorization
 
-See sections above for detailed implementation guidance:
+#### Authentication
 
-- Resource Design (Components)
-- HTTP Methods
-- Status Codes
-- URL Structure
-- Request/Response Formats
-- Versioning Strategy
-- Error Handling
-- Pagination
-- Filtering & Sorting
+Use Bearer tokens (JWT):
 
----
+```http
+GET /api/v1/providers
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+#### Authorization
+
+Check permissions in dependencies:
+
+```python
+async def get_current_verified_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    if not current_user.email_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="Email verification required"
+        )
+    return current_user
+
+@router.post("/providers")
+async def create_provider(
+    request: CreateProviderRequest,
+    current_user: User = Depends(get_current_verified_user)  # Verified only
+):
+    pass
+```
+
+### Rate Limiting
+
+#### Implementation (Future)
+
+```python
+from fastapi import Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
+@router.get("/providers")
+@limiter.limit("100/minute")  # 100 requests per minute
+async def list_providers(request: Request):
+    pass
+```
+
+#### Rate Limit Headers
+
+```http
+HTTP/1.1 200 OK
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1696435200
+```
+
+### Caching
+
+#### Cache Headers
+
+```python
+from fastapi import Response
+
+@router.get("/providers/{provider_id}")
+async def get_provider(provider_id: UUID) -> Response:
+    provider = await get_provider_service(provider_id)
+    
+    return Response(
+        content=provider.json(),
+        headers={
+            "Cache-Control": "private, max-age=3600",  # Cache for 1 hour
+            "ETag": f'"{hash(provider)}"',  # Entity tag
+            "Last-Modified": provider.updated_at.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        }
+    )
+```
+
+#### Conditional Requests
+
+```python
+@router.get("/providers/{provider_id}")
+async def get_provider(
+    provider_id: UUID,
+    if_none_match: Optional[str] = Header(None),
+    if_modified_since: Optional[str] = Header(None)
+):
+    provider = await get_provider_service(provider_id)
+    etag = f'"{hash(provider)}"'
+    
+    # Check ETag
+    if if_none_match == etag:
+        return Response(status_code=304)  # Not Modified
+    
+    # Check Last-Modified
+    if if_modified_since:
+        client_time = datetime.strptime(if_modified_since, "%a, %d %b %Y %H:%M:%S GMT")
+        if provider.updated_at <= client_time:
+            return Response(status_code=304)
+    
+    return provider
+```
 
 ## Performance Considerations
 
@@ -1191,8 +1140,6 @@ See sections above for detailed implementation guidance:
 - Load balancer distributes traffic evenly
 - Easy to add/remove servers
 
----
-
 ## Testing Strategy
 
 ### REST Compliance Testing
@@ -1211,8 +1158,6 @@ See sections above for detailed implementation guidance:
 
 **Target**: 85%+ coverage for API endpoint code.
 
----
-
 ## Future Enhancements
 
 🔲 **HATEOAS Implementation** - Add hypermedia links in responses for discoverability  
@@ -1222,8 +1167,6 @@ See sections above for detailed implementation guidance:
 🔲 **API Versioning in Headers** - Move from URL to Accept header versioning  
 🔲 **Webhook Support** - Push notifications for async operations  
 🔲 **Bulk Operations** - Batch create/update endpoints for efficiency  
-
----
 
 ## References
 
@@ -1245,8 +1188,6 @@ See sections above for detailed implementation guidance:
 
 ## Document Information
 
-**Category:** Architecture  
-**Created:** 2025-10-04  
-**Last Updated:** 2025-10-16  
-**Status:** Active Standard  
-**Applies To:** All API endpoints in Dashtam
+**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Created:** 2025-10-04
+**Last Updated:** 2025-10-16

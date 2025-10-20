@@ -684,8 +684,6 @@ tests/
 
 ## Document Information
 
-**Category:** Research
+**Template:** [research-template.md](../templates/research-template.md)
 **Created:** 2025-10-06
 **Last Updated:** 2025-10-06
-**Decision Date:** 2025-10-06
-**Decision Maker(s):** Development Team

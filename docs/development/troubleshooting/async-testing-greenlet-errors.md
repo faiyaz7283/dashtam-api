@@ -332,11 +332,6 @@ N/A - Issue resolved by architectural decision to use synchronous testing
 
 ## Document Information
 
-**Category:** Troubleshooting
+**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
 **Created:** 2025-10-02
 **Last Updated:** 2025-10-17
-**Status:** ✅ RESOLVED (Synchronous testing pattern adopted)
-**Environment:** Test/CI
-**Components Affected:** pytest, SQLAlchemy AsyncSession, asyncpg, test fixtures
-**Resolution:** Adopted FastAPI official synchronous testing pattern with TestClient
-**Related Docs:** [Testing Strategy](../testing/strategy.md), [Testing Guide](../testing/guide.md)

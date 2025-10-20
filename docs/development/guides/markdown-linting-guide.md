@@ -1,63 +1,47 @@
 # Markdown Linting and Formatting Guide
 
-**Comprehensive approach to maintaining high-quality Markdown documentation:**
-
-**Last Updated:** 2025-10-12  
-**Status:** Recommendation - Ready for Implementation  
-**Priority:** P3 (Quality of Life)
+Comprehensive guide to maintaining consistent, high-quality Markdown documentation using markdownlint-cli2 with automated validation and safe formatting practices.
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
-  - [The Challenge](#the-challenge)
-- [Current State Analysis](#current-state-analysis)
-  - [Documentation Inventory](#documentation-inventory)
-  - [Risk Areas for Auto-Formatting](#risk-areas-for-auto-formatting)
-- [Recommended Approach](#recommended-approach)
-  - [Strategy: "Lint First, Format Carefully"](#strategy-lint-first-format-carefully)
-  - [Core Principles](#core-principles)
-- [Tool Selection](#tool-selection)
-  - [Recommended Tools](#recommended-tools)
-    - [1. **markdownlint-cli2** (Primary Linter)](#1-markdownlint-cli2-primary-linter)
-    - [2. **remark-cli with remark-lint** (Alternative/Supplementary)](#2-remark-cli-with-remark-lint-alternativesupplementary)
-    - [3. **prettier** (Formatting Only)](#3-prettier-formatting-only)
-- [Configuration](#configuration)
-  - [markdownlint Configuration](#markdownlint-configuration)
-  - [Ignore Patterns](#ignore-patterns)
-  - [File-Specific Overrides](#file-specific-overrides)
-- [Workflow Integration](#workflow-integration)
-  - [Makefile Commands](#makefile-commands)
-  - [Pre-Commit Hook (Optional)](#pre-commit-hook-optional)
-  - [VS Code Integration](#vs-code-integration)
-- [Risk Mitigation](#risk-mitigation)
-  - [Visual Testing Protocol](#visual-testing-protocol)
-  - [Safe Formatting Guidelines](#safe-formatting-guidelines)
-  - [Rollback Plan](#rollback-plan)
-- [Phased Rollout](#phased-rollout)
-  - [Phase 1: Linting Only ✅ Recommended Start](#phase-1-linting-only--recommended-start)
-  - [Phase 2: Manual Fixes](#phase-2-manual-fixes)
-  - [Phase 3: CI/CD Integration](#phase-3-cicd-integration)
-  - [Phase 4: Gradual Enforcement](#phase-4-gradual-enforcement)
-- [Maintenance](#maintenance)
-  - [Regular Tasks](#regular-tasks)
-  - [Common Issues and Solutions](#common-issues-and-solutions)
-- [Recommendations Summary](#recommendations-summary)
-  - [✅ **Recommended Immediate Actions**](#-recommended-immediate-actions)
-  - [❌ **NOT Recommended**](#-not-recommended)
-  - [🎯 **Success Metrics**](#-success-metrics)
-- [Integration with Existing Workflow](#integration-with-existing-workflow)
-  - [Add to WARP.md](#add-to-warpmd)
-  - [Add to Phase Completion Workflow](#add-to-phase-completion-workflow)
-- [Conclusion](#conclusion)
-- [See Also](#see-also)
+  - [What You'll Learn](#what-youll-learn)
+  - [When to Use This Guide](#when-to-use-this-guide)
+- [Prerequisites](#prerequisites)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+  - [Step 1: Understand the Linting Strategy](#step-1-understand-the-linting-strategy)
+  - [Step 2: Configure markdownlint](#step-2-configure-markdownlint)
+  - [Step 3: Run Markdown Linting](#step-3-run-markdown-linting)
+  - [Step 4: Fix Common Issues](#step-4-fix-common-issues)
+  - [Step 5: Use Auto-Fix Carefully](#step-5-use-auto-fix-carefully)
+  - [Step 6: Integrate into Workflow](#step-6-integrate-into-workflow)
+- [Examples](#examples)
+  - [Example 1: Linting Single File](#example-1-linting-single-file)
+  - [Example 2: Fixing Common Violations](#example-2-fixing-common-violations)
+  - [Example 3: VS Code Integration](#example-3-vs-code-integration)
+  - [Example 4: Pre-Commit Hook](#example-4-pre-commit-hook)
+  - [Example 5: GitHub Actions CI](#example-5-github-actions-ci)
+- [Verification](#verification)
+  - [Check 1: Linting Passes](#check-1-linting-passes)
+  - [Check 2: Visual Presentation Preserved](#check-2-visual-presentation-preserved)
+- [Troubleshooting](#troubleshooting)
+  - [Issue 1: Line Too Long (MD013)](#issue-1-line-too-long-md013)
+  - [Issue 2: Multiple Headings Same Content (MD024)](#issue-2-multiple-headings-same-content-md024)
+  - [Issue 3: Bare URL Without Brackets (MD034)](#issue-3-bare-url-without-brackets-md034)
+  - [Issue 4: Formatting Breaks Visual Presentation](#issue-4-formatting-breaks-visual-presentation)
+- [Best Practices](#best-practices)
+  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+- [Next Steps](#next-steps)
+- [References](#references)
+- [Document Information](#document-information)
 
 ---
 
 ## Overview
 
-### The Challenge
+This guide provides a phased approach to implementing markdown linting in Dashtam using markdownlint-cli2. The strategy prioritizes safety and gradual adoption, ensuring documentation quality improves without breaking existing formatting.
 
 **Current Situation:**
 
@@ -75,11 +59,97 @@
 - Preserve visual presentation integrity
 - Minimize manual intervention
 
----
+### What You'll Learn
 
-## Current State Analysis
+- How to run markdown linting using Makefile commands
+- Understanding and fixing common markdown violations
+- Configuration of markdownlint rules and ignore patterns
+- Safe auto-formatting practices for high-risk files
+- Integrating linting into development workflow and CI/CD
+- Visual verification workflow and rollback safety
+- Tool selection and comparison (markdownlint-cli2, remark, prettier)
+- Phased rollout strategy for team adoption
 
-### Documentation Inventory
+### When to Use This Guide
+
+Use this guide when:
+
+- Creating or editing markdown documentation
+- Setting up markdown linting for the first time
+- Troubleshooting markdown linting errors
+- Integrating linting into CI/CD pipeline
+- Reviewing pull requests with documentation changes
+- Establishing documentation quality standards
+- Training team members on markdown best practices
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- [ ] Docker Desktop installed and running
+- [ ] Dashtam development environment set up
+- [ ] Access to project Makefile commands
+- [ ] Understanding of markdown syntax
+- [ ] Familiarity with git workflow
+
+**Required Tools:**
+
+- Docker - For running markdownlint-cli2 in isolated container
+- Make - For executing linting commands
+- Git - For version control and PR reviews
+- Node.js 20+ (via Docker, no local install needed)
+
+**Required Knowledge:**
+
+- Basic markdown syntax and formatting
+- Command line operations
+- Git branching and pull requests
+- Visual diff review techniques
+- Understanding of risk classification for files
+
+## Step-by-Step Instructions
+
+### Step 1: Understand the Linting Strategy
+
+Dashtam follows a **"Lint First, Format Carefully"** strategy with phased rollout:
+
+**Phase-based approach:**
+
+```text
+Phase 1: Linting Only (Non-Destructive)
+   ↓
+Phase 2: Manual Fixes with Guidelines
+   ↓
+Phase 3: CI/CD Integration (Validation Only)
+   ↓
+Phase 4: Gradual Enforcement
+```
+
+**Core Principles:**
+
+1. **Lint Everything, Format Selectively** - Run linters on all files, but auto-format only low-risk files
+2. **Non-Destructive by Default** - Start with validation only, never auto-fix in CI/CD initially
+3. **Progressive Enhancement** - Begin with critical warnings, gradually enable more rules
+4. **Visual Testing Protocol** - Always verify rendering after formatting
+
+**Risk Classification:**
+
+**High-Risk Files** (manual fixes only):
+
+- API flow examples (`docs/api-flows/`) - cURL commands with specific formatting
+- WARP.md - Critical project rules
+- Session journals (`~/ai_dev_sessions/Dashtam/`) - Timestamped entries
+- Complex Mermaid diagrams - Syntax-sensitive
+- Tables with specific alignment
+
+**Low-Risk Files** (safe for auto-format):
+
+- README files
+- Simple guides without complex code
+- Text-heavy documentation
+- Research notes
+
+**Documentation Inventory:**
 
 ```bash
 # Total Markdown files: 67
@@ -94,144 +164,7 @@ docs/                    # Main documentation directory
 └── README.md           # Project documentation index
 ```
 
-### Risk Areas for Auto-Formatting
-
-**High-Risk Files** (require careful handling):
-
-1. **API flow examples** (`docs/api-flows/`) - cURL commands with specific formatting
-2. **Code examples** - Inline code blocks with specific line breaks
-3. **Tables** - Complex tables with alignment requirements
-4. **Mermaid diagrams** - Syntax-sensitive diagram code
-5. **WARP.md** - Project rules file with specific formatting
-6. **Session journals** - Timestamped entries with specific structure
-
-**Low-Risk Files** (safe for auto-formatting):
-
-- README files
-- Simple guides without complex code
-- Text-heavy documentation
-- Research notes
-
----
-
-## Recommended Approach
-
-### Strategy: "Lint First, Format Carefully"
-
-**Phase-based approach with progressive automation:**
-
-```text
-Phase 1: Linting Only (Non-Destructive)
-   ↓
-Phase 2: Manual Fixes with Guidelines  
-   ↓
-Phase 3: Selective Auto-Formatting (Low-Risk Files)
-   ↓
-Phase 4: CI/CD Integration (Validation Only)
-   ↓
-Phase 5: Gradual Expansion (As Confidence Grows)
-```
-
-### Core Principles
-
-1. ✅ **Lint Everything, Format Selectively**
-   - Run linters on all files to identify issues
-   - Auto-format only low-risk files
-   - Manual review for high-risk files
-
-2. ✅ **Non-Destructive by Default**
-   - Start with `--check` mode (validation only)
-   - Never auto-fix in CI/CD initially
-   - Require manual approval for formatting
-
-3. ✅ **Progressive Enhancement**
-   - Begin with critical warnings only
-   - Gradually enable more rules
-   - Build confidence over time
-
-4. ✅ **Visual Testing Protocol**
-   - Render preview before/after formatting
-   - Test in both GitHub markdown and MkDocs (when implemented)
-   - Manual verification for critical documentation
-
----
-
-## Tool Selection
-
-### Recommended Tools
-
-#### 1. **markdownlint-cli2** (Primary Linter)
-
-**Why Choose This?**
-
-- Fast, modern, and actively maintained
-- Highly configurable (enable/disable rules per file)
-- Supports `.markdownlint.jsonc` for comments in config
-- Compatible with VS Code extension
-- Can use `.markdownlintignore` for exceptions
-
-**No Installation Required:**
-
-Dashtam uses a one-off Node.js container approach (no project dependencies needed).
-
-**Usage via Makefile (Recommended):**
-
-```bash
-# Check all files (non-destructive)
-make lint-md
-
-# Check specific file
-make lint-md-file FILE="docs/README.md"
-
-# Check specific directory pattern
-make lint-md-file FILE="docs/development/**/*.md"
-
-# Auto-fix issues (with confirmation prompt)
-make lint-md-fix
-```
-
-**Direct Docker Usage:**
-
-```bash
-# Check all files
-docker run --rm -v $(PWD):/workspace:ro -w /workspace node:24-alpine \
-  npx markdownlint-cli2 "**/*.md" "#node_modules"
-
-# Check specific file
-docker run --rm -v $(PWD):/workspace:ro -w /workspace node:24-alpine \
-  npx markdownlint-cli2 "docs/README.md"
-```
-
-#### 2. **remark-cli with remark-lint** (Alternative/Supplementary)
-
-**Why Consider This?**
-
-- More sophisticated formatting capabilities
-- Pluggable architecture (fine-grained control)
-- Better for complex transformations
-- Can preserve intentional formatting
-
-**When to Use:**
-
-- As a second opinion for complex files
-- For advanced formatting needs
-- When markdownlint rules are too strict
-
-#### 3. **prettier** (Formatting Only)
-
-**Why Be Cautious?**
-
-- ⚠️ Opinionated formatting (may break presentation)
-- ⚠️ Limited Markdown-specific configuration
-- ⚠️ May reformat code blocks unexpectedly
-
-**Recommendation:** **NOT recommended** for Dashtam initially due to risk of breaking formatting in API flows and code examples.
-
----
-
-## Configuration
-
-### markdownlint Configuration
+### Step 2: Configure markdownlint
 
 Create `.markdownlint.jsonc` in project root:
 
@@ -283,8 +216,6 @@ Create `.markdownlint.jsonc` in project root:
 }
 ```
 
-### Ignore Patterns
-
 Create `.markdownlintignore`:
 
 ```gitignore
@@ -306,9 +237,9 @@ CHANGELOG.md
 vendor/
 ```
 
-### File-Specific Overrides
+**File-Specific Overrides:**
 
-For files that need special handling, use inline comments:
+Use inline comments for special handling:
 
 ```markdown
 <!-- markdownlint-disable MD013 -->
@@ -321,49 +252,285 @@ https://this-bare-url-is-ok.com
 <!-- Disables rule for entire file - place at top -->
 ```
 
----
+### Step 3: Run Markdown Linting
 
-## Workflow Integration
+Use Makefile commands to check markdown files:
 
-### Makefile Commands
+```bash
+# Check all markdown files (read-only, no changes)
+make lint-md
 
-The project Makefile already includes these commands (no changes needed):
+# Check specific file
+make lint-md-file FILE="docs/development/guides/my-guide.md"
 
-```makefile
-# Markdown linting commands (uses one-off Node.js container)
-MARKDOWN_LINT_IMAGE := node:24-alpine
-MARKDOWN_LINT_CMD := npx markdownlint-cli2
-
-lint-md:  ## Check all Markdown files for linting issues
-  @echo "🔍 Linting markdown files..."
-  @docker run --rm \
-    -v $(PWD):/workspace:ro \
-    -w /workspace \
-    $(MARKDOWN_LINT_IMAGE) \
-    $(MARKDOWN_LINT_CMD) "**/*.md" "#node_modules"
-
-lint-md-fix:  ## Fix auto-fixable Markdown issues (with confirmation)
-  @echo "⚠️  WARNING: This will modify markdown files!"
-  @read -p "Continue? (yes/no): " confirm; \
-  if [ "$$confirm" = "yes" ]; then \
-    docker run --rm \
-      -v $(PWD):/workspace \
-      -w /workspace \
-      $(MARKDOWN_LINT_IMAGE) \
-      $(MARKDOWN_LINT_CMD) --fix "**/*.md" "#node_modules"; \
-  fi
-
-lint-md-file:  ## Lint specific file(s) - Usage: make lint-md-file FILE="path/to/file.md"
-  @docker run --rm \
-    -v $(PWD):/workspace:ro \
-    -w /workspace \
-    $(MARKDOWN_LINT_IMAGE) \
-    $(MARKDOWN_LINT_CMD) "$(FILE)"
-
-md-check: lint-md  ## Alias for lint-md
+# Check directory pattern
+make lint-md-file FILE="docs/development/**/*.md"
 ```
 
-### Pre-Commit Hook (Optional)
+**What This Does:** Runs markdownlint-cli2 in a one-off Node.js Docker container, validating all markdown files against configured rules without making changes.
+
+**Direct Docker Usage** (alternative):
+
+```bash
+# Check all files
+docker run --rm -v $(PWD):/workspace:ro -w /workspace node:24-alpine \
+  npx markdownlint-cli2 "**/*.md" "#node_modules"
+
+# Check specific file
+docker run --rm -v $(PWD):/workspace:ro -w /workspace node:24-alpine \
+  npx markdownlint-cli2 "docs/README.md"
+```
+
+**Expected Output:**
+
+```text
+🔍 Linting markdown files...
+docs/README.md:45 MD022/blanks-around-headings Headings should be surrounded by blank lines
+docs/guide.md:120 MD032/blanks-around-lists Lists should be surrounded by blank lines
+```
+
+### Step 4: Fix Common Issues
+
+Address violations manually or selectively auto-fix low-risk files:
+
+**Manual Fix Example:**
+
+```markdown
+<!-- BEFORE (MD022 violation) -->
+Some text here.
+## Heading
+More text here.
+
+<!-- AFTER (fixed) -->
+Some text here.
+
+## Heading
+
+More text here.
+```
+
+**Common Fixes:**
+
+- **MD022** - Add blank lines before and after headings
+- **MD032** - Add blank lines before and after lists
+- **MD031** - Add blank lines before and after code blocks
+- **MD040** - Add language identifier to code blocks
+
+**Safe Formatting Guidelines:**
+
+**Always Safe:**
+
+- Fixing trailing whitespace
+- Consistent heading styles
+- Consistent list markers
+- Fixing line breaks at end of file
+
+**Requires Review:**
+
+- Table reformatting
+- List indentation changes
+- Code block language tags
+- Link reference reformatting
+
+**Never Auto-Fix:**
+
+- API flow documentation (`docs/api-flows/`)
+- WARP.md (critical project rules)
+- Session journals (`~/ai_dev_sessions/Dashtam/`)
+- Files with complex Mermaid diagrams
+
+### Step 5: Use Auto-Fix Carefully
+
+Only use auto-fix on verified low-risk files:
+
+```bash
+# Auto-fix with confirmation prompt
+make lint-md-fix
+
+# Prompt will ask:
+# ⚠️  WARNING: This will modify markdown files!
+# Continue? (yes/no):
+```
+
+**Important Notes:**
+
+- ⚠️ Always review changes with `git diff` before committing
+- ⚠️ Test rendering on GitHub after auto-fix
+- ⚠️ Never auto-fix API flows, WARP.md, or session journals
+- ⚠️ Keep rollback plan ready (`git checkout -- <file>`)
+
+**Visual Testing Protocol:**
+
+1. **Preview in GitHub:**
+
+   ```bash
+   # Create a test branch
+   git checkout -b test/markdown-formatting
+   
+   # Format a single file
+   make lint-md-fix
+   
+   # Commit and push
+   git add docs/path/to/file.md
+   git commit -m "test: markdown formatting"
+   git push origin test/markdown-formatting
+   
+   # View on GitHub to verify rendering
+   # Delete branch after verification
+   ```
+
+2. **Preview Locally with MkDocs** (when implemented):
+
+   ```bash
+   make docs-serve
+   # Navigate to affected pages
+   ```
+
+3. **Diff Review:**
+
+   ```bash
+   # Before formatting
+   git diff docs/path/to/file.md
+   
+   # Review EVERY change carefully
+   # Look for:
+   # - Broken links
+   # - Reformatted code blocks
+   # - Changed table alignment
+   # - Modified list indentation
+   ```
+
+**Rollback Plan:**
+
+If formatting breaks something:
+
+```bash
+# Revert specific file
+git checkout HEAD -- docs/path/to/file.md
+
+# Revert entire commit
+git revert <commit-hash>
+
+# Force push if already pushed (use carefully)
+git push --force-with-lease origin development
+```
+
+### Step 6: Integrate into Workflow
+
+Add linting to your development workflow:
+
+**Before Committing:**
+
+```bash
+# Lint documentation changes
+make lint-md
+
+# Fix violations manually or with auto-fix (carefully)
+make lint-md-fix
+
+# Verify changes
+git diff docs/
+
+# Commit
+git add docs/
+git commit -m "docs: fix markdown linting violations"
+```
+
+**In Pull Requests:**
+
+- Run `make lint-md` before submitting PR
+- Review markdown diff carefully
+- Test rendering for significant changes
+- Address CI/CD linting failures
+
+**Add to WARP.md Phase Completion Workflow:**
+
+```markdown
+# Lint markdown files (if documentation changes)
+make lint-md
+
+# Visual check (for documentation PRs)
+# Preview on GitHub to verify rendering
+```
+
+## Examples
+
+### Example 1: Linting Single File
+
+Check a specific markdown file for violations:
+
+```bash
+make lint-md-file FILE="docs/development/guides/testing-guide.md"
+```
+
+**Result:**
+
+```text
+docs/development/guides/testing-guide.md:15 MD022/blanks-around-headings
+docs/development/guides/testing-guide.md:45 MD032/blanks-around-lists
+docs/development/guides/testing-guide.md:120 MD040/fenced-code-language
+```
+
+### Example 2: Fixing Common Violations
+
+Fix violations found in linting:
+
+**MD040 - Missing Code Language:**
+
+<!-- BEFORE -->
+
+```text
+echo "Hello"
+```
+
+<!-- AFTER -->
+
+```bash
+echo "Hello"
+```
+
+**MD032 - Lists Without Blank Lines:**
+
+```markdown
+<!-- BEFORE -->
+Paragraph before list.
+- Item 1
+- Item 2
+Paragraph after list.
+
+<!-- AFTER -->
+Paragraph before list.
+
+- Item 1
+- Item 2
+
+Paragraph after list.
+```
+
+### Example 3: VS Code Integration
+
+Configure VS Code for real-time markdown linting:
+
+Create `.vscode/settings.json`:
+
+```json
+{
+  "markdownlint.config": {
+    "extends": ".markdownlint.jsonc"
+  },
+  "markdownlint.run": "onType",
+  "[markdown]": {
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.markdownlint": false
+    }
+  }
+}
+```
+
+Install extension: `DavidAnson.vscode-markdownlint`
+
+### Example 4: Pre-Commit Hook
 
 Create `.git/hooks/pre-commit`:
 
@@ -402,180 +569,7 @@ Make executable:
 chmod +x .git/hooks/pre-commit
 ```
 
-### VS Code Integration
-
-Add to `.vscode/settings.json`:
-
-```json
-{
-  "markdownlint.config": {
-    "extends": ".markdownlint.jsonc"
-  },
-  "markdownlint.run": "onType",
-  "[markdown]": {
-    "editor.formatOnSave": false,  // Don't auto-format markdown
-    "editor.codeActionsOnSave": {
-      "source.fixAll.markdownlint": false  // Don't auto-fix on save
-    }
-  }
-}
-```
-
-**Recommended VS Code Extension:** `DavidAnson.vscode-markdownlint`
-
----
-
-## Risk Mitigation
-
-### Visual Testing Protocol
-
-**Before committing formatted Markdown:**
-
-1. **Preview in GitHub:**
-
-   ```bash
-   # Create a test branch
-   git checkout -b test/markdown-formatting
-   
-   # Format a single file
-   make lint-md-fix  # Or lint specific file with make lint-md-file FILE="..."
-   
-   # Commit and push
-   git add docs/path/to/file.md
-   git commit -m "test: markdown formatting"
-   git push origin test/markdown-formatting
-   
-   # View on GitHub to verify rendering
-   # Delete branch after verification
-   ```
-
-2. **Preview Locally with MkDocs** (when implemented):
-
-   ```bash
-   make docs-serve
-   # Navigate to affected pages
-   ```
-
-3. **Diff Review:**
-
-   ```bash
-   # Before formatting
-   git diff docs/path/to/file.md
-   
-   # Review EVERY change carefully
-   # Look for:
-   # - Broken links
-   # - Reformatted code blocks
-   # - Changed table alignment
-   # - Modified list indentation
-   ```
-
-### Safe Formatting Guidelines
-
-**Always Safe:**
-
-- Fixing trailing whitespace
-- Consistent heading styles
-- Consistent list markers
-- Fixing line breaks at end of file
-
-**Requires Review:**
-
-- Table reformatting
-- List indentation changes
-- Code block language tags
-- Link reference reformatting
-
-**Never Auto-Fix:**
-
-- API flow documentation (`docs/api-flows/`)
-- WARP.md (critical project rules)
-- Session journals (`~/ai_dev_sessions/Dashtam/`)
-- Files with complex Mermaid diagrams
-
-### Rollback Plan
-
-If formatting breaks something:
-
-```bash
-# Revert specific file
-git checkout HEAD -- docs/path/to/file.md
-
-# Revert entire commit
-git revert <commit-hash>
-
-# Force push if already pushed (use carefully)
-git push --force-with-lease origin development
-```
-
----
-
-## Phased Rollout
-
-### Phase 1: Linting Only ✅ Recommended Start
-
-**Goal:** Identify issues without making changes
-
-**Actions:**
-
-1. ✅ Add markdownlint-cli2 to dev dependencies
-2. ✅ Create `.markdownlint.jsonc` configuration
-3. ✅ Create `.markdownlintignore`
-4. ✅ Add `make lint-md` command
-5. ✅ Run `make lint-md` to see current state
-6. ✅ Document common issues and patterns
-
-**Success Criteria:**
-
-- Linting runs without errors on command
-- Team understands common warnings
-- No files modified yet
-
----
-
-### Phase 2: Manual Fixes
-
-**Goal:** Fix critical issues manually with careful review
-
-**Actions:**
-
-1. ✅ Fix critical warnings in high-value files:
-   - README.md (root)
-   - docs/README.md
-   - Key architecture documents
-2. ✅ Use `--fix` only on low-risk files
-3. ✅ Manual review of every change
-4. ✅ Test rendering on GitHub after each fix
-5. ✅ Document any issues encountered
-
-**Priority Order:**
-
-1. Root README.md
-2. docs/README.md
-3. Architecture documents
-4. Implementation guides (excluding API flows)
-5. Testing documentation
-
-**Success Criteria:**
-
-- Critical documentation has no warnings
-- No visual presentation issues
-- Team comfortable with linting workflow
-
----
-
-### Phase 3: CI/CD Integration
-
-**Goal:** Automated validation in pull requests
-
-**Actions:**
-
-1. ✅ Add markdownlint check to GitHub Actions
-2. ✅ Run in "check only" mode (no auto-fix)
-3. ✅ Make it non-blocking initially (warning only)
-4. ✅ Collect feedback from team
-
-**GitHub Actions Workflow:**
+### Example 5: GitHub Actions CI
 
 Create `.github/workflows/markdown-lint.yml`:
 
@@ -618,53 +612,181 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '⚠️ Markdown linting found some issues. Please review and
-                     fix before merging.'
+              body: '⚠️ Markdown linting found some issues. Please review and fix before merging.'
             })
 ```
 
-**Success Criteria:**
+## Verification
 
-- CI runs successfully
-- Warnings visible in PR checks
-- No blocking of legitimate PRs
+How to verify markdown linting is working correctly:
 
----
+### Check 1: Linting Passes
 
-### Phase 4: Gradual Enforcement
+```bash
+# All files should pass linting
+make lint-md
+# Expected: Exit code 0 (no errors)
 
-**Goal:** Make linting required for new/modified files
-
-**Actions:**
-
-1. ✅ Change CI workflow to blocking (required check)
-2. ✅ Update CONTRIBUTING.md with markdown guidelines
-3. ✅ Add linting to PR template checklist
-4. ✅ Gradually fix remaining warnings
-
-**PR Template Addition:**
-
-```markdown
-## Markdown Quality
-
-- [ ] Markdown files pass linting (`make lint-md`)
-- [ ] Visual presentation verified (preview on GitHub)
-- [ ] No broken links or formatting issues
+# Specific file should pass
+make lint-md-file FILE="docs/README.md"
+# Expected: No violations reported
 ```
 
-**Success Criteria:**
+### Check 2: Visual Presentation Preserved
 
-- New PRs consistently pass markdown linting
-- Documentation quality improves
-- Team comfortable with workflow
+After fixing violations or auto-formatting:
 
----
+1. **Git diff review:**
 
-## Maintenance
+   ```bash
+   git diff docs/path/to/file.md
+   # Verify no unexpected changes to content
+   ```
 
-### Regular Tasks
+2. **GitHub preview:**
 
-**Regularly:**
+   - Push to test branch
+   - View on GitHub to verify rendering
+   - Check tables, code blocks, lists render correctly
+
+3. **Local preview** (if MkDocs implemented):
+
+   ```bash
+   make docs-serve
+   # Navigate to affected pages
+   ```
+
+## Troubleshooting
+
+### Issue 1: Line Too Long (MD013)
+
+**Symptoms:**
+
+- Warning: Line exceeds maximum length
+
+**Cause:** Line length rule enabled (disabled in Dashtam by default)
+
+**Solution:**
+
+```markdown
+<!-- Solution 1: Disable for specific line -->
+<!-- markdownlint-disable-next-line MD013 -->
+This is a very long line that needs to stay on one line.
+
+<!-- Solution 2: Break long URLs -->
+[link text][ref]
+
+[ref]: https://very-long-url.com/path/to/resource
+```
+
+### Issue 2: Multiple Headings Same Content (MD024)
+
+**Symptoms:**
+
+- Warning: Multiple headings with the same content
+
+**Cause:** Duplicate heading text at same level
+
+**Solution:**
+
+```markdown
+<!-- BAD -->
+## Authentication
+## Authentication
+
+<!-- GOOD -->
+## Authentication Flow
+## Authentication API
+```
+
+### Issue 3: Bare URL Without Brackets (MD034)
+
+**Symptoms:**
+
+- Warning: Bare URL without angle brackets
+
+**Cause:** URL not wrapped in brackets or link syntax
+
+**Solution:**
+
+```markdown
+<!-- BAD -->
+https://example.com
+
+<!-- GOOD Option 1 -->
+<https://example.com>
+
+<!-- GOOD Option 2 -->
+[https://example.com](https://example.com)
+```
+
+### Issue 4: Formatting Breaks Visual Presentation
+
+**Symptoms:**
+
+- Tables misaligned after formatting
+- Code blocks reformatted incorrectly
+- List indentation changed
+
+**Cause:** Auto-fix applied to high-risk file
+
+**Solution:**
+
+```bash
+# Rollback changes
+git checkout HEAD -- docs/path/to/file.md
+
+# Fix manually instead of auto-fix
+# Edit file directly, then verify with lint
+make lint-md-file FILE="docs/path/to/file.md"
+```
+
+## Best Practices
+
+Follow these best practices for markdown quality:
+
+- ✅ **Run linting before commit** - Always check with `make lint-md`
+- ✅ **Fix violations manually for high-risk files** - API flows, WARP.md, diagrams
+- ✅ **Use auto-fix only for low-risk files** - READMEs, simple guides
+- ✅ **Review diffs carefully** - Check every change before committing
+- ✅ **Test rendering after changes** - Preview on GitHub
+- ✅ **Commit configuration changes** - Include `.markdownlint.jsonc` updates
+- ✅ **Use inline comments for exceptions** - Document why rules are disabled
+- ✅ **Keep configuration documented** - Explain rule choices in config
+- ✅ **Follow phased rollout** - Start lint-only, gradually add enforcement
+- ✅ **Maintain team documentation** - Keep markdown standards current
+
+**Phased Rollout Strategy:**
+
+Phase 1: Linting Only (Recommended Start)
+
+- Add markdownlint-cli2, create `.markdownlint.jsonc` and `.markdownlintignore`
+- Add `make lint-md` commands
+- Run `make lint-md` to assess current state
+- Document common issues and patterns
+
+Phase 2: Manual Fixes
+
+- Fix critical warnings in high-value files (README.md, key architecture docs)
+- Use `--fix` only on low-risk files
+- Manual review of every change
+- Test rendering on GitHub after each fix
+
+Phase 3: CI/CD Integration
+
+- Add markdownlint check to GitHub Actions
+- Run in "check only" mode (no auto-fix)
+- Make it non-blocking initially (warning only)
+- Collect feedback from team
+
+Phase 4: Gradual Enforcement
+
+- Change CI workflow to blocking (required check)
+- Update CONTRIBUTING.md with markdown guidelines
+- Add linting to PR template checklist
+- Gradually fix remaining warnings
+
+**Regular Maintenance Tasks:**
 
 - Review any new markdownlint warnings
 - Update `.markdownlintignore` if needed
@@ -673,107 +795,70 @@ jobs:
 - Evaluate if any disabled rules can be enabled
 - Check for new best practices
 
-**Per PR:**
+**Per PR Tasks:**
 
 - Run `make lint-md` before submitting
 - Review markdown diff carefully
 - Test rendering for significant changes
 
-### Common Issues and Solutions
+### Common Mistakes to Avoid
 
-**Issue:** Line too long (MD013)
+- ❌ **Auto-fixing everything** - High risk of breaking formatting
+- ❌ **Ignoring linting failures** - Address violations promptly
+- ❌ **Using Prettier for markdown** - Too opinionated, breaks formatting in Dashtam
+- ❌ **Editing configuration manually without testing** - Always verify with `make lint-md`
+- ❌ **Committing without review** - Always diff and verify changes
+- ❌ **Skipping visual testing** - Preview changes on GitHub before merging
+- ❌ **Making CI blocking immediately** - Team needs time to adapt
+- ❌ **Using deprecated tools** - Stick with markdownlint-cli2
 
-```markdown
-<!-- Solution 1: Disable rule for that line -->
-<!-- markdownlint-disable-next-line MD013 -->
-This is a very long line that needs to stay on one line for formatting reasons.
+**Tool Comparison:**
 
-<!-- Solution 2: Break long URLs -->
-[link text][ref]
+**markdownlint-cli2 (Recommended):**
 
-[ref]: https://very-long-url.com/path/to/resource
-```
+- Fast, modern, actively maintained
+- Highly configurable (`.markdownlint.jsonc`)
+- Works in Docker one-off container
+- No project dependencies needed
 
-**Issue:** Multiple headings with same content (MD024)
+**remark-cli with remark-lint (Alternative):**
 
-```markdown
-<!-- Solution: Make headings more specific -->
-## Authentication (Bad)
-## Authentication Flow (Good)
-## Authentication API (Good)
-```
+- More sophisticated formatting
+- Pluggable architecture
+- Use for complex transformations
+- When markdownlint rules too strict
 
-**Issue:** Bare URL without angle brackets (MD034)
+**prettier (NOT Recommended):**
 
-```markdown
-<!-- Bad -->
-https://example.com
+- ⚠️ Opinionated formatting (may break presentation)
+- ⚠️ Limited Markdown-specific configuration
+- ⚠️ May reformat code blocks unexpectedly
 
-<!-- Good -->
-<https://example.com>
+## Next Steps
 
-<!-- Or -->
-[https://example.com](https://example.com)
-```
+After mastering markdown linting, consider:
 
----
+- [ ] Set up pre-commit hooks for automatic linting
+- [ ] Integrate linting into CI/CD pipeline (Phase 3)
+- [ ] Enable additional markdownlint rules gradually
+- [ ] Document project-specific markdown conventions
+- [ ] Train team on markdown linting workflow
+- [ ] Review and update `.markdownlint.jsonc` configuration periodically
+- [ ] Explore MkDocs for local preview capabilities
+- [ ] Consider badge in README showing lint status
+- [ ] Add markdown quality metrics to team dashboard
+- [ ] Schedule periodic documentation quality audits
 
-## Recommendations Summary
-
-### ✅ **Recommended Immediate Actions**
-
-1. **Start with Phase 1** (Linting Only)
-   - Zero risk, high visibility into issues
-   - Add markdownlint-cli2 as dev dependency
-   - Create configuration files
-   - Run `make lint-md` to assess current state
-
-2. **Document Findings**
-   - Create list of common warnings
-   - Identify high-risk files (don't auto-format)
-   - Prioritize which warnings to fix first
-
-3. **Manual Fixes First**
-   - Fix critical documentation manually
-   - Build confidence and understanding
-   - Learn which rules are most valuable
-
-4. **CI/CD Integration Later**
-   - Only after team is comfortable
-   - Start with non-blocking warnings
-   - Gradually make it required
-
-### ❌ **NOT Recommended**
-
-1. **Don't use Prettier for Markdown** (initially)
-   - Too opinionated
-   - Risk of breaking formatting
-   - Limited configuration options
-
-2. **Don't auto-fix everything**
-   - High risk of visual presentation issues
-   - Manual review is essential
-   - Start with low-risk files only
-
-3. **Don't make it blocking immediately**
-   - Team needs time to adapt
-   - May block legitimate PRs
-   - Start with warnings only
-
-### 🎯 **Success Metrics**
+**Success Metrics:**
 
 - **Quality:** Consistent markdown formatting across all docs
 - **Velocity:** No significant slowdown in PR review process
 - **Safety:** Zero visual presentation issues from formatting
 - **Adoption:** Team comfortable running `make lint-md` before commits
 
----
+**Integration with WARP.md:**
 
-## Integration with Existing Workflow
-
-### Add to WARP.md
-
-Under "## Coding Standards" section, add:
+Add to "Coding Standards" section:
 
 ```markdown
 ### Markdown Documentation Standards
@@ -785,52 +870,15 @@ Under "## Coding Standards" section, add:
 - **See:** [Markdown Linting Guide](docs/development/guides/markdown-linting-guide.md)
 ```
 
-### Add to Phase Completion Workflow
+## References
 
-Under "Before Committing" section in WARP.md:
-
-```markdown
-# Lint markdown files (if documentation changes)
-make lint-md
-
-# Visual check (for documentation PRs)
-# Preview on GitHub to verify rendering
-```
-
----
-
-## Conclusion
-
-**Recommended Approach:** **Progressive, Safety-First Implementation**
-
-1. ✅ **Start:** Linting only (validation, no changes)
-2. ✅ **Then:** Manual fixes with careful review
-3. ✅ **Later:** Selective auto-formatting on low-risk files
-4. ✅ **Finally:** CI/CD integration as confidence grows
-
-**Key Principle:** **"Trust but Verify"**
-
-- Lint everything to catch issues
-- Fix carefully with manual review
-- Test visual presentation always
-- Automate only when safe
-
-**Rollout:**
-
-Progressive implementation through phases, with benefits visible from Phase 1 onward.
-
----
-
-**Last Updated:** 2025-10-12  
-**Document Owner:** Development Team  
-**Status:** Ready for Phase 1 Implementation  
-**Next Review:** After Phase 1 completion
-
-## See Also
-
+- [markdownlint-cli2 Documentation](https://github.com/DavidAnson/markdownlint-cli2) - Official tool documentation
+- [markdownlint Rules](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) - Complete rule reference
+- [Mermaid Diagram Standards](mermaid-diagram-standards.md) - Diagram creation guidelines
+- [Documentation Template System](../../templates/README.md) - Template usage guide
+- [WARP.md](../../../WARP.md) - Project coding standards and markdown quality rules
 - [Docstring Standards Guide](docstring-standards.md) - Python documentation standards
 - [Documentation Implementation Guide](documentation-implementation-guide.md) - MkDocs setup
-- WARP.md - Project coding standards
 
 ---
 
@@ -838,4 +886,4 @@ Progressive implementation through phases, with benefits visible from Phase 1 on
 
 **Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-11
-**Last Updated:** 2025-10-15
+**Last Updated:** 2025-10-20

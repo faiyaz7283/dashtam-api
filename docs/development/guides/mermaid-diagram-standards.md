@@ -1,45 +1,46 @@
-# Mermaid Diagram Guidelines
+# Mermaid Diagram Standards
 
-**CRITICAL RULE**: All diagrams in Dashtam documentation MUST use Mermaid syntax. This ensures consistency, version control compatibility, and seamless MkDocs integration.
+Complete guide to creating consistent, version-controlled diagrams in Dashtam documentation using Mermaid syntax for all visual content.
 
 ---
 
 ## Table of Contents
 
-- [Why Mermaid?](#why-mermaid)
-- [Required Diagram Types](#required-diagram-types)
-  - [1. Directional Flows → Use Flowchart](#1-directional-flows--use-flowchart)
-  - [2. Relationships & Tables → Use ER Diagram](#2-relationships--tables--use-er-diagram)
-  - [3. Sequence Diagrams → Use Sequence](#3-sequence-diagrams--use-sequence)
-  - [4. State Diagrams → Use State Diagram](#4-state-diagrams--use-state-diagram)
-  - [5. Gantt Charts → Use Gantt](#5-gantt-charts--use-gantt)
-  - [6. Class Diagrams → Use Class Diagram](#6-class-diagrams--use-class-diagram)
-- [Best Practices](#best-practices)
-  - [General Guidelines](#general-guidelines)
-  - [Styling Guidelines](#styling-guidelines)
-  - [Responsive Design](#responsive-design)
-- [Common Patterns](#common-patterns)
-  - [Pattern 1: Authentication Flow](#pattern-1-authentication-flow)
-  - [Pattern 2: Decision Flow](#pattern-2-decision-flow)
-- [Syntax Reference](#syntax-reference)
-  - [Node Shapes](#node-shapes)
-  - [Arrow Types](#arrow-types)
-  - [Relationship Cardinality (ER Diagrams)](#relationship-cardinality-er-diagrams)
+- [Overview](#overview)
+  - [What You'll Learn](#what-youll-learn)
+  - [When to Use This Guide](#when-to-use-this-guide)
+- [Prerequisites](#prerequisites)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+  - [Step 1: Choose the Right Diagram Type](#step-1-choose-the-right-diagram-type)
+  - [Step 2: Write Mermaid Syntax](#step-2-write-mermaid-syntax)
+  - [Step 3: Validate Your Diagram](#step-3-validate-your-diagram)
+  - [Step 4: Add to Documentation](#step-4-add-to-documentation)
+  - [Step 5: Apply Styling (Optional)](#step-5-apply-styling-optional)
+- [Examples](#examples)
+  - [Example 1: Simple Authentication Flow](#example-1-simple-authentication-flow)
+  - [Example 2: Database Schema](#example-2-database-schema)
+  - [Example 3: Decision Flow](#example-3-decision-flow)
+  - [Example 4: OAuth Sequence](#example-4-oauth-sequence)
+- [Verification](#verification)
+  - [Check 1: Syntax Validation](#check-1-syntax-validation)
+  - [Check 2: Rendering Verification](#check-2-rendering-verification)
 - [Troubleshooting](#troubleshooting)
   - [Issue 1: Diagram Not Rendering](#issue-1-diagram-not-rendering)
   - [Issue 2: Diagram Too Wide](#issue-2-diagram-too-wide)
   - [Issue 3: Special Characters Breaking Diagram](#issue-3-special-characters-breaking-diagram)
-- [MkDocs Integration](#mkdocs-integration)
-- [Examples from Dashtam](#examples-from-dashtam)
-  - [Example 1: OAuth Flow (from architecture docs)](#example-1-oauth-flow-from-architecture-docs)
-  - [Example 2: Database Schema](#example-2-database-schema)
-- [Quick Reference](#quick-reference)
+- [Best Practices](#best-practices)
+  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+- [Next Steps](#next-steps)
+- [References](#references)
+- [Document Information](#document-information)
 
 ---
 
-## Why Mermaid?
+## Overview
 
-**Advantages:**
+**CRITICAL RULE**: All diagrams in Dashtam documentation MUST use Mermaid syntax. This ensures consistency, version control compatibility, and seamless MkDocs integration.
+
+**Why Mermaid?**
 
 - ✅ **Text-based** - Works with Git, easy to review in PRs
 - ✅ **Version controlled** - Track changes over time
@@ -54,65 +55,212 @@
 - ❌ **External diagram tools** (draw.io, Lucidchart exports) - Creates maintenance burden
 - ❌ **ASCII art** - Limited and hard to maintain
 
----
+### What You'll Learn
 
-## Required Diagram Types
+- How to choose the correct Mermaid diagram type for your needs
+- Syntax for flowcharts, sequence diagrams, ER diagrams, and more
+- Styling and color coding conventions
+- Validation and troubleshooting techniques
+- MkDocs integration for automatic rendering
+- Common patterns used in Dashtam documentation
 
-### 1. Directional Flows → Use Flowchart
+### When to Use This Guide
 
-**When to use:**
+Use this guide when:
 
-- Process flows
-- Data flow diagrams
-- Decision trees
+- Creating visual documentation for architecture, processes, or data models
+- Need to show workflows, sequences, or state transitions
+- Documenting database schemas or entity relationships
+- Replacing existing image-based diagrams with text-based versions
+- Reviewing pull requests with diagram changes
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- [ ] Basic understanding of markdown syntax
+- [ ] Familiarity with the concept you're diagramming
+- [ ] Access to Mermaid Live Editor (for validation)
+- [ ] Text editor with markdown preview (optional but helpful)
+
+**Required Tools:**
+
+- Mermaid Live Editor - For syntax validation and preview
+- Text editor - Any markdown-capable editor
+
+**Required Knowledge:**
+
+- Basic markdown formatting
+- Understanding of diagram types (flowchart, sequence, etc.)
+- The process or structure you want to visualize
+
+## Step-by-Step Instructions
+
+### Step 1: Choose the Right Diagram Type
+
+Select the appropriate Mermaid diagram type based on what you need to visualize:
+
+**Flowchart (`flowchart TD`)** - For process flows, decision trees, data flows
+
+Use when showing:
+
+- Step-by-step processes
+- Decision points and branches
 - State machines
+- Data flow diagrams
 
-**Syntax:**
+**Sequence Diagram (`sequenceDiagram`)** - For interactions over time
 
-```mermaid
-flowchart TD
-    A[Start] --> B{Is authenticated?}
-    B -->|Yes| C[Access granted]
-    B -->|No| D[Redirect to login]
-    D --> E[User logs in]
-    E --> F{Valid credentials?}
-    F -->|Yes| C
-    F -->|No| G[Show error]
-    G --> D
-```
+Use when showing:
 
-**Shapes Available:**
+- API request/response flows
+- Authentication sequences
+- Service-to-service communication
+- Time-based processes
 
-- `A[Rectangle]` - Process step
-- `B{Diamond}` - Decision point
-- `C([Rounded])` - Start/End
-- `D[(Database)]` - Database
-- `E((Circle))` - Connection point
+**ER Diagram (`erDiagram`)** - For database structures
 
-**Directions:**
-
-- `TD` or `TB` - Top to bottom (recommended for most flows)
-- `LR` - Left to right (good for wide diagrams)
-- `RL` - Right to left
-- `BT` - Bottom to top
-
-### 2. Relationships & Tables → Use ER Diagram
-
-**When to use:**
+Use when showing:
 
 - Database schema
 - Entity relationships
 - Data models
 - Table structures
 
-**Syntax:**
+**State Diagram (`stateDiagram-v2`)** - For state transitions
+
+Use when showing:
+
+- Object lifecycle
+- Status transitions
+- Workflow states
+
+**Class Diagram (`classDiagram`)** - For OOP structures
+
+Use when showing:
+
+- Class hierarchies
+- Service architecture
+- Object relationships
+
+**Gantt Chart (`gantt`)** - For timelines
+
+Use when showing:
+
+- Project timelines
+- Implementation phases
+- Note: Avoid rigid day-based schedules per WARP.md
+
+### Step 2: Write Mermaid Syntax
+
+Create your diagram using Mermaid syntax in a code block:
+
+**Basic Structure:**
+
+````markdown
+```mermaid
+<diagram-type>
+    <diagram content>
+```
+````
+
+**Common Node Shapes:**
+
+- `A[Rectangle]` - Standard process step
+- `B{Diamond}` - Decision point
+- `C([Rounded])` - Start/End point
+- `D[(Database)]` - Database
+- `E((Circle))` - Connection point
+
+**Common Arrow Types:**
+
+- `-->` - Solid arrow (flow direction)
+- `-.->` - Dashed arrow (async/optional)
+- `==>` - Thick arrow (primary path)
+- `..>` - Dotted arrow (dependency)
+
+**Layout Directions:**
+
+- `TD` or `TB` - Top to bottom (recommended)
+- `LR` - Left to right
+- `RL` - Right to left
+- `BT` - Bottom to top
+
+### Step 3: Validate Your Diagram
+
+Before adding to documentation, validate syntax:
+
+1. Copy your Mermaid code
+2. Open [Mermaid Live Editor](https://mermaid.live/)
+3. Paste code into editor
+4. Check for rendering errors
+5. Adjust syntax as needed
+
+**What This Does:** Catches syntax errors before they break documentation rendering.
+
+### Step 4: Add to Documentation
+
+Insert the validated diagram into your markdown file:
+
+````markdown
+```mermaid
+flowchart TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Success]
+    B -->|No| D[Error]
+```
+````
+
+**Important:** Always use the ````mermaid` language identifier in code blocks.
+
+### Step 5: Apply Styling (Optional)
+
+Add custom colors for better visual communication:
+
+```mermaid
+flowchart TD
+    A[Process] --> B{Decision}
+    B -->|Yes| C[Success]
+    B -->|No| D[Error]
+    
+    style C fill:#90EE90
+    style D fill:#FFB6C1
+    style B fill:#FFD700
+```
+
+**Color Coding Standards:**
+
+- Green (`#90EE90`) - Success paths
+- Red/Pink (`#FFB6C1`) - Error paths
+- Yellow (`#FFD700`) - Decision points
+- Blue (`#87CEEB`) - External services
+
+## Examples
+
+### Example 1: Simple Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API
+    participant D as Database
+    
+    C->>A: POST /auth/login
+    A->>D: Validate credentials
+    D-->>A: User found
+    A->>A: Generate JWT
+    A-->>C: 200 OK + tokens
+```
+
+**Use case:** Documenting API authentication sequences
+
+### Example 2: Database Schema
 
 ```mermaid
 erDiagram
     USER ||--o{ TOKEN : has
     USER ||--o{ PROVIDER_CONNECTION : owns
     PROVIDER_CONNECTION ||--|| PROVIDER : references
-    TOKEN ||--|| USER : belongs_to
     
     USER {
         uuid id PK
@@ -129,15 +277,9 @@ erDiagram
         string token_type
         timestamp expires_at
     }
-    
-    PROVIDER_CONNECTION {
-        uuid id PK
-        uuid user_id FK
-        uuid provider_id FK
-        string encrypted_tokens
-        timestamp connected_at
-    }
 ```
+
+**Use case:** Documenting database relationships and structure
 
 **Relationship Types:**
 
@@ -146,197 +288,7 @@ erDiagram
 - `}o--o{` - Many to many
 - `||--o|` - One to zero or one
 
-### 3. Sequence Diagrams → Use Sequence
-
-**When to use:**
-
-- API request/response flows
-- Authentication sequences
-- Service interactions
-- Time-based processes
-
-**Syntax:**
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant A as API
-    participant D as Database
-    participant E as EmailService
-    
-    U->>A: POST /auth/register
-    A->>D: Check if email exists
-    D-->>A: Email available
-    A->>D: Create user
-    D-->>A: User created
-    A->>E: Send verification email
-    E-->>A: Email queued
-    A-->>U: 201 Created + token
-    
-    Note over U,E: User receives email
-    U->>A: GET /auth/verify?token=xxx
-    A->>D: Validate token
-    D-->>A: Token valid
-    A->>D: Mark user verified
-    D-->>A: Updated
-    A-->>U: 200 OK
-```
-
-### 4. State Diagrams → Use State Diagram
-
-**When to use:**
-
-- Object lifecycle
-- Status transitions
-- Workflow states
-
-**Syntax:**
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft --> Active: Approve
-    Draft --> Archived: Reject
-    Active --> Archived: Deprecate
-    Active --> Superseded: Replace
-    Superseded --> Archived: Archive old
-    Archived --> [*]
-    
-    note right of Active
-        Primary state for
-        current documentation
-    end note
-```
-
-### 5. Gantt Charts → Use Gantt
-
-**When to use:**
-
-- Project timelines
-- Implementation phases
-- Sprint planning (avoid rigid day-based schedules per WARP.md)
-
-**Syntax:**
-
-```mermaid
-gantt
-    title Implementation Phases
-    dateFormat YYYY-MM-DD
-    
-    section Phase 1
-    Setup environment    :done, p1, 2025-10-01, 2d
-    Configure CI/CD      :done, p2, after p1, 3d
-    
-    section Phase 2
-    Core services        :active, p3, 2025-10-06, 5d
-    API endpoints        :p4, after p3, 4d
-    
-    section Phase 3
-    Testing              :p5, after p4, 3d
-    Documentation        :p6, after p5, 2d
-```
-
-### 6. Class Diagrams → Use Class Diagram
-
-**When to use:**
-
-- OOP structure
-- Class relationships
-- Service architecture
-
-**Syntax:**
-
-```mermaid
-classDiagram
-    class User {
-        +uuid id
-        +string email
-        +string password_hash
-        +boolean is_verified
-        +create()
-        +verify_email()
-        +reset_password()
-    }
-    
-    class Token {
-        +uuid id
-        +uuid user_id
-        +string token_hash
-        +datetime expires_at
-        +validate()
-        +revoke()
-    }
-    
-    class AuthService {
-        +register(email, password)
-        +login(email, password)
-        +refresh_token(refresh_token)
-        +logout(user_id)
-    }
-    
-    User "1" --> "0..*" Token : has
-    AuthService ..> User : uses
-    AuthService ..> Token : manages
-```
-
----
-
-## Best Practices
-
-### General Guidelines
-
-1. **Always specify diagram type** - Start with diagram type declaration
-2. **Use descriptive labels** - Clear, concise text
-3. **Keep it simple** - Don't overcomplicate diagrams
-4. **Consistent naming** - Use same naming convention across diagrams
-5. **Add notes** - Explain complex parts
-
-### Styling Guidelines
-
-```mermaid
-flowchart TD
-    A[Normal Process] --> B{Decision Point}
-    B -->|Yes| C[Success Path]
-    B -->|No| D[Error Path]
-    
-    style C fill:#90EE90
-    style D fill:#FFB6C1
-    style B fill:#FFD700
-```
-
-**Color Coding:**
-
-- Green (`#90EE90`) - Success paths
-- Red/Pink (`#FFB6C1`) - Error paths
-- Yellow (`#FFD700`) - Decision points
-- Blue (`#87CEEB`) - External services
-
-### Responsive Design
-
-- **Keep width reasonable** - Aim for diagrams that fit in 800-1200px width
-- **Use vertical layouts** - Top-to-bottom flows work better on mobile
-- **Break complex diagrams** - Split into multiple smaller diagrams
-
----
-
-## Common Patterns
-
-### Pattern 1: Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant A as API
-    participant D as Database
-    
-    C->>A: POST /auth/login
-    A->>D: Validate credentials
-    D-->>A: User found
-    A->>A: Generate JWT
-    A-->>C: 200 OK + tokens
-```
-
-### Pattern 2: Decision Flow
+### Example 3: Decision Flow
 
 ```mermaid
 flowchart TD
@@ -347,101 +299,11 @@ flowchart TD
     Login --> End
 ```
 
----
+**Use case:** Showing conditional logic and branching
 
-## Syntax Reference
+### Example 4: OAuth Sequence
 
-### Node Shapes
-
-| Shape | Syntax | Use Case |
-|-------|--------|----------|
-| Rectangle | `A[Text]` | Standard process |
-| Rounded | `A(Text)` | Start/End points |
-| Circle | `A((Text))` | Connection points |
-| Diamond | `A{Text}` | Decision points |
-| Hexagon | `A{{Text}}` | Preparation steps |
-| Parallelogram | `A[/Text/]` | Input/Output |
-| Cylinder | `A[(Text)]` | Database |
-
-### Arrow Types
-
-| Arrow | Syntax | Meaning |
-|-------|--------|---------|
-| Solid | `-->` | Flow direction |
-| Dashed | `-.->` | Async/Optional |
-| Thick | `==>` | Primary path |
-| Dotted | `..>` | Dependency |
-
-### Relationship Cardinality (ER Diagrams)
-
-| Symbol | Meaning |
-|--------|---------|
-| `\|\|` | Exactly one |
-| `o\|` | Zero or one |
-| `}\|` | One or more |
-| `}o` | Zero or more |
-
----
-
-## Troubleshooting
-
-### Issue 1: Diagram Not Rendering
-
-**Cause:** Syntax error in Mermaid code
-
-**Solution:**
-
-- Validate syntax at [Mermaid Live Editor](https://mermaid.live/)
-- Check for missing quotes, brackets, or semicolons
-- Ensure proper diagram type declaration
-
-### Issue 2: Diagram Too Wide
-
-**Cause:** Too many nodes or long labels
-
-**Solution:**
-
-- Use vertical layout (`TD` instead of `LR`)
-- Abbreviate long labels
-- Split into multiple diagrams
-
-### Issue 3: Special Characters Breaking Diagram
-
-**Cause:** Unescaped special characters
-
-**Solution:**
-
-```mermaid
-flowchart TD
-    A["Use quotes for special chars: & < > #"]
-    B["Or escape: &amp; &lt; &gt;"]
-```
-
----
-
-## MkDocs Integration
-
-When MkDocs Material is implemented, Mermaid diagrams will:
-
-1. **Auto-render** - No manual processing needed
-2. **Dark mode support** - Diagrams adapt to theme
-3. **Zoom capability** - Click to enlarge
-4. **Export options** - Download as SVG/PNG
-
-**Configuration (future):**
-
-```yaml
-# mkdocs.yml
-plugins:
-  - mermaid2:
-      version: "10.6.0"
-```
-
----
-
-## Examples from Dashtam
-
-### Example 1: OAuth Flow (from architecture docs)
+Complete OAuth flow from Dashtam architecture:
 
 ```mermaid
 sequenceDiagram
@@ -461,45 +323,198 @@ sequenceDiagram
     A-->>U: 200 OK (connected)
 ```
 
-### Example 2: Database Schema
+**Use case:** Documenting complex multi-service interactions
 
-```mermaid
-erDiagram
-    users ||--o{ tokens : has
-    users ||--o{ provider_connections : owns
-    providers ||--o{ provider_connections : referenced_by
-    
-    users {
-        uuid id PK
-        string email UK
-        timestamp created_at
-    }
-    
-    tokens {
-        uuid id PK
-        uuid user_id FK
-        string token_type
-        timestamp expires_at
-    }
+## Verification
+
+### Check 1: Syntax Validation
+
+Verify diagram renders correctly:
+
+```bash
+# 1. Copy Mermaid code from your markdown file
+# 2. Open Mermaid Live Editor: https://mermaid.live/
+# 3. Paste and check for errors
+# 4. Adjust syntax if needed
 ```
 
----
+**Expected Result:** Diagram renders without errors
 
-## Quick Reference
+### Check 2: Rendering Verification
 
-**Most Common Diagrams:**
+Test in actual documentation context:
 
-1. **Flowchart** - `flowchart TD`
-2. **Sequence** - `sequenceDiagram`
-3. **ER Diagram** - `erDiagram`
-4. **State Diagram** - `stateDiagram-v2`
-5. **Class Diagram** - `classDiagram`
+1. **Local preview** (if MkDocs configured):
 
-**Note:** For directory trees, use code blocks with tree structure (not Mermaid).
+   ```bash
+   make docs-serve
+   # Navigate to page with diagram
+   ```
 
-**Validation Tool:** [Mermaid Live Editor](https://mermaid.live/)
+2. **GitHub preview:**
 
-**Full Documentation:** [Mermaid Official Docs](https://mermaid.js.org/)
+   - Push to test branch
+   - View markdown file on GitHub
+   - Verify diagram renders correctly
+
+## Troubleshooting
+
+### Issue 1: Diagram Not Rendering
+
+**Symptoms:**
+
+- Blank space where diagram should be
+- Code block shows instead of diagram
+
+**Cause:** Syntax error in Mermaid code
+
+**Solution:**
+
+1. Validate syntax at [Mermaid Live Editor](https://mermaid.live/)
+2. Check for:
+   - Missing quotes around special characters
+   - Missing brackets or semicolons
+   - Incorrect diagram type declaration
+   - Typos in node or relationship syntax
+
+### Issue 2: Diagram Too Wide
+
+**Symptoms:**
+
+- Diagram extends beyond page width
+- Horizontal scrolling required
+
+**Cause:** Too many nodes horizontally or long labels
+
+**Solution:**
+
+- Use vertical layout (`TD` instead of `LR`)
+- Abbreviate long labels
+- Split into multiple smaller diagrams
+- Break complex flows into stages
+
+**Example:**
+
+```mermaid
+flowchart TD
+    %% Vertical layout fits better on mobile
+    A[Start] --> B[Process 1]
+    B --> C[Process 2]
+    C --> D[End]
+```
+
+### Issue 3: Special Characters Breaking Diagram
+
+**Symptoms:**
+
+- Syntax error with special characters
+- Diagram fails to render
+
+**Cause:** Unescaped special characters (`& < > # " '`)
+
+**Solution:**
+
+```mermaid
+flowchart TD
+    A["Use quotes for special chars: & < > #"]
+    B["Or escape: &amp; &lt; &gt;"]
+```
+
+**Always wrap text with special characters in quotes.**
+
+## Best Practices
+
+Follow these best practices for consistent, maintainable diagrams:
+
+- ✅ **Always specify diagram type** - Start with correct type declaration
+- ✅ **Use descriptive labels** - Clear, concise text for all nodes
+- ✅ **Keep it simple** - Don't overcomplicate diagrams
+- ✅ **Consistent naming** - Use same conventions across diagrams
+- ✅ **Add notes for complexity** - Explain non-obvious parts
+- ✅ **Validate before committing** - Always check in Mermaid Live Editor
+- ✅ **Use vertical layouts** - Better for mobile/responsive design
+- ✅ **Apply color coding** - Use standard colors for clarity
+- ✅ **Break complex diagrams** - Split into logical sections
+- ✅ **Keep width reasonable** - Aim for 800-1200px width
+
+**Responsive Design:**
+
+- Keep diagrams narrow enough for mobile viewing
+- Use `TD` (top-to-bottom) for most flows
+- Split wide diagrams into multiple smaller ones
+- Test rendering on different screen sizes
+
+### Common Mistakes to Avoid
+
+- ❌ **Using image files** - Always use Mermaid syntax instead
+- ❌ **Forgetting language identifier** - Always use ````mermaid` in code blocks
+- ❌ **Not validating syntax** - Always check in Live Editor first
+- ❌ **Overcomplicating diagrams** - Keep them focused and simple
+- ❌ **Using horizontal layouts** - Prefer vertical (`TD`) for better responsiveness
+- ❌ **Missing special character quotes** - Wrap special chars in quotes
+- ❌ **Inconsistent styling** - Follow color coding standards
+- ❌ **No diagram type declaration** - Always specify type (flowchart, sequence, etc.)
+
+**Syntax Reference Quick Guide:**
+
+**Node Shapes:**
+
+| Shape | Syntax | Use Case |
+|-------|--------|----------|
+| Rectangle | `A[Text]` | Standard process |
+| Rounded | `A(Text)` | Start/End points |
+| Circle | `A((Text))` | Connection points |
+| Diamond | `A{Text}` | Decision points |
+| Hexagon | `A{{Text}}` | Preparation steps |
+| Parallelogram | `A[/Text/]` | Input/Output |
+| Cylinder | `A[(Text)]` | Database |
+
+**Arrow Types:**
+
+| Arrow | Syntax | Meaning |
+|-------|--------|---------|
+| Solid | `-->` | Flow direction |
+| Dashed | `-.->` | Async/Optional |
+| Thick | `==>` | Primary path |
+| Dotted | `..>` | Dependency |
+
+## Next Steps
+
+After mastering Mermaid diagrams, consider:
+
+- [ ] Review existing documentation for diagrams that should use Mermaid
+- [ ] Convert any image-based diagrams to Mermaid syntax
+- [ ] Add diagrams to architecture documents
+- [ ] Document complex workflows with sequence diagrams
+- [ ] Create database schema diagrams for new features
+- [ ] Explore advanced Mermaid features (subgraphs, custom themes)
+
+**MkDocs Integration (Future):**
+
+When MkDocs Material is implemented, diagrams will:
+
+- Auto-render without manual processing
+- Support dark mode themes
+- Offer zoom and export capabilities
+
+**Configuration example:**
+
+```yaml
+# mkdocs.yml
+plugins:
+  - mermaid2:
+      version: "10.6.0"
+```
+
+## References
+
+- [Mermaid Live Editor](https://mermaid.live/) - Validate and preview diagrams
+- [Mermaid Official Documentation](https://mermaid.js.org/) - Complete syntax reference
+- [Flowchart Documentation](https://mermaid.js.org/syntax/flowchart.html) - Flowchart syntax details
+- [Sequence Diagram Documentation](https://mermaid.js.org/syntax/sequenceDiagram.html) - Sequence diagram guide
+- [ER Diagram Documentation](https://mermaid.js.org/syntax/entityRelationshipDiagram.html) - Entity relationship diagrams
+- [Documentation Template System](../../templates/README.md) - Template usage guide
+- [WARP.md](../../../WARP.md) - Project standards and Mermaid requirements
 
 ---
 
@@ -507,4 +522,4 @@ erDiagram
 
 **Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-13
-**Last Updated:** 2025-10-15
+**Last Updated:** 2025-10-20

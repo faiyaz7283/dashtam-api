@@ -1,14 +1,5 @@
 # Smoke Test Token Extraction - Troubleshooting Guide
 
-**Date:** 2025-10-06
-**Issue:** Smoke tests failed to extract tokens using Docker logs command inside containers
-**Resolution:** Replaced Docker CLI dependency with pytest's caplog fixture for log capture
-**Status:** ✅ RESOLVED
-
----
-
-## Executive Summary
-
 The original smoke tests (`scripts/test-api-flows.sh`) relied on `docker logs` command to extract email verification and password reset tokens from container logs. This approach failed when tests ran inside Docker containers (test and CI environments) because the Docker CLI was not available within containers, and containers cannot introspect their own logs.
 
 Investigation revealed that pytest's built-in `caplog` fixture provides a superior solution for log capture during test execution. The caplog fixture captures application logs in-memory without requiring external tools, works in all environments (dev, test, CI/CD), and provides better error messages and debugging capabilities.
@@ -54,6 +45,7 @@ Implementation replaced shell script token extraction with pure Python log parsi
    - [Long-Term Improvements](#long-term-improvements)
    - [Monitoring & Prevention](#monitoring--prevention)
 8. [References](#references)
+9. [Document Information](#document-information)
 
 ---
 
@@ -90,8 +82,6 @@ Tests failed when attempting to execute `docker logs` command from within test c
 - **Severity:** High (blocked critical smoke tests)
 - **Affected Components:** Smoke test suite, CI/CD pipeline, test environment
 - **User Impact:** Unable to run comprehensive authentication flow tests in containerized environments
-
----
 
 ## Investigation Steps
 
@@ -180,8 +170,6 @@ def extract_token_from_caplog(caplog, pattern: str) -> str:
 
 **Result:** ✅ Extraction pattern proven effective
 
----
-
 ## Root Cause Analysis
 
 ### Primary Cause
@@ -222,8 +210,6 @@ Multiple tests running in parallel could race to extract tokens from shared log 
 #### Factor 3: Maintenance Burden
 
 Shell script token extraction logic separate from Python test code, requiring context switching and duplication of regex patterns.
-
----
 
 ## Solution Implementation
 
@@ -403,8 +389,6 @@ Log capture happens automatically during test execution, no external commands ne
    make test-smoke  # Works in all environments
    ```
 
----
-
 ## Verification
 
 ### Test Results
@@ -478,8 +462,6 @@ make test
 Zero regressions introduced
 ```
 
----
-
 ## Lessons Learned
 
 ### Technical Insights
@@ -517,8 +499,6 @@ Zero regressions introduced
 - Extract reusable test utilities into well-documented helper functions
 - Keep test data extraction logic close to test code (same language, same file)
 - Prefer in-memory test data over external file/log parsing when possible
-
----
 
 ## Future Improvements
 
@@ -567,8 +547,6 @@ if grep -r "docker logs" tests/; then
     exit 1
 fi
 ```
-
----
 
 ## References
 

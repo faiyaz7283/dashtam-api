@@ -23,17 +23,44 @@ Step-by-step guide for implementing MkDocs with Material theme for the Dashtam p
     - [Step 2.2: Configure Extra Features](#step-22-configure-extra-features)
     - [Step 2.3: Configure Markdown Extensions](#step-23-configure-markdown-extensions)
     - [Step 2.4: Test Enhanced Theme](#step-24-test-enhanced-theme)
-  - [Phase 3: API Documentation Auto-Generation](#phase-3-api-documentation-auto-generation)
+  - [Step 3: API Documentation Auto-Generation](#step-3-api-documentation-auto-generation)
     - [Step 3.1: Configure mkdocstrings Plugin](#step-31-configure-mkdocstrings-plugin)
-- [Testing & Verification](#testing--verification)
-- [Maintenance](#maintenance)
+    - [Step 3.2: Create API Reference Pages](#step-32-create-api-reference-pages)
+    - [Step 3.3: Test API Documentation Generation](#step-33-test-api-documentation-generation)
+  - [Step 4: Diagrams & Visuals](#step-4-diagrams--visuals)
+    - [Step 4.1: Configure Mermaid Plugin](#step-41-configure-mermaid-plugin)
+    - [Step 4.2: Create Architecture Diagrams](#step-42-create-architecture-diagrams)
+    - [Step 4.3: Add Component Diagrams](#step-43-add-component-diagrams)
+    - [Step 4.4: Test Diagrams](#step-44-test-diagrams)
+  - [Step 5: GitHub Actions CI/CD](#step-5-github-actions-cicd)
+    - [Step 5.1: Create Documentation Workflow](#step-51-create-documentation-workflow)
+    - [Step 5.2: Update Makefile](#step-52-update-makefile)
+    - [Step 5.3: Configure GitHub Pages](#step-53-configure-github-pages)
+    - [Step 5.4: Test CI/CD Pipeline](#step-54-test-cicd-pipeline)
+  - [Step 6: Documentation Organization](#step-6-documentation-organization)
+    - [Step 6.1: Update Navigation Structure](#step-61-update-navigation-structure)
+    - [Step 6.2: Create Missing Index Pages](#step-62-create-missing-index-pages)
+    - [Step 6.3: Add Cross-References](#step-63-add-cross-references)
+    - [Step 6.4: Update Main README](#step-64-update-main-readme)
 - [Examples](#examples)
+  - [Example 1: Basic MkDocs Setup](#example-1-basic-mkdocs-setup)
+  - [Example 2: Auto-Generated API Documentation](#example-2-auto-generated-api-documentation)
 - [Verification](#verification)
+  - [Check 1: Local Build Verification](#check-1-local-build-verification)
+  - [Check 2: Development Server](#check-2-development-server)
+  - [Check 3: CI/CD Pipeline](#check-3-cicd-pipeline)
 - [Troubleshooting](#troubleshooting)
+  - [Issue 1: MkDocs Build Errors](#issue-1-mkdocs-build-errors)
+  - [Issue 2: GitHub Actions Deployment Failures](#issue-2-github-actions-deployment-failures)
+  - [Issue 3: API Documentation Not Generating](#issue-3-api-documentation-not-generating)
 - [Best Practices](#best-practices)
-- [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
 - [Next Steps](#next-steps)
 - [References](#references)
+  - [Official Documentation](#official-documentation)
+  - [Project Documentation](#project-documentation)
+  - [External Resources](#external-resources)
+- [Document Information](#document-information)
 
 ---
 
@@ -78,8 +105,6 @@ Use this guide when you need to:
 | Sphinx + ReadTheDocs | Rich cross-references, multiple formats | Complex setup, steeper learning curve | Deep Python API reference |
 | Docusaurus | Modern UI, versioning, multilingual | Node.js dependency, heavier | Large-scale docs |
 | GitHub Pages (plain) | Simple, built-in | No search, limited styling | Simple static sites |
-
----
 
 ## Prerequisites
 
@@ -394,9 +419,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --
 - ✅ Code blocks have copy button
 - ✅ Admonitions render properly
 
----
-
-### Phase 3: API Documentation Auto-Generation
+### Step 3: API Documentation Auto-Generation
 
 **Goal:** Auto-generate API reference from Python docstrings
 
@@ -543,8 +566,6 @@ Complete list of REST API endpoints organized by domain.
     options:
       heading_level: 4
 
----
-
 ## Provider Endpoints
 
 **Base Path:** `/api/v1/providers`
@@ -579,9 +600,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --
 - ✅ Source links work
 - ✅ Cross-references between classes work
 
----
-
-### Phase 4: Diagrams & Visuals
+### Step 4: Diagrams & Visuals
 
 **Goal:** Add architecture diagrams and visual documentation
 
@@ -753,9 +772,7 @@ docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve --
 - ✅ Diagram syntax is correct
 - ✅ Diagrams match architecture
 
----
-
-### Phase 5: GitHub Actions CI/CD
+### Step 5: GitHub Actions CI/CD
 
 **Goal:** Automate documentation builds and deployment
 
@@ -880,9 +897,7 @@ git push origin development
 - ✅ All pages accessible
 - ✅ Search works on deployed site
 
----
-
-### Phase 6: Documentation Organization
+### Step 6: Documentation Organization
 
 **Goal:** Migrate and organize existing documentation
 
@@ -1066,141 +1081,6 @@ Dashtam connects to multiple financial institutions through OAuth2, providing a 
 - **Documentation:** This site!
 ```
 
----
-
-## Testing & Verification
-
-### Local Testing Checklist
-
-Before deploying to GitHub Pages, verify locally:
-
-- [ ] All pages build without errors: `make docs-build`
-- [ ] Navigation structure is correct
-- [ ] Search finds content accurately
-- [ ] Dark/light mode toggle works
-- [ ] API reference generates from docstrings
-- [ ] Mermaid diagrams render correctly
-- [ ] Code blocks have syntax highlighting
-- [ ] Copy-to-clipboard works on code blocks
-- [ ] Internal links work (no 404s)
-- [ ] External links open in new tabs
-- [ ] Mobile responsive design works
-- [ ] Back-to-top button appears
-
-### CI/CD Verification
-
-- [ ] GitHub Actions workflow passes
-- [ ] Documentation deploys to GitHub Pages
-- [ ] Deployed site matches local build
-- [ ] All assets (images, CSS, JS) load
-- [ ] HTTPS works on GitHub Pages
-- [ ] Custom domain works (if configured)
-
-### Content Verification
-
-- [ ] All existing docs migrated
-- [ ] No broken links
-- [ ] All code examples work
-- [ ] Docstrings render correctly
-- [ ] Diagrams are accurate
-- [ ] Navigation is intuitive
-- [ ] Index pages are complete
-
----
-
-## Maintenance
-
-### Regular Tasks
-
-**Periodically:**
-
-- Review and update outdated documentation
-- Check for broken links
-- Update screenshots if UI changed
-- Review analytics (if enabled) for popular pages
-
-**Per Release:**
-
-- Update version numbers
-- Document new features
-- Update API reference
-- Add release notes
-
-**As Needed:**
-
-- Fix reported documentation issues
-- Add new guides for common questions
-- Improve search keywords
-- Enhance diagrams
-
-### Updating Documentation
-
-**Edit Existing Pages:**
-
-```bash
-# 1. Edit Markdown files in docs/
-vim docs/development/guides/my-guide.md
-
-# 2. Test locally
-make docs-serve
-
-# 3. Commit and push
-git add docs/
-git commit -m "docs: update guide for new feature"
-git push origin development
-```
-
-**Add New API Documentation:**
-
-```bash
-# 1. Add Google-style docstrings to code
-# 2. Update docs/api/reference.md with new module
-# 3. Test generation
-make docs-build
-
-# 4. Verify output
-make docs-serve
-```
-
-**Add New Diagrams:**
-
-```bash
-# 1. Add Mermaid syntax to Markdown file
-# 2. Verify rendering locally
-# 3. Commit changes
-```
-
-### Troubleshooting
-
-**Build Errors:**
-
-```bash
-# Clear cache and rebuild
-make docs-clean
-make docs-build
-
-# Check for syntax errors in mkdocs.yml
-uv run mkdocs build --strict --verbose
-```
-
-**Plugin Issues:**
-
-```bash
-# Reinstall dependencies
-uv add --group docs mkdocs mkdocs-material 'mkdocstrings[python]'
-
-# Check plugin versions
-uv pip list | grep mkdocs
-```
-
-**Deployment Failures:**
-
-```bash
-# Check GitHub Actions logs
-# Verify GITHUB_TOKEN permissions
-# Ensure gh-pages branch exists
-```
-
 ## Examples
 
 ### Example 1: Basic MkDocs Setup
@@ -1366,7 +1246,7 @@ Follow these best practices for optimal documentation:
 - ✅ **Update docs with code changes** - Documentation should evolve with the codebase
 - ✅ **Use version control** - Treat documentation as code with proper commit messages
 
-## Common Mistakes to Avoid
+### Common Mistakes to Avoid
 
 - ❌ **Outdated documentation** - Don't let docs fall behind code changes
 - ❌ **Missing docstrings** - API documentation requires complete docstring coverage
@@ -1411,10 +1291,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Category:** Guide
+**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-11
 **Last Updated:** 2025-10-15
-**Difficulty Level:** Intermediate
-**Estimated Time:** 3-4 days for full implementation
-
-**Maintainer:** Dashtam Development Team

@@ -1,66 +1,74 @@
 # Docstring Standards Guide
 
-**Comprehensive guide for Python documentation across the entire Dashtam codebase:**
-
-**Last Updated:** 2025-10-11  
-**Applies To:** All Python files (src/, tests/, scripts/)  
-**Format:** Google-style docstrings (WARP.md requirement)
+Comprehensive guide for writing Google-style docstrings across all Python code in Dashtam, covering modules, classes, functions, tests, and fixtures with practical examples and best practices.
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
-- [Why Google-Style Docstrings?](#why-google-style-docstrings)
-- [General Python Standards](#general-python-standards)
-  - [Module-Level Docstrings](#module-level-docstrings)
-  - [Class Docstrings](#class-docstrings)
-    - [Service Classes](#service-classes)
-    - [Model Classes (SQLModel/Pydantic)](#model-classes-sqlmodelpydantic)
-  - [Function/Method Docstrings](#functionmethod-docstrings)
-    - [Standard Function Pattern](#standard-function-pattern)
-- [Application-Specific Patterns](#application-specific-patterns)
-  - [FastAPI Endpoints](#fastapi-endpoints)
-  - [Service Layer](#service-layer)
-  - [SQLModel/Pydantic Models](#sqlmodelpydantic-models)
-    - [Database Models](#database-models)
-    - [Response Schemas](#response-schemas)
-  - [Database Operations](#database-operations)
-- [Test Documentation Standards](#test-documentation-standards)
-  - [Test Module Docstrings](#test-module-docstrings)
-  - [Test Class Docstrings](#test-class-docstrings)
-  - [Test Function Docstrings](#test-function-docstrings)
-    - [Standard Test Pattern](#standard-test-pattern)
-    - [Test with Mocks](#test-with-mocks)
-    - [Parametrized Test Pattern](#parametrized-test-pattern)
-  - [Pytest Fixtures](#pytest-fixtures)
-- [Common Patterns](#common-patterns)
-  - [Setup/Teardown Methods](#setupteardown-methods)
-  - [Async Helper Functions](#async-helper-functions)
-  - [Context Manager Classes](#context-manager-classes)
-- [Anti-Patterns to Avoid](#anti-patterns-to-avoid)
-  - [❌ Too Brief (Insufficient)](#-too-brief-insufficient)
-  - [❌ Missing Fixture Documentation](#-missing-fixture-documentation)
-  - [❌ Implementation Instead of Intent](#-implementation-instead-of-intent)
-  - [❌ Missing Error Documentation](#-missing-error-documentation)
-  - [❌ Missing Type Information](#-missing-type-information)
-- [Development Workflow](#development-workflow)
-  - [When Writing New Code](#when-writing-new-code)
-  - [When Reviewing Code](#when-reviewing-code)
-  - [Before Committing](#before-committing)
-  - [During PR Reviews](#during-pr-reviews)
-- [Quick Reference](#quick-reference)
-  - [Checklist for Complete Docstrings](#checklist-for-complete-docstrings)
+- [Overview](#overview)
+  - [What You'll Learn](#what-youll-learn)
+  - [When to Use This Guide](#when-to-use-this-guide)
+  - [Why Google-Style Docstrings](#why-google-style-docstrings)
+- [Prerequisites](#prerequisites)
+- [Step-by-Step Instructions](#step-by-step-instructions)
+  - [Step 1: Write Module-Level Docstrings](#step-1-write-module-level-docstrings)
+  - [Step 2: Write Class Docstrings](#step-2-write-class-docstrings)
+  - [Step 3: Write Function/Method Docstrings](#step-3-write-functionmethod-docstrings)
+  - [Step 4: Write FastAPI Endpoint Docstrings](#step-4-write-fastapi-endpoint-docstrings)
+  - [Step 5: Write Test Docstrings](#step-5-write-test-docstrings)
+  - [Step 6: Write Pytest Fixture Docstrings](#step-6-write-pytest-fixture-docstrings)
+- [Examples](#examples)
+  - [Example 1: Complete Service Class](#example-1-complete-service-class)
+  - [Example 2: FastAPI Endpoint](#example-2-fastapi-endpoint)
+  - [Example 3: Test Function](#example-3-test-function)
+  - [Example 4: Pytest Fixture](#example-4-pytest-fixture)
+- [Verification](#verification)
+  - [Check 1: Run Linting](#check-1-run-linting)
+  - [Check 2: Review Completeness](#check-2-review-completeness)
+  - [Check 3: Test Documentation Coverage](#check-3-test-documentation-coverage)
+- [Troubleshooting](#troubleshooting)
+  - [Issue 1: Docstring Too Brief](#issue-1-docstring-too-brief)
+  - [Issue 2: Missing Fixture Documentation](#issue-2-missing-fixture-documentation)
+  - [Issue 3: Implementation vs Intent](#issue-3-implementation-vs-intent)
+  - [Issue 4: Missing Error Documentation](#issue-4-missing-error-documentation)
+- [Best Practices](#best-practices)
+  - [Quick Reference Checklist](#quick-reference-checklist)
   - [Google-Style Section Order](#google-style-section-order)
-  - [Testing-Specific Sections](#testing-specific-sections)
-- [Integration with WARP.md](#integration-with-warpmd)
+  - [Common Patterns](#common-patterns)
+- [Next Steps](#next-steps)
 - [References](#references)
   - [Official Style Guides](#official-style-guides)
   - [Tools and Automation](#tools-and-automation)
   - [Project Documentation](#project-documentation)
+- [Document Information](#document-information)
 
 ---
 
-## Why Google-Style Docstrings?
+## Overview
+
+This guide provides comprehensive instructions for writing Google-style docstrings across all Python code in Dashtam, covering modules, classes, functions, tests, and fixtures with practical examples and best practices.
+
+### What You'll Learn
+
+- How to write Google-style docstrings for all Python code types
+- Module, class, function, and test documentation patterns
+- FastAPI endpoint documentation requirements
+- Pytest fixture documentation standards
+- Common patterns and anti-patterns to avoid
+- How to verify docstring quality with linting tools
+
+### When to Use This Guide
+
+Use this guide when:
+
+- Writing new Python code (modules, classes, functions)
+- Writing tests and pytest fixtures
+- Implementing FastAPI endpoints
+- Reviewing pull requests for documentation quality
+- Updating existing code to meet documentation standards
+
+### Why Google-Style Docstrings
 
 The Dashtam project uses **Google-style docstrings** as mandated in WARP.md for the following reasons:
 
@@ -102,11 +110,31 @@ Example:
 - [PEP 257 - Docstring Conventions](https://peps.python.org/pep-0257/)
 - WARP.md - Project-specific docstring requirements
 
----
+## Prerequisites
 
-## General Python Standards
+Before starting, ensure you have:
 
-### Module-Level Docstrings
+- [ ] Python 3.13+ development environment
+- [ ] Familiarity with Python type hints
+- [ ] Understanding of Google-style docstring format
+- [ ] Ruff linter configured in project
+
+**Required Tools:**
+
+- Ruff - For linting and docstring validation
+- Python 3.13+ - With type hints support
+- IDE with docstring preview (VSCode, PyCharm)
+
+**Required Knowledge:**
+
+- Familiarity with Python syntax and structure
+- Understanding of classes, functions, and methods
+- Basic knowledge of pytest for test documentation
+- Familiarity with FastAPI for endpoint documentation
+
+## Step-by-Step Instructions
+
+### Step 1: Write Module-Level Docstrings
 
 Every Python module MUST have a module-level docstring at the top of the file (after imports header comments):
 
@@ -146,9 +174,9 @@ Note:
 - List of key components/classes if applicable
 - Optional sections: Security Features, Architecture, Dependencies, Note
 
-### Class Docstrings
+### Step 2: Write Class Docstrings
 
-All classes MUST have comprehensive docstrings explaining their purpose, responsibilities, and usage:
+All classes MUST have comprehensive docstrings explaining their purpose, responsibilities, and usage.
 
 #### Service Classes
 
@@ -220,9 +248,9 @@ class User(SQLModel, table=True):
     """
 ```
 
-### Function/Method Docstrings
+### Step 3: Write Function/Method Docstrings
 
-All public functions and methods MUST have comprehensive docstrings:
+All public functions and methods MUST have comprehensive docstrings.
 
 #### Standard Function Pattern
 
@@ -277,11 +305,7 @@ async def create_user(
 - Raises (all possible exceptions)
 - Optional: Note, Example, Warning
 
----
-
-## Application-Specific Patterns
-
-### FastAPI Endpoints
+### Step 4: Write FastAPI Endpoint Docstrings
 
 FastAPI endpoint functions require special documentation patterns:
 
@@ -348,177 +372,11 @@ async def login(
 - Security (authentication/authorization requirements)
 - Example (cURL or HTTP request example)
 
-### Service Layer
+### Step 5: Write Test Docstrings
 
-Service classes contain business logic and orchestration:
+Tests are **documentation of expected behavior**. Comprehensive test docstrings are critical for understanding what's being tested, debugging failures quickly, and onboarding new developers.
 
-```python
-async def refresh_access_token(
-    self,
-    refresh_token_str: str,
-    device_info: Optional[str] = None
-) -> tuple[str, str]:
-    """Refresh JWT access token using refresh token with rotation.
-    
-    Validates refresh token, generates new access token, and rotates
-    refresh token for enhanced security. Updates session tracking with
-    device information and last activity timestamp.
-    
-    Token Rotation:
-        Per security best practices, refresh tokens are rotated on each use.
-        Old refresh token is invalidated and new one is issued. This prevents
-        replay attacks and limits token exposure window.
-    
-    Args:
-        refresh_token_str: Raw refresh token string from client
-        device_info: Optional device/browser information for session tracking
-    
-    Returns:
-        tuple[str, str]: New access token and new refresh token
-            - access_token: JWT with 30 min expiry
-            - refresh_token: New opaque token with 30 days expiry
-    
-    Raises:
-        HTTPException: 401 if refresh token invalid, expired, or revoked
-        HTTPException: 401 if user account is locked or deleted
-    
-    Note:
-        Old refresh token is immediately revoked after validation.
-        Client MUST store the new refresh token for future refreshes.
-        Token rotation helps detect token theft (multiple uses = alert).
-    
-    Example:
-        >>> new_access, new_refresh = await auth_service.refresh_access_token(
-        ...     old_refresh_token,
-        ...     device_info="Chrome 120 on macOS"
-        ... )
-        >>> # Client must replace old refresh token with new_refresh
-    """
-```
-
-### SQLModel/Pydantic Models
-
-#### Database Models
-
-```python
-class RefreshToken(SQLModel, table=True):
-    """Refresh token for JWT authentication with rotation tracking.
-    
-    Stores hashed refresh tokens with device/session tracking. Supports
-    token rotation for enhanced security. Tokens are revoked on use or
-    when user logs out.
-    
-    Attributes:
-        id: Unique token identifier (UUID, primary key)
-        user_id: Owner of this token (foreign key to users.id)
-        token_hash: Bcrypt hash of token string (one-way, not reversible)
-        device_info: Device/browser information (e.g., "Chrome 120 macOS")
-        ip_address: IP address where token was issued
-        expires_at: Expiration timestamp (30 days from creation)
-        revoked: Whether token has been invalidated
-        revoked_at: When token was revoked (nullable)
-        last_used_at: Last time token was used for refresh
-        created_at: Token creation timestamp
-    
-    Relationships:
-        user: User who owns this token (many-to-one)
-    
-    Security:
-        - Token string hashed with bcrypt before storage (irreversible)
-        - Tokens rotated on each use (old token revoked)
-        - Tracks device and IP for fraud detection
-        - Revoked tokens cannot be reused
-    
-    Note:
-        Token rotation means clients MUST update stored refresh token
-        after each refresh operation. Using old token after rotation
-        may indicate token theft.
-    """
-```
-
-#### Response Schemas
-
-```python
-class LoginResponse(BaseModel):
-    """Response schema for successful login.
-    
-    Contains JWT tokens and user profile data. Client must store both
-    tokens securely (access token for API calls, refresh token for
-    obtaining new access tokens).
-    
-    Attributes:
-        access_token: JWT access token (30 min expiry)
-        refresh_token: Opaque refresh token (30 days expiry)
-        token_type: Token type, always "bearer"
-        expires_in: Access token lifetime in seconds (1800 = 30 min)
-        user: User profile data (id, email, verified status)
-    
-    Example:
-        {
-            "access_token": "eyJhbGciOiJIUzI1NiIs...",
-            "refresh_token": "8f3d2c1b-9a7e-4f6d-8c5b-1a2d3e4f5g6h",
-            "token_type": "bearer",
-            "expires_in": 1800,
-            "user": {
-                "id": "a1b2c3d4-...",
-                "email": "user@example.com",
-                "email_verified": true
-            }
-        }
-    
-    Note:
-        Client should store access_token in memory (not localStorage for XSS safety)
-        and refresh_token in httpOnly cookie or secure storage.
-    """
-```
-
-### Database Operations
-
-Functions performing database queries need comprehensive documentation:
-
-```python
-async def get_user_by_email(
-    email: str,
-    session: AsyncSession
-) -> Optional[User]:
-    """Retrieve user by email address.
-    
-    Performs case-insensitive email lookup. Returns None if user not found
-    or has been soft-deleted.
-    
-    Args:
-        email: User's email address (case-insensitive)
-        session: AsyncSession for database query
-    
-    Returns:
-        Optional[User]: User instance if found, None otherwise
-    
-    Note:
-        Uses selectinload to eagerly load relationships.
-        Email comparison is case-insensitive for user convenience.
-        Soft-deleted users (deleted_at != NULL) are excluded.
-    
-    Example:
-        >>> user = await get_user_by_email("USER@example.com", session)
-        >>> if user:
-        ...     print(f"Found user {user.id}")
-        ... else:
-        ...     print("User not found")
-    """
-```
-
----
-
-## Test Documentation Standards
-
-Tests are **documentation of expected behavior**. Comprehensive test docstrings are critical for:
-
-- Understanding what's being tested without reading implementation
-- Debugging test failures quickly
-- Onboarding new developers
-- Maintaining tests during refactoring
-
-### Test Module Docstrings
+#### Test Module Docstrings
 
 Every test module MUST have a module-level docstring:
 
@@ -554,7 +412,7 @@ Note:
 - Optional Coverage section
 - Optional Note for testing patterns
 
-### Test Class Docstrings
+#### Test Class Docstrings
 
 Test classes group related test scenarios:
 
@@ -576,9 +434,9 @@ class TestAuthServiceLogin:
     """
 ```
 
-### Test Function Docstrings
+#### Test Function Docstrings
 
-#### Standard Test Pattern
+**Standard Test Pattern:**
 
 ```python
 def test_login_success(self, client: TestClient, verified_user: User):
@@ -603,7 +461,7 @@ def test_login_success(self, client: TestClient, verified_user: User):
     """
 ```
 
-#### Test with Mocks
+**Test with Mocks:**
 
 ```python
 def test_login_with_account_lockout(
@@ -641,7 +499,7 @@ def test_login_with_account_lockout(
     """
 ```
 
-#### Parametrized Test Pattern
+**Parametrized Test Pattern:**
 
 ```python
 @pytest.mark.parametrize("password,expected_valid", [
@@ -672,7 +530,7 @@ def test_password_strength_validation(self, password: str, expected_valid: bool)
     """
 ```
 
-### Pytest Fixtures
+### Step 6: Write Pytest Fixture Docstrings
 
 Fixtures MUST have comprehensive docstrings:
 
@@ -734,89 +592,241 @@ def verified_user(db_session: Session) -> User:
 - Cleanup (how resources are cleaned up)
 - Example (how to use the fixture)
 
----
+## Examples
 
-## Common Patterns
+### Example 1: Complete Service Class
 
-### Setup/Teardown Methods
-
-```python
-def setup_method(self):
-    """Set up test fixtures before each test method.
-    
-    Initializes:
-        - JWTService instance with test configuration
-        - Test user ID (UUID)
-        - Test email address
-        - Mock session and services
-    
-    Note:
-        Called automatically before each test method in the class.
-        Use this for per-test initialization that's too complex for fixtures.
-    """
-```
-
-### Async Helper Functions
+Here's a complete example of a service class with proper docstrings:
 
 ```python
-async def create_test_token(
-    user_id: UUID,
-    expires_delta: Optional[timedelta] = None
-) -> str:
-    """Create JWT access token for testing.
+class AuthService:
+    """User authentication and authorization service.
     
-    Generates a valid JWT token with minimal claims for test purposes.
-    Useful for testing authenticated endpoints without full auth flow.
-    
-    Args:
-        user_id: User ID to include in token claims
-        expires_delta: Optional custom expiration (default: 30 min)
-    
-    Returns:
-        str: Signed JWT token string
-    
-    Note:
-        Uses test secret key (not production key).
-        Token is valid for 30 minutes by default.
-    
-    Example:
-        >>> token = await create_test_token(user.id)
-        >>> headers = {"Authorization": f"Bearer {token}"}
-        >>> response = client.get("/auth/me", headers=headers)
-    """
-```
-
-### Context Manager Classes
-
-```python
-class DatabaseTransaction:
-    """Context manager for atomic database operations.
-    
-    Ensures database operations are committed on success or rolled back
-    on exception. Useful for operations requiring multiple queries.
+    Orchestrates user authentication flows including registration, login,
+    token management, email verification, and password resets. Coordinates
+    between database operations, password hashing, JWT creation, and email
+    notifications.
     
     Attributes:
         session: AsyncSession for database operations
-        committed: Whether transaction was successfully committed
+        password_service: Service for password hashing and validation
+        jwt_service: Service for JWT token creation and validation
+        email_service: Service for sending verification/reset emails
+    
+    Security:
+        - All passwords hashed with bcrypt (12 rounds)
+        - Refresh tokens hashed before storage (one-way)
+        - Account lockout after 10 failed login attempts
+        - Email verification required before login
     
     Example:
-        async with DatabaseTransaction(session) as tx:
-            user = await tx.create_user(email, password)
-            await tx.send_verification_email(user)
-            # Auto-commits on successful exit
-            # Auto-rollback on exception
+        >>> auth_service = AuthService(session, password_svc, jwt_svc, email_svc)
+        >>> user = await auth_service.register_user("user@example.com", "SecurePass123!")
+        >>> tokens = await auth_service.login("user@example.com", "SecurePass123!")
     
     Note:
-        Always use as async context manager (async with).
-        Don't manually commit/rollback inside the context.
+        This service is async and all methods require await.
+        Use get_auth_service() dependency for FastAPI endpoints.
     """
 ```
 
----
+### Example 2: FastAPI Endpoint
 
-## Anti-Patterns to Avoid
+Here's a FastAPI endpoint with comprehensive documentation:
 
-### ❌ Too Brief (Insufficient)
+```python
+@router.post("/auth/login", response_model=LoginResponse)
+async def login(
+    credentials: LoginRequest,
+    auth_service: AuthService = Depends(get_auth_service)
+) -> LoginResponse:
+    """Authenticate user and return JWT tokens.
+    
+    Validates user credentials and returns access + refresh tokens if successful.
+    Tracks failed login attempts and enforces account lockout policy.
+    
+    Request Body:
+        - email: User's email address
+        - password: User's password (plaintext, transmitted over HTTPS)
+        - device_info: Optional device information for session tracking
+    
+    Response:
+        - access_token: JWT access token (30 min expiry)
+        - refresh_token: Opaque refresh token (30 days expiry)
+        - token_type: Always "bearer"
+        - user: User profile data (id, email)
+    
+    Status Codes:
+        - 200: Login successful, tokens returned
+        - 400: Invalid request format
+        - 401: Invalid credentials or email not verified
+        - 429: Too many failed attempts, account locked
+    
+    Args:
+        credentials: Login request with email and password
+        auth_service: Injected AuthService dependency
+    
+    Returns:
+        LoginResponse: Access token, refresh token, and user data
+    
+    Raises:
+        HTTPException: 401 if credentials invalid or email not verified
+        HTTPException: 429 if account is locked due to failed attempts
+    
+    Security:
+        - Requires HTTPS (enforced by TrustedHostMiddleware)
+        - Rate limited to 5 requests per minute per IP
+        - Account locks after 10 failed attempts (1 hour)
+        - Tracks device and IP for session management
+    """
+```
+
+### Example 3: Test Function
+
+Here's a test function with proper documentation:
+
+```python
+def test_login_success(self, client: TestClient, verified_user: User):
+    """Test successful user login with valid credentials.
+    
+    Verifies that:
+    - Login returns 200 status code
+    - Response includes both access_token and refresh_token
+    - Response includes user profile data
+    - Token type is "bearer"
+    - User email matches the logged-in user
+    - Refresh token is stored in database (hashed)
+    - Failed login attempts counter is reset to 0
+    
+    Args:
+        client: FastAPI TestClient fixture for making HTTP requests
+        verified_user: Pre-created user with verified email (from fixtures/users.py)
+    
+    Note:
+        User must have email_verified=True to successfully login.
+        Uses TestClient's synchronous pattern (no await needed).
+    """
+```
+
+### Example 4: Pytest Fixture
+
+Here's a pytest fixture with complete documentation:
+
+```python
+@pytest.fixture
+def verified_user(db_session: Session) -> User:
+    """Create test user with verified email for login tests.
+    
+    This fixture creates a user with email_verified=True, which is
+    required for successful login operations. Password is set to
+    "TestPass123!" and hashed with bcrypt.
+    
+    Args:
+        db_session: Database session for persisting user
+    
+    Returns:
+        User: Test user instance with:
+            - email: "testuser@example.com"
+            - password: "TestPass123!" (hashed)
+            - email_verified: True
+            - failed_login_attempts: 0
+    
+    Yields:
+        User instance persisted in test database
+    
+    Cleanup:
+        User is automatically cleaned up by db_session fixture rollback.
+        No manual cleanup needed.
+    
+    Note:
+        Use this fixture when testing authenticated operations.
+        For testing unverified users, use base test_user fixture.
+    
+    Example:
+        def test_login(verified_user: User):
+            response = client.post("/auth/login", json={
+                "email": verified_user.email,
+                "password": "TestPass123!"
+            })
+            assert response.status_code == 200
+    """
+    user = User(
+        email="testuser@example.com",
+        password_hash=hash_password("TestPass123!"),
+        email_verified=True,
+        failed_login_attempts=0
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    yield user
+    # Cleanup handled by db_session rollback
+```
+
+## Verification
+
+### Check 1: Run Linting
+
+Run the following commands to verify docstring quality:
+
+```bash
+# Lint code (includes docstring checks)
+make lint
+
+# Format code (auto-formats docstrings)
+make format
+```
+
+**Expected Output:**
+
+- No linting errors related to missing or malformed docstrings
+- Code formatting applied successfully
+
+**What This Checks:** Ensures all docstrings follow proper format and all required sections are present.
+
+### Check 2: Review Completeness
+
+Manually review your docstrings against this checklist:
+
+```text
+For every function/method:
+[ ] One-line summary
+[ ] Args section (all parameters)
+[ ] Returns section (return value description)
+[ ] Raises section (all exceptions)
+[ ] Example for complex functions
+
+For every class:
+[ ] Class-level docstring
+[ ] Attributes section
+[ ] Example usage
+
+For every test:
+[ ] Summary of what's tested
+[ ] "Verifies that:" section
+[ ] Args section for all fixtures
+```
+
+**What This Checks:** Ensures completeness beyond what automated tools can verify.
+
+### Check 3: Test Documentation Coverage
+
+Verify test documentation quality:
+
+```bash
+# Run tests with verbose output
+make test
+```
+
+**What to Look For:**
+
+- Test names are descriptive and match docstrings
+- Failed tests show clear context from docstrings
+- All fixtures used have documentation
+
+## Troubleshooting
+
+### Issue 1: Docstring Too Brief
 
 ```python
 def test_login(self, client, user):
@@ -845,7 +855,7 @@ def test_login_success(self, client: TestClient, verified_user: User):
     """
 ```
 
-### ❌ Missing Fixture Documentation
+### Issue 2: Missing Fixture Documentation
 
 ```python
 def test_token_refresh(self, client, refresh_token):
@@ -865,7 +875,7 @@ def test_token_refresh(self, client: TestClient, refresh_token: str):
     """
 ```
 
-### ❌ Implementation Instead of Intent
+### Issue 3: Implementation vs Intent
 
 ```python
 def test_password_reset(self, auth_service):
@@ -888,7 +898,7 @@ def test_password_reset_sends_email(self, auth_service, mock_email_service):
     """
 ```
 
-### ❌ Missing Error Documentation
+### Issue 4: Missing Error Documentation
 
 ```python
 async def authenticate_user(email: str, password: str) -> User:
@@ -916,85 +926,9 @@ async def authenticate_user(email: str, password: str) -> User:
     """
 ```
 
-### ❌ Missing Type Information
+## Best Practices
 
-```python
-def create_token(user_id, expires_in):
-    """Create JWT token."""
-    # MISSING: Type hints and arg descriptions
-```
-
-**✅ Correct Version:**
-
-```python
-def create_token(user_id: UUID, expires_in: int) -> str:
-    """Create JWT access token for user.
-    
-    Args:
-        user_id: Unique user identifier
-        expires_in: Token lifetime in seconds
-    
-    Returns:
-        str: Signed JWT token string
-    """
-```
-
----
-
-## Development Workflow
-
-### When Writing New Code
-
-1. **Write docstring FIRST** (TDD for documentation)
-   - Define what the function/class does
-   - Specify inputs, outputs, and errors
-   - Document security/performance considerations
-
-2. **Implement the code** to match the docstring specification
-
-3. **Update docstring** if implementation changes behavior
-
-### When Reviewing Code
-
-Check docstrings for:
-
-- [ ] Completeness (all sections present)
-- [ ] Accuracy (matches actual behavior)
-- [ ] Clarity (easy to understand)
-- [ ] Examples (for complex functions)
-- [ ] Type hints match docstring descriptions
-
-### Before Committing
-
-Run these commands to verify code quality:
-
-```bash
-# Lint code (includes docstring checks)
-make lint
-
-# Format code (auto-formats docstrings)
-make format
-
-# Run tests (validates docstring examples if using doctest)
-make test
-```
-
-### During PR Reviews
-
-Docstring checklist for reviewers:
-
-- [ ] All new functions/classes have docstrings
-- [ ] Args/Returns sections match function signature
-- [ ] Raises section lists all possible exceptions
-- [ ] Examples provided for public APIs
-- [ ] Note sections explain gotchas/limitations
-- [ ] Test docstrings explain what's verified
-
----
-
-## Quick Reference
-
-### Checklist for Complete Docstrings
+### Quick Reference Checklist
 
 **Every Module:**
 
@@ -1046,7 +980,18 @@ Standard order for sections (not all required):
 7. Example
 8. References (for complex algorithms)
 
-### Testing-Specific Sections
+### Common Patterns
+
+Follow these patterns when writing docstrings:
+
+- ✅ **Write docstrings first**: Define behavior before implementing (TDD for documentation)
+- ✅ **Use type hints**: Always combine type annotations with docstring descriptions
+- ✅ **Include examples**: Provide usage examples for complex functions and public APIs
+- ✅ **Document errors**: List all possible exceptions in Raises section
+- ✅ **Test docstrings**: Treat tests as first-class documentation
+- ✅ **Keep current**: Update docstrings when behavior changes
+
+**For test docstrings, use these additional sections:**
 
 For test functions, use these additional sections:
 
@@ -1055,25 +1000,17 @@ For test functions, use these additional sections:
 - **Verifies that:** Specific checks performed
 - **Raises:** Expected assertion failures
 
----
+## Next Steps
 
-## Integration with WARP.md
+After completing this guide, consider:
 
-This guide implements the following WARP.md requirements:
-
-- ✅ **Google-style docstrings:** All code uses Google-style format
-- ✅ **Comprehensive documentation:** Functions, classes, modules, tests
-- ✅ **Type hints:** Always paired with docstring descriptions
-- ✅ **Test documentation:** Tests are treated as first-class documentation
-- ✅ **Code quality:** Docstrings checked by `make lint`
-
-**See Also:**
-
-- WARP.md - Project rules and coding standards
-- [Testing Guide](../testing/guide.md) - Complete testing documentation
-- [Testing Best Practices](testing-best-practices.md) - Testing patterns and conventions
-
----
+- [ ] Review existing modules and update docstrings to meet standards
+- [ ] Set up automated docstring checks in CI/CD pipeline
+- [ ] Create project-specific docstring templates for common patterns
+- [ ] Document complex algorithms with References section
+- [ ] Review [Testing Guide](testing-guide.md) for comprehensive testing documentation
+- [ ] Review [Test Docstring Standards](test-docstring-standards.md) for test-specific patterns
+- [ ] Verify WARP.md compliance for all new code
 
 ## References
 
@@ -1097,14 +1034,8 @@ This guide implements the following WARP.md requirements:
 
 ---
 
----
-
 ## Document Information
 
-**Category:** Guide
+**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-11
 **Last Updated:** 2025-10-15
-**Difficulty Level:** Intermediate
-**Target Audience:** Developers, code reviewers, documentation maintainers
-**Prerequisites:** Python knowledge, Google-style docstring familiarity
-**Related Documents:** [Testing Guide](../testing/guide.md), [Test Docstring Standards](test-docstring-standards.md)

@@ -50,6 +50,7 @@ Quick reference for writing and running tests following the project's synchronou
   - [Project Documentation](#project-documentation)
   - [External Resources](#external-resources)
   - [Test Utilities](#test-utilities)
+- [Document Information](#document-information)
 
 ---
 

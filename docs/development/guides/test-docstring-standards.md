@@ -32,6 +32,7 @@ Comprehensive guide for writing Google-style docstrings in test files, following
   - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
 - [Next Steps](#next-steps)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 

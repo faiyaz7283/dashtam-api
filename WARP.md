@@ -706,70 +706,72 @@ This ensures:
 
 ### AI Agent File Operations
 
-**CRITICAL RULE**: When working with files as an AI agent, follow these strict guidelines to avoid shell quoting and heredoc errors:
+**CRITICAL RULE**: Always use the appropriate file tools for file operations. NEVER use shell heredoc or multi-line quotes for file creation.
+
+**For creating new files:**
+
+- ✅ **ALWAYS use `create_file` tool** - No size limitations, handles files of any length
+- ✅ Can create files with 1000+ lines without issues
+- ✅ Reliable for multi-line files with complex content
+- ✅ No issues with quotes, heredocs, or special characters
+- ✅ Can create directly in project directories OR in `/tmp/` for review
+- ✅ Use `run_command` with `cp` or `mv` to move files from `/tmp/` to final location
 
 **For editing existing files:**
 
 - ✅ **ALWAYS use `edit_files` tool** - Diff-based search/replace blocks
 - ✅ Precise, surgical edits to specific sections
 - ✅ Can make multiple edits across multiple files in one operation
+- ✅ For complete file rewrites, use `create_file` + `cp` instead of trying to search/replace entire file
 
-**For creating new files:**
+**For task planning and complex workflows:**
 
-- ✅ **ALWAYS use `create_file` tool** - Provides complete file content
-- ✅ Reliable for multi-line files with complex content
-- ✅ No issues with quotes, heredocs, or special characters
+- ✅ **ALWAYS use `create_todo_list` tool** for multi-step tasks (3+ steps)
+- ✅ Keeps track of progress across session interruptions
+- ✅ Use `mark_todo_as_done` to track completed items
+- ✅ Use `read_todos` to check current state
+- ✅ DO NOT create TODO lists with only 1-2 items
 
-**For simple one-liners:**
+**Recommended workflow for file restructuring:**
+
+```bash
+# Step 1: Create restructured file in /tmp/
+create_file("/tmp/filename.md", content)
+
+# Step 2: Copy to project location (AI agent does this)
+run_command("cp /tmp/filename.md docs/development/guides/filename.md")
+
+# Step 3: Lint and verify
+run_command("make lint-md-file FILE='docs/development/guides/filename.md'")
+
+# Step 4: Commit
+run_command("git add docs/development/guides/filename.md")
+create_file("/tmp/commit_msg.txt", commit_message)
+run_command("git commit -F /tmp/commit_msg.txt")
+```
+
+**FORBIDDEN patterns in terminal commands:**
+
+- ❌ **NEVER use heredoc syntax** (`<< EOF`) - Gets mangled, causes infinite prompts
+- ❌ **NEVER use multi-line strings in double quotes** - Causes `dquote>` prompt hang
+- ❌ **NEVER use `cat > file << EOF`** - Has NEVER worked successfully, pure headache
+- ❌ **NEVER use Python `-c` with multi-line code** - Quote escaping problems
+- ❌ **NEVER complain about file size** - `create_file` handles large files perfectly
+- ❌ **NEVER break files into sections** - Create complete files in one operation
+
+**For simple one-liners only:**
 
 - ✅ **Use `echo 'line' >` for first line** - Single quotes, redirect to file
 - ✅ **Use `echo 'line' >>` for appending** - Single quotes, append to file
 - ✅ Chain multiple echo commands with `&&`
 
-**FORBIDDEN patterns in terminal commands:**
-
-- ❌ **NEVER use heredoc syntax** (`<< EOF`) - Gets mangled in transmission
-- ❌ **NEVER use multi-line strings in double quotes** - Causes `dquote>` prompt
-- ❌ **NEVER use `cat > file << EOF`** - Unreliable, causes heredoc issues
-- ❌ **NEVER use Python `-c` with multi-line code** - Quote escaping problems
-
-**Example - Correct approach:**
-
-```bash
-# ✅ Simple one-liner
-echo 'MAX_SESSIONS=10' > .session_config
-
-# ✅ Multiple lines with echo
-echo '# Title' > README.md && echo '' >> README.md && echo 'Content' >> README.md
-```
-
-**For multi-line content in commands (e.g., git commit messages):**
-
-- ✅ **ALWAYS use temp file approach** - Create file with `create_file`, then reference it
-- ✅ Example: Create `/tmp/commit_msg.txt` with `create_file`, then `git commit -F /tmp/commit_msg.txt`
-- ✅ Works for any tool requiring multi-line input (git, curl, etc.)
-
-**Example - Multi-line commit message:**
-
-```bash
-# ✅ Create temp file with create_file tool
-# /tmp/commit_msg.txt contains:
-# feat(auth): add JWT authentication
-# 
-# - Implement JWT token generation
-# - Add refresh token rotation
-# - Update API endpoints
-
-# Then use it:
-git commit -F /tmp/commit_msg.txt
-```
-
 **Why this matters:**
 
-- Terminal commands with heredoc/complex quotes fail transmission
-- The shell waits indefinitely at `heredoc>` or `dquote>` prompts
-- Proper file tools (`edit_files`, `create_file`) are reliable and safe
-- Temp file approach works for ANY multi-line content needs
+- `create_file` and `edit_files` tools are designed for AI agents
+- Shell heredoc/multi-line quotes have NEVER worked reliably in this environment
+- Terminal commands with heredoc fail transmission and hang indefinitely
+- `create_file` can handle files of ANY size (tested with 800+ line files)
+- Using proper tools is faster and more reliable than workarounds
 
 ### Docker Service Names
 

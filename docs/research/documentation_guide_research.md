@@ -21,26 +21,12 @@ Evaluation of modern documentation tools (MkDocs, Sphinx, Docusaurus) to establi
   - [Option 3: Docusaurus](#option-3-docusaurus)
   - [Option 4: GitHub Pages (Plain Markdown)](#option-4-github-pages-plain-markdown)
 - [Analysis](#analysis)
-  - [Comparison Matrix](#comparison-matrix)
-  - [Detailed Analysis](#detailed-analysis)
-  - [Industry Research](#industry-research)
 - [Decision](#decision)
-  - [Chosen Option: MkDocs + Material Theme](#chosen-option-mkdocs--material-theme)
-  - [Rationale](#rationale)
-  - [Decision Criteria Met](#decision-criteria-met)
 - [Consequences](#consequences)
-  - [Positive Consequences](#positive-consequences)
-  - [Negative Consequences](#negative-consequences)
-  - [Risks](#risks)
 - [Implementation](#implementation)
-  - [Implementation Plan](#implementation-plan)
-  - [Migration Strategy](#migration-strategy)
-  - [Rollback Plan](#rollback-plan)
-  - [Success Metrics](#success-metrics)
 - [Follow-Up](#follow-up)
-  - [Future Considerations](#future-considerations)
-  - [Review Schedule](#review-schedule)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -207,7 +193,7 @@ All options follow modern "Docs-as-Code" principle:
 
 ## Analysis
 
-### Comparison Matrix
+**Comparison Matrix:**
 
 | Criterion | MkDocs + Material | Sphinx + ReadTheDocs | Docusaurus | GitHub Pages | Weight |
 |-----------|-------------------|----------------------|------------|--------------|--------|
@@ -219,9 +205,7 @@ All options follow modern "Docs-as-Code" principle:
 | **GitHub Actions** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | High |
 | **Free Hosting** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Medium |
 
-### Detailed Analysis
-
-#### Winner: MkDocs + Material Theme
+**Winner: MkDocs + Material Theme:**
 
 - Best balance of ease-of-use, features, and professional appearance
 - Excellent Python integration via mkdocstrings plugin
@@ -229,9 +213,7 @@ All options follow modern "Docs-as-Code" principle:
 - Minimal setup complexity for small team
 - Strong plugin ecosystem (Mermaid, awesome-pages, mkdocstrings)
 
-### Industry Research
-
-**Real-World Examples:**
+**Industry Research: Real-World Examples:**
 
 - **FastAPI**: Uses MkDocs Material (https://fastapi.tiangolo.com/)
 - **Pydantic**: Uses MkDocs Material (https://docs.pydantic.dev/)
@@ -249,9 +231,7 @@ All options follow modern "Docs-as-Code" principle:
 
 ## Decision
 
-### Chosen Option: MkDocs + Material Theme
-
-### Rationale
+**MkDocs + Material Theme:**
 
 **Key Factors:**
 
@@ -263,7 +243,7 @@ All options follow modern "Docs-as-Code" principle:
 6. **Free & Simple Deployment**: One-command deploy to GitHub Pages
 7. **Diagram Support**: Mermaid plugin enables inline diagrams
 
-### Decision Criteria Met
+**Decision Criteria Met:**
 
 - ✅ **Docstring Generation**: mkdocstrings supports Google-style docstrings perfectly
 - ✅ **Professional UI**: Material theme provides modern, searchable interface
@@ -274,7 +254,7 @@ All options follow modern "Docs-as-Code" principle:
 
 ## Consequences
 
-### Positive Consequences
+**Positive Consequences:**
 
 - ✅ **Fast Implementation**: Can set up complete documentation site in 1-2 days
 - ✅ **Industry Alignment**: Using same tooling as FastAPI, Pydantic, SQLModel
@@ -283,12 +263,12 @@ All options follow modern "Docs-as-Code" principle:
 - ✅ **Automation**: CI/CD removes manual deployment burden
 - ✅ **Maintainability**: Docs-as-code keeps documentation in sync with code
 
-### Negative Consequences
+**Negative Consequences:**
 
 - ⚠️ **Limited PDF Export**: MkDocs PDF generation not as robust as Sphinx (acceptable trade-off)
 - ⚠️ **Single Output Format**: Primarily HTML (vs Sphinx's HTML/PDF/ePub) (acceptable for web-first docs)
 
-### Risks
+**Risks:**
 
 - **Risk 1: Plugin Maintenance**
   - Impact: If mkdocstrings plugin becomes unmaintained, API reference generation breaks
@@ -300,39 +280,37 @@ All options follow modern "Docs-as-Code" principle:
 
 ## Implementation
 
-### Implementation Plan
-
-#### Phase 1: Setup MkDocs Infrastructure
+**Phase 1: Setup MkDocs Infrastructure:**
 
 - [ ] Install MkDocs and Material theme: `uv add mkdocs-material`
 - [ ] Install plugins: `uv add mkdocstrings mkdocs-mermaid2-plugin mkdocs-awesome-pages-plugin`
 - [ ] Create mkdocs.yml configuration file
 - [ ] Set up docs/ directory structure
 
-#### Phase 2: Migrate Existing Docs
+**Phase 2: Migrate Existing Docs:**
 
 - [ ] Review existing /docs Markdown files
 - [ ] Organize into user guides, API reference, architecture sections
 - [ ] Add index.md (documentation homepage)
 - [ ] Configure navigation in mkdocs.yml
 
-#### Phase 3: Auto-Generate API Reference
+**Phase 3: Auto-Generate API Reference:**
 
 - [ ] Configure mkdocstrings for Google-style docstrings
 - [ ] Create reference pages for key modules
 - [ ] Test API reference generation
 
-#### Phase 4: CI/CD Automation
+**Phase 4: CI/CD Automation:**
 
 - [ ] Create GitHub Actions workflow (.github/workflows/docs.yml)
 - [ ] Configure mkdocs gh-deploy command
 - [ ] Test automated deployment to GitHub Pages
 
-### Migration Strategy
+**Migration Strategy:**
 
 Existing Markdown documentation in /docs can be used as-is with minimal changes. MkDocs will build static site from existing files.
 
-### Rollback Plan
+**Rollback Plan:**
 
 If MkDocs proves insufficient:
 
@@ -340,7 +318,7 @@ If MkDocs proves insufficient:
 2. **Migrate to Sphinx**: Markdown files work with Sphinx via recommonmark plugin
 3. **Timeline**: Can rollback within 1 day
 
-### Success Metrics
+**Success Metrics:**
 
 - **Metric 1: Setup Time** - Complete MkDocs setup in < 2 days
 - **Metric 2: Build Time** - Documentation builds in < 30 seconds
@@ -349,14 +327,14 @@ If MkDocs proves insufficient:
 
 ## Follow-Up
 
-### Future Considerations
+**Future Considerations:**
 
 - **Versioning**: Add multi-version docs as API evolves (Material theme supports versioning)
 - **Search Analytics**: Add Plausible or Fathom analytics to track popular docs
 - **OpenAPI Integration**: Auto-generate endpoint docs from OpenAPI spec
 - **Internationalization**: Add multi-language support if expanding globally
 
-### Review Schedule
+**Review Schedule:**
 
 - **First Review**: 1 month after launch (assess usage, gather feedback)
 - **Regular Review**: Quarterly (evaluate if additional features needed)

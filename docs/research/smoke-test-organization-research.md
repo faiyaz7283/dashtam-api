@@ -19,26 +19,12 @@ Research and decision record for smoke test organization, SSL/TLS in test enviro
   - [Option 3: Hybrid Approach](#option-3-hybrid-approach)
   - [Option 4: SSL/TLS Approaches](#option-4-ssltls-approaches)
 - [Analysis](#analysis)
-  - [Comparison Matrix](#comparison-matrix)
-  - [Detailed Analysis](#detailed-analysis)
-  - [Industry Research](#industry-research)
 - [Decision](#decision)
-  - [Chosen Option: pytest with SSL/TLS Everywhere](#chosen-option-pytest-with-ssltls-everywhere)
-  - [Rationale](#rationale)
-  - [Decision Criteria Met](#decision-criteria-met)
 - [Consequences](#consequences)
-  - [Positive Consequences](#positive-consequences)
-  - [Negative Consequences](#negative-consequences)
-  - [Risks](#risks)
 - [Implementation](#implementation)
-  - [Implementation Plan](#implementation-plan)
-  - [Migration Strategy](#migration-strategy)
-  - [Rollback Plan](#rollback-plan)
-  - [Success Metrics](#success-metrics)
 - [Follow-Up](#follow-up)
-  - [Future Considerations](#future-considerations)
-  - [Review Schedule](#review-schedule)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -286,7 +272,7 @@ tests/
 
 Three approaches for handling SSL/TLS in test environments, each with different trade-offs between security testing and development speed.
 
-#### Approach 4A: Production Parity (SSL Everywhere)
+**Approach 4A: Production Parity (SSL Everywhere):**
 
 - **Description**: Enable SSL/TLS in dev, test, and CI environments with self-signed certificates
 - **Pros**:
@@ -301,7 +287,7 @@ Three approaches for handling SSL/TLS in test environments, each with different 
 - **Cost**: Low (2-3 hours setup)
 - **Industry Adoption**: 65%
 
-#### Approach 4B: Test-Only SSL
+**Approach 4B: Test-Only SSL:**
 
 - **Description**: Dev/Test use self-signed SSL, CI skips SSL for speed
 - **Pros**:
@@ -314,7 +300,7 @@ Three approaches for handling SSL/TLS in test environments, each with different 
 - **Cost**: Low (2 hours)
 - **Industry Adoption**: 25%
 
-#### Approach 4C: No SSL in Test
+**Approach 4C: No SSL in Test:**
 
 - **Description**: HTTP only in test/CI for maximum speed
 - **Pros**:
@@ -330,9 +316,7 @@ Three approaches for handling SSL/TLS in test environments, each with different 
 
 ## Analysis
 
-### Comparison Matrix
-
-**Test Organization Options:**
+**Comparison Matrix: Test Organization Options:**
 
 | Criterion | Option 1: Shell Script | Option 2: pytest | Option 3: Hybrid | Weight |
 |-----------|------------------------|------------------|------------------|--------|
@@ -353,9 +337,7 @@ Three approaches for handling SSL/TLS in test environments, each with different 
 | CI Speed | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Medium |
 | Industry Adoption | ⭐⭐⭐⭐ | ⭐⭐ | ⭐ | High |
 
-### Detailed Analysis
-
-#### Test Organization
+**Test Organization:**
 
 **Shell Script (Option 1) Analysis:**
 
@@ -375,7 +357,7 @@ Three approaches for handling SSL/TLS in test environments, each with different 
 - **Cons**: Dual maintenance burden, risk of never completing migration, two different testing approaches simultaneously
 - **Verdict**: Not recommended - adds complexity without clear benefit
 
-#### SSL/TLS Testing
+**SSL/TLS Testing:**
 
 **Production Parity (4A) Analysis:**
 
@@ -395,7 +377,7 @@ Three approaches for handling SSL/TLS in test environments, each with different 
 - **Cons**: Misses all SSL issues, can't test OAuth flows, no production parity
 - **Verdict**: Not recommended - unacceptable for financial platform
 
-#### CI/CD Integration
+**CI/CD Integration:**
 
 **Key Findings:**
 
@@ -405,11 +387,7 @@ Three approaches for handling SSL/TLS in test environments, each with different 
 - Smoke tests should run AFTER unit/integration tests (fail fast)
 - Duration target: < 5 minutes (currently: ~3 minutes)
 
-### Industry Research
-
-**Real-World Examples:**
-
-**Test Organization (Research: 50+ Python projects)**:
+**Industry Research: Real-World Examples:**
 
 - **Django**: All tests in `tests/` directory, pytest-based
 - **FastAPI**: Tests in `tests/` with unit/integration/e2e separation
@@ -456,13 +434,11 @@ tests/
 
 ## Decision
 
-### Chosen Option: pytest with SSL/TLS Everywhere
-
 **Decision**: Implement Option 2 (pytest conversion) combined with Option 4A (SSL/TLS in all environments).
 
 **Status**: ✅ **COMPLETE** - All recommendations implemented (2025-10-06)
 
-### Rationale
+**Rationale:**
 
 **Why pytest (Option 2) over shell script:**
 
@@ -488,7 +464,7 @@ tests/
 3. **CI/CD Integration**: Automated smoke tests provide deployment confidence
 4. **Token Extraction Solution**: pytest's `caplog` fixture solved Docker CLI dependency problem
 
-### Decision Criteria Met
+**Decision Criteria Met:**
 
 - ✅ **Test Organization**: Smoke tests now in `tests/smoke/` (85% industry standard)
 - ✅ **Consistent Testing**: pytest-based like unit/integration tests (80% industry standard)
@@ -500,7 +476,7 @@ tests/
 
 ## Consequences
 
-### Positive Consequences
+**Positive Consequences:**
 
 - ✅ **23 comprehensive smoke tests**: Complete authentication flow coverage (registration → verification → login → password reset → logout)
 - ✅ **96% test success rate**: 22/23 tests passing (1 skipped due to minor API bug)
@@ -512,14 +488,14 @@ tests/
 - ✅ **Make command**: Simple `make test-smoke` command
 - ✅ **Test coverage**: Integrated with coverage reporting (76% overall)
 
-### Negative Consequences
+**Negative Consequences:**
 
 - ⚠️ **Upfront conversion cost**: 20 hours total (research + implementation + documentation)
 - ⚠️ **Learning curve**: Team needed to learn pytest HTTP testing patterns
 - ⚠️ **Self-signed cert warnings**: Expected in development (not a real issue)
 - ⚠️ **Slightly slower CI**: SSL overhead minimal (~10 seconds)
 
-### Risks
+**Risks:**
 
 - **Risk**: Self-signed certificates could cause confusion for new developers
   - **Mitigation**: Comprehensive documentation in `tests/smoke/README.md`, clear error messages
@@ -535,8 +511,6 @@ tests/
 
 ## Implementation
 
-### Implementation Plan
-
 **Status**: ✅ **COMPLETE** - All phases implemented (2025-10-06)
 
 - ✅ Created `tests/smoke/` directory
@@ -547,7 +521,7 @@ tests/
 - ✅ Added `make test-smoke` command to Makefile
 - ✅ 22/23 tests passing (96% success rate)
 
-#### Phase 2: SSL/TLS Implementation
+**Phase 2: SSL/TLS Implementation:**
 
 - ✅ Updated `compose/docker-compose.test.yml` for HTTPS (port 8001)
 - ✅ Updated `compose/docker-compose.ci.yml` for HTTPS (internal)
@@ -556,7 +530,7 @@ tests/
 - ✅ Fixed PostgreSQL health check errors
 - ✅ Production parity achieved across dev, test, and CI
 
-#### Phase 3: CI/CD Integration
+**Phase 3: CI/CD Integration:**
 
 - ✅ Integrated smoke tests into GitHub Actions workflow
 - ✅ Smoke tests run automatically on every push/PR
@@ -564,7 +538,7 @@ tests/
 - ✅ Coverage reporting to Codecov
 - ✅ All environments tested (dev, test, CI)
 
-### Migration Strategy
+**Migration Strategy:**
 
 **Approach Taken**: Direct conversion (not hybrid)
 
@@ -580,7 +554,7 @@ tests/
 - All benefits realized immediately
 - No risk of incomplete migration
 
-### Rollback Plan
+**Rollback Plan:**
 
 **If pytest smoke tests fail:**
 
@@ -591,7 +565,7 @@ tests/
 
 **Status**: No rollback needed - implementation successful
 
-### Success Metrics
+**Success Metrics:**
 
 **Target Metrics** (all achieved ✅):
 
@@ -617,7 +591,7 @@ tests/
 
 ## Follow-Up
 
-### Future Considerations
+**Future Considerations:**
 
 **Optional Future Improvements** (⏭️ Not critical):
 
@@ -633,7 +607,7 @@ tests/
 - Monitor smoke test duration (target: < 5 minutes)
 - Update smoke tests as new critical features added
 
-### Review Schedule
+**Review Schedule:**
 
 **First Review**: 2025-11-06 (1 month after implementation)
 

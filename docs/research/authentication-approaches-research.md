@@ -22,30 +22,12 @@ Comprehensive evaluation of modern authentication methods for Dashtam's user aut
   - [Option 5: Session-Based Authentication (Traditional)](#option-5-session-based-authentication-traditional)
   - [Option 6: Hybrid Approach (JWT + Session Tokens)](#option-6-hybrid-approach-jwt--session-tokens)
 - [Analysis](#analysis)
-  - [Comparison Matrix](#comparison-matrix)
-  - [Financial Industry Analysis](#financial-industry-analysis)
-  - [Security Analysis](#security-analysis)
 - [Decision](#decision)
-  - [Chosen Option: JWT (JSON Web Tokens) with Refresh Tokens](#chosen-option-jwt-json-web-tokens-with-refresh-tokens)
-  - [Rationale](#rationale)
-  - [Decision Criteria Met](#decision-criteria-met)
 - [Consequences](#consequences)
-  - [Positive Consequences](#positive-consequences)
-  - [Negative Consequences](#negative-consequences)
-  - [Risks](#risks)
 - [Implementation](#implementation)
-  - [Implementation Plan](#implementation-plan)
-  - [Migration Strategy](#migration-strategy)
-    - [Current State (Mock Auth)](#current-state-mock-auth)
-    - [Target State (JWT)](#target-state-jwt)
-    - [Migration Steps](#migration-steps)
-  - [Rollback Plan](#rollback-plan)
-  - [Success Metrics](#success-metrics)
-  - [Testing Strategy](#testing-strategy)
 - [Follow-Up](#follow-up)
-  - [Future Considerations](#future-considerations)
-  - [Review Schedule](#review-schedule)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -130,8 +112,6 @@ Dashtam requires a production-ready authentication system to replace mock authen
 | **Social Auth (OAuth)** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 70% (optional) |
 | **Session-Based** | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | 40% (legacy) |
 
----
-
 ### Option 1: JWT (JSON Web Tokens) with Refresh Tokens
 
 **Description:** Stateless authentication using cryptographically signed JSON tokens. Access tokens (short-lived, 15-30 min) authorize API requests, while refresh tokens (long-lived, 7-30 days) obtain new access tokens without re-login. Industry standard for modern APIs.
@@ -185,7 +165,7 @@ Dashtam requires a production-ready authentication system to replace mock authen
 - **Square**: JWT for API access
 - **Gusto**: JWT with MFA
 
-#### Best Practices
+**Best Practices:**
 
 ```python
 # Access Token (short-lived, 15-30 minutes)
@@ -210,19 +190,17 @@ Dashtam requires a production-ready authentication system to replace mock authen
 }
 ```
 
-#### Verdict: **RECOMMENDED** ✅
+**RECOMMENDED** ✅
 
 Best choice for Dashtam's initial implementation. Provides excellent balance of security, UX, and implementation speed.
 
----
-
 ### Option 2: OAuth2 / OpenID Connect (OIDC)
 
-#### What It Is
+**What It Is:**
 
 Industry-standard protocol for authorization (OAuth2) and authentication (OIDC). Allows users to log in via third-party identity providers (Google, Microsoft, GitHub) or implement your own authorization server.
 
-#### How It Works
+**How It Works:**
 
 ```text
 1. User clicks "Login with Google"
@@ -234,7 +212,7 @@ Industry-standard protocol for authorization (OAuth2) and authentication (OIDC).
 7. User is logged in
 ```
 
-#### Security Strengths ⭐⭐⭐⭐⭐ (5/5)
+**Security Strengths** ⭐⭐⭐⭐⭐ (5/5)
 
 - ✅ **Industry standard**: Battle-tested by billions of users
 - ✅ **Delegation**: Offload authentication security to Google/Microsoft
@@ -245,7 +223,7 @@ Industry-standard protocol for authorization (OAuth2) and authentication (OIDC).
 - ⚠️ **Third-party dependency**: Relies on external providers
 - ⚠️ **Provider outages**: If Google is down, users can't log in
 
-#### User Experience ⭐⭐⭐ (3/5)
+**User Experience** ⭐⭐⭐ (3/5)
 
 - ✅ **One-click login**: No password to remember
 - ✅ **Trusted providers**: Users comfortable with Google/Apple
@@ -254,7 +232,7 @@ Industry-standard protocol for authorization (OAuth2) and authentication (OIDC).
 - ⚠️ **Redirect flow**: Extra step (leave your site, come back)
 - ⚠️ **Email verification**: May not be verified by provider
 
-#### Implementation Complexity ⭐⭐⭐ (3/5)
+**Implementation Complexity** ⭐⭐⭐ (3/5)
 
 - ✅ **Libraries available**: `authlib`, `python-social-auth`
 - ⚠️ **Configuration**: Must register app with each provider
@@ -262,14 +240,14 @@ Industry-standard protocol for authorization (OAuth2) and authentication (OIDC).
 - ⚠️ **Provider-specific quirks**: Each provider has different requirements
 - ⚠️ **7-10 day implementation**: Integration, testing, edge cases
 
-#### Maintenance ⭐⭐⭐ (3/5)
+**Maintenance** ⭐⭐⭐ (3/5)
 
 - ✅ **Reduced security burden**: Providers handle passwords, MFA
 - ⚠️ **Provider changes**: API updates, deprecations
 - ⚠️ **Multiple providers**: More code to maintain
 - ⚠️ **Compliance**: Must handle user data from multiple sources
 
-#### Real-World Examples (Financial Industry)
+**Real-World Examples** (Financial Industry)
 
 - **Mint**: Google, Facebook, Apple Sign-In
 - **Personal Capital**: Social auth + email
@@ -277,7 +255,7 @@ Industry-standard protocol for authorization (OAuth2) and authentication (OIDC).
 - **Wealthfront**: Email + Social as optional
 - **Acorns**: Social auth supported
 
-#### Best Practices
+**Best Practices:**
 
 ```python
 # Supported Providers
@@ -294,19 +272,17 @@ Industry-standard protocol for authorization (OAuth2) and authentication (OIDC).
 - Implement account merge flow
 ```
 
-#### Verdict: **RECOMMENDED AS OPTIONAL** 🟡
+**RECOMMENDED AS OPTIONAL** 🟡
 
 Excellent as a secondary authentication method. Implement JWT first, then add social auth in Phase 2 (3-6 months) for better UX.
 
----
-
 ### Option 3: Passkeys (WebAuthn / FIDO2)
 
-#### What It Is
+**What It Is:**
 
 Passwordless authentication using public-key cryptography. Users authenticate with biometrics (Face ID, Touch ID, Windows Hello) or security keys. The future of authentication.
 
-#### How It Works
+**How It Works:**
 
 ```text
 1. User registers: Device creates public/private key pair
@@ -317,7 +293,7 @@ Passwordless authentication using public-key cryptography. Users authenticate wi
 6. User is logged in
 ```
 
-#### Security Strengths ⭐⭐⭐⭐⭐ (5/5)
+**Security Strengths** ⭐⭐⭐⭐⭐ (5/5)
 
 - ✅ **Phishing-resistant**: Cannot be stolen via phishing
 - ✅ **No shared secrets**: Private key never leaves device
@@ -327,7 +303,7 @@ Passwordless authentication using public-key cryptography. Users authenticate wi
 - ✅ **Industry backing**: Apple, Google, Microsoft all support
 - ⚠️ **Device dependency**: Lose device = locked out (needs recovery)
 
-#### User Experience ⭐⭐⭐⭐⭐ (5/5)
+**User Experience** ⭐⭐⭐⭐⭐ (5/5)
 
 - ✅ **Best UX**: Touch sensor or face scan, done
 - ✅ **No passwords**: Nothing to remember
@@ -336,7 +312,7 @@ Passwordless authentication using public-key cryptography. Users authenticate wi
 - ⚠️ **Browser support**: Not universal (95%+ of modern browsers)
 - ⚠️ **Learning curve**: Users unfamiliar with technology
 
-#### Implementation Complexity ⭐⭐⭐ (3/5)
+**Implementation Complexity** ⭐⭐⭐ (3/5)
 
 - ✅ **Libraries available**: `py_webauthn`, `webauthn`
 - ⚠️ **Browser APIs**: Requires JavaScript WebAuthn API
@@ -345,14 +321,14 @@ Passwordless authentication using public-key cryptography. Users authenticate wi
 - ⚠️ **Testing**: Requires browser automation or mock credentials
 - ⚠️ **6-8 day implementation**: Registration, authentication, recovery
 
-#### Maintenance ⭐⭐⭐⭐ (4/5)
+**Maintenance** ⭐⭐⭐⭐ (4/5)
 
 - ✅ **Low maintenance**: Stable standard (FIDO2 spec)
 - ✅ **No password resets**: Users don't forget biometrics
 - ⚠️ **Device management**: Users may have multiple devices
 - ⚠️ **Recovery support**: Must help users who lose devices
 
-#### Real-World Examples (Financial Industry)
+**Real-World Examples** (Financial Industry)
 
 - **Apple Card**: Face ID / Touch ID
 - **Coinbase**: Passkey support (2023)
@@ -361,7 +337,7 @@ Passwordless authentication using public-key cryptography. Users authenticate wi
 - **Chase**: Passkey beta (2024)
 - **Bank of America**: Biometric login in app
 
-#### Best Practices
+**Best Practices:**
 
 ```python
 # Passkey Storage
@@ -382,19 +358,17 @@ Passwordless authentication using public-key cryptography. Users authenticate wi
 - Account recovery via email
 ```
 
-#### Verdict: **RECOMMENDED FOR PHASE 3** 🟡
+**RECOMMENDED FOR PHASE 3** 🟡
 
 Cutting-edge UX, but not widely adopted yet. Implement in 6-12 months after JWT foundation is stable. Users need backup auth method.
 
----
-
 ### Option 4: Magic Links (Passwordless Email)
 
-#### What It Is
+**What It Is:**
 
 Passwordless authentication via email. Users receive a unique, time-limited link that logs them in when clicked. No password needed.
 
-#### How It Works
+**How It Works:**
 
 ```text
 1. User enters email
@@ -405,7 +379,7 @@ Passwordless authentication via email. Users receive a unique, time-limited link
 6. User is logged in, token is invalidated
 ```
 
-#### Security Strengths ⭐⭐⭐ (3/5)
+**Security Strengths** ⭐⭐⭐ (3/5)
 
 - ✅ **No passwords**: Cannot be phished or reused
 - ✅ **Email as second factor**: Must access email account
@@ -416,7 +390,7 @@ Passwordless authentication via email. Users receive a unique, time-limited link
 - ⚠️ **Shared devices**: Email may be open on other devices
 - ⚠️ **Phishing risk**: Users may click malicious links
 
-#### User Experience ⭐⭐⭐⭐ (4/5)
+**User Experience** ⭐⭐⭐⭐ (4/5)
 
 - ✅ **Simple**: Just enter email, check inbox
 - ✅ **No password**: Nothing to remember or reset
@@ -426,7 +400,7 @@ Passwordless authentication via email. Users receive a unique, time-limited link
 - ⚠️ **Inbox clutter**: Frequent logins = many emails
 - ⚠️ **Mobile context switch**: Must switch apps to check email
 
-#### Implementation Complexity ⭐⭐⭐⭐⭐ (5/5)
+**Implementation Complexity** ⭐⭐⭐⭐⭐ (5/5)
 
 - ✅ **Very simple**: Just token generation + email sending
 - ✅ **Database minimal**: Magic_link_tokens table
@@ -434,14 +408,14 @@ Passwordless authentication via email. Users receive a unique, time-limited link
 - ✅ **Email service**: SendGrid, AWS SES, Mailgun
 - ✅ **3-4 day implementation**: Token generation, email templates, validation
 
-#### Maintenance ⭐⭐⭐ (3/5)
+**Maintenance** ⭐⭐⭐ (3/5)
 
 - ✅ **Low code maintenance**: Simple logic
 - ⚠️ **Email deliverability**: Spam filters, rate limits
 - ⚠️ **Email service costs**: Per-email charges
 - ⚠️ **Support burden**: "I didn't get the email" tickets
 
-#### Real-World Examples (Financial Industry)
+**Real-World Examples** (Financial Industry)
 
 - **Robinhood**: Magic links for password reset
 - **Medium**: Primary login method
@@ -450,7 +424,7 @@ Passwordless authentication via email. Users receive a unique, time-limited link
 - **Linear**: Primary authentication method
 - **Some neobanks**: Used for onboarding
 
-#### Best Practices
+**Best Practices:**
 
 ```python
 # Magic Link Token
@@ -472,19 +446,17 @@ Passwordless authentication via email. Users receive a unique, time-limited link
 - Log all magic link usage for audit
 ```
 
-#### Verdict: **NOT RECOMMENDED AS PRIMARY** ❌
+**NOT RECOMMENDED AS PRIMARY** ❌
 
 Good for password reset or as alternative, but not ideal for frequent logins in a financial app. Email delays hurt UX. Better as a recovery mechanism.
 
----
-
 ### Option 5: Session-Based Authentication (Traditional)
 
-#### What It Is
+**What It Is:**
 
 Traditional server-side sessions. User logs in, server creates session stored in Redis/database, session ID sent to client as cookie.
 
-#### How It Works
+**How It Works:**
 
 ```text
 1. User logs in with email/password
@@ -496,7 +468,7 @@ Traditional server-side sessions. User logs in, server creates session stored in
 7. Logout: Delete session from Redis
 ```
 
-#### Security Strengths ⭐⭐⭐ (3/5)
+**Security Strengths** ⭐⭐⭐ (3/5)
 
 - ✅ **Revocable**: Can invalidate session immediately
 - ✅ **Server control**: Full control over session lifecycle
@@ -505,45 +477,43 @@ Traditional server-side sessions. User logs in, server creates session stored in
 - ⚠️ **CSRF vulnerability**: Requires CSRF tokens
 - ⚠️ **Session fixation**: Requires session regeneration on login
 
-#### User Experience ⭐⭐⭐ (3/5)
+**User Experience** ⭐⭐⭐ (3/5)
 
 - ✅ **Seamless**: Standard web behavior
 - ✅ **Familiar**: Users understand cookies
 - ⚠️ **Single device**: Logout one device = all devices logged out (unless multi-session)
 - ⚠️ **Browser-specific**: Doesn't work well with mobile apps
 
-#### Implementation Complexity ⭐⭐⭐⭐⭐ (5/5)
+**Implementation Complexity** ⭐⭐⭐⭐⭐ (5/5)
 
 - ✅ **Built-in**: FastAPI has session middleware
 - ✅ **Simple code**: No tokens or crypto
 - ✅ **2-3 day implementation**: Just middleware + Redis
 
-#### Maintenance ⭐⭐ (2/5)
+**Maintenance** ⭐⭐ (2/5)
 
 - ⚠️ **Session storage**: Redis must be maintained
 - ⚠️ **Scaling issues**: Sticky sessions or shared Redis
 - ⚠️ **Memory usage**: Active sessions consume memory
 - ⚠️ **Debugging**: Must check Redis for session state
 
-#### Real-World Examples (Financial Industry)
+**Real-World Examples** (Financial Industry)
 
 - **Legacy banks**: Many still use sessions
 - **Some credit unions**: Session-based web portals
 - **Decreasing adoption**: Most modern fintech uses JWT
 
-#### Verdict: **NOT RECOMMENDED** ❌
+**NOT RECOMMENDED** ❌
 
 Legacy approach. JWT provides better scalability, mobile support, and stateless architecture. Sessions better suited for monolithic server-rendered apps.
 
----
-
 ### Option 6: Hybrid Approach (JWT + Session Tokens)
 
-#### What It Is
+**What It Is:**
 
 Combines JWT for stateless API authentication with session storage for revocation capabilities.
 
-#### How It Works
+**How It Works:**
 
 ```text
 1. User logs in
@@ -556,23 +526,13 @@ Combines JWT for stateless API authentication with session storage for revocatio
 6. Logout: Delete session from Redis (JWT becomes invalid)
 ```
 
-#### Verdict: **OVERKILL FOR DASHTAM** ❌
+**OVERKILL FOR DASHTAM** ❌
 
 Adds complexity without significant benefits for your use case. Refresh token rotation provides similar revocation capabilities.
 
----
-
 ## Analysis
 
-### Comparison Matrix
-
-See Quick Comparison Matrix in Options Considered section above for star ratings across all options.
-
-### Financial Industry Analysis
-
-### What Top Financial Apps Use (2024-2025 Data)
-
-#### Banking & Investment Apps
+**Banking & Investment Apps:**
 
 | App | Primary Auth | Secondary Options | MFA |
 |-----|--------------|-------------------|-----|
@@ -585,7 +545,7 @@ See Quick Comparison Matrix in Options Considered section above for star ratings
 | **Wealthfront** | Email/Password (JWT) | Google | SMS, TOTP |
 | **Betterment** | Email/Password | Apple, Google | SMS |
 
-#### Fintech Aggregators (Dashtam's Peers)
+**Fintech Aggregators (Dashtam's Peers):**
 
 | App | Primary Auth | Token Type | Notes |
 |-----|--------------|------------|-------|
@@ -595,15 +555,13 @@ See Quick Comparison Matrix in Options Considered section above for star ratings
 | **Copilot Money** | Email/Password | JWT | Apple Sign-In |
 | **Monarch Money** | Email/Password | JWT | Social auth |
 
-### Key Findings
+**Key Findings:**
 
 1. **95% use JWT** for stateless API authentication
 2. **70% offer social auth** as optional convenience
 3. **90% require MFA** for financial operations
 4. **25% adding passkeys** (new trend, 2023-2025)
 5. **0% use pure sessions** in modern apps
-
-### User Preferences (Based on Industry Studies)
 
 **What Users Want:**
 
@@ -620,7 +578,7 @@ See Quick Comparison Matrix in Options Considered section above for star ratings
 3. ❌ **Email verification loops**: 31% abandon during signup
 4. ❌ **Frequent logouts**: 52% frustrated by short sessions
 
-### Compliance Requirements (Financial Apps)
+**Compliance Requirements For Financial Apps:**
 
 **SOC 2 Requirements:**
 
@@ -644,9 +602,7 @@ See Quick Comparison Matrix in Options Considered section above for star ratings
 - ✅ Data portability
 - ✅ Breach notification (72 hours)
 
----
-
-### Security Analysis
+**Security Analysis:**
 
 See individual option security details above. Key security considerations:
 
@@ -657,17 +613,9 @@ See individual option security details above. Key security considerations:
 
 ## Decision
 
-### Chosen Option: JWT (JSON Web Tokens) with Refresh Tokens
+**JWT (JSON Web Tokens) with Refresh Tokens:**
 
-### Rationale
-
-### Recommended Architecture: Multi-Phase Approach
-
-#### Phase 1: JWT Foundation (Now - Week 1-2)
-
-**Implementation**: Fast (minimal complexity)
-
-**Core Features:**
+**Phase 1: JWT FoundationCore Features:**
 
 - Email/password registration
 - JWT access token (30 min expiry)
@@ -753,12 +701,7 @@ PATCH  /api/v1/auth/me                  # Update profile
 POST   /api/v1/auth/change-password     # Change password (requires current)
 ```
 
----
-
-#### Phase 2: Social Authentication (3-6 Months)
-
-**Implementation**: Moderate complexity
-complexity
+**Phase 2: Social Authentication:**
 
 **Add Providers:**
 
@@ -805,12 +748,7 @@ DELETE /api/v1/auth/oauth/{provider}/unlink       # Unlink OAuth account
 GET    /api/v1/auth/oauth/accounts                # List linked accounts
 ```
 
----
-
-#### Phase 3: Passkeys (Passwordless) (6-12 Months)
-
-**Implementation**: Complex (federated identity)
-mplexity
+**Phase 3: Passkeys (Passwordless):**
 
 **Add Features:**
 
@@ -855,11 +793,7 @@ GET    /api/v1/auth/passkey/credentials        # List user's passkeys
 DELETE /api/v1/auth/passkey/credentials/{id}   # Delete passkey
 ```
 
----
-
-#### Phase 4: MFA (Multi-Factor Authentication) (12-18 Months)
-
-**Implementation**: Moderate complexity
+**Phase 4: MFA (Multi-Factor Authentication):**
 
 **Add Options:**
 
@@ -874,9 +808,7 @@ DELETE /api/v1/auth/passkey/credentials/{id}   # Delete passkey
 - ✅ Builds trust with enterprise customers
 - ✅ Compliance requirement for some providers
 
----
-
-### Decision Criteria Met
+**Decision Criteria Met:**
 
 - ✅ **Security**: 4/5 stars, meets SOC 2/PCI-DSS baseline
 - ✅ **Speed**: 4-5 day implementation (fastest option)
@@ -887,7 +819,7 @@ DELETE /api/v1/auth/passkey/credentials/{id}   # Delete passkey
 
 ## Consequences
 
-### Positive Consequences
+**Positive Consequences:**
 
 - ✅ **Fast Production Launch**: Unblocks P1/P2 features immediately
 - ✅ **Industry Credibility**: Using same approach as Plaid, Stripe, Coinbase
@@ -896,13 +828,13 @@ DELETE /api/v1/auth/passkey/credentials/{id}   # Delete passkey
 - ✅ **Technical Architecture**: Stateless design enables horizontal scaling
 - ✅ **Progressive Enhancement**: Clear path to add advanced auth methods
 
-### Negative Consequences
+**Negative Consequences:**
 
 - ⚠️ **Password Management**: Users must remember passwords (mitigated by adding social auth in Phase 2)
 - ⚠️ **Token Rotation Complexity**: Refresh token rotation requires careful implementation (mitigated by using established patterns)
 - ⚠️ **Access Token Invalidation**: Cannot invalidate compromised access tokens before expiry (mitigated by 30-min expiry)
 
-### Risks
+**Risks:**
 
 - **Risk 1: Refresh Token Storage Breach**
   - Impact: Attacker could maintain access for 30 days
@@ -914,22 +846,19 @@ DELETE /api/v1/auth/passkey/credentials/{id}   # Delete passkey
 
 ## Implementation
 
-### Implementation Plan
+**Timeline Overview:**
 
-#### Phase 1: JWT Foundation (Primary - Now)
-
-### Timeline Overview
-
-```text
-Now                Month 3           Month 6           Month 12
- |                   |                 |                  |
- v                   v                 v                  v
-JWT                Social            Passkeys           MFA
-Email/Password     Google/Apple      Biometric          TOTP/SMS
-(Fast)             (Moderate)        (Complex)          (Moderate)
+```mermaid
+graph LR
+    P1[Phase 1<br/>JWT<br/>Email/Password<br/><i>Fast</i>]
+    P2[Phase 2<br/>Social<br/>Google/Apple<br/><i>Moderate</i>]
+    P3[Phase 3<br/>Passkeys<br/>Biometric<br/><i>Complex</i>]
+    P4[Phase 4<br/>MFA<br/>TOTP/SMS<br/><i>Moderate</i>]
+    
+    P1 --> P2 --> P3 --> P4
 ```
 
-### Priority Justification
+**Priority Justification:**
 
 **Why JWT First?**
 
@@ -954,23 +883,9 @@ Email/Password     Google/Apple      Biometric          TOTP/SMS
 3. More complex OAuth flow
 4. JWT provides better API authentication
 
----
+**Migration Strategy:**
 
-#### Phase 2: Social Authentication (Progressive Enhancement - 3-6 Months)
-
-See full details in Recommendations section above.
-
-#### Phase 3: Passkeys (Progressive Enhancement - 6-12 Months)
-
-See full details in Recommendations section above.
-
-#### Phase 4: MFA (Progressive Enhancement - 12-18 Months)
-
-See full details in Recommendations section above.
-
-### Migration Strategy
-
-### Password Security (Phase 1)
+**Password Security (Phase 1):**
 
 ```python
 # Use bcrypt with appropriate work factor
@@ -991,7 +906,7 @@ pwd_context = CryptContext(
 - Not in common password list (HaveIBeenPwned)
 ```
 
-### Token Security
+**Token Security:**
 
 ```python
 # Access Token (JWT)
@@ -1008,7 +923,7 @@ pwd_context = CryptContext(
 - Revocable: Can invalidate in database
 ```
 
-### Rate Limiting (Prevent Brute Force)
+**Rate Limiting (Prevent Brute Force):**
 
 ```python
 # Login endpoint
@@ -1026,9 +941,7 @@ pwd_context = CryptContext(
 - Token valid for 24 hours
 ```
 
----
-
-### Rollback Plan
+**Rollback Plan:**
 
 If JWT implementation encounters critical issues:
 
@@ -1038,7 +951,7 @@ If JWT implementation encounters critical issues:
 4. **Timeline**: Can rollback within 1 hour
 5. **Data Loss**: Minimal (only affects test users during development)
 
-### Success Metrics
+**Success Metrics:**
 
 - **Metric 1: Implementation Speed** - Complete Phase 1 in 4-5 days
 - **Metric 2: Test Coverage** - 85%+ coverage for auth services
@@ -1046,9 +959,9 @@ If JWT implementation encounters critical issues:
 - **Metric 4: Performance** - Token validation < 10ms
 - **Metric 5: User Adoption** - 90%+ successful login rate
 
-### Testing Strategy
+**Testing Strategy:**
 
-### Unit Tests (JWT Phase 1)
+**Unit Tests (JWT Phase 1):**
 
 ```python
 # Test Coverage Areas
@@ -1062,7 +975,7 @@ If JWT implementation encounters critical issues:
 8. Rate limiting logic
 ```
 
-### Integration Tests
+**Integration Tests:**
 
 ```python
 # Test Scenarios
@@ -1076,7 +989,7 @@ If JWT implementation encounters critical issues:
 8. Failed login lockout
 ```
 
-### Security Tests
+**Security Tests:**
 
 ```python
 # Penetration Testing Scenarios
@@ -1089,9 +1002,7 @@ If JWT implementation encounters critical issues:
 7. CSRF token validation
 ```
 
----
-
-#### Current State (Mock Auth)
+**Current State (Mock Auth):**
 
 ```python
 # src/api/v1/auth.py (current)
@@ -1108,7 +1019,7 @@ async def get_current_user(session: AsyncSession = Depends(get_session)) -> User
     return user
 ```
 
-#### Target State (JWT)
+**Target State (JWT):**
 
 ```python
 # src/api/v1/auth.py (new)
@@ -1156,7 +1067,7 @@ async def get_current_user(
     return user
 ```
 
-#### Migration Steps
+**Migration Steps:**
 
 1. ✅ Create new auth service module
 2. ✅ Add password field to User model (Alembic migration)
@@ -1168,11 +1079,7 @@ async def get_current_user(
 8. ✅ Remove mock user creation logic
 9. ✅ Test end-to-end with real auth
 
----
-
 ## Follow-Up
-
-### Future Considerations
 
 **Things to Monitor After Phase 1 Implementation:**
 
@@ -1189,7 +1096,7 @@ async def get_current_user(
 3. **MFA Requirements**: Determine SOC 2 Type II timeline for MFA requirement
 4. **Enterprise Auth**: Assess need for OIDC/SAML for enterprise customers
 
-### Review Schedule
+**Review Schedule:**
 
 - **First Review**: 1 month after Phase 1 deployment
   - Assess JWT implementation success
@@ -1206,18 +1113,16 @@ async def get_current_user(
   - Evaluate all 6 authentication options again
   - Decide on advanced auth method priorities
 
----
-
 ## References
 
-### Libraries (Already Installed)
+**Libraries (Already Installed):**
 
 - **pyjwt**: JWT encoding/decoding
 - **python-jose**: JOSE implementation (JWT, JWS, JWE)
 - **passlib**: Password hashing (bcrypt, scrypt, argon2)
 - **cryptography**: Cryptographic primitives
 
-### Additional Libraries Needed
+**Additional Libraries Needed:**
 
 ```bash
 # For email verification (choose one)
@@ -1239,7 +1144,7 @@ uv add httpx-oauth  # OAuth2 providers for httpx
 uv add py-webauthn  # WebAuthn/FIDO2 implementation
 ```
 
-### Documentation Links
+**Documentation Links:**
 
 - [JWT Best Practices](https://datatracker.ietf.org/doc/html/rfc8725)
 - [OAuth 2.0 RFC](https://datatracker.ietf.org/doc/html/rfc6749)
@@ -1247,7 +1152,7 @@ uv add py-webauthn  # WebAuthn/FIDO2 implementation
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [Passlib Documentation](https://passlib.readthedocs.io/)
 
-### Industry Examples (Open Source)
+**Industry Examples (Open Source):**
 
 - **FastAPI Users**: Full auth system for FastAPI (reference implementation)
 - **Django AllAuth**: Comprehensive auth (patterns to follow)

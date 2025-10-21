@@ -17,37 +17,13 @@ Research and decision analysis comparing monolithic and modular smoke test desig
   - [Option 1: Monolithic Design (Current)](#option-1-monolithic-design-current)
   - [Option 2: Modular Design (Original)](#option-2-modular-design-original)
   - [Historical Context: Why Original Design Failed](#historical-context-why-original-design-failed)
-    - [Problem: Database State Pollution](#problem-database-state-pollution)
-    - [Solution: Isolated Pytest Sessions](#solution-isolated-pytest-sessions)
 - [Analysis](#analysis)
-  - [Comparison Matrix](#comparison-matrix)
-  - [Detailed Analysis](#detailed-analysis)
-    - [Test Clarity and Debugging](#test-clarity-and-debugging)
-    - [CI/CD Visibility](#cicd-visibility)
-    - [Test Isolation](#test-isolation)
-    - [Code Maintainability](#code-maintainability)
-    - [State Management Complexity](#state-management-complexity)
-  - [Industry Research](#industry-research)
 - [Decision](#decision)
-  - [Chosen Option: Modular Design](#chosen-option-modular-design)
-  - [Rationale](#rationale)
-  - [Decision Criteria Met](#decision-criteria-met)
 - [Consequences](#consequences)
-  - [Positive Consequences](#positive-consequences)
-  - [Negative Consequences](#negative-consequences)
-  - [Risks](#risks)
 - [Implementation](#implementation)
-  - [Implementation Plan](#implementation-plan)
-    - [Phase 1: Restore Original Structure](#phase-1-restore-original-structure)
-    - [Phase 2: Refinements](#phase-2-refinements)
-    - [Phase 3: Documentation](#phase-3-documentation)
-  - [Migration Strategy](#migration-strategy)
-  - [Rollback Plan](#rollback-plan)
-  - [Success Metrics](#success-metrics)
 - [Follow-Up](#follow-up)
-  - [Future Considerations](#future-considerations)
-  - [Review Schedule](#review-schedule)
 - [References](#references)
+- [Document Information](#document-information)
 
 ---
 
@@ -222,7 +198,7 @@ tests/smoke/test_complete_auth_flow.py::TestSmokeCompleteAuthFlow::test_11_verif
 
 ### Historical Context: Why Original Design Failed
 
-#### Problem: Database State Pollution
+**Problem: Database State Pollution:**
 
 When smoke tests ran in the **same pytest session** as main tests:
 
@@ -231,7 +207,7 @@ When smoke tests ran in the **same pytest session** as main tests:
 - SQLAlchemy session cache caused conflicts
 - Cleanup fixtures interfered with each other
 
-#### Solution: Isolated Pytest Sessions
+**Solution: Isolated Pytest Sessions:**
 
 Now that smoke tests run with `-m smoke` in **separate pytest session:**
 
@@ -244,7 +220,7 @@ Now that smoke tests run with `-m smoke` in **separate pytest session:**
 
 ## Analysis
 
-### Comparison Matrix
+**Comparison Matrix
 
 | Aspect | Monolithic (Current) | Modular (Original) | Weight |
 |--------|---------------------|-------------------|---------|
@@ -264,9 +240,7 @@ Now that smoke tests run with `-m smoke` in **separate pytest session:**
 - **Monolithic:** 2 ✅, 8 ❌, 0 ⚠️
 - **Modular:** 8 ✅, 0 ❌, 2 ⚠️
 
-### Detailed Analysis
-
-#### Test Clarity and Debugging
+**Test Clarity and Debugging:**
 
 **Monolithic:**
 
@@ -284,7 +258,7 @@ Now that smoke tests run with `-m smoke` in **separate pytest session:**
 
 **Winner:** Modular (significantly better debugging experience)
 
-#### CI/CD Visibility
+**CI/CD Visibility:**
 
 **Monolithic:**
 
@@ -310,7 +284,7 @@ Visual progress bar shows exactly where failure occurred.
 
 **Winner:** Modular (much better CI visualization)
 
-#### Test Isolation
+**Test Isolation:**
 
 **Monolithic:**
 
@@ -327,7 +301,7 @@ Visual progress bar shows exactly where failure occurred.
 
 **Winner:** Modular (proper test isolation)
 
-#### Code Maintainability
+**Code Maintainability:**
 
 **Monolithic:**
 
@@ -345,7 +319,7 @@ Visual progress bar shows exactly where failure occurred.
 
 **Winner:** Mixed (monolithic for simplicity, modular for separation)
 
-#### State Management Complexity
+**State Management Complexity:**
 
 **Monolithic:**
 
@@ -369,9 +343,7 @@ _smoke_test_user_data = {
 
 **Winner:** Monolithic (simpler state management)
 
-### Industry Research
-
-**Real-World Examples:**
+**Industry Research: Real-World Examples:**
 
 - **Django:** Uses separate test methods for sequential flows (e.g., registration → login → profile)
 - **FastAPI documentation:** Examples show individual test functions for API flow steps
@@ -389,11 +361,9 @@ _smoke_test_user_data = {
 
 ## Decision
 
-### Chosen Option: Modular Design
-
 **Decision:** Switch back to the modular design with 18 separate test functions.
 
-### Rationale
+**Rationale:**
 
 The original problem that forced us to adopt the monolithic design (database state pollution between pytest sessions) has been completely solved by running smoke tests in an isolated pytest session using the `-m smoke` marker.
 
@@ -408,7 +378,7 @@ With this isolation in place, we can now benefit from the modular design's super
 5. **Test discovery:** Other developers can immediately see all 18 steps in test file
 6. **Matches original design:** Shell script (`scripts/test-api-flows.sh`) had 17 separate steps
 
-### Decision Criteria Met
+**Decision Criteria Met:**
 
 - ✅ **Failure identification:** Test output clearly shows which step failed
 - ✅ **CI visibility:** GitHub Actions displays granular progress (18/18)
@@ -419,7 +389,7 @@ With this isolation in place, we can now benefit from the modular design's super
 
 ## Consequences
 
-### Positive Consequences
+**Positive Consequences:**
 
 - ✅ **Improved debugging:** Failures immediately identifiable by test name
 - ✅ **Better CI output:** Visual progress through all 18 steps
@@ -428,7 +398,7 @@ With this isolation in place, we can now benefit from the modular design's super
 - ✅ **Onboarding:** New developers can see complete flow at a glance
 - ✅ **Pytest integration:** Works with pytest's built-in features (markers, ordering)
 
-### Negative Consequences
+**Negative Consequences:**
 
 - ⚠️ **State management complexity:** Requires module-level shared dictionary
   - **Mitigation:** Well-documented fixture pattern, clear docstrings
@@ -437,7 +407,7 @@ With this isolation in place, we can now benefit from the modular design's super
 - ⚠️ **Order dependency:** Tests must run sequentially (01-18)
   - **Mitigation:** Test numbering makes order explicit, pytest runs alphabetically
 
-### Risks
+**Risks:**
 
 - **Risk:** Shared state dictionary could become hard to manage as tests grow
   - **Mitigation:** Keep state dictionary minimal, document clearly, consider refactoring if it exceeds 10-15 keys
@@ -446,9 +416,7 @@ With this isolation in place, we can now benefit from the modular design's super
 
 ## Implementation
 
-### Implementation Plan
-
-#### Phase 1: Restore Original Structure
+**Phase 1: Restore Original Structure:**
 
 - [ ] Create comparison branch: `feature/smoke-test-modular-design`
 - [ ] Copy `.backup` file to temporary location for reference
@@ -459,7 +427,7 @@ With this isolation in place, we can now benefit from the modular design's super
 - [ ] Test locally: `make test-smoke`
 - [ ] Verify all 18 tests pass with clear output
 
-#### Phase 2: Refinements
+**Phase 2: Refinements:**
 
 - [ ] Add comprehensive Google-style docstrings to all 18 tests
 - [ ] Improve `smoke_test_user` fixture clarity and documentation
@@ -468,7 +436,7 @@ With this isolation in place, we can now benefit from the modular design's super
 - [ ] Test individual step execution: `pytest -k test_07_token_refresh`
 - [ ] Compare pytest outputs side-by-side (monolithic vs modular)
 
-#### Phase 3: Documentation
+**Phase 3: Documentation:**
 
 - [ ] Update `tests/smoke/README.md` with modular design explanation
 - [ ] Document the 18-step flow with clear descriptions
@@ -477,7 +445,7 @@ With this isolation in place, we can now benefit from the modular design's super
 - [ ] Update WARP.md with smoke test design decision
 - [ ] Add CI integration examples (GitHub Actions output)
 
-### Migration Strategy
+**Migration Strategy:**
 
 **Transition Approach:**
 
@@ -494,7 +462,7 @@ With this isolation in place, we can now benefit from the modular design's super
 - Compare CI failure identification clarity
 - Get developer feedback on debugging experience
 
-### Rollback Plan
+**Rollback Plan:**
 
 If modular design proves problematic:
 
@@ -509,7 +477,7 @@ If modular design proves problematic:
 - State management issues cause test pollution
 - CI/CD pipeline breaks or becomes unreliable
 
-### Success Metrics
+**Success Metrics:**
 
 **How we'll measure success:**
 
@@ -531,14 +499,14 @@ If modular design proves problematic:
 
 ## Follow-Up
 
-### Future Considerations
+**Future Considerations:**
 
 - **Test ordering plugin:** Consider `pytest-ordering` if alphabetical ordering proves insufficient
 - **Parallel execution:** If smoke tests ever need to run in parallel, will need refactoring
 - **State management alternatives:** Could explore pytest-dependency for explicit test dependencies
 - **Additional smoke tests:** Extend to provider operations (OAuth flow) when implemented
 
-### Review Schedule
+**Review Schedule:**
 
 - **First review:** 2 weeks after deployment (2025-10-21)
   - Evaluate CI output clarity

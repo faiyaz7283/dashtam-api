@@ -38,10 +38,11 @@ This directory contains standardized templates for all Dashtam documentation. Us
 - **Documenting a bug/issue resolution?** → Use `troubleshooting-template.md`
 - **Researching options/decisions?** → Use `research-template.md`
 - **Writing audit report/compliance review?** → Use `audit-template.md`
-- **Creating API flow?** → Use `api-flow-template.md`
-- **Creating directory index/navigation?** → Use `index-template.md`
-- **Documenting a feature/component?** → Use `readme-template.md`
-- **Not sure?** → Use `general-template.md`
+|- **Creating API flow?** → Use `api-flow-template.md`
+|- **Creating root-level documentation index (docs/index.md)?** → Use `index-root-template.md`
+|- **Creating section/directory index?** → Use `index-section-template.md`
+|- **Documenting a feature/component?** → Use `readme-template.md`
+|- **Not sure?** → Use `general-template.md`
 
 ### 2. Copy the Template
 

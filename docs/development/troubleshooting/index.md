@@ -2,7 +2,7 @@
 
 Documentation of critical debugging sessions, issue resolutions, and problem-solving journeys within the Dashtam project. Each troubleshooting guide provides a complete narrative from symptom discovery through investigation to final resolution.
 
-## 📚 Contents
+## Contents
 
 This directory contains detailed troubleshooting guides documenting complex bugs, their investigation, root cause analysis, and final resolutions. These guides serve as a knowledge base for future developers facing similar issues, preserving critical debugging insights and solution patterns.
 
@@ -13,7 +13,7 @@ This directory contains detailed troubleshooting guides documenting complex bugs
 - Test infrastructure problems and solutions
 - Docker and environment configuration issues
 
-## 🗂️ Directory Structure
+## Directory Structure
 
 ```bash
 troubleshooting/
@@ -26,7 +26,7 @@ troubleshooting/
 └── smoke-test-ci-debugging-journey.md            # CI smoke test debugging
 ```
 
-## 📄 Documents
+## Documents
 
 ### Database and Async Issues
 
@@ -76,7 +76,7 @@ troubleshooting/
 - **Solution**: Proper health checks and retry logic
 - **Impact**: 22/23 smoke tests passing in CI (96% success rate)
 
-## 🔗 Quick Links
+## Quick Links
 
 **Related Documentation:**
 
@@ -95,9 +95,9 @@ troubleshooting/
 - [FastAPI Testing Guide](https://fastapi.tiangolo.com/tutorial/testing/)
 - [Pytest Fixtures Documentation](https://docs.pytest.org/en/stable/explanation/fixtures.html)
 
-## 🗺️ Navigation
+## Navigation
 
-**Parent Directory:** [Development Documentation](../index.md)
+**Parent Directory:** [../index.md](../index.md)
 
 **Related Directories:**
 
@@ -106,7 +106,7 @@ troubleshooting/
 - [Infrastructure](../infrastructure/index.md) - Docker and CI/CD
 - [Architecture](../architecture/index.md) - System design
 
-## 📝 Contributing
+## Contributing
 
 When adding new troubleshooting guides to this directory:
 
@@ -122,6 +122,6 @@ When adding new troubleshooting guides to this directory:
 
 ## Document Information
 
-**Template:** [index-template.md](../../templates/troubleshooting-template.md)
+**Template:** [index-section-template.md](../../templates/index-section-template.md)
 **Created:** 2025-01-06
-**Last Updated:** 2025-10-18
+**Last Updated:** 2025-10-21

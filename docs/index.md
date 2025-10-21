@@ -1,278 +1,291 @@
 # Dashtam Documentation
 
-## Table of Contents
+Welcome to the Dashtam financial data aggregation platform documentation. This directory contains comprehensive guides for developers, users, and contributors working with the Dashtam project.
 
-- [📚 Contents](#-contents)
-- [📚 Documentation Structure](#-documentation-structure)
-  - [For Developers](#for-developers)
-  - [Research & Decisions](#research--decisions)
-  - [For Users](#for-users)
-- [🗂️ Directory Organization](#️-directory-organization)
-- [📋 Documentation Templates](#-documentation-templates)
-  - [Available Templates](#available-templates)
-  - [Quick Start](#quick-start)
-- [📝 Naming Conventions](#-naming-conventions)
-  - [File Naming](#file-naming)
-  - [Examples](#examples)
-- [📝 Contributing to Documentation](#-contributing-to-documentation)
-  - [Markdown Quality Standards](#markdown-quality-standards)
-  - [Structure Guidelines](#structure-guidelines)
-- [🔗 Quick Links](#-quick-links)
-- [🗺️ Navigation](#️-navigation)
-- [📝 Contributing](#-contributing)
-- [Document Information](#document-information)
+## Contents
 
-Welcome to the Dashtam documentation! This directory contains all documentation for the project, organized by audience and purpose.
+All documentation is organized by audience and purpose to help you quickly find what you need.
 
----
+**Main Sections:**
 
-## 📚 Contents
+- [Development Documentation](#development-documentation) - Architecture, infrastructure, guides, and testing
+- [Research & Decisions](#research--decisions) - Technical research and architectural decision records
+- [API Flows](#api-flows) - Manual API testing workflows
 
-Comprehensive documentation for developers, users, and contributors working with the Dashtam financial data aggregation platform. All documentation follows standardized templates and quality guidelines.
-
----
-
-## 📚 Documentation Structure
-
-### For Developers
-
-Documentation for working on the Dashtam project:
-
-- [Development Guide](development/) - Architecture, infrastructure, and testing
-  - [Architecture Overview](development/architecture/overview.md)
-  - [JWT Authentication Architecture](development/architecture/jwt-authentication.md) - Complete authentication system design
-  - [Technical Debt Roadmap](development/technical-debt-roadmap.md) - Technical debt tracking and development planning
-  - [Docker Setup](development/infrastructure/docker-setup.md)
-  - [Testing Strategy](testing/strategy.md)
-  - [Testing Guide](development/guides/testing-guide.md)
-  - [Docstring Standards](development/guides/docstring-standards.md) - Comprehensive Python documentation guide
-  - [Documentation Implementation](development/guides/documentation-implementation-guide.md) - MkDocs setup guide
-  - **JWT Authentication Guides:**
-    - [Database Guide](development/guides/jwt-authentication-database-guide.md) - Database schema and migrations
-    - [Services Guide](development/guides/jwt-authentication-services-guide.md) - Service implementation details
-    - [API Guide](development/guides/jwt-authentication-api-guide.md) - API endpoints and usage
-
-### Research & Decisions
-
-Historical research, architectural decisions, and migration notes:
-
-- [Research Notes](research/) - Technical research and decision records
-  - [Authentication Approaches Research](research/authentication-approaches-research.md)
-
-### For Users
-
-Documentation for using and testing the Dashtam application:
-
-- [Setup Guides](setup/) - Installation and configuration (planned)
-- [API Documentation](api/) - API endpoints and usage (planned)
-- [User Guides](guides/) - Troubleshooting and tips (planned)
-- [API Flows (Manual Testing)](../docs/api-flows/) - HTTPS-first, user-centric flows for manual testing (dev TLS)
-
----
-
-## 🗂️ Directory Organization
+## Directory Structure
 
 ```bash
 docs/
-├── templates/          # Documentation templates (START HERE for new docs!)
-│   ├── README.md       # Template usage guide
-│   ├── general-template.md
-│   ├── architecture-template.md
-│   ├── guide-template.md
-│   ├── infrastructure-template.md
-│   ├── testing-template.md
-│   ├── research-template.md
+├── templates/                     # Documentation templates (START HERE for new docs)
 │   ├── api-flow-template.md
+│   ├── architecture-template.md
+│   ├── audit-template.md
+│   ├── general-template.md
+│   ├── guide-template.md
+│   ├── implementation-template.md
+│   ├── index-root-template.md
+│   ├── index-section-template.md
 │   ├── index-template.md
+│   ├── infrastructure-template.md
 │   ├── readme-template.md
-│
-├── api-flows/          # Manual API flows (HTTPS-first, dev TLS)
-│   ├── auth/           # Registration, login, password reset
-│   └── providers/      # Provider onboarding flows
-│
-├── development/        # Developer documentation
-│   ├── architecture/   # System architecture and design
-│   ├── guides/         # How-to guides and tutorials
-│   ├── historical/     # Historical/archived docs (completed work)
-│   ├── implementation/ # Implementation plans (active)
-│   ├── infrastructure/ # Docker, CI/CD, environments
-│   ├── reviews/        # Code reviews, audits, assessments
-│   ├── testing/        # Testing strategy and guides
-│   └── troubleshooting/ # Bug investigations and resolutions
-│
-├── research/           # Research and decision records (project-wide)
-│
-├── setup/              # User setup guides (planned)
-├── api/                # API reference (planned)
-└── guides/             # User guides (planned)
+│   ├── README.md
+│   ├── research-template.md
+│   ├── testing-template.md
+│   └── troubleshooting-template.md
+├── api-flows/                     # Manual API testing workflows
+│   ├── auth/
+│   │   ├── complete-auth-flow.md
+│   │   ├── email-verification.md
+│   │   ├── index.md
+│   │   ├── login.md
+│   │   ├── password-reset.md
+│   │   └── registration.md
+│   ├── providers/
+│   │   ├── index.md
+│   │   ├── provider-disconnect.md
+│   │   └── provider-onboarding.md
+│   └── index.md
+├── development/                   # Developer documentation
+│   ├── architecture/
+│   │   ├── async-testing-decision.md
+│   │   ├── async-vs-sync-patterns.md
+│   │   ├── index.md
+│   │   ├── jwt-authentication.md
+│   │   ├── overview.md
+│   │   ├── restful-api-design.md
+│   │   └── schemas-design.md
+│   ├── guides/
+│   │   ├── docker-refactoring-implementation.md
+│   │   ├── docstring-standards.md
+│   │   ├── documentation-implementation-guide.md
+│   │   ├── git-quick-reference.md
+│   │   ├── git-workflow.md
+│   │   ├── index.md
+│   │   ├── jwt-auth-quick-reference.md
+│   │   ├── jwt-authentication-api-guide.md
+│   │   ├── jwt-authentication-database-guide.md
+│   │   ├── jwt-authentication-services-guide.md
+│   │   ├── markdown-linting-guide.md
+│   │   ├── mermaid-diagram-standards.md
+│   │   ├── restful-api-quick-reference.md
+│   │   ├── test-docstring-standards.md
+│   │   ├── testing-best-practices.md
+│   │   ├── testing-guide.md
+│   │   ├── token-rotation.md
+│   │   └── uv-package-management.md
+│   ├── infrastructure/
+│   │   ├── ci-cd.md
+│   │   ├── database-migrations.md
+│   │   ├── docker-setup.md
+│   │   ├── environment-flows.md
+│   │   └── index.md
+│   ├── troubleshooting/
+│   │   ├── async-testing-greenlet-errors.md
+│   │   ├── ci-test-failures-trustedhost.md
+│   │   ├── env-directory-docker-mount-issue.md
+│   │   ├── index.md
+│   │   ├── smoke-test-caplog-solution.md
+│   │   ├── smoke-test-ci-debugging-journey.md
+│   │   └── test-infrastructure-fixture-errors.md
+│   ├── technical-debt-roadmap.md
+│   └── index.md
+├── research/                      # Research and decision records
+│   ├── authentication-approaches-research.md
+│   ├── documentation_guide_research.md
+│   ├── index.md
+│   ├── smoke-test-design-comparison.md
+│   └── smoke-test-organization-research.md
+├── reviews/                       # Code audits and compliance reviews
+│   ├── DOCUMENTATION_AUDIT_2025-10-05.md
+│   ├── index.md
+│   └── REST_API_AUDIT_REPORT_2025-10-05.md
+├── testing/                       # Testing strategy and guides
+│   ├── index.md
+│   └── strategy.md
+└── index.md
 ```
 
----
+## Documents
 
-## 📋 Documentation Templates
+### Development Documentation
 
-**IMPORTANT**: Before creating new documentation, use the appropriate template from `docs/templates/`!
+Comprehensive guides for developers, including system architecture, development workflows, testing strategies, and infrastructure setup.
 
-### Available Templates
+**Architecture & Design:**
 
-| Template | Use For |
-|----------|----------|
-| [general-template.md](templates/general-template.md) | Any documentation that doesn't fit other categories |
-| [architecture-template.md](templates/architecture-template.md) | System architecture and design documents |
-| [guide-template.md](templates/guide-template.md) | Step-by-step how-to guides and tutorials |
-| [infrastructure-template.md](templates/infrastructure-template.md) | Infrastructure and operations documentation |
-| [testing-template.md](templates/testing-template.md) | Testing strategies and guides |
-| [troubleshooting-template.md](templates/troubleshooting-template.md) | Bug investigations and resolutions |
-| [research-template.md](templates/research-template.md) | Research documents and ADRs |
-| [api-flow-template.md](templates/api-flow-template.md) | API manual testing flows |
-| [index-template.md](templates/index-template.md) | Directory navigation pages (docs/index.md, docs/development/index.md) |
-| [readme-template.md](templates/readme-template.md) | Feature/component READMEs (env/README.md, tests/smoke/README.md) |
+- [Architecture Index](development/architecture/index.md) - System architecture overview
+- [Overview](development/architecture/overview.md) - High-level system design and components
+- [JWT Authentication](development/architecture/jwt-authentication.md) - Authentication system design and implementation
+- [RESTful API Design](development/architecture/restful-api-design.md) - REST API architecture and compliance
+- [Schemas Design](development/architecture/schemas-design.md) - Request/response schema patterns
+- [Async vs Sync Patterns](development/architecture/async-vs-sync-patterns.md) - Testing strategy decisions
+- [Async Testing Decision](development/architecture/async-testing-decision.md) - Testing implementation rationale
 
-**Diagram Standards:**
+**Infrastructure & Setup:**
 
-- 🎨 **ALL diagrams MUST use Mermaid syntax** - See [Mermaid Diagram Standards](development/guides/mermaid-diagram-standards.md)
-- ✅ Directory trees → Code blocks with tree structure (like `tree` command)
-- ✅ Process flows → `flowchart TD`
-- ✅ Database schemas → `erDiagram`
-- ✅ API sequences → `sequenceDiagram`
-- ❌ **NO image files** (PNG, JPG, SVG)
-- ❌ **NO external tools** (draw.io, Lucidchart)
+- [Infrastructure Index](development/infrastructure/index.md) - Infrastructure documentation overview
+- [Docker Setup](development/infrastructure/docker-setup.md) - Docker configuration and development environment
+- [CI/CD Pipeline](development/infrastructure/ci-cd.md) - GitHub Actions automation and testing
+- [Database Migrations](development/infrastructure/database-migrations.md) - Alembic migration management
+- [Environment Flows](development/infrastructure/environment-flows.md) - Dev, test, and CI environment setup
 
-### Quick Start
+**Developer Guides:**
 
-```bash
-# 1. Copy the appropriate template
-cp docs/templates/guide-template.md docs/development/guides/my-new-guide.md
+- [Guides Index](development/guides/index.md) - Developer guides overview
+- [Git Workflow](development/guides/git-workflow.md) - Git Flow branching strategy
+- [Git Quick Reference](development/guides/git-quick-reference.md) - Common git commands
+- [Testing Guide](development/guides/testing-guide.md) - Comprehensive testing tutorial
+- [Testing Best Practices](development/guides/testing-best-practices.md) - Testing patterns and strategies
+- [Docstring Standards](development/guides/docstring-standards.md) - Python documentation standards
+- [Test Docstring Standards](development/guides/test-docstring-standards.md) - Test documentation guidelines
+- [Markdown Linting Guide](development/guides/markdown-linting-guide.md) - Documentation quality standards
+- [Mermaid Diagram Standards](development/guides/mermaid-diagram-standards.md) - Diagram creation guide
+- [UV Package Management](development/guides/uv-package-management.md) - Modern Python package management
+- [Docker Refactoring Implementation](development/guides/docker-refactoring-implementation.md) - Docker optimization guide
+- [Documentation Implementation](development/guides/documentation-implementation-guide.md) - Doc creation workflow
 
-# 2. Fill out the template (replace [placeholders])
+**JWT Authentication Guides:**
 
-# 3. Verify quality
-make lint-md
-```
+- [JWT Auth Quick Reference](development/guides/jwt-auth-quick-reference.md) - Quick authentication reference
+- [JWT Authentication - Services](development/guides/jwt-authentication-services-guide.md) - Service implementation
+- [JWT Authentication - Database](development/guides/jwt-authentication-database-guide.md) - Database schema and models
+- [JWT Authentication - API](development/guides/jwt-authentication-api-guide.md) - API endpoints and flows
 
-**Full Guide**: See [templates/README.md](templates/README.md) for complete documentation template system guide.
+**Security & Token Management:**
 
----
+- [Token Rotation](development/guides/token-rotation.md) - Token refresh and rotation mechanisms
+- [RESTful API Quick Reference](development/guides/restful-api-quick-reference.md) - REST pattern reference
 
-## 📝 Naming Conventions
+**Troubleshooting & Issues:**
 
-For API flows, use kebab-case filenames and keep each flow focused on a single user journey (not a single HTTP verb). A reusable flow template is available at [docs/templates/api-flow-template.md](templates/api-flow-template.md).
+- [Troubleshooting Index](development/troubleshooting/index.md) - Troubleshooting guide overview
+- [Async Testing Greenlet Errors](development/troubleshooting/async-testing-greenlet-errors.md) - Async test debugging
+- [Test Infrastructure Fixture Errors](development/troubleshooting/test-infrastructure-fixture-errors.md) - Fixture issues
+- [Smoke Test Caplog Solution](development/troubleshooting/smoke-test-caplog-solution.md) - Smoke test implementation
+- [Smoke Test CI Debugging](development/troubleshooting/smoke-test-ci-debugging-journey.md) - CI test debugging
+- [CI Test Failures TrustedHost](development/troubleshooting/ci-test-failures-trustedhost.md) - Network middleware issues
+- [Env Directory Docker Mount](development/troubleshooting/env-directory-docker-mount-issue.md) - Docker mount troubleshooting
 
-### File Naming
+**Project Planning:**
 
-- **Use kebab-case**: `my-document.md` (all lowercase with hyphens)
-- **Include type suffix when helpful**:
-  - `-architecture.md` - Architecture documentation
-  - `-guide.md` - How-to guides and tutorials
-  - `-reference.md` - Quick references
-  - `-plan.md` - Implementation plans (archive when completed)
-  - `-review-YYYY-MM-DD.md` - Dated reviews/audits
-- **Keep names concise but descriptive**
-- **Avoid special characters** except hyphens
+- [Technical Debt Roadmap](development/technical-debt-roadmap.md) - Future improvements and refactoring
+- [Development Index](development/index.md) - Complete development documentation index
 
-### Examples
+### Testing
 
-- ✅ Good: `jwt-authentication-architecture.md`, `git-workflow-guide.md`
-- ✅ Good: `rest-api-audit-2025-10-05.md` (dated reviews)
-- ❌ Avoid: `JWT_Authentication.md`, `git_workflow.md`
+Testing strategy, guides, and documentation for the test infrastructure.
 
----
+- [Testing Index](testing/index.md) - Testing documentation overview
+- [Testing Strategy](testing/strategy.md) - Test pyramid and testing approach
 
-## 📝 Contributing to Documentation
+### Research & Decisions
 
-### Markdown Quality Standards
+Technical research, architectural decision records, and comparative analysis of design approaches.
 
-All markdown files **must pass linting** before commit:
+- [Research Index](research/index.md) - Research and decision records navigation
+- [Authentication Approaches Research](research/authentication-approaches-research.md) - Comprehensive comparison of authentication methods
+- [Smoke Test Design Comparison](research/smoke-test-design-comparison.md) - Smoke test implementation approaches
+- [Smoke Test Organization Research](research/smoke-test-organization-research.md) - Test file organization strategies
+- [Documentation Guide Research](research/documentation_guide_research.md) - Documentation structure research
 
-```bash
-# Lint specific file
-make lint-md-file FILE="docs/path/to/file.md"
+### Code Reviews & Audits
 
-# Lint all markdown files
-make lint-md
+Comprehensive code reviews, API audits, and compliance verification.
 
-# Auto-fix issues (review changes carefully)
-make lint-md-fix
-```
+- [Reviews Index](reviews/index.md) - Code reviews and audits overview
+- [REST API Audit Report](reviews/REST_API_AUDIT_REPORT_2025-10-05.md) - RESTful API compliance audit
+- [Documentation Audit](reviews/DOCUMENTATION_AUDIT_2025-10-05.md) - Documentation quality audit
 
-**Workflow**: Create/edit → Lint → Fix violations → Visual inspection → Commit
+### API Flows
 
-See [WARP.md](../WARP.md) section "Documentation: Markdown Quality" for complete workflow and rules.
+User-centric manual API testing workflows designed for HTTPS-first development environments.
 
-### Structure Guidelines
+- [API Flows Index](api-flows/index.md) - Navigation for all API testing workflows
 
-When adding new documentation:
+**Authentication Flows:**
 
-1. **Choose template** → Use appropriate template from `docs/templates/`
-2. **Place correctly** → Follow directory organization above
-3. **Use Mermaid** → All diagrams must use Mermaid syntax (see [Mermaid Diagram Standards](development/guides/mermaid-diagram-standards.md))
-4. **Lint before commit** → Run `make lint-md`
+- [Authentication Index](api-flows/auth/index.md) - Authentication workflow overview
+- [Registration](api-flows/auth/registration.md) - User account creation
+- [Email Verification](api-flows/auth/email-verification.md) - Email verification workflow
+- [Login](api-flows/auth/login.md) - User login process
+- [Password Reset](api-flows/auth/password-reset.md) - Password recovery workflow
+- [Complete Auth Flow](api-flows/auth/complete-auth-flow.md) - Full authentication journey
 
-**Directory Guidelines:**
+**Provider Flows:**
 
-- **Development docs** → `docs/development/[category]/`
-  - `architecture/` - System architecture and design patterns
-  - `guides/` - How-to guides and tutorials
-  - `implementation/` - Implementation plans (active)
-  - `infrastructure/` - Docker, CI/CD, deployment
-  - `troubleshooting/` - Bug investigations and resolutions
-- **Project-wide docs** → `docs/[category]/` (root level)
-  - `research/` - Research and ADRs (architectural decision records)
-  - `reviews/` - Code reviews, audits, assessments
-  - `testing/` - Testing strategy and guides
-- **User-facing docs** → `docs/setup/`, `docs/api/`, or `docs/guides/` (future)
+- [Providers Index](api-flows/providers/index.md) - Provider workflow overview
+- [Provider Onboarding](api-flows/providers/provider-onboarding.md) - OAuth provider connection
+- [Provider Disconnect](api-flows/providers/provider-disconnect.md) - Provider disconnection
 
-**See also:**
+### Documentation Templates
 
-- [templates/README.md](templates/README.md) - Template system guide
-- [templates/MERMAID_GUIDELINES.md](templates/MERMAID_GUIDELINES.md) - Diagram standards
-- [WARP.md](../WARP.md) - Complete documentation guidelines
+Reusable templates for creating new documentation that follows project standards.
 
----
+- [Templates Index](templates/README.md) - Template system overview and guidelines
+- [Index Root Template](templates/index-root-template.md) - Root documentation index template
+- [Index Section Template](templates/index-section-template.md) - Section documentation index template
+- [General Template](templates/general-template.md) - General purpose documentation template
+- [Architecture Template](templates/architecture-template.md) - Architecture documentation template
+- [Guide Template](templates/guide-template.md) - Developer guide template
+- [Infrastructure Template](templates/infrastructure-template.md) - Infrastructure documentation template
+- [Testing Template](templates/testing-template.md) - Testing documentation template
+- [Troubleshooting Template](templates/troubleshooting-template.md) - Troubleshooting guide template
+- [Research Template](templates/research-template.md) - Research and ADR template
+- [Audit Template](templates/audit-template.md) - Code audit and review template
+- [API Flow Template](templates/api-flow-template.md) - API testing workflow template
+- [Implementation Template](templates/implementation-template.md) - Implementation guide template
+- [README Template](templates/readme-template.md) - README documentation template
 
-## 🔗 Quick Links
+## Quick Links
 
-**Related Documentation:**
+**Getting Started:**
 
-- [Main README](../README.md) - Project overview and setup
-- [WARP.md](../WARP.md) - AI agent rules and project context
-- [Template System](templates/README.md) - Documentation creation guide
+- [System Architecture](development/architecture/overview.md) - Understand the platform design
+- [Docker Setup](development/infrastructure/docker-setup.md) - Set up your development environment
+- [Development Index](development/index.md) - Browse all development documentation
+
+**Essential References:**
+
+- [Testing Strategy](testing/strategy.md) - Testing approach and best practices
+- [Git Workflow](development/guides/git-workflow.md) - Version control guidelines
+- [Template System](templates/README.md) - Documentation template reference
 
 **External Resources:**
 
 - [FastAPI Documentation](https://fastapi.tiangolo.com/) - Web framework reference
 - [SQLModel Documentation](https://sqlmodel.tiangolo.com/) - Database ORM reference
-- [Docker Compose Reference](https://docs.docker.com/compose/) - Container orchestration
+- [Docker Documentation](https://docs.docker.com/) - Container platform reference
 
----
+## Navigation
 
-## 🗺️ Navigation
+**Main Sections:**
 
-**Parent Directory:** [../](../)
+- [Development Documentation](development/index.md) - Architecture, guides, infrastructure, testing
+- [Research & Decisions](research/index.md) - Technical research and decision records
+- [API Flows](api-flows/index.md) - Manual testing workflows
+- [Documentation Templates](templates/README.md) - Template system and standards
 
-**Related Directories:**
+**Related Repositories:**
 
 - [Source Code](../src/) - Application source code
 - [Tests](../tests/) - Test suites and fixtures
-- [Docker Configuration](../compose/) - Container orchestration
+- [Docker Configuration](../compose/) - Container orchestration files
 
----
+## Contributing
 
-## 📝 Contributing
+When adding new documentation:
 
-When adding new documents to this directory:
-
-1. Follow the appropriate [template](templates/README.md)
-2. Update this README with a link and description
-3. Ensure proper directory structure placement
-4. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
+1. Follow appropriate [template](templates/README.md) from the templates directory
+2. Place documents in correct category directory
+3. Use Directory Structure section above as reference
+4. Update relevant index.md file with new links and descriptions
+5. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
+6. Ensure document follows markdown quality standards
 
 ---
 
 ## Document Information
 
-**Category:** Index/Navigation
-**Created:** 2025-10-15
-**Last Updated:** 2025-10-15
-**Maintainer:** Development Team
-**Scope:** Main documentation index for the Dashtam project
+**Template:** [index-root-template.md](templates/index-root-template.md)
+**Created:** 2025-10-03
+**Last Updated:** 2025-10-21

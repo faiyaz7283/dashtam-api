@@ -870,5 +870,5 @@ SET full_page_writes = OFF;
 ## Document Information
 
 **Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
-**Created:** YYYY-MM-DD
+**Created:** 2025-10-01
 **Last Updated:** 2025-10-17

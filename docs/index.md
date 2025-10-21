@@ -25,7 +25,6 @@ docs/
 │   ├── implementation-template.md
 │   ├── index-root-template.md
 │   ├── index-section-template.md
-│   ├── index-template.md
 │   ├── infrastructure-template.md
 │   ├── readme-template.md
 │   ├── README.md

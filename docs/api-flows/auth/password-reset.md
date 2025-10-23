@@ -2,24 +2,6 @@
 
 Request a password reset, verify a token, and confirm the new password using the HTTPS-enabled development environment.
 
----
-
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-  - [1) Request password reset](#1-request-password-reset)
-  - [2) Extract reset token from logs](#2-extract-reset-token-from-logs)
-  - [3) Verify reset token (optional)](#3-verify-reset-token-optional)
-  - [4) Confirm password reset](#4-confirm-password-reset)
-  - [5) Test login with new password](#5-test-login-with-new-password)
-- [Troubleshooting](#troubleshooting)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
-
----
-
 ## Purpose
 
 Allow a user to reset their password securely.

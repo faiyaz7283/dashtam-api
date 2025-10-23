@@ -2,31 +2,6 @@
 
 Research and decision analysis comparing monolithic and modular smoke test designs for optimal CI/CD visibility and debugging experience.
 
----
-
-## Table of Contents
-
-- [Context](#context)
-  - [Current State](#current-state)
-  - [Desired State](#desired-state)
-  - [Constraints](#constraints)
-- [Problem Statement](#problem-statement)
-  - [Why This Matters](#why-this-matters)
-- [Research Questions](#research-questions)
-- [Options Considered](#options-considered)
-  - [Option 1: Monolithic Design (Current)](#option-1-monolithic-design-current)
-  - [Option 2: Modular Design (Original)](#option-2-modular-design-original)
-  - [Historical Context: Why Original Design Failed](#historical-context-why-original-design-failed)
-- [Analysis](#analysis)
-- [Decision](#decision)
-- [Consequences](#consequences)
-- [Implementation](#implementation)
-- [Follow-Up](#follow-up)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Context
 
 With isolated pytest sessions now working correctly (using `-m smoke` marker), we can revisit our smoke test design approach without the database state pollution issues that originally forced us to adopt a monolithic design.

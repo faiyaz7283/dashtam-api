@@ -2,50 +2,6 @@
 
 Architectural decision record documenting the choice of synchronous testing with FastAPI TestClient over async testing patterns for the Dashtam testing infrastructure.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [Why This Approach?](#why-this-approach)
-- [Context](#context)
-  - [Research Sources](#research-sources)
-  - [Problems Encountered](#problems-encountered)
-- [Architecture Goals](#architecture-goals)
-- [Design Decisions](#design-decisions)
-  - [Decision 1: Synchronous Testing with TestClient](#decision-1-synchronous-testing-with-testclient)
-  - [Alternative 1: Async Testing with pytest-asyncio (Rejected)](#alternative-1-async-testing-with-pytest-asyncio-rejected)
-  - [Alternative 2: Mixed Approach (Rejected)](#alternative-2-mixed-approach-rejected)
-  - [Alternative 3: Synchronous Testing (Selected)](#alternative-3-synchronous-testing-selected)
-- [Components](#components)
-  - [Component 1: FastAPI TestClient](#component-1-fastapi-testclient)
-  - [Component 2: SQLModel Synchronous Session](#component-2-sqlmodel-synchronous-session)
-  - [Component 3: Test Fixtures](#component-3-test-fixtures)
-- [Implementation Details](#implementation-details)
-  - [Key Patterns Used](#key-patterns-used)
-    - [Pattern 1: Synchronous Test Functions](#pattern-1-synchronous-test-functions)
-    - [Pattern 2: TestClient for API Tests](#pattern-2-testclient-for-api-tests)
-    - [Pattern 3: Synchronous Session for Database Tests](#pattern-3-synchronous-session-for-database-tests)
-  - [Code Organization](#code-organization)
-  - [Configuration](#configuration)
-  - [Application vs Test Code](#application-vs-test-code)
-  - [How TestClient Works Internally](#how-testclient-works-internally)
-- [Security Considerations](#security-considerations)
-- [Performance Considerations](#performance-considerations)
-  - [Testing Performance Metrics](#testing-performance-metrics)
-  - [Comparison to Async Testing](#comparison-to-async-testing)
-- [Testing Strategy](#testing-strategy)
-  - [Unit Tests](#unit-tests)
-  - [Integration Tests](#integration-tests)
-  - [End-to-End Tests](#end-to-end-tests)
-- [Future Enhancements](#future-enhancements)
-  - [If Async Testing Becomes Necessary](#if-async-testing-becomes-necessary)
-  - [Potential Scenarios](#potential-scenarios)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam's testing architecture uses synchronous testing with FastAPI's TestClient and SQLModel's Session, despite the application being fully async. This architectural decision completely avoids async testing complexity while maintaining comprehensive test coverage.

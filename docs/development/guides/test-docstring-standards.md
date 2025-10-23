@@ -2,40 +2,6 @@
 
 Comprehensive guide for writing Google-style docstrings in test files, following project WARP.md requirements.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Module-Level Docstrings](#step-1-module-level-docstrings)
-  - [Step 2: Class-Level Docstrings](#step-2-class-level-docstrings)
-  - [Step 3: Test Function Docstrings (Standard)](#step-3-test-function-docstrings-standard)
-  - [Step 4: Test Function Docstrings (With Fixtures)](#step-4-test-function-docstrings-with-fixtures)
-  - [Step 5: Test Function Docstrings (Complex/Integration)](#step-5-test-function-docstrings-complexintegration)
-  - [Step 6: Fixture Docstrings](#step-6-fixture-docstrings)
-- [Examples](#examples)
-  - [Example 1: Setup Method Docstring](#example-1-setup-method-docstring)
-  - [Example 2: Teardown Method Docstring](#example-2-teardown-method-docstring)
-  - [Example 3: Parametrized Test Docstring](#example-3-parametrized-test-docstring)
-  - [Example 4: Mock-Heavy Test Docstring](#example-4-mock-heavy-test-docstring)
-- [Verification](#verification)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Too Brief Documentation](#issue-1-too-brief-documentation)
-  - [Issue 2: Missing Fixture Documentation](#issue-2-missing-fixture-documentation)
-  - [Issue 3: No Verification Details](#issue-3-no-verification-details)
-  - [Issue 4: Implementation Instead of Intent](#issue-4-implementation-instead-of-intent)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 > **Note:** This document is now part of the comprehensive [Docstring Standards Guide](../guides/docstring-standards.md).

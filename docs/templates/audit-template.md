@@ -4,19 +4,29 @@
 
 ---
 
-## Table of Contents
+<!-- TABLE OF CONTENTS
 
-- [Executive Summary](#executive-summary)
-- [Audit Metadata](#audit-metadata)
-- [Audit Objectives](#audit-objectives)
-- [Scope and Methodology](#scope-and-methodology)
-- [Findings](#findings)
-- [Compliance Assessment](#compliance-assessment)
-- [Recommendations](#recommendations)
-- [Action Items](#action-items)
-- [Historical Context](#historical-context)
-- [Related Documentation](#related-documentation)
-- [Document Information](#document-information)
+NOTE: MkDocs Material auto-generates the Table of Contents from headings.
+Do NOT include a manual TOC section in your document.
+
+The sections listed below are the REQUIRED top-level (##) sections for this template.
+All other content must be organized as subsections (###, ####) under these main sections.
+
+Required Top-Level Sections (in order):
+- Executive Summary
+- Audit Metadata
+- Audit Objectives
+- Scope and Methodology
+- Findings
+- Compliance Assessment
+- Recommendations
+- Action Items
+- Historical Context
+- Related Documentation
+- Document Information
+
+MkDocs will automatically create a clickable TOC sidebar from these headings.
+-->
 
 ---
 

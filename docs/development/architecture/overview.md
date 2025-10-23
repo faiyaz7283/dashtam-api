@@ -2,66 +2,6 @@
 
 Comprehensive guide to Dashtam's dual-environment architecture, explaining how development and testing environments coexist with complete isolation while sharing Docker containers efficiently.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [Key Architecture Principles](#key-architecture-principles)
-- [Context](#context)
-- [Architecture Goals](#architecture-goals)
-- [Design Decisions](#design-decisions)
-  - [Decision 1: Dual-Environment Architecture with Shared Containers](#decision-1-dual-environment-architecture-with-shared-containers)
-  - [Decision 2: Idempotent Database Initialization](#decision-2-idempotent-database-initialization)
-  - [Decision 3: Configuration Overlay Pattern](#decision-3-configuration-overlay-pattern)
-- [Components](#components)
-  - [Development Environment](#development-environment)
-  - [Test Environment](#test-environment)
-- [Implementation Details](#implementation-details)
-  - [Environment Coexistence](#environment-coexistence)
-    - [How Environments Interact](#how-environments-interact)
-  - [Database Initialization Flows](#database-initialization-flows)
-    - [Development Database Initialization](#development-database-initialization)
-    - [Test Database Initialization](#test-database-initialization)
-  - [Model Import System](#model-import-system)
-  - [Configuration Management](#configuration-management)
-    - [Settings Hierarchy](#settings-hierarchy)
-    - [Key Configuration Files](#key-configuration-files)
-  - [Typical Workflows](#typical-workflows)
-    - [Development Workflow](#development-workflow)
-    - [Testing Workflow](#testing-workflow)
-    - [Simultaneous Dev and Test (Advanced)](#simultaneous-dev-and-test-advanced)
-  - [Database State Management](#database-state-management)
-    - [Development Database State](#development-database-state)
-    - [Test Database State](#test-database-state)
-  - [Troubleshooting](#troubleshooting)
-    - [Issue: Tests fail with "database does not exist"](#issue-tests-fail-with-database-does-not-exist)
-    - [Issue: Dev database lost after testing](#issue-dev-database-lost-after-testing)
-    - [Issue: Environment variables not loading in tests](#issue-environment-variables-not-loading-in-tests)
-    - [Issue: Tables not created in test database](#issue-tables-not-created-in-test-database)
-    - [Issue: Can't run dev and tests simultaneously](#issue-cant-run-dev-and-tests-simultaneously)
-- [Security Considerations](#security-considerations)
-  - [Environment Isolation](#environment-isolation)
-  - [Configuration Security](#configuration-security)
-  - [Database Security](#database-security)
-- [Performance Considerations](#performance-considerations)
-  - [Docker Overhead](#docker-overhead)
-  - [Database Performance](#database-performance)
-  - [Optimization Strategies](#optimization-strategies)
-- [Testing Strategy](#testing-strategy)
-  - [How This Architecture Enables Testing](#how-this-architecture-enables-testing)
-  - [Test Environment Features](#test-environment-features)
-  - [Test Types Supported](#test-types-supported)
-- [Future Enhancements](#future-enhancements)
-  - [Planned Improvements](#planned-improvements)
-  - [Known Limitations](#known-limitations)
-- [References](#references)
-  - [Related Dashtam Documentation](#related-dashtam-documentation)
-  - [Project Files](#project-files)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam uses a **dual-environment architecture** with complete isolation between development and testing. Both environments run in Docker containers with different configurations, enabling safe concurrent development and testing workflows.

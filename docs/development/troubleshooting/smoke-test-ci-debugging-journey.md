@@ -6,45 +6,6 @@ Investigation revealed two critical issues: First, the `setup_test_database` fix
 
 The solution involved three fixes: (1) forcing session expiry after every commit, (2) forcing session expiry at the start of each request, and (3) changing the database setup fixture to `autouse=True` to guarantee schema availability before tests run. These changes ensured all smoke tests pass consistently across development, test, and CI environments with no regressions.
 
----
-
-## Table of Contents
-
-- [Initial Problem](#initial-problem)
-  - [Symptoms](#symptoms)
-  - [Test Flow](#test-flow)
-- [Investigation Steps](#investigation-steps)
-  - [Step 1: Environment Variable Analysis](#step-1-environment-variable-analysis)
-  - [Step 2: Database Query Investigation](#step-2-database-query-investigation)
-  - [Step 3: Migration vs Fixture Analysis](#step-3-migration-vs-fixture-analysis)
-  - [Step 4: SQLAlchemy Session State Investigation](#step-4-sqlalchemy-session-state-investigation)
-- [Root Cause Analysis](#root-cause-analysis)
-  - [Primary Cause: Fixture Ordering](#primary-cause-fixture-ordering)
-  - [Secondary Cause: Session State Caching](#secondary-cause-session-state-caching)
-  - [Why It Only Failed in CI](#why-it-only-failed-in-ci)
-- [Solution Implementation](#solution-implementation)
-  - [Fix 1: Force Session Expiry After Commit](#fix-1-force-session-expiry-after-commit)
-  - [Fix 2: Force Session Expiry at Request Start](#fix-2-force-session-expiry-at-request-start)
-  - [Fix 3: Make Database Setup Automatic](#fix-3-make-database-setup-automatic)
-- [Verification](#verification)
-  - [Test Results](#test-results)
-  - [Environment Validation](#environment-validation)
-- [Lessons Learned](#lessons-learned)
-  - [1. Session State Management is Critical](#1-session-state-management-is-critical)
-  - [2. Fixture Dependencies Must Be Explicit](#2-fixture-dependencies-must-be-explicit)
-  - [3. Environment Parity Matters](#3-environment-parity-matters)
-  - [4. PostgreSQL Configuration Impacts Test Behavior](#4-postgresql-configuration-impacts-test-behavior)
-  - [5. Migrations and Test Fixtures Need Coordination](#5-migrations-and-test-fixtures-need-coordination)
-- [Future Improvements](#future-improvements)
-  - [1. Add Session State Monitoring](#1-add-session-state-monitoring)
-  - [2. Add Migration Health Check](#2-add-migration-health-check)
-  - [3. Add CI-Specific Test Markers](#3-add-ci-specific-test-markers)
-  - [4. Add Database State Assertions](#4-add-database-state-assertions)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Initial Problem
 
 ### Symptoms

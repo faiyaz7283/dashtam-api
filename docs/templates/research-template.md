@@ -4,19 +4,29 @@
 
 ---
 
-## Table of Contents
+<!-- TABLE OF CONTENTS
 
-- [Context](#context)
-- [Problem Statement](#problem-statement)
-- [Research Questions](#research-questions)
-- [Options Considered](#options-considered)
-- [Analysis](#analysis)
-- [Decision](#decision)
-- [Consequences](#consequences)
-- [Implementation](#implementation)
-- [Follow-Up](#follow-up)
-- [References](#references)
-- [Document Information](#document-information)
+NOTE: MkDocs Material auto-generates the Table of Contents from headings.
+Do NOT include a manual TOC section in your document.
+
+The sections listed below are the REQUIRED top-level (##) sections for this template.
+All other content must be organized as subsections (###, ####) under these main sections.
+
+Required Top-Level Sections (in order):
+- Context
+- Problem Statement
+- Research Questions
+- Options Considered
+- Analysis
+- Decision
+- Consequences
+- Implementation
+- Follow-Up
+- References
+- Document Information
+
+MkDocs will automatically create a clickable TOC sidebar from these headings.
+-->
 
 ---
 

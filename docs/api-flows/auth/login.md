@@ -2,24 +2,6 @@
 
 Log in as a verified user, capture tokens, call a protected endpoint, refresh, and logout.
 
----
-
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-  - [1) Login to obtain tokens](#1-login-to-obtain-tokens)
-  - [2) Call a protected endpoint](#2-call-a-protected-endpoint)
-  - [3) Refresh access token](#3-refresh-access-token)
-  - [4) Logout (revoke refresh token)](#4-logout-revoke-refresh-token)
-  - [5) Verify logout behavior](#5-verify-logout-behavior)
-- [Troubleshooting](#troubleshooting)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
-
----
-
 ## Purpose
 
 Authenticate a user and validate token-based access to protected resources.

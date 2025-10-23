@@ -6,49 +6,6 @@ The investigation involved environment comparison, local reproduction of CI fail
 
 **Duration**: ~1.5 hours | **Initial State**: 19/39 tests failing in CI | **Final State**: All 39 tests passing
 
----
-
-## Table of Contents
-
-- [Initial Problem](#initial-problem)
-  - [Symptoms](#symptoms)
-  - [Expected Behavior](#expected-behavior)
-  - [Actual Behavior](#actual-behavior)
-  - [Impact](#impact)
-- [Investigation Steps](#investigation-steps)
-  - [Step 1: Initial Discovery](#step-1-initial-discovery)
-  - [Step 2: Environment Comparison](#step-2-environment-comparison)
-  - [Step 3: Reproduction Attempt](#step-3-reproduction-attempt)
-  - [Step 4: Dependency Override Investigation](#step-4-dependency-override-investigation)
-  - [Step 5: Root Cause Discovery](#step-5-root-cause-discovery)
-  - [Step 6: Shell Command Issues](#step-6-shell-command-issues)
-- [Root Cause Analysis](#root-cause-analysis)
-  - [Primary Cause](#primary-cause)
-  - [Contributing Factors](#contributing-factors)
-    - [Factor 1: Environment Configuration Differences](#factor-1-environment-configuration-differences)
-    - [Factor 2: Complex Error Path](#factor-2-complex-error-path)
-- [Solution Implementation](#solution-implementation)
-  - [Approach](#approach)
-  - [Changes Made](#changes-made)
-    - [Change 1: src/main.py - TrustedHostMiddleware Configuration](#change-1-srcmainpy---trustedhostmiddleware-configuration)
-  - [Implementation Steps](#implementation-steps)
-- [Verification](#verification)
-  - [Test Results](#test-results)
-  - [Verification Steps](#verification-steps)
-  - [Regression Testing](#regression-testing)
-- [Lessons Learned](#lessons-learned)
-  - [Technical Insights](#technical-insights)
-  - [Process Improvements](#process-improvements)
-  - [Best Practices](#best-practices)
-- [Future Improvements](#future-improvements)
-  - [Short-Term Actions](#short-term-actions)
-  - [Long-Term Improvements](#long-term-improvements)
-  - [Monitoring & Prevention](#monitoring--prevention)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Initial Problem
 
 ### Symptoms

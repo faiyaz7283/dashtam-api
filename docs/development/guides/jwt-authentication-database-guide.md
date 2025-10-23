@@ -2,41 +2,6 @@
 
 Complete guide to setting up and understanding the database schema for JWT authentication in Dashtam.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understand the Database Schema](#step-1-understand-the-database-schema)
-  - [Step 2: Create Users Table](#step-2-create-users-table)
-  - [Step 3: Create Refresh Tokens Table](#step-3-create-refresh-tokens-table)
-  - [Step 4: Create Email Verification Tokens Table](#step-4-create-email-verification-tokens-table)
-  - [Step 5: Create Password Reset Tokens Table](#step-5-create-password-reset-tokens-table)
-  - [Step 6: Run Database Migrations](#step-6-run-database-migrations)
-- [Examples](#examples)
-  - [Example 1: Query User with Active Refresh Tokens](#example-1-query-user-with-active-refresh-tokens)
-  - [Example 2: Find Expired Tokens for Cleanup](#example-2-find-expired-tokens-for-cleanup)
-  - [Example 3: Audit User Login History](#example-3-audit-user-login-history)
-- [Verification](#verification)
-  - [Check 1: Verify Tables Exist](#check-1-verify-tables-exist)
-  - [Check 2: Verify Indexes](#check-2-verify-indexes)
-  - [Check 3: Verify Foreign Key Constraints](#check-3-verify-foreign-key-constraints)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Migration Fails with "relation already exists"](#issue-1-migration-fails-with-relation-already-exists)
-  - [Issue 2: Slow Token Validation Queries](#issue-2-slow-token-validation-queries)
-  - [Issue 3: Timezone Issues with Timestamps](#issue-3-timezone-issues-with-timestamps)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide covers the complete database schema for JWT authentication, including user accounts, refresh tokens, email verification tokens, and password reset tokens. By following this guide, you'll understand how to set up the authentication database and how each table supports the authentication workflow.

@@ -2,49 +2,6 @@
 
 Comprehensive guide for writing Google-style docstrings across all Python code in Dashtam, covering modules, classes, functions, tests, and fixtures with practical examples and best practices.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-  - [Why Google-Style Docstrings](#why-google-style-docstrings)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Write Module-Level Docstrings](#step-1-write-module-level-docstrings)
-  - [Step 2: Write Class Docstrings](#step-2-write-class-docstrings)
-  - [Step 3: Write Function/Method Docstrings](#step-3-write-functionmethod-docstrings)
-  - [Step 4: Write FastAPI Endpoint Docstrings](#step-4-write-fastapi-endpoint-docstrings)
-  - [Step 5: Write Test Docstrings](#step-5-write-test-docstrings)
-  - [Step 6: Write Pytest Fixture Docstrings](#step-6-write-pytest-fixture-docstrings)
-- [Examples](#examples)
-  - [Example 1: Complete Service Class](#example-1-complete-service-class)
-  - [Example 2: FastAPI Endpoint](#example-2-fastapi-endpoint)
-  - [Example 3: Test Function](#example-3-test-function)
-  - [Example 4: Pytest Fixture](#example-4-pytest-fixture)
-- [Verification](#verification)
-  - [Check 1: Run Linting](#check-1-run-linting)
-  - [Check 2: Review Completeness](#check-2-review-completeness)
-  - [Check 3: Test Documentation Coverage](#check-3-test-documentation-coverage)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Docstring Too Brief](#issue-1-docstring-too-brief)
-  - [Issue 2: Missing Fixture Documentation](#issue-2-missing-fixture-documentation)
-  - [Issue 3: Implementation vs Intent](#issue-3-implementation-vs-intent)
-  - [Issue 4: Missing Error Documentation](#issue-4-missing-error-documentation)
-- [Best Practices](#best-practices)
-  - [Quick Reference Checklist](#quick-reference-checklist)
-  - [Google-Style Section Order](#google-style-section-order)
-  - [Common Patterns](#common-patterns)
-- [Next Steps](#next-steps)
-- [References](#references)
-  - [Official Style Guides](#official-style-guides)
-  - [Tools and Automation](#tools-and-automation)
-  - [Project Documentation](#project-documentation)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide provides comprehensive instructions for writing Google-style docstrings across all Python code in Dashtam, covering modules, classes, functions, tests, and fixtures with practical examples and best practices.

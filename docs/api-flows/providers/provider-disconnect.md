@@ -2,22 +2,6 @@
 
 Disconnect an authorized provider and optionally delete its instance.
 
----
-
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-  - [1) Disconnect provider session](#1-disconnect-provider-session-invalidate-connection)
-  - [2) Verify provider status](#2-verify-provider-status)
-  - [3) (Optional) Delete provider instance](#3-optional-delete-provider-instance)
-- [Troubleshooting](#troubleshooting)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
-
----
-
 ## Purpose
 
 Revoke a provider connection for a user and clean up resources if needed.

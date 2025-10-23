@@ -2,51 +2,6 @@
 
 A comprehensive guide to testing patterns, conventions, and best practices for the Dashtam financial data aggregation platform.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understanding Testing Patterns](#step-1-understanding-testing-patterns)
-  - [Step 2: Writing Unit Tests](#step-2-writing-unit-tests)
-  - [Step 3: Writing Integration Tests](#step-3-writing-integration-tests)
-  - [Step 4: Writing API Tests](#step-4-writing-api-tests)
-  - [Step 5: Using Fixtures and Mocks](#step-5-using-fixtures-and-mocks)
-    - [Common Fixtures](#common-fixtures)
-    - [Database Session Fixture](#database-session-fixture)
-    - [Test User Fixture](#test-user-fixture)
-    - [Test Client Fixture](#test-client-fixture)
-    - [Mocking Strategies](#mocking-strategies)
-  - [Step 6: Meeting Coverage Guidelines](#step-6-meeting-coverage-guidelines)
-    - [Target Coverage](#target-coverage)
-    - [What to Test](#what-to-test)
-- [Examples](#examples)
-  - [Example 1: Complete Unit Test](#example-1-complete-unit-test)
-  - [Example 2: Integration Test with Database](#example-2-integration-test-with-database)
-  - [Example 3: API Test with Authentication](#example-3-api-test-with-authentication)
-- [Verification](#verification)
-  - [Running Tests](#running-tests)
-  - [Verifying Test Quality](#verifying-test-quality)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Async/Sync Mismatch](#issue-1-asyncsync-mismatch)
-  - [Issue 2: Database Session Issues](#issue-2-database-session-issues)
-  - [Issue 3: Test Isolation Problems](#issue-3-test-isolation-problems)
-  - [Issue 4: Over-Mocking](#issue-4-over-mocking)
-  - [Issue 5: Timezone-Aware Datetimes](#issue-5-timezone-aware-datetimes)
-- [Best Practices](#best-practices)
-  - [Testing Philosophy](#testing-philosophy)
-  - [Test Structure Standards](#test-structure-standards)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide teaches you how to write effective tests for Dashtam following established patterns and conventions. You'll learn testing strategies, code organization, fixture usage, mocking approaches, and common pitfalls to avoid.

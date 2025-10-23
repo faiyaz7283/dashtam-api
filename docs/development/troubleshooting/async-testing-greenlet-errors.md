@@ -6,50 +6,6 @@ After extensive investigation, the root cause was identified as incompatibilitie
 
 **Key Decision**: Synchronous testing (def test_*, not async def) with FastAPI TestClient (matches FastAPI official pattern)
 
----
-
-## Table of Contents
-
-- [Initial Problem](#initial-problem)
-  - [Symptoms](#symptoms)
-  - [Expected Behavior](#expected-behavior)
-  - [Actual Behavior](#actual-behavior)
-  - [Impact](#impact)
-- [Investigation Steps](#investigation-steps)
-  - [Step 1: Session-Scoped Event Loop with Pooled Connections](#step-1-session-scoped-event-loop-with-pooled-connections)
-  - [Step 2: NullPool with Session-Scoped Async Fixtures](#step-2-nullpool-with-session-scoped-async-fixtures)
-  - [Step 3: NullPool with Manual Transaction Wrapping](#step-3-nullpool-with-manual-transaction-wrapping)
-  - [Step 4: Nested Transactions with Savepoints](#step-4-nested-transactions-with-savepoints)
-  - [Step 5: Clean Session Without Transaction Wrapping](#step-5-clean-session-without-transaction-wrapping)
-- [Root Cause Analysis](#root-cause-analysis)
-  - [Primary Cause](#primary-cause)
-  - [Contributing Factors](#contributing-factors)
-    - [Factor 1: Official Documentation Gaps](#factor-1-official-documentation-gaps)
-    - [Factor 2: Tooling Maturity](#factor-2-tooling-maturity)
-- [Solution Implementation](#solution-implementation)
-  - [Approach](#approach)
-  - [Changes Made](#changes-made)
-    - [Change 1: Test Fixtures (conftest.py)](#change-1-test-fixtures-conftestpy)
-    - [Change 2: Test Functions](#change-2-test-functions)
-    - [Change 3: Database Engine Configuration](#change-3-database-engine-configuration)
-  - [Implementation Steps](#implementation-steps)
-- [Verification](#verification)
-  - [Test Results](#test-results)
-  - [Verification Steps](#verification-steps)
-  - [Regression Testing](#regression-testing)
-- [Lessons Learned](#lessons-learned)
-  - [Technical Insights](#technical-insights)
-  - [Process Improvements](#process-improvements)
-  - [Best Practices](#best-practices)
-- [Future Improvements](#future-improvements)
-  - [Short-Term Actions](#short-term-actions)
-  - [Long-Term Improvements](#long-term-improvements)
-  - [Monitoring & Prevention](#monitoring--prevention)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Initial Problem
 
 ### Symptoms

@@ -2,68 +2,6 @@
 
 Step-by-step guide for implementing MkDocs with Material theme for the Dashtam project, including automated API documentation generation and CI/CD deployment.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-  - [Key Benefits](#key-benefits)
-  - [Technology Comparison](#technology-comparison)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Install MkDocs and Basic Setup](#step-1-install-mkdocs-and-basic-setup)
-    - [Add MkDocs Dependencies](#add-mkdocs-dependencies)
-    - [Step 1.2: Initialize MkDocs](#step-12-initialize-mkdocs)
-    - [Step 1.3: Basic Configuration](#step-13-basic-configuration)
-    - [Test Basic Setup](#test-basic-setup)
-  - [Step 2: Configure Material Theme](#step-2-configure-material-theme)
-    - [Step 2.1: Complete Theme Configuration](#step-21-complete-theme-configuration)
-    - [Step 2.2: Configure Extra Features](#step-22-configure-extra-features)
-    - [Step 2.3: Configure Markdown Extensions](#step-23-configure-markdown-extensions)
-    - [Step 2.4: Test Enhanced Theme](#step-24-test-enhanced-theme)
-  - [Step 3: API Documentation Auto-Generation](#step-3-api-documentation-auto-generation)
-    - [Step 3.1: Configure mkdocstrings Plugin](#step-31-configure-mkdocstrings-plugin)
-    - [Step 3.2: Create API Reference Pages](#step-32-create-api-reference-pages)
-    - [Step 3.3: Test API Documentation Generation](#step-33-test-api-documentation-generation)
-  - [Step 4: Diagrams & Visuals](#step-4-diagrams--visuals)
-    - [Step 4.1: Configure Mermaid Plugin](#step-41-configure-mermaid-plugin)
-    - [Step 4.2: Create Architecture Diagrams](#step-42-create-architecture-diagrams)
-    - [Step 4.3: Add Component Diagrams](#step-43-add-component-diagrams)
-    - [Step 4.4: Test Diagrams](#step-44-test-diagrams)
-  - [Step 5: GitHub Actions CI/CD](#step-5-github-actions-cicd)
-    - [Step 5.1: Create Documentation Workflow](#step-51-create-documentation-workflow)
-    - [Step 5.2: Update Makefile](#step-52-update-makefile)
-    - [Step 5.3: Configure GitHub Pages](#step-53-configure-github-pages)
-    - [Step 5.4: Test CI/CD Pipeline](#step-54-test-cicd-pipeline)
-  - [Step 6: Documentation Organization](#step-6-documentation-organization)
-    - [Step 6.1: Update Navigation Structure](#step-61-update-navigation-structure)
-    - [Step 6.2: Create Missing Index Pages](#step-62-create-missing-index-pages)
-    - [Step 6.3: Add Cross-References](#step-63-add-cross-references)
-    - [Step 6.4: Update Main README](#step-64-update-main-readme)
-- [Examples](#examples)
-  - [Example 1: Basic MkDocs Setup](#example-1-basic-mkdocs-setup)
-  - [Example 2: Auto-Generated API Documentation](#example-2-auto-generated-api-documentation)
-- [Verification](#verification)
-  - [Check 1: Local Build Verification](#check-1-local-build-verification)
-  - [Check 2: Development Server](#check-2-development-server)
-  - [Check 3: CI/CD Pipeline](#check-3-cicd-pipeline)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: MkDocs Build Errors](#issue-1-mkdocs-build-errors)
-  - [Issue 2: GitHub Actions Deployment Failures](#issue-2-github-actions-deployment-failures)
-  - [Issue 3: API Documentation Not Generating](#issue-3-api-documentation-not-generating)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-  - [Official Documentation](#official-documentation)
-  - [Project Documentation](#project-documentation)
-  - [External Resources](#external-resources)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide provides comprehensive instructions for implementing a modern, automated documentation system for the Dashtam project using MkDocs with the Material theme.

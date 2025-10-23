@@ -2,53 +2,6 @@
 
 A comprehensive guide for implementing OAuth token rotation correctly in Dashtam provider integrations, covering universal rotation detection, security benefits, and implementation patterns.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-  - [Token Rotation Fundamentals](#token-rotation-fundamentals)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understand Token Rotation Types](#step-1-understand-token-rotation-types)
-    - [The Two Strategies](#the-two-strategies)
-    - [Visual Example](#visual-example)
-  - [Step 2: Understand Security Benefits](#step-2-understand-security-benefits)
-    - [Security Benefits](#security-benefits)
-    - [Business Impact](#business-impact)
-  - [Step 3: Learn Dashtam's Universal System](#step-3-learn-dashtams-universal-system)
-    - [Architecture](#architecture)
-    - [Key Points](#key-points)
-  - [Step 4: Implement refresh_authentication() Method](#step-4-implement-refresh_authentication-method)
-    - [Implementation Details](#implementation-details)
-    - [What NOT to Do](#what-not-to-do)
-    - [Optional Fields](#optional-fields)
-  - [Step 5: Test Your Implementation](#step-5-test-your-implementation)
-- [Examples](#examples)
-  - [Complete Provider Implementation](#complete-provider-implementation)
-  - [Testing Token Rotation](#testing-token-rotation)
-    - [Test Scenarios to Cover](#test-scenarios-to-cover)
-    - [Example Test Structure](#example-test-structure)
-- [Verification](#verification)
-  - [Check 1: Audit Log Verification](#check-1-audit-log-verification)
-  - [Check 2: Token Refresh Flow](#check-2-token-refresh-flow)
-  - [Check 3: Multiple Refresh Sequence](#check-3-multiple-refresh-sequence)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Provider Always Shows Rotation](#issue-1-provider-always-shows-rotation)
-  - [Issue 2: Provider Never Shows Rotation](#issue-2-provider-never-shows-rotation)
-  - [Issue 3: Tokens Become Invalid After Rotation](#issue-3-tokens-become-invalid-after-rotation)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-  - [Security Considerations](#security-considerations)
-  - [Implementation Checklist](#implementation-checklist)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide explains how to implement OAuth token rotation correctly in Dashtam provider integrations. You'll learn about Dashtam's universal rotation detection system, security benefits, and proper implementation patterns.

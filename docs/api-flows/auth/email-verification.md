@@ -2,21 +2,6 @@
 
 Verify a user's email using the HTTPS-enabled development environment.
 
----
-
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-  - [1) Extract verification token from logs](#1-extract-verification-token-from-logs)
-  - [2) Verify email](#2-verify-email)
-- [Troubleshooting](#troubleshooting)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
-
----
-
 ## Purpose
 
 Confirm a registered user’s email to enable login and protected actions.

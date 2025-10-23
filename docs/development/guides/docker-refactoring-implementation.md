@@ -2,43 +2,6 @@
 
 Complete implementation plan for refactoring Docker and build infrastructure to improve security, maintainability, and development workflow.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [Key Features](#key-features)
-  - [Components Overview](#components-overview)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Backup Current Configuration](#step-1-backup-current-configuration)
-  - [Step 2: Create Directory Structure](#step-2-create-directory-structure)
-  - [Step 3: Move Configuration Files](#step-3-move-configuration-files)
-  - [Step 4: Update Dockerfile](#step-4-update-dockerfile)
-  - [Step 5: Update Makefile](#step-5-update-makefile)
-  - [Step 6: Configure Environment Variables](#step-6-configure-environment-variables)
-- [Examples](#examples)
-  - [Example 1: Starting the Development Environment](#example-1-starting-the-development-environment)
-  - [Example 2: Rebuilding After Changes](#example-2-rebuilding-after-changes)
-- [Verification](#verification)
-  - [Check 1: Verify Container User](#check-1-verify-container-user)
-  - [Check 2: Verify Health Status](#check-2-verify-health-status)
-  - [Check 3: Monitor Logs](#check-3-monitor-logs)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Permission Denied Errors](#issue-1-permission-denied-errors)
-  - [Issue 2: Environment Variables Not Loading](#issue-2-environment-variables-not-loading)
-  - [Issue 3: Build Failures](#issue-3-build-failures)
-- [Best Practices](#best-practices)
-  - [Security Best Practices](#security-best-practices)
-  - [Performance Best Practices](#performance-best-practices)
-  - [Maintenance Best Practices](#maintenance-best-practices)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This infrastructure refactoring addresses critical security, maintainability, and development workflow issues identified in the Docker and build system audit. The refactoring implements best practices for container security, dependency management, and development environment consistency.

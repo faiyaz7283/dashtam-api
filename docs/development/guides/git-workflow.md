@@ -2,53 +2,6 @@
 
 A comprehensive guide to Dashtam's Git Flow branching strategy, semantic versioning, and collaborative development practices.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understanding Git Flow Branches](#step-1-understanding-git-flow-branches)
-  - [Step 2: Applying Semantic Versioning](#step-2-applying-semantic-versioning)
-  - [Step 3: Writing Conventional Commit Messages](#step-3-writing-conventional-commit-messages)
-  - [Step 4: Creating Feature and Fix Branches](#step-4-creating-feature-and-fix-branches)
-  - [Step 5: Creating and Managing Pull Requests](#step-5-creating-and-managing-pull-requests)
-  - [Step 6: Creating Releases](#step-6-creating-releases)
-  - [Step 7: Handling Emergency Hotfixes](#step-7-handling-emergency-hotfixes)
-- [Examples](#examples)
-  - [Example 1: Starting a New Feature](#example-1-starting-a-new-feature)
-  - [Example 2: Fixing a Bug](#example-2-fixing-a-bug)
-  - [Example 3: Creating a Release](#example-3-creating-a-release)
-  - [Example 4: Emergency Hotfix](#example-4-emergency-hotfix)
-- [Verification](#verification)
-  - [Check 1: Branch Protection is Active](#check-1-branch-protection-is-active)
-  - [Check 2: Pull Request Requirements](#check-2-pull-request-requirements)
-  - [Check 3: Semantic Versioning Tags](#check-3-semantic-versioning-tags)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: "Your branch is behind"](#issue-1-your-branch-is-behind)
-  - [Issue 2: "Your branch has diverged"](#issue-2-your-branch-has-diverged)
-  - [Issue 3: "Merge conflict"](#issue-3-merge-conflict)
-  - [Issue 4: "Accidentally committed to wrong branch"](#issue-4-accidentally-committed-to-wrong-branch)
-  - [Issue 5: "Need to undo last commit"](#issue-5-need-to-undo-last-commit)
-- [Best Practices](#best-practices)
-  - [General Guidelines](#general-guidelines)
-  - [Commit Hygiene](#commit-hygiene)
-  - [Branch Hygiene](#branch-hygiene)
-  - [Collaboration Tips](#collaboration-tips)
-  - [Security Considerations](#security-considerations)
-- [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-  - [Documentation](#documentation)
-  - [Tools](#tools)
-  - [Internal Resources](#internal-resources)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam uses **Git Flow** as our branching model, which provides a robust framework for managing releases, features, and hotfixes. Combined with **Semantic Versioning** and **Conventional Commits**, this ensures our codebase remains organized, traceable, and production-ready.

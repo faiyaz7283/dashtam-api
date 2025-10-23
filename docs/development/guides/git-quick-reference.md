@@ -2,53 +2,6 @@
 
 One-page cheat sheet for Git Flow operations, commands, and workflows at Dashtam.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understanding Branch Structure](#step-1-understanding-branch-structure)
-  - [Step 2: Daily Feature Development](#step-2-daily-feature-development)
-  - [Step 3: Bug Fix Workflow](#step-3-bug-fix-workflow)
-  - [Step 4: Commit Message Format](#step-4-commit-message-format)
-  - [Step 5: Pull Request Management with GitHub CLI](#step-5-pull-request-management-with-github-cli)
-  - [Step 6: Release Workflow](#step-6-release-workflow)
-  - [Step 7: Emergency Hotfix Workflow](#step-7-emergency-hotfix-workflow)
-- [Examples](#examples)
-  - [Example 1: Daily Feature Development](#example-1-daily-feature-development)
-  - [Example 2: Quick Bug Fix](#example-2-quick-bug-fix)
-  - [Example 3: Check PR Status](#example-3-check-pr-status)
-  - [Example 4: Emergency Hotfix](#example-4-emergency-hotfix)
-- [Verification](#verification)
-  - [Check 1: Branch Protection Active](#check-1-branch-protection-active)
-  - [Check 2: Tests Pass Before Push](#check-2-tests-pass-before-push)
-  - [Check 3: PR Mergeable](#check-3-pr-mergeable)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Branch Behind Remote](#issue-1-branch-behind-remote)
-  - [Issue 2: Merge Conflict](#issue-2-merge-conflict)
-  - [Issue 3: Accidentally Committed to Wrong Branch](#issue-3-accidentally-committed-to-wrong-branch)
-  - [Issue 4: Need to Undo Last Commit](#issue-4-need-to-undo-last-commit)
-  - [Issue 5: Tests Failing Locally](#issue-5-tests-failing-locally)
-- [Best Practices](#best-practices)
-  - [Quick Commands Reference](#quick-commands-reference)
-  - [Important Rules](#important-rules)
-  - [Make Commands Cheat Sheet](#make-commands-cheat-sheet)
-  - [Semantic Versioning Quick Guide](#semantic-versioning-quick-guide)
-  - [Workflow Decision Tree](#workflow-decision-tree)
-  - [PR Checklist](#pr-checklist)
-- [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-  - [Essential Links](#essential-links)
-  - [Pro Tips](#pro-tips)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This quick reference provides essential Git Flow commands and workflows for daily development at Dashtam. It's designed as a one-page cheat sheet for developers who need fast access to common operations without reading the full workflow guide.

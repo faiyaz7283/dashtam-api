@@ -2,58 +2,6 @@
 
 Quick reference for writing and running tests following the project's synchronous testing pattern with comprehensive examples and best practices.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [Testing Goals](#testing-goals)
-  - [Scope](#scope)
-  - [Testing Strategy](#testing-strategy)
-  - [Test Pyramid](#test-pyramid)
-  - [Testing Principles](#testing-principles)
-- [Prerequisites](#prerequisites)
-  - [Required Tools](#required-tools)
-  - [Test Environment Setup](#test-environment-setup)
-  - [Test Data](#test-data)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understanding Test Types](#step-1-understanding-test-types)
-  - [Step 2: Writing Your First Test](#step-2-writing-your-first-test)
-  - [Step 3: Using Fixtures](#step-3-using-fixtures)
-  - [Step 4: Running Tests](#step-4-running-tests)
-  - [Step 5: Checking Coverage](#step-5-checking-coverage)
-- [Examples](#examples)
-  - [Example 1: Unit Test](#example-1-unit-test)
-  - [Example 2: Integration Test](#example-2-integration-test)
-  - [Example 3: API Test](#example-3-api-test)
-  - [Example 4: Smoke Test](#example-4-smoke-test)
-- [Verification](#verification)
-  - [Verify Tests Pass](#verify-tests-pass)
-  - [Verify Coverage](#verify-coverage)
-  - [Verify Linting](#verify-linting)
-- [Troubleshooting](#troubleshooting)
-  - [Tests Failing Intermittently](#tests-failing-intermittently)
-  - [Slow Tests](#slow-tests)
-  - [Coverage Not Accurate](#coverage-not-accurate)
-  - [Database Cleanup Not Working](#database-cleanup-not-working)
-  - [Test Hangs or Times Out](#test-hangs-or-times-out)
-- [Best Practices](#best-practices)
-  - [General Principles](#general-principles)
-  - [Test Naming](#test-naming)
-  - [Test Isolation](#test-isolation)
-  - [Assertions](#assertions)
-  - [Error Testing](#error-testing)
-  - [Common Patterns](#common-patterns)
-- [Next Steps](#next-steps)
-- [References](#references)
-  - [Project Documentation](#project-documentation)
-  - [External Resources](#external-resources)
-  - [Test Utilities](#test-utilities)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide provides quick-reference documentation for writing and running tests in the Dashtam project. The project uses a synchronous testing pattern with pytest and FastAPI TestClient to ensure fast, reliable test execution with proper database isolation.

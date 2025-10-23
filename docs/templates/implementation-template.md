@@ -4,21 +4,31 @@
 
 ---
 
-## Table of Contents
+<!-- TABLE OF CONTENTS
 
-- [Executive Summary](#executive-summary)
-- [Current State](#current-state)
-- [Goals and Objectives](#goals-and-objectives)
-- [Implementation Strategy](#implementation-strategy)
-- [Phases and Steps](#phases-and-steps)
-- [Testing and Verification](#testing-and-verification)
-- [Rollback Plan](#rollback-plan)
-- [Risk Assessment](#risk-assessment)
-- [Success Criteria](#success-criteria)
-- [Deliverables](#deliverables)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
+NOTE: MkDocs Material auto-generates the Table of Contents from headings.
+Do NOT include a manual TOC section in your document.
+
+The sections listed below are the REQUIRED top-level (##) sections for this template.
+All other content must be organized as subsections (###, ####) under these main sections.
+
+Required Top-Level Sections (in order):
+- Executive Summary
+- Current State
+- Goals and Objectives
+- Implementation Strategy
+- Phases and Steps
+- Testing and Verification
+- Rollback Plan
+- Risk Assessment
+- Success Criteria
+- Deliverables
+- Next Steps
+- References
+- Document Information
+
+MkDocs will automatically create a clickable TOC sidebar from these headings.
+-->
 
 ---
 

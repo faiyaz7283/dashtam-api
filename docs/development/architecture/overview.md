@@ -620,7 +620,7 @@ make up             # Fresh start
 
 - [Database Migrations](../infrastructure/database-migrations.md) - Schema migration guide
 - [Docker Setup](../infrastructure/docker-setup.md) - Detailed Docker configuration
-- [Testing Guide](../testing/guide.md) - Comprehensive testing documentation
+- [Testing Guide](../development/guides/testing-guide.md) - Comprehensive testing documentation
 
 ### Project Files
 

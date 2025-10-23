@@ -531,7 +531,7 @@ If modular design proves problematic:
 
 - [Smoke Test Caplog Solution](../development/troubleshooting/smoke-test-caplog-solution.md) - Token extraction implementation
 - [Smoke Test CI Debugging](../development/troubleshooting/smoke-test-ci-debugging-journey.md) - Session isolation fixes
-- [Testing Strategy](../development/testing/strategy.md) - Overall testing approach
+- [Testing Strategy](../testing/strategy.md) - Overall testing approach
 
 **External Resources:**
 

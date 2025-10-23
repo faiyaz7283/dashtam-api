@@ -483,7 +483,7 @@ All existing test functionality maintained with synchronous approach. Verified:
 
    **Timeline:** Complete
 
-   **Owner:** Done - see testing/guide.md
+   **Owner:** Done - see development/guides/testing-guide.md
 
 ### Long-Term Improvements
 
@@ -504,7 +504,7 @@ N/A - Issue resolved by architectural decision to use synchronous testing patter
 **Related Documentation:**
 
 - [Testing Strategy](../../testing/strategy.md) - Complete testing approach
-- [Testing Guide](../../testing/guide.md) - Practical testing patterns
+- [Testing Guide](../../development/guides/testing-guide.md) - Practical testing patterns
 - [Testing Best Practices](../guides/testing-best-practices.md) - Testing patterns and conventions
 
 **External Resources:**

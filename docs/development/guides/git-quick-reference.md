@@ -703,7 +703,7 @@ After mastering these quick commands, consider:
 - [ ] Read the [Git Workflow Guide](git-workflow.md) for detailed explanations
 - [ ] Set up Git aliases for frequently used commands
 - [ ] Learn interactive rebase for cleaning commit history
-- [ ] Study the [Testing Guide](../../testing/testing-guide.md)
+- [ ] Study the [Testing Guide](../../development/guides/testing-guide.md)
 - [ ] Review [WARP.md](../../../WARP.md) for complete project rules
 
 ## References

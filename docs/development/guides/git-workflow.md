@@ -1131,7 +1131,7 @@ After mastering this Git workflow, consider:
 - [ ] Explore Git bisect for finding commits that introduced bugs
 - [ ] Set up GPG signing for verified commits
 - [ ] Review [Git Quick Reference](git-quick-reference.md) for command cheat sheet
-- [ ] Study the [Testing Guide](../../testing/testing-guide.md) for test workflow
+- [ ] Study the [Testing Guide](../../development/guides/testing-guide.md) for test workflow
 - [ ] Read [WARP.md](../../../WARP.md) for complete project rules
 
 ## References
@@ -1152,7 +1152,7 @@ After mastering this Git workflow, consider:
 ### Internal Resources
 
 - [Git Quick Reference](git-quick-reference.md) - One-page command cheat sheet
-- [Testing Guide](../../testing/testing-guide.md) - Test workflow and strategies
+- [Testing Guide](../../development/guides/testing-guide.md) - Test workflow and strategies
 - [Development Setup](../infrastructure/docker-compose-guide.md) - Docker environment setup
 - [WARP.md](../../../WARP.md) - Project rules and conventions
 

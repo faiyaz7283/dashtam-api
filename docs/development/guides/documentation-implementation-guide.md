@@ -210,7 +210,7 @@ nav:
       - Configuration: setup/configuration.md
   - Development:
       - Architecture: development/architecture/overview.md
-      - Testing: development/testing/guide.md
+      - Testing: development/guides/testing-guide.md
   - API Reference:
       - Endpoints: api/endpoints.md
 ```
@@ -939,8 +939,8 @@ nav:
           - Database Migrations: development/infrastructure/database-migrations.md
       
       - Testing:
-          - Strategy: development/testing/strategy.md
-          - Guide: development/testing/guide.md
+          - Strategy: testing/strategy.md
+          - Guide: development/guides/testing-guide.md
           - Best Practices: development/guides/testing-best-practices.md
       
       - Guides:
@@ -968,7 +968,7 @@ Welcome to the Dashtam developer documentation. This section contains everything
 ## Quick Links
 
 - [Architecture Overview](architecture/overview.md) - System design and patterns
-- [Testing Guide](testing/guide.md) - How to write and run tests
+- [Testing Guide](development/guides/testing-guide.md) - How to write and run tests
 - [Docker Setup](infrastructure/docker-setup.md) - Container configuration
 - [Git Workflow](guides/git-workflow.md) - Branch strategy and conventions
 
@@ -977,7 +977,7 @@ Welcome to the Dashtam developer documentation. This section contains everything
 1. **Clone the repository** and set up your development environment
 2. **Read the architecture overview** to understand system design
 3. **Review coding standards** in [Docstring Standards](guides/docstring-standards.md)
-4. **Run the test suite** following the [Testing Guide](testing/guide.md)
+4. **Run the test suite** following the [Testing Guide](development/guides/testing-guide.md)
 5. **Make your changes** following the [Git Workflow](guides/git-workflow.md)
 
 ## Key Documentation
@@ -1072,7 +1072,7 @@ Dashtam connects to multiple financial institutions through OAuth2, providing a 
 - [GitHub Repository](https://github.com/faiyazhaider/Dashtam)
 - [API Documentation](/api/endpoints)
 - [Development Setup](/development/infrastructure/docker-setup)
-- [Testing Guide](/development/testing/guide)
+- [Testing Guide](/development/guides/testing-guide)
 
 ## Getting Help
 
@@ -1279,7 +1279,7 @@ After completing this guide, consider:
 - [Docstring Standards](docstring-standards.md) - Google-style docstring guide
 - [Git Workflow](git-workflow.md) - Contributing documentation changes
 - [Docker Setup](../infrastructure/docker-setup.md) - Running docs in Docker
-- [Testing Guide](../testing/guide.md) - Testing documentation examples
+- [Testing Guide](../development/guides/testing-guide.md) - Testing documentation examples
 
 ### External Resources
 

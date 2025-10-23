@@ -553,7 +553,7 @@ fi
 **Related Documentation:**
 
 - [Smoke Test README](../../../tests/smoke/README.md) - Complete smoke test documentation
-- [Testing Guide](../testing/guide.md) - Comprehensive testing strategy
+- [Testing Guide](../development/guides/testing-guide.md) - Comprehensive testing strategy
 - [Testing Best Practices](../guides/testing-best-practices.md) - Testing patterns
 
 **External Resources:**

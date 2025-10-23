@@ -234,7 +234,7 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 | File | Lines | Size | Modified | Status | Recommendation |
 |------|-------|------|----------|--------|----------------|
-| `testing/guide.md` | 612 | 15K | 2025-10-03 | ✅ Current | **KEEP** - Testing guide |
+| `development/guides/testing-guide.md` | 612 | 15K | 2025-10-03 | ✅ Current | **KEEP** - Testing guide |
 | `testing/strategy.md` | 590 | 17K | 2025-10-03 | ✅ Current | **KEEP** - Testing strategy |
 | `guides/testing-best-practices.md` | 657 | 24K | 2025-10-18 | ✅ Current | **KEEP** - Testing patterns (moved) |
 | `testing/migration.md` | 408 | 14K | 2025-10-03 | ⚠️ Historical | **ARCHIVE** - Migration complete |

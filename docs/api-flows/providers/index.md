@@ -28,7 +28,7 @@ providers/
 
 - [System Architecture](../../development/architecture/overview.md) - System design and provider architecture
 - [Token Rotation Guide](../../development/guides/token-rotation.md) - OAuth token rotation and refresh
-- [Testing Strategy](../../development/testing/strategy.md) - Testing approaches and patterns
+- [Testing Strategy](../../testing/strategy.md) - Testing approaches and patterns
 
 **Provider Documentation:**
 

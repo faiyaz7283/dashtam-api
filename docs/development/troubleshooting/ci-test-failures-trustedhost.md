@@ -485,7 +485,7 @@ This test will fail immediately if TrustedHostMiddleware configuration breaks Te
 
 - [Docker Setup](../infrastructure/docker-setup.md) - Environment configuration
 - [CI/CD Documentation](../infrastructure/ci-cd.md) - Pipeline setup
-- [Testing Guide](../../testing/guide.md) - TestClient usage
+- [Testing Guide](../../development/guides/testing-guide.md) - TestClient usage
 
 **External Resources:**
 

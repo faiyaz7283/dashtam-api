@@ -68,7 +68,7 @@ Before starting, ensure you have:
 
 - [ ] Basic knowledge of Python and pytest
 - [ ] Understanding of Google-style docstring format
-- [ ] Familiarity with project's testing patterns (see [Testing Guide](guide.md))
+- [ ] Familiarity with project's testing patterns (see [Testing Guide](testing-guide.md))
 
 **Required Tools:**
 
@@ -629,9 +629,9 @@ After mastering test docstring standards, consider:
 
 ## References
 
-- [Docstring Standards Guide](../guides/docstring-standards.md) - Complete Python documentation standards
-- [Testing Guide](guide.md) - Comprehensive testing documentation
-- [Testing Best Practices](../guides/testing-best-practices.md) - Testing patterns and conventions
+- [Docstring Standards Guide](docstring-standards.md) - Complete Python documentation standards
+- [Testing Guide](testing-guide.md) - Comprehensive testing documentation
+- [Testing Best Practices](testing-best-practices.md) - Testing patterns and conventions
 - [Google Style Guide](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings) - Official Google Python style guide
 - [PEP 257](https://peps.python.org/pep-0257/) - Docstring conventions
 - WARP.md - Project rules requiring Google-style docstrings

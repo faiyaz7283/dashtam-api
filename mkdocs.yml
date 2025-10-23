@@ -113,9 +113,6 @@ plugins:
 # Navigation
 nav:
   - Home: index.md
-  - Getting Started:
-    - Quick Start: setup/quick-start.md
-    - Installation: setup/installation.md
   - API Reference:
     - Overview: api/index.md
     - Services: api/services.md
@@ -132,21 +129,9 @@ nav:
       - Git Workflow: development/guides/git-workflow.md
       - Git Quick Reference: development/guides/git-quick-reference.md
       - UV Package Management: development/guides/uv-package-management.md
-      - MkDocs Setup: development/guides/mkdocs-setup.md
       - Mermaid Diagram Standards: development/guides/mermaid-diagram-standards.md
-      - Documentation Template System: development/guides/documentation-template-system.md
     - Infrastructure:
       - Docker Setup: development/infrastructure/docker-setup.md
-      - Environment Configuration: development/infrastructure/environment-configuration.md
       - Database Migrations: development/infrastructure/database-migrations.md
-      - Parallel Environments: development/infrastructure/parallel-environments.md
-    - Implementation:
-      - Token Rotation Guide: development/implementation/token-rotation.md
-  - Testing:
-    - Strategy: testing/strategy.md
-    - Smoke Test Solution: testing/smoke-test-caplog-solution.md
-  - Research:
-    - Authentication Approaches: research/authentication_approaches_research.md
-    - Documentation Guide: research/documentation_guide_research.md
   - Reviews:
     - REST API Audit (2025-10-05): reviews/REST_API_AUDIT_REPORT_2025-10-05.md

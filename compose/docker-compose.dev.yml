@@ -49,6 +49,7 @@ services:
       - ../env/.env.dev
     ports:
       - "${APP_PORT:-8000}:8000"
+      - "${MKDOCS_PORT:-8001}:8001"
     volumes:
       # Mount entire project for full dev experience (mkdocs, config files, etc.)
       - ..:/app:rw

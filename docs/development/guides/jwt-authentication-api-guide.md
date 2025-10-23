@@ -1369,7 +1369,7 @@ After completing this guide, consider:
 
 - [JWT Authentication Architecture](../architecture/jwt-authentication.md) - Complete architecture guide
 - [RESTful API Design](../architecture/restful-api-design.md) - REST API standards
-- [API Endpoint Tests](../../../tests/integration/test_api_auth.py) - Integration test examples
+- `tests/integration/test_api_auth.py` - Integration test examples
 - [FastAPI Documentation](https://fastapi.tiangolo.com/) - FastAPI framework
 - [Pydantic V2 Documentation](https://docs.pydantic.dev/latest/) - Schema validation
 - [HTTP Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) - Status code reference

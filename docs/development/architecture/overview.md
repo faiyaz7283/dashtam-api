@@ -626,11 +626,11 @@ make up             # Fresh start
 
 **Core Application Files:**
 
-- [src/core/config.py](../../../src/core/config.py) - Settings management
-- [src/core/database.py](../../../src/core/database.py) - Database connection and session management
-- [src/core/init_db.py](../../../src/core/init_db.py) - Development database initialization
-- [src/core/init_test_db.py](../../../src/core/init_test_db.py) - Test database initialization
-- [src/main.py](../../../src/main.py) - FastAPI application entry point
+- `src/core/config.py` - Settings management
+- `src/core/database.py` - Database connection and session management
+- `src/core/init_db.py` - Development database initialization
+- `src/core/init_test_db.py` - Test database initialization
+- `src/main.py` - FastAPI application entry point
 
 **Configuration Files:**
 
@@ -642,15 +642,15 @@ make up             # Fresh start
 
 **Database Models:**
 
-- [src/models/user.py](../../../src/models/user.py) - User model
-- [src/models/provider.py](../../../src/models/provider.py) - Provider, Connection, Token, AuditLog models
+- `src/models/user.py` - User model
+- `src/models/provider.py` - Provider, Connection, Token, AuditLog models
 
 **Test Files:**
 
-- [tests/test_config.py](../../../tests/test_config.py) - Test configuration
-- [tests/conftest.py](../../../tests/conftest.py) - Pytest fixtures
-- [tests/unit/](../../../tests/unit/) - Unit tests
-- [tests/integration/](../../../tests/integration/) - Integration tests
+- `tests/test_config.py` - Test configuration
+- `tests/conftest.py` - Pytest fixtures
+- `tests/unit/` - Unit tests
+- `tests/integration/` - Integration tests
 
 ---
 

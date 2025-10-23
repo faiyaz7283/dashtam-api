@@ -266,9 +266,9 @@ Reusable templates for creating new documentation that follows project standards
 
 **Related Repositories:**
 
-- [Source Code](../src/) - Application source code
-- [Tests](../tests/) - Test suites and fixtures
-- [Docker Configuration](../compose/) - Container orchestration files
+- `src/` - Application source code
+- `tests/` - Test suites and fixtures
+- `compose/` - Container orchestration files
 
 ## Contributing
 

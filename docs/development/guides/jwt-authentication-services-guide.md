@@ -1575,8 +1575,8 @@ After completing this guide, consider:
 ## References
 
 - [JWT Authentication Architecture](../architecture/jwt-authentication.md) - Complete architecture guide
-- [Password Service Tests](../../../tests/unit/test_password_service.py) - Unit test examples
-- [JWT Service Tests](../../../tests/unit/test_jwt_service.py) - JWT testing patterns
+- `tests/unit/test_password_service.py` - Unit test examples
+- `tests/unit/test_jwt_service.py` - JWT testing patterns
 - [bcrypt Documentation](https://github.com/pyca/bcrypt) - Password hashing library
 - [PyJWT Documentation](https://pyjwt.readthedocs.io/) - JWT token library
 - [AWS SES Documentation](https://docs.aws.amazon.com/ses/) - Email service setup

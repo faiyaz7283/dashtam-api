@@ -1267,9 +1267,9 @@ open http://localhost:8000/docs
 
 ### Project Files
 
-- [Schema Implementations](../../../src/schemas/) - All Pydantic schema definitions
-- [Schema Unit Tests](../../../tests/unit/schemas/) - Unit tests for schema validation
-- [API Integration Tests](../../../tests/api/) - API endpoint integration tests
+- `src/schemas/` - All Pydantic schema definitions
+- `tests/unit/schemas/` - Unit tests for schema validation
+- `tests/api/` - API endpoint integration tests
 
 ---
 

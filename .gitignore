@@ -72,4 +72,4 @@ coverage.xml
 
 # Local development
 .local/
-tmp/
+tmp/site/

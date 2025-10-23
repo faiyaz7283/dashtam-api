@@ -1,0 +1,92 @@
+# MkDocs Configuration for Dashtam Documentation
+# https://www.mkdocs.org/user-guide/configuration/
+
+# Site Metadata
+site_name: Dashtam Documentation
+site_description: Secure, modern financial data aggregation platform - Developer documentation
+site_author: Faiyaz Haider
+site_url: https://faiyazhaider.github.io/Dashtam/
+
+# Repository
+repo_name: Dashtam
+repo_url: https://github.com/faiyazhaider/Dashtam
+edit_uri: edit/development/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 Faiyaz Haider
+
+# Documentation Directory
+docs_dir: docs
+
+# Build Directory
+site_dir: site
+
+# Theme Configuration (Material)
+theme:
+  name: material
+  language: en
+  
+  # Color Palette
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  
+  # Features
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - content.code.copy
+
+# Markdown Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.mark
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Plugins
+plugins:
+  - search
+  - mermaid2

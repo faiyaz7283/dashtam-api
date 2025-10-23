@@ -863,7 +863,7 @@ SET full_page_writes = OFF;
 - [Docker Setup](docker-setup.md) - Container configuration details
 - [Database Migrations](database-migrations.md) - Alembic migration system
 - [CI/CD Pipeline](ci-cd.md) - GitHub Actions integration
-- [Testing Strategy](../testing/strategy.md) - Test infrastructure overview
+- [Testing Strategy](../../testing/strategy.md) - Test infrastructure overview
 
 ---
 

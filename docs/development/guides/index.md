@@ -71,7 +71,7 @@ guides/
 **Related Documentation:**
 
 - [Architecture Overview](../architecture/overview.md) - System design and patterns
-- [Testing Strategy](../testing/strategy.md) - Testing approach and framework
+- [Testing Strategy](../../testing/strategy.md) - Testing approach and framework
 - [Infrastructure Setup](../infrastructure/docker-setup.md) - Docker configuration
 
 **External Resources:**
@@ -89,7 +89,7 @@ guides/
 
 - [Architecture](../architecture/index.md) - System design and decisions
 - [Infrastructure](../infrastructure/index.md) - Docker, CI/CD, database
-- [Testing](../testing/index.md) - Testing documentation
+- [Testing](../../testing/index.md) - Testing documentation
 
 ## Contributing
 

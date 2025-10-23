@@ -703,15 +703,15 @@ After mastering these quick commands, consider:
 - [ ] Read the [Git Workflow Guide](git-workflow.md) for detailed explanations
 - [ ] Set up Git aliases for frequently used commands
 - [ ] Learn interactive rebase for cleaning commit history
-- [ ] Study the [Testing Guide](../../development/guides/testing-guide.md)
-- [ ] Review [WARP.md](../../../WARP.md) for complete project rules
+- [ ] Study the [Testing Guide](testing-guide.md)
+- [ ] Review `WARP.md` (project root) for complete project rules
 
 ## References
 
 ### Essential Links
 
 - [Git Workflow Guide](git-workflow.md) - Complete workflow documentation
-- [WARP.md](../../../WARP.md) - Project rules and conventions
+- `WARP.md` (project root) - Project rules and conventions
 - [Conventional Commits](https://www.conventionalcommits.org/) - Commit specification
 - [Semantic Versioning](https://semver.org/) - Versioning specification
 - [Git Flow Cheatsheet](https://danielkummer.github.io/git-flow-cheatsheet/) - Visual guide

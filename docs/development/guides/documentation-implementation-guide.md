@@ -1007,7 +1007,7 @@ Add navigation links between related documents.
 - [RESTful API Design](restful-api-design.md) - API design principles
 - [JWT Authentication](jwt-authentication.md) - Authentication implementation
 - [Database Migrations](../infrastructure/database-migrations.md) - Schema evolution
-- [Testing Strategy](../testing/strategy.md) - How we test the architecture
+- [Testing Strategy](../../testing/strategy.md) - How we test the architecture
 
 ## See Also
 

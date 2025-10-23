@@ -80,7 +80,7 @@ troubleshooting/
 
 **Related Documentation:**
 
-- [Testing Documentation](../testing/index.md) - Testing strategy and guides
+- [Testing Documentation](../../testing/index.md) - Testing strategy and guides
 - [Infrastructure Documentation](../infrastructure/index.md) - Docker, CI/CD setup
 - [Architecture Documentation](../architecture/index.md) - System design and patterns
 
@@ -101,7 +101,7 @@ troubleshooting/
 
 **Related Directories:**
 
-- [Testing](../testing/index.md) - Test strategy and implementation
+- [Testing](../../testing/index.md) - Test strategy and implementation
 - [Guides](../guides/index.md) - How-to guides and tutorials
 - [Infrastructure](../infrastructure/index.md) - Docker and CI/CD
 - [Architecture](../architecture/index.md) - System design

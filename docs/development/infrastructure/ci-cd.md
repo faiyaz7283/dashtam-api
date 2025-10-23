@@ -669,7 +669,7 @@ postgres:
 - [Codecov Documentation](https://docs.codecov.com/)
 - [Branch Protection Rules Guide](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
 - [Internal: Docker Setup Guide](docker-setup.md)
-- [Internal: Testing Strategy](../testing/strategy.md)
+- [Internal: Testing Strategy](../../testing/strategy.md)
 - [Internal: Environment Configuration](../../env/README.md)
 
 ---

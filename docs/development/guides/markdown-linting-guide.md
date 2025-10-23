@@ -876,7 +876,7 @@ Add to "Coding Standards" section:
 - [markdownlint Rules](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) - Complete rule reference
 - [Mermaid Diagram Standards](mermaid-diagram-standards.md) - Diagram creation guidelines
 - [Documentation Template System](../../templates/README.md) - Template usage guide
-- [WARP.md](../../../WARP.md) - Project coding standards and markdown quality rules
+- `WARP.md` (project root) - Project coding standards and markdown quality rules
 - [Docstring Standards Guide](docstring-standards.md) - Python documentation standards
 - [Documentation Implementation Guide](documentation-implementation-guide.md) - MkDocs setup
 

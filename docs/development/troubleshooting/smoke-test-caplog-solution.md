@@ -552,8 +552,8 @@ fi
 
 **Related Documentation:**
 
-- [Smoke Test README](../../../tests/smoke/README.md) - Complete smoke test documentation
-- [Testing Guide](../development/guides/testing-guide.md) - Comprehensive testing strategy
+- Smoke Test README (`tests/smoke/README.md` in project root) - Complete smoke test documentation
+- [Testing Guide](../guides/testing-guide.md) - Comprehensive testing strategy
 - [Testing Best Practices](../guides/testing-best-practices.md) - Testing patterns
 
 **External Resources:**

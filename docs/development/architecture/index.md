@@ -70,7 +70,7 @@ architecture/
 **Related Documentation:**
 
 - [Development Guides](../guides/index.md) - How-to guides and implementation details
-- [Testing Strategy](../testing/strategy.md) - Testing approach and framework
+- [Testing Strategy](../../testing/strategy.md) - Testing approach and framework
 - [Infrastructure Setup](../infrastructure/docker-setup.md) - Docker and environment configuration
 
 **Implementation Guides:**
@@ -93,12 +93,12 @@ architecture/
 
 - [Development Guides](../guides/index.md) - Implementation guides and tutorials
 - [Infrastructure](../infrastructure/index.md) - Docker, CI/CD, database
-- [Testing](../testing/index.md) - Testing strategy and best practices
+- [Testing](../../testing/index.md) - Testing strategy and best practices
 
 **Other Documentation:**
 
-- [Main README](../../README.md) - Project overview
-- [WARP.md](../../../WARP.md) - Project rules and standards
+- `README.md` (project root) - Project overview
+- `WARP.md` (project root) - Project rules and standards
 
 ## Contributing
 
@@ -110,7 +110,7 @@ When adding new architecture documents to this directory:
 4. Reference implementation guides for details
 5. Document tradeoffs and alternatives considered
 6. Update this index with a link and brief description
-7. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
+7. Run markdown linting: `make lint-md FILE="path/to/file.md"`
 
 ### Architecture Decision Records (ADRs)
 
@@ -120,7 +120,7 @@ When documenting significant architectural decisions:
 2. Follow the format: Context → Problem → Options → Analysis → Decision → Consequences
 3. Document decision date and decision maker
 4. Include links to related implementations
-5. Update WARP.md if the decision impacts project standards
+5. Update `WARP.md` (project root) if the decision impacts project standards
 
 ---
 

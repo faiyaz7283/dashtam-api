@@ -418,8 +418,8 @@ Verified that all existing functionality remained intact:
 
 **Related Documentation:**
 
-- [Testing Strategy](../testing/strategy.md) - Overall testing approach
-- [Testing Migration](../testing/migration.md) - Async-to-sync migration details
+- [Testing Strategy](../../testing/strategy.md) - Overall testing approach
+- [Testing Migration](../../testing/migration.md) - Async-to-sync migration details
 - [Async Testing Research](../../research/async-testing.md) - Historical context
 - [Test Infrastructure Guide](../development/guides/testing-guide.md) - Complete testing guide
 

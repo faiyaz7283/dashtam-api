@@ -839,8 +839,7 @@ After mastering UV package management, consider:
 - [UV Documentation](https://docs.astral.sh/uv/) - Official UV documentation
 - [UV GitHub Repository](https://github.com/astral-sh/uv) - Source code and issues
 - [PEP 621](https://peps.python.org/pep-0621/) - Project metadata standard
-- [Dashtam Docker Configuration](../../docker/Dockerfile) - Project Dockerfile
-- [Dashtam WARP.md](../../../WARP.md) - Project rules for UV usage
+- `WARP.md` (project root) - Project rules for UV usage
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/) - Docker optimization
 
 ---

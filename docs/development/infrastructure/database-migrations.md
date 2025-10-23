@@ -1015,7 +1015,7 @@ Before committing a migration:
 - [Docker Setup](docker-setup.md) - Container configuration
 - [CI/CD Pipeline](ci-cd.md) - Automated testing
 - [Database Models](../../api/models.md) - SQLModel reference
-- [Testing Strategy](../testing/strategy.md) - Test infrastructure
+- [Testing Strategy](../../testing/strategy.md) - Test infrastructure
 
 ### External Resources
 

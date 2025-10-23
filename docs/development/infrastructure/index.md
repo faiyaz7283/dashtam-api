@@ -58,7 +58,7 @@ infrastructure/
 
 - [Docker Refactoring Guide](../guides/docker-refactoring-implementation.md) - Docker migration implementation details
 - [Architecture Overview](../architecture/overview.md) - System design
-- [Testing Strategy](../testing/strategy.md) - Testing approach
+- [Testing Strategy](../../testing/strategy.md) - Testing approach
 
 **Development Workflows:**
 
@@ -80,7 +80,7 @@ infrastructure/
 
 - [Architecture](../architecture/index.md) - System design and decisions
 - [Development Guides](../guides/index.md) - How-to guides and tutorials
-- [Testing](../testing/index.md) - Testing documentation
+- [Testing](../../testing/index.md) - Testing documentation
 
 ## Contributing
 

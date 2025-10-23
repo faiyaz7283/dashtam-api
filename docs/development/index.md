@@ -162,12 +162,12 @@ Problem diagnosis and solutions for common issues:
 
 - [API Flows](../api-flows/index.md) - Manual API testing workflows
 - [Research](../research/index.md) - Technical research and ADRs
-- [Testing](../testing/index.md) - Testing strategy and documentation
+- [Testing](../../testing/index.md) - Testing strategy and documentation
 
 **Other Documentation:**
 
-- [Main Index](../../index.md) - Documentation home
-- [Project README](../../README.md) - Project overview
+- [Main Index](../index.md) - Documentation home
+- `README.md` (project root) - Project overview
 
 ## Contributing
 
@@ -177,7 +177,7 @@ When adding new documents to the development directory:
 2. Place in correct subdirectory (architecture, guides, infrastructure, troubleshooting)
 3. Follow markdown quality standards and guidelines
 4. Update this index with link and brief description
-5. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
+5. Run markdown linting: `make lint-md FILE="path/to/file.md"`
 
 ---
 

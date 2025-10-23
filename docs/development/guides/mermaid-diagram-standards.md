@@ -514,7 +514,7 @@ plugins:
 - [Sequence Diagram Documentation](https://mermaid.js.org/syntax/sequenceDiagram.html) - Sequence diagram guide
 - [ER Diagram Documentation](https://mermaid.js.org/syntax/entityRelationshipDiagram.html) - Entity relationship diagrams
 - [Documentation Template System](../../templates/README.md) - Template usage guide
-- [WARP.md](../../../WARP.md) - Project standards and Mermaid requirements
+- `WARP.md` (project root) - Project standards and Mermaid requirements
 
 ---
 

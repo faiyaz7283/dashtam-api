@@ -627,9 +627,9 @@ tests/
 
 **Project Documentation:**
 
-- [Smoke Test README](../../../tests/smoke/README.md)
+- Smoke Test README (`tests/smoke/README.md` in project root)
 - [Smoke Test Implementation Guide](../development/troubleshooting/smoke-test-caplog-solution.md)
-- [Testing Guide](development/guides/testing-guide.md)
+- [Testing Guide](../development/guides/testing-guide.md)
 - [Testing Best Practices](../development/guides/testing-best-practices.md)
 
 **Industry Research Sources:**

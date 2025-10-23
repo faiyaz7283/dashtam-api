@@ -1029,3 +1029,34 @@ git-branch-protection:
 	echo "Protected branches:" && \
 	echo "  • main - Tests + 1 approval required (admins enforced)" && \
 	echo "  • development - Tests + 1 approval required"
+
+# =============================================================================
+# Documentation Commands (MkDocs)
+# =============================================================================
+
+## Build documentation site
+docs-build:
+	@echo "📚 Building documentation..."
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build
+
+## Serve documentation locally with live reload
+docs-serve:
+	@echo "🌐 Starting documentation server at http://localhost:8000"
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve -a 0.0.0.0:8080
+
+## Check documentation (lint + link validation)
+docs-check:
+	@echo "🔍 Checking documentation..."
+	@echo "  → Running markdown linting..."
+	@make lint-md
+	@echo "  → Validating links..."
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build --strict
+	@echo "✅ Documentation check complete!"
+
+## Clean built documentation
+docs-clean:
+	@echo "🧹 Cleaning documentation build..."
+	@rm -rf site/
+	@echo "✅ Documentation cleaned!"
+
+.PHONY: docs-build docs-serve docs-check docs-clean

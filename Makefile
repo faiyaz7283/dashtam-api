@@ -48,6 +48,11 @@ help:
 	@echo "  make lint           - Run Python linters (ruff)"
 	@echo "  make format         - Format Python code (ruff)"
 	@echo ""
+	@echo "📚 Documentation:"
+	@echo "  make docs-serve     - Start MkDocs live preview (port 8001)"
+	@echo "  make docs-build     - Build static documentation site"
+	@echo "  make docs-stop      - Stop MkDocs preview server"
+	@echo ""
 	@echo "📝 Markdown Linting:"
 	@echo "  make lint-md                          - Lint all markdown files"
 	@echo "  make lint-md FILE=path/to/file.md     - Lint single file"
@@ -111,6 +116,7 @@ dev-up:
 # Stop development environment
 dev-down:
 	@echo "🛑 Stopping DEVELOPMENT environment..."
+	@$(MAKE) _docs-cleanup 2>/dev/null || true
 	@docker compose -f compose/docker-compose.dev.yml down
 	@echo "✅ Development environment stopped"
 
@@ -125,6 +131,8 @@ dev-rebuild:
 	@echo "🔄 Rebuilding DEVELOPMENT images from scratch..."
 	@echo "  → Removing problematic .env directory (if exists)..."
 	@if [ -d ".env" ]; then rm -rf .env && echo "    ✓ Removed .env directory"; fi
+	@echo "  → Stopping MkDocs processes..."
+	@$(MAKE) _docs-cleanup 2>/dev/null || true
 	@echo "  → Stopping containers..."
 	@docker compose -f compose/docker-compose.dev.yml down 2>/dev/null || true
 	@echo "  → Removing old images..."
@@ -142,7 +150,10 @@ dev-logs-%:
 	@docker compose -f compose/docker-compose.dev.yml logs -f $*
 
 # Restart development environment
-dev-restart: dev-down dev-up
+dev-restart:
+	@$(MAKE) _docs-cleanup 2>/dev/null || true
+	@$(MAKE) dev-down
+	@$(MAKE) dev-up
 
 # Show development service status
 dev-status:
@@ -671,6 +682,46 @@ migrate-show:
 # Legacy alias for backwards compatibility
 migration: migrate-create
 	@echo "💡 Tip: Use 'make migrate-create' instead (migration is deprecated)"
+
+# ============================================================================
+# DOCUMENTATION COMMANDS (MkDocs)
+# ============================================================================
+
+# Start MkDocs live preview server (port 8001)
+docs-serve:
+	@echo "📚 Starting MkDocs live preview server..."
+	@echo ""
+	@echo "🔧 Cleaning up any existing MkDocs processes..."
+	@docker compose -f compose/docker-compose.dev.yml exec app pkill -f "mkdocs serve" 2>/dev/null || true
+	@sleep 1
+	@echo "🚀 Starting MkDocs serve..."
+	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && uv run mkdocs serve --dev-addr=0.0.0.0:8001"
+	@sleep 3
+	@echo ""
+	@echo "✅ MkDocs server started!"
+	@echo ""
+	@echo "📖 Documentation: http://localhost:8001/Dashtam/"
+	@echo "🔄 Live reload enabled - changes will auto-update"
+	@echo ""
+	@echo "🛑 Stop server: make docs-stop"
+	@echo "🏗️  Build static: make docs-build"
+
+# Build static documentation site
+docs-build:
+	@echo "🏗️  Building static documentation..."
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build
+	@echo "✅ Documentation built to site/ directory"
+
+# Stop MkDocs preview server
+docs-stop:
+	@echo "🛑 Stopping MkDocs preview server..."
+	@docker compose -f compose/docker-compose.dev.yml exec app pkill -f "mkdocs serve" 2>/dev/null || true
+	@echo "✅ MkDocs server stopped"
+
+# Internal: Cleanup MkDocs processes (used by dev lifecycle commands)
+.PHONY: _docs-cleanup
+_docs-cleanup:
+	@docker compose -f compose/docker-compose.dev.yml exec app pkill -f "mkdocs serve" 2>/dev/null || true
 
 # ============================================================================
 # PROVIDER AUTH & UTILITIES

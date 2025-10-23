@@ -691,9 +691,6 @@ migration: migrate-create
 docs-serve:
 	@echo "📚 Starting MkDocs live preview server..."
 	@echo ""
-	@echo "🔧 Cleaning up any existing MkDocs processes..."
-	@docker compose -f compose/docker-compose.dev.yml exec app pkill -f "mkdocs serve" 2>/dev/null || true
-	@sleep 1
 	@echo "🚀 Starting MkDocs serve..."
 	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && uv run mkdocs serve --dev-addr=0.0.0.0:8001"
 	@sleep 3
@@ -715,13 +712,16 @@ docs-build:
 # Stop MkDocs preview server
 docs-stop:
 	@echo "🛑 Stopping MkDocs preview server..."
-	@docker compose -f compose/docker-compose.dev.yml exec app pkill -f "mkdocs serve" 2>/dev/null || true
+	@echo "   Restarting app container to clean up processes..."
+	@docker compose -f compose/docker-compose.dev.yml restart app
 	@echo "✅ MkDocs server stopped"
 
 # Internal: Cleanup MkDocs processes (used by dev lifecycle commands)
+# Note: Just gracefully restarts the app container
 .PHONY: _docs-cleanup
 _docs-cleanup:
-	@docker compose -f compose/docker-compose.dev.yml exec app pkill -f "mkdocs serve" 2>/dev/null || true
+	@echo "   → Restarting app container..."
+	@docker compose -f compose/docker-compose.dev.yml restart app 2>/dev/null || true
 
 # ============================================================================
 # PROVIDER AUTH & UTILITIES

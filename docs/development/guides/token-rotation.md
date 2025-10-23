@@ -591,7 +591,6 @@ After implementing token rotation for your provider, consider:
 
 **Related Guides:**
 
-- [Provider Implementation Guide](provider-implementation.md) - Comprehensive provider setup
 - [JWT Authentication Guide](jwt-authentication-api-guide.md) - User authentication patterns
 - [Testing Guide](testing-guide.md) - Comprehensive testing strategies
 
@@ -607,7 +606,6 @@ After implementing token rotation for your provider, consider:
 - [OAuth 2.0 RFC 6749 - Token Refresh](https://tools.ietf.org/html/rfc6749#section-6) - Official OAuth specification
 - [OAuth 2.0 Security Best Practices](https://tools.ietf.org/html/draft-ietf-oauth-security-topics) - Security guidelines
 - [JWT Authentication Architecture](../architecture/jwt-authentication.md) - Dashtam's auth architecture
-- [Provider Implementation Guide](../guides/provider-implementation.md) - General provider patterns
 
 **Dashtam Code References:**
 

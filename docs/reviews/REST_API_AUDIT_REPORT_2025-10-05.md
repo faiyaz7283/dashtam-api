@@ -604,7 +604,7 @@ None required. API is production-ready.
 
 ### Previous Audits
 
-- **2025-10-04**: [Previous REST API Audit](rest-api-compliance-review.md) - Score: 9.5/10 - [Initial audit]
+- **2025-10-04**: Previous REST API Audit - Score: 9.5/10 (document archived)
 
 ### Progress Tracking
 
@@ -644,17 +644,17 @@ tests/api/test_auth_endpoints.py      # Tests for deprecated router
 
 **Audit Reports:**
 
-- [REST API Compliance Review](rest-api-compliance-review.md) - Date: 2025-10-04 (previous audit - 9.5/10)
+- This is the current REST API audit (supersedes previous 2025-10-04 audit)
 
 **Standards and Guidelines:**
 
-- [RESTful API Design Architecture](../architecture/restful-api-design.md) - REST API design principles
-- [Schema Design Patterns](../architecture/schemas-design.md) - Pydantic schema organization
+- [RESTful API Design Architecture](../development/architecture/restful-api-design.md) - REST API design principles
+- [Schema Design Patterns](../development/architecture/schemas-design.md) - Pydantic schema organization
 
 **Implementation Documents:**
 
-- [REST API Compliance Implementation Plan](../guides/rest-api-compliance-implementation-plan.md) - How issues were fixed
-- [RESTful API Quick Reference](../guides/restful-api-quick-reference.md) - Quick reference guide
+- REST API Compliance Implementation Plan (not created) - How issues were fixed
+- [RESTful API Quick Reference](../development/guides/restful-api-quick-reference.md) - Quick reference guide
 
 **External References:**
 

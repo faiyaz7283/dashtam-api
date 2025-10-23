@@ -501,8 +501,6 @@ No ongoing monitoring needed. The four-layer protection system ensures the issue
 **Related Documentation:**
 
 - [Docker Setup](../infrastructure/docker-setup.md) - Docker configuration and best practices
-- [Environment Configuration](../infrastructure/environment-configuration.md) - Environment variable management
-- [Makefile Commands](../guides/makefile-commands.md) - Complete command reference
 
 **External Resources:**
 

@@ -162,7 +162,7 @@ Problem diagnosis and solutions for common issues:
 
 - [API Flows](../api-flows/index.md) - Manual API testing workflows
 - [Research](../research/index.md) - Technical research and ADRs
-- [Testing](../../testing/index.md) - Testing strategy and documentation
+- [Testing](../testing/index.md) - Testing strategy and documentation
 
 **Other Documentation:**
 

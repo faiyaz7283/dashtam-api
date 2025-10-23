@@ -491,7 +491,6 @@ Should we need to test async code paths directly in the future:
 - [FastAPI Testing Documentation](https://fastapi.tiangolo.com/tutorial/testing/)
 - [FastAPI Official Template](https://github.com/fastapi/full-stack-fastapi-template)
 - [Testing Strategy](../../testing/strategy.md) - Overall testing approach
-- [Async Testing Migration](../historical/async-to-sync-testing-migration.md) - Migration history
 - [Pytest Documentation](https://docs.pytest.org/)
 - [SQLModel Testing Guide](https://sqlmodel.tiangolo.com/tutorial/testing/)
 

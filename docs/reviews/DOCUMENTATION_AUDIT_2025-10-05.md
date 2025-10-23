@@ -618,8 +618,8 @@ After this cleanup, the documentation will be:
 
 **Standards and Guidelines:**
 
-- [Template System README](../../templates/README.md) - Documentation template standards
-- [Mermaid Diagram Standards](../guides/mermaid-diagram-standards.md) - Diagram requirements
+- [Template System README](../templates/README.md) - Documentation template standards
+- [Mermaid Diagram Standards](../development/guides/mermaid-diagram-standards.md) - Diagram requirements
 
 **Implementation Documents:**
 

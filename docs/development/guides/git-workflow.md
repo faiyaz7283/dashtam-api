@@ -1153,7 +1153,7 @@ After mastering this Git workflow, consider:
 
 - [Git Quick Reference](git-quick-reference.md) - One-page command cheat sheet
 - [Testing Guide](testing-guide.md) - Test workflow and strategies
-- [Development Setup](../infrastructure/docker-compose-guide.md) - Docker environment setup
+- [Docker Setup Guide](../infrastructure/docker-setup.md) - Docker environment setup
 - `WARP.md` (project root) - Project rules and conventions
 
 ---

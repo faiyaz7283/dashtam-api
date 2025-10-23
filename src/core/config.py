@@ -52,12 +52,12 @@ class Settings(BaseSettings):
         DATABASE_URL: PostgreSQL connection URL with async driver.
         DB_ECHO: Enable SQLAlchemy query logging.
         CORS_ORIGINS: List of allowed CORS origins.
-        SSL_CERT_FILE: Path to SSL certificate for HTTPS.
-        SSL_KEY_FILE: Path to SSL private key for HTTPS.
+        API_SSL_CERT_FILE: Path to SSL certificate for HTTPS.
+        API_SSL_KEY_FILE: Path to SSL private key for HTTPS.
         CALLBACK_SERVER_HOST: Host for OAuth callback server.
         CALLBACK_SERVER_PORT: Port for OAuth callback server.
-        CALLBACK_SSL_CERT_FILE: SSL certificate for callback server.
-        CALLBACK_SSL_KEY_FILE: SSL private key for callback server.
+        API_CALLBACK_SSL_CERT_FILE: SSL certificate for callback server.
+        API_CALLBACK_SSL_KEY_FILE: SSL private key for callback server.
         SCHWAB_API_KEY: Charles Schwab API client ID.
         SCHWAB_API_SECRET: Charles Schwab API client secret.
         SCHWAB_API_BASE_URL: Base URL for Schwab API endpoints.
@@ -128,14 +128,14 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = Field(default="https://localhost:3000")
 
     # SSL/TLS Configuration (HTTPS everywhere)
-    SSL_CERT_FILE: str = Field(default="certs/cert.pem")
-    SSL_KEY_FILE: str = Field(default="certs/key.pem")
+    API_SSL_CERT_FILE: str = Field(default="certs/cert.pem")
+    API_SSL_KEY_FILE: str = Field(default="certs/key.pem")
 
     # Callback Server (for OAuth providers)
     CALLBACK_SERVER_HOST: str = Field(default="0.0.0.0")
     CALLBACK_SERVER_PORT: int = Field(default=8182)
-    CALLBACK_SSL_CERT_FILE: str = Field(default="certs/callback_cert.pem")
-    CALLBACK_SSL_KEY_FILE: str = Field(default="certs/callback_key.pem")
+    API_CALLBACK_SSL_CERT_FILE: str = Field(default="certs/callback_cert.pem")
+    API_CALLBACK_SSL_KEY_FILE: str = Field(default="certs/callback_key.pem")
 
     # Provider Configuration - Schwab
     SCHWAB_API_KEY: Optional[str] = Field(default=None)
@@ -269,10 +269,10 @@ class Settings(BaseSettings):
         return v
 
     @field_validator(
-        "SSL_CERT_FILE",
-        "SSL_KEY_FILE",
-        "CALLBACK_SSL_CERT_FILE",
-        "CALLBACK_SSL_KEY_FILE",
+        "API_SSL_CERT_FILE",
+        "API_SSL_KEY_FILE",
+        "API_CALLBACK_SSL_CERT_FILE",
+        "API_CALLBACK_SSL_KEY_FILE",
     )
     @classmethod
     def validate_ssl_files(cls, v: str, info) -> str:

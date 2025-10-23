@@ -96,7 +96,7 @@ Before using this guide, ensure you have:
 **Related Documentation:**
 
 - [Testing Strategy](../../testing/strategy.md) - Overall testing philosophy
-- [Testing Guide](../development/guides/testing-guide.md) - How to run and organize tests
+- [Testing Guide](../guides/testing-guide.md) - How to run and organize tests
 
 ## Step-by-Step Instructions
 
@@ -738,7 +738,7 @@ def test_feature_name():
 After mastering these best practices, consider:
 
 - [ ] Review [Testing Strategy](../../testing/strategy.md) for overall philosophy
-- [ ] Read [Testing Guide](../development/guides/testing-guide.md) for running tests
+- [ ] Read [Testing Guide](../guides/testing-guide.md) for running tests
 - [ ] Study [Test Docstring Standards](test-docstring-standards.md)
 - [ ] Explore [Smoke Test Design](../../research/smoke-test-design-comparison.md)
 - [ ] Contribute to test coverage (target: 85%+)
@@ -748,7 +748,7 @@ After mastering these best practices, consider:
 **Project Documentation:**
 
 - [Testing Strategy](../../testing/strategy.md) - Overall testing philosophy
-- [Testing Guide](../development/guides/testing-guide.md) - Running and organizing tests
+- [Testing Guide](../guides/testing-guide.md) - Running and organizing tests
 - [Test Docstring Standards](test-docstring-standards.md) - Documenting tests
 
 **External Resources:**

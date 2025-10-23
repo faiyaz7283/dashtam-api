@@ -1279,7 +1279,7 @@ After completing this guide, consider:
 - [Docstring Standards](docstring-standards.md) - Google-style docstring guide
 - [Git Workflow](git-workflow.md) - Contributing documentation changes
 - [Docker Setup](../infrastructure/docker-setup.md) - Running docs in Docker
-- [Testing Guide](../development/guides/testing-guide.md) - Testing documentation examples
+- [Testing Guide](../guides/testing-guide.md) - Testing documentation examples
 
 ### External Resources
 

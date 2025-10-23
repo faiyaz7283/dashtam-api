@@ -554,7 +554,7 @@ def assert_db_state(session, expected_users=1, expected_tokens=0):
 
 **Related Documentation:**
 
-- [Testing Guide](../development/guides/testing-guide.md) - Comprehensive testing documentation
+- [Testing Guide](../guides/testing-guide.md) - Comprehensive testing documentation
 - [Database Migrations Guide](../infrastructure/database-migrations.md) - Alembic migration documentation
 - [Smoke Test Caplog Solution](smoke-test-caplog-solution.md) - Related smoke test troubleshooting
 

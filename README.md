@@ -2,7 +2,7 @@
 
 > A secure, modern financial data aggregation API that unifies access to multiple financial institutions through OAuth2.
 
-[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://faiyazhaider.github.io/Dashtam/) [![Test Suite](https://github.com/faiyaz7283/Dashtam/workflows/Test%20Suite/badge.svg)](https://github.com/faiyaz7283/Dashtam/actions) [![codecov](https://codecov.io/gh/faiyaz7283/Dashtam/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/Dashtam) [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://faiyaz7283.github.io/Dashtam/) [![Test Suite](https://github.com/faiyaz7283/Dashtam/workflows/Test%20Suite/badge.svg)](https://github.com/faiyaz7283/Dashtam/actions) [![codecov](https://codecov.io/gh/faiyaz7283/Dashtam/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/Dashtam) [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
@@ -91,14 +91,14 @@ curl -k -X POST https://localhost:8000/api/v1/auth/login \
 
 ## Documentation
 
-📚 **[Full Documentation](https://faiyazhaider.github.io/Dashtam/)** - Comprehensive guides, architecture, and API reference
+📚 **[Full Documentation](https://faiyaz7283.github.io/Dashtam/)** - Comprehensive guides, architecture, and API reference
 
 **Quick Links:**
 
-- [Architecture Overview](https://faiyazhaider.github.io/Dashtam/development/architecture/overview/)
-- [API Reference](https://faiyazhaider.github.io/Dashtam/api/)
-- [Testing Guide](https://faiyazhaider.github.io/Dashtam/development/guides/testing-guide/)
-- [Git Workflow](https://faiyazhaider.github.io/Dashtam/development/guides/git-workflow/)
+- [Architecture Overview](https://faiyaz7283.github.io/Dashtam/development/architecture/overview/)
+- [API Reference](https://faiyaz7283.github.io/Dashtam/api/)
+- [Testing Guide](https://faiyaz7283.github.io/Dashtam/development/guides/testing-guide/)
+- [Git Workflow](https://faiyaz7283.github.io/Dashtam/development/guides/git-workflow/)
 
 ## Development
 
@@ -173,7 +173,7 @@ Budget tracking, portfolio analysis, webhooks, mobile app
 
 ## Contributing
 
-We welcome contributions! See our [Git Workflow Guide](https://faiyazhaider.github.io/Dashtam/development/guides/git-workflow/) for branching strategy and development process.
+We welcome contributions! See our [Git Workflow Guide](https://faiyaz7283.github.io/Dashtam/development/guides/git-workflow/) for branching strategy and development process.
 
 **Development Workflow:**
 
@@ -200,7 +200,7 @@ Found a security issue? Please email security@dashtam.io (do not create public i
 
 ## Support
 
-- 📚 [Documentation](https://faiyazhaider.github.io/Dashtam/)
+- 📚 [Documentation](https://faiyaz7283.github.io/Dashtam/)
 - 🐛 [Issue Tracker](https://github.com/faiyazhaider/Dashtam/issues)
 - 💬 [Discussions](https://github.com/faiyazhaider/Dashtam/discussions)
 

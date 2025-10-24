@@ -145,7 +145,7 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ **GitHub Pages Deployment**: Automated CI/CD deployment from development branch
   - ✅ **Live Preview**: `make docs-serve` with hot reload and cache management (`make docs-restart`)
   - ✅ **Template Cleanup**: Removed 13 clickable template links, fixed 3 directory links, removed broken anchors
-  - ✅ **Documentation URL**: https://faiyazhaider.github.io/Dashtam/
+  - ✅ **Documentation URL**: https://faiyaz7283.github.io/Dashtam/
   - ✅ **Makefile Commands**: `docs-serve`, `docs-build`, `docs-stop`, `docs-restart`
   - ✅ **Deployment Guide**: Complete infrastructure guide (docs/development/infrastructure/docs-deployment.md)
   - ✅ **Modern README**: Reduced from 929 to 208 lines (77% reduction) with badges and quick start
@@ -1875,7 +1875,7 @@ When working on this project:
 - Use templates from `docs/templates/` for new documentation
 - Test locally with `make docs-serve` before committing
 - Zero tolerance for build warnings (`make docs-build` must pass)
-- Documentation auto-deploys to https://faiyazhaider.github.io/Dashtam/
+- Documentation auto-deploys to https://faiyaz7283.github.io/Dashtam/
 
 **Critical Rules:**
 

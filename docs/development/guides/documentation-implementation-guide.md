@@ -126,7 +126,7 @@ Create/update `mkdocs.yml` in project root:
 site_name: Dashtam Documentation
 site_description: Financial data aggregation platform with secure OAuth integration
 site_author: Dashtam Development Team
-site_url: https://faiyazhaider.github.io/Dashtam  # Update with your URL
+site_url: https://faiyaz7283.github.io/Dashtam  # Update with your URL
 
 repo_name: faiyazhaider/Dashtam
 repo_url: https://github.com/faiyazhaider/Dashtam
@@ -814,7 +814,7 @@ docs-clean:  ## Clean built documentation
    - Workflow permissions: Read and write permissions
 
 3. **Verify deployment URL:**
-   - Should be: `https://faiyazhaider.github.io/Dashtam/`
+   - Should be: `https://faiyaz7283.github.io/Dashtam/`
 
 #### Step 5.4: Test CI/CD Pipeline
 

@@ -48,7 +48,7 @@ This infrastructure automates documentation deployment to eliminate manual publi
 - GitHub repository with Pages enabled
 - `gh-pages` branch (auto-created)
 
-**URL:** `https://faiyazhaider.github.io/Dashtam/`
+**URL:** `https://faiyaz7283.github.io/Dashtam/`
 
 ### Component 3: MkDocs Build System
 
@@ -91,7 +91,7 @@ on:
 
 ```yaml
 site_name: Dashtam Documentation
-site_url: https://faiyazhaider.github.io/Dashtam/
+site_url: https://faiyaz7283.github.io/Dashtam/
 repo_url: https://github.com/faiyazhaider/Dashtam
 ```
 
@@ -136,7 +136,7 @@ Visit the deployment URL after first workflow run:
 
 ```bash
 # Expected: Documentation site loads
-https://faiyazhaider.github.io/Dashtam/
+https://faiyaz7283.github.io/Dashtam/
 ```
 
 #### Step 2: Configure Workflow Permissions
@@ -248,7 +248,7 @@ https://github.com/faiyazhaider/Dashtam/actions/workflows/docs.yml
 
 ```bash
 # Visit deployment URL
-https://faiyazhaider.github.io/Dashtam/
+https://faiyaz7283.github.io/Dashtam/
 ```
 
 ## Monitoring
@@ -268,7 +268,7 @@ gh workflow view docs.yml
 
 ```bash
 # HTTP status check
-curl -I https://faiyazhaider.github.io/Dashtam/
+curl -I https://faiyaz7283.github.io/Dashtam/
 ```
 
 **Expected:** HTTP 200 OK

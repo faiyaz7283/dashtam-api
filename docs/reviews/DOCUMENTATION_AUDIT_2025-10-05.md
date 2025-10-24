@@ -560,7 +560,7 @@ After this cleanup, the documentation will be:
 
 **Standards and Guidelines:**
 
--  - Documentation template standards
+ - Documentation template standards
 - [Mermaid Diagram Standards](../development/guides/mermaid-diagram-standards.md) - Diagram requirements
 
 **Implementation Documents:**

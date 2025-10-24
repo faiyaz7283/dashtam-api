@@ -44,7 +44,7 @@ reviews/
 **Related Documentation:**
 
 - [RESTful API Design](../development/architecture/restful-api-design.md) - REST API design standards
--  - Documentation creation guide
+ - Documentation creation guide
 - [Markdown Linting Guide](../development/guides/markdown-linting-guide.md) - Quality standards
 
 **Standards & Guidelines:**

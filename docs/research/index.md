@@ -50,7 +50,7 @@ Current technical investigations and decision-making documents:
 
 - [Development Documentation](../development/index.md) - Active development guides and architecture
 - [Architecture Overview](../development/architecture/overview.md) - System architecture
--  - Template system for new documents
+ - Template system for new documents
 
 **External Resources:**
 
@@ -65,7 +65,7 @@ Current technical investigations and decision-making documents:
 
 - [Development Documentation](../development/index.md) - Guides, architecture, and infrastructure
 - [API Flows](../api-flows/index.md) - Manual API testing flows
--  - Documentation templates
+ - Documentation templates
 
 ## Contributing
 

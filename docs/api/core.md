@@ -15,4 +15,3 @@ All core modules are located in `src/core/` and provide foundational services us
 ::: src.core.database.get_session
 
 ::: src.core.database.init_db
-

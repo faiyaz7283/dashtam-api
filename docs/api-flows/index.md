@@ -47,8 +47,8 @@ Financial provider integration workflows:
 
 **Related Documentation:**
 
--  - Template for creating new API flows
--  - Complete template documentation
+ - Template for creating new API flows
+ - Complete template documentation
 - [Development Guide](../development/index.md) - Developer documentation
 - [Testing Strategy](../testing/strategy.md) - Overall testing approach
 
@@ -71,7 +71,7 @@ Financial provider integration workflows:
 
 When adding new API flow documents:
 
-1. Copy the 
+1. Copy the
 2. Place in appropriate subdirectory (auth/ or providers/)
 3. Follow established conventions and structure
 4. Update this index with link and description

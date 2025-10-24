@@ -618,10 +618,9 @@ No additional optimization needed.
 
 ### Related Project Documentation
 
-- [MkDocs Local Setup](../../guides/mkdocs-setup.md)
-- [GitHub Workflow Guide](../../guides/git-workflow.md)
+- [GitHub Workflow Guide](../guides/git-workflow.md)
 - [CI/CD Overview](ci-cd.md)
-- [Markdown Standards](../../guides/markdown-linting-guide.md)
+- [Markdown Standards](../guides/markdown-linting-guide.md)
 
 ### External Resources
 

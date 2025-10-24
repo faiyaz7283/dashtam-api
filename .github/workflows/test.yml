@@ -148,3 +148,11 @@ jobs:
       - name: Check code formatting
         run: |
           uv run ruff format --check src/ tests/
+
+      - name: Run markdown linter
+        run: |
+          docker run --rm \
+            -v $(pwd):/workspace:ro \
+            -w /workspace \
+            node:24-alpine \
+            sh -c "npx markdownlint-cli2 '**/*.md' || exit 1"

@@ -16,7 +16,7 @@ Example:
     'postgresql+asyncpg://postgres:postgres@localhost:5432/dashtam'
 """
 
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING, Any
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
 from functools import lru_cache

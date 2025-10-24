@@ -224,10 +224,10 @@ Use Makefile commands to check markdown files:
 make lint-md
 
 # Check specific file
-make lint-md-file FILE="docs/development/guides/my-guide.md"
+make lint-md FILE="docs/development/guides/my-guide.md"
 
 # Check directory pattern
-make lint-md-file FILE="docs/development/**/*.md"
+make lint-md DIR="docs/development/guides"
 ```
 
 **What This Does:** Runs markdownlint-cli2 in a one-off Node.js Docker container, validating all markdown files against configured rules without making changes.
@@ -423,7 +423,7 @@ make lint-md
 Check a specific markdown file for violations:
 
 ```bash
-make lint-md-file FILE="docs/development/guides/testing-guide.md"
+make lint-md FILE="docs/development/guides/testing-guide.md"
 ```
 
 **Result:**
@@ -591,7 +591,7 @@ make lint-md
 # Expected: Exit code 0 (no errors)
 
 # Specific file should pass
-make lint-md-file FILE="docs/README.md"
+make lint-md FILE="docs/README.md"
 # Expected: No violations reported
 ```
 
@@ -701,7 +701,7 @@ git checkout HEAD -- docs/path/to/file.md
 
 # Fix manually instead of auto-fix
 # Edit file directly, then verify with lint
-make lint-md-file FILE="docs/path/to/file.md"
+make lint-md FILE="docs/path/to/file.md"
 ```
 
 ## Best Practices

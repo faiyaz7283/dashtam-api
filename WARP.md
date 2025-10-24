@@ -353,7 +353,7 @@ This markdown linting step is part of the **Code Quality** phase:
 vim docs/development/guides/new-guide.md
 
 # 2. Lint immediately
-make lint-md-file FILE="docs/development/guides/new-guide.md"
+make lint-md FILE="docs/development/guides/new-guide.md"
 
 # 3. Fix violations, re-lint until clean
 # ... edit file to fix issues ...
@@ -514,7 +514,7 @@ git commit -m "docs(guides): add new development guide"
 3. **Add blank lines** - Generously use blank lines (always around headings, lists, code blocks)
 4. **Specify code languages** - Always add language identifier to code blocks
 5. **Use proper headings** - Use `##`, `###`, `####` not bold text
-6. **Lint immediately** - Run `make lint-md-file FILE="path"` after creation
+6. **Lint immediately** - Run `make lint-md FILE="path"` after creation
 7. **Fix any violations** - Address issues before showing to user
 8. **Verify clean** - Ensure exit code 0 before proceeding
 
@@ -753,7 +753,7 @@ create_file("/tmp/filename.md", content)
 run_command("cp /tmp/filename.md docs/development/guides/filename.md")
 
 # Step 3: Lint and verify
-run_command("make lint-md-file FILE='docs/development/guides/filename.md'")
+run_command("make lint-md FILE='docs/development/guides/filename.md'")
 
 # Step 4: Commit
 run_command("git add docs/development/guides/filename.md")

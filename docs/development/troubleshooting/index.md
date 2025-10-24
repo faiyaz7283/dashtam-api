@@ -116,7 +116,7 @@ When adding new troubleshooting guides to this directory:
 4. **Include evidence**: Screenshots, logs, code snippets showing the problem
 5. **Share lessons learned**: What did this teach us about the system?
 6. **Update this index**: Add your new guide to the appropriate section above
-7. **Run linting**: Verify with `make lint-md-file FILE="path/to/file.md"`
+7. **Run linting**: Verify with `make lint-md FILE="path/to/file.md"`
 
 ---
 

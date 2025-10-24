@@ -665,7 +665,6 @@ Create diagrams for key components in their respective docs.
 
 ```markdown
 
-
     ## Token Rotation Process
 
     ```mermaid
@@ -1229,6 +1228,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-11
 **Last Updated:** 2025-10-15

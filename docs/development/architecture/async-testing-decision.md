@@ -454,6 +454,6 @@ Should we need to test async code paths directly in the future:
 
 ## Document Information
 
-**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Template:** architecture-template.md
 **Created:** 2025-09-20
 **Last Updated:** 2025-10-18

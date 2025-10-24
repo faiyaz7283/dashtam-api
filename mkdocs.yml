@@ -114,10 +114,10 @@ plugins:
 nav:
   - Home: index.md
   - API Reference:
-    - Overview: api/index.md
-    - Services: api/services.md
-    - Models: api/models.md
-    - Core: api/core.md
+      - Overview: api/index.md
+      - Services: api/services.md
+      - Models: api/models.md
+      - Core: api/core.md
   - Development:
     - Architecture:
       - Overview: development/architecture/overview.md

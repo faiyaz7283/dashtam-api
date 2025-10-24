@@ -50,7 +50,7 @@ Current technical investigations and decision-making documents:
 
 - [Development Documentation](../development/index.md) - Active development guides and architecture
 - [Architecture Overview](../development/architecture/overview.md) - System architecture
-- [Documentation Templates](../templates/README.md) - Template system for new documents
+-  - Template system for new documents
 
 **External Resources:**
 
@@ -65,13 +65,13 @@ Current technical investigations and decision-making documents:
 
 - [Development Documentation](../development/index.md) - Guides, architecture, and infrastructure
 - [API Flows](../api-flows/index.md) - Manual API testing flows
-- [Templates](../templates/README.md) - Documentation templates
+-  - Documentation templates
 
 ## Contributing
 
 When adding new research documents to this directory:
 
-1. Choose appropriate [template](../templates/research-template.md) for research documents
+1. Choose appropriate  for research documents
 2. Follow the structure: Context → Problem → Options → Analysis → Decision → Consequences
 3. Include links to related implementations or decisions
 4. Update this index with link and brief description
@@ -79,6 +79,6 @@ When adding new research documents to this directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-21

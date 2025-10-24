@@ -2,63 +2,6 @@
 
 **Living Document**: Track design flaws discovered during development and testing, with recommended best-practice solutions to improve application quality, security, and reliability.
 
-## Table of Contents
-
-- [Executive Summary](#executive-summary)
-  - [Objective](#objective)
-  - [Scope](#scope)
-  - [Impact](#impact)
-  - [Status](#status)
-- [Overview](#overview)
-- [Context](#context)
-  - [Purpose](#purpose)
-  - [Document Scope](#document-scope)
-  - [Target Audience](#target-audience)
-- [Architecture Goals](#architecture-goals)
-  - [Core Objectives](#core-objectives)
-  - [Security First](#security-first)
-  - [Data Integrity](#data-integrity)
-  - [Reliability](#reliability)
-  - [Maintainability](#maintainability)
-  - [Compliance](#compliance)
-  - [Success Criteria](#success-criteria)
-- [Recent Achievements](#recent-achievements)
-  - [✅ Completed Items (October 2025)](#-completed-items-october-2025)
-- [Critical Issues (Must Fix Before Production)](#critical-issues-must-fix-before-production)
-  - [~~1. Timezone-Naive DateTime Storage~~ ✅ RESOLVED](#1-timezone-naive-datetime-storage--resolved)
-- [High Priority Issues](#high-priority-issues)
-  - [~~2. Database Migration Framework~~ ✅ RESOLVED](#2-database-migration-framework--resolved)
-  - [~~3. HTTP Connection Timeout Handling~~ ✅ RESOLVED](#3-http-connection-timeout-handling--resolved)
-  - [~~4. OAuth Token Rotation Logic~~ ✅ RESOLVED](#4-oauth-token-rotation-logic--resolved)
-  - [~~5. User Authentication System (JWT)~~ ✅ RESOLVED](#5-user-authentication-system-jwt--resolved)
-  - [6. Token Security - Missing Token Rotation on Breach](#6-token-security---missing-token-rotation-on-breach)
-- [Medium Priority Issues](#medium-priority-issues)
-  - [6. Audit Log Lacks Request Context](#6-audit-log-lacks-request-context)
-  - [7. Missing Rate Limiting](#7-missing-rate-limiting)
-  - [8. Environment-Specific Secrets in Version Control](#8-environment-specific-secrets-in-version-control)
-- [Low Priority (Quality of Life)](#low-priority-quality-of-life)
-  - [9. Inconsistent Error Messages](#9-inconsistent-error-messages)
-  - [10. Missing Request Validation Schemas](#10-missing-request-validation-schemas)
-  - [11. Hard-Coded Configuration Values](#11-hard-coded-configuration-values)
-- [P2: Session Management Endpoints](#p2-session-management-endpoints)
-  - [New Endpoints](#new-endpoints)
-  - [Implementation Highlights](#implementation-highlights)
-  - [User Experience](#user-experience)
-  - [Security Benefits](#security-benefits)
-  - [Related Features](#related-features)
-  - [Industry Examples](#industry-examples)
-  - [12. MkDocs Modern Documentation System](#12-mkdocs-modern-documentation-system)
-- [Tracking and Implementation](#tracking-and-implementation)
-  - [Priority Matrix](#priority-matrix)
-  - [Status Legend](#status-legend)
-- [Contributing to This Document](#contributing-to-this-document)
-- [Review Schedule](#review-schedule)
-- [Recent Activity Log](#recent-activity-log)
-  - [2025-10-11](#2025-10-11)
-  - [2025-10-04](#2025-10-04)
-  - [2025-10-03](#2025-10-03)
-- [Document Information](#document-information)
-
 ## Overview
 
 The Architecture Improvement Guide is a living document that tracks design flaws, technical debt, and improvement opportunities discovered during development and testing. It provides a systematic approach to identifying, prioritizing, and resolving architectural issues to ensure the Dashtam platform maintains high standards of quality, security, and reliability.
@@ -1016,6 +959,6 @@ When you discover a design flaw or improvement opportunity:
 
 ## Document Information
 
-**Template:** [general-template.md](../templates/general-template.md)
+**Template:** general-template.md
 **Created:** 2025-10-12
 **Last Updated:** 2025-10-12

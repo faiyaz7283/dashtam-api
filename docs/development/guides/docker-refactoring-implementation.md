@@ -517,6 +517,6 @@ After completing the Docker infrastructure refactoring, consider these next step
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-15

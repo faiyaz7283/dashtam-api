@@ -166,7 +166,7 @@ class Settings(BaseSettings):
 
     @field_validator("DEBUG", mode="after")
     @classmethod
-    def set_debug_from_environment(cls, v: bool, values) -> bool:
+    def set_debug_from_environment(cls, v: bool, values: Any) -> bool:
         """Auto-set DEBUG mode based on ENVIRONMENT if not explicitly set.
 
         In development and staging environments, DEBUG should be True by default
@@ -275,7 +275,7 @@ class Settings(BaseSettings):
         "API_CALLBACK_SSL_KEY_FILE",
     )
     @classmethod
-    def validate_ssl_files(cls, v: str, info) -> str:
+    def validate_ssl_files(cls, v: str, info: Any) -> str:
         """Validate that SSL certificate files exist.
 
         This validator checks if the specified SSL certificate and key files

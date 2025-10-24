@@ -130,7 +130,7 @@ All templates include standard metadata at the **bottom** of the document:
 
 - **"Template:" field (required)**: Replaced "Category" with "Template" to clearly link to the template file being used
 - **Link to template**: The Template field must be a relative markdown link to the actual template file
-- **Example**: `**Template:** [guide-template.md](../../templates/guide-template.md)`
+- **Example**: `**Template:** guide-template.md (located in docs/templates/)`
 
 **Why at the bottom?**
 
@@ -276,7 +276,7 @@ All documents MUST use this simplified format:
 
 ## Document Information
 
-**Template:** [template-name.md](../../templates/template-name.md)
+**Template:** template-name.md (located in docs/templates/)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
 ```
@@ -331,7 +331,7 @@ All templates now use simplified metadata **without the "Status" field**:
 
 **Required Fields:**
 
-- **Template**: Relative markdown link to the template file (e.g., `[guide-template.md](../../templates/guide-template.md)`)
+- **Template**: Relative markdown link to the template file (e.g., `guide-template.md (located in docs/templates/)`)
 - **Created**: Document creation date (YYYY-MM-DD)
 - **Last Updated**: Last modification date (YYYY-MM-DD)
 
@@ -447,7 +447,7 @@ Proper structure with:
   
   ## Document Information
   
-  **Template:** [guide-template.md](../../templates/guide-template.md)
+  **Template:** guide-template.md (located in docs/templates/)
   **Created:** 2025-10-13
   **Last Updated:** 2025-10-13
   ```

@@ -599,6 +599,6 @@ tests/api/test_auth_endpoints.py      # Tests for deprecated router
 
 ## Document Information
 
-**Template:** [audit-template.md](../templates/audit-template.md)
+**Template:** audit-template.md
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-18

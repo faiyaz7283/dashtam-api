@@ -86,7 +86,7 @@ infrastructure/
 
 When adding new infrastructure documentation to this directory:
 
-1. Choose appropriate [template](../../templates/infrastructure-template.md) - Use for infrastructure and operations docs
+1. Choose appropriate infrastructure-template.md (located in docs/templates/) - Use for infrastructure and operations docs
 2. Document both local development and production setups
 3. Include configuration examples and troubleshooting steps
 4. Use [Mermaid diagrams](../guides/mermaid-diagram-standards.md) for environment flows
@@ -98,6 +98,6 @@ When adding new infrastructure documentation to this directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-21

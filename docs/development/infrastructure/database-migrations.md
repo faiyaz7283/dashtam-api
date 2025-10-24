@@ -961,6 +961,6 @@ Before committing a migration:
 
 ## Document Information
 
-**Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
+**Template:** infrastructure-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-17

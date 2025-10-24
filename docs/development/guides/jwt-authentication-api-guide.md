@@ -108,7 +108,6 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from uuid import UUID
 from datetime import datetime
 
-
 class UserRegistrationRequest(BaseModel):
     """Request schema for user registration."""
     
@@ -125,7 +124,6 @@ class UserRegistrationRequest(BaseModel):
             }
         }
     )
-
 
 class UserRegistrationResponse(BaseModel):
     """Response schema for user registration."""
@@ -167,7 +165,6 @@ class UserLoginRequest(BaseModel):
         }
     )
 
-
 class TokenResponse(BaseModel):
     """Response schema for login (contains tokens)."""
     
@@ -193,7 +190,6 @@ class TokenResponse(BaseModel):
             }
         }
     )
-
 
 class UserResponse(BaseModel):
     """User details in responses."""
@@ -231,7 +227,6 @@ class TokenRefreshRequest(BaseModel):
             }
         }
     )
-
 
 class TokenRefreshResponse(BaseModel):
     """Response schema for token refresh."""
@@ -276,14 +271,12 @@ class PasswordResetRequestRequest(BaseModel):
         }
     )
 
-
 class PasswordResetRequestResponse(BaseModel):
     """Response schema for password reset request."""
     
     message: str = Field(
         default="If an account exists, a password reset email has been sent."
     )
-
 
 class PasswordResetConfirmRequest(BaseModel):
     """Request schema for password reset confirmation."""
@@ -299,7 +292,6 @@ class PasswordResetConfirmRequest(BaseModel):
             }
         }
     )
-
 
 class PasswordResetConfirmResponse(BaseModel):
     """Response schema for password reset confirmation."""
@@ -324,7 +316,6 @@ class UserProfileUpdateRequest(BaseModel):
             }
         }
     )
-
 
 class UserProfileResponse(BaseModel):
     """Response schema for user profile."""
@@ -362,7 +353,6 @@ from src.services.email_service import EmailService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
-
 def get_auth_service(session: AsyncSession = Depends(get_session)) -> AuthService:
     """Dependency to get AuthService instance."""
     password_service = PasswordService()
@@ -374,7 +364,6 @@ def get_auth_service(session: AsyncSession = Depends(get_session)) -> AuthServic
         from_email=settings.FROM_EMAIL
     )
     return AuthService(session, password_service, jwt_service, email_service)
-
 
 @router.post(
     "/register",
@@ -767,7 +756,6 @@ async def get_profile(
     """
     return UserProfileResponse.model_validate(current_user)
 
-
 @router.patch(
     "/me",
     response_model=UserProfileResponse,
@@ -827,7 +815,6 @@ from src.services.jwt_service import JWTService
 from src.core.config import settings
 
 security = HTTPBearer()
-
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -1312,7 +1299,7 @@ After completing this guide, consider:
 - [ ] [JWT Authentication Database Guide](jwt-authentication-database-guide.md) - Database schema reference
 - [ ] [JWT Authentication Services Guide](jwt-authentication-services-guide.md) - Service implementation
 - [ ] [Testing Guide](testing-guide.md) - Automated API testing
-- [ ] [API Flow Guides](../../api-flows/) - Manual testing flows
+- [ ] [API Flow Guides](../../api-flows/index.md) - Manual testing flows
 - [ ] Implement rate limiting for authentication endpoints
 - [ ] Set up API monitoring and alerting
 
@@ -1329,6 +1316,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-19
 **Last Updated:** 2025-10-19

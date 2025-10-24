@@ -1134,6 +1134,6 @@ uv add py-webauthn  # WebAuthn/FIDO2 implementation
 
 ## Document Information
 
-**Template:** [research-template.md](../templates/research-template.md)
+**Template:** research-template.md
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-17

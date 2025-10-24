@@ -122,6 +122,6 @@ echo "Verification token: $VERIFICATION_TOKEN"
 
 ## Document Information
 
-**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Template:** api-flow-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-15

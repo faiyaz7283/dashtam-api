@@ -216,6 +216,6 @@ curl -sk "$BASE_URL/api/v1/auth/me" \
 
 ## Document Information
 
-**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Template:** api-flow-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-15

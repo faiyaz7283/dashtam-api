@@ -717,6 +717,6 @@ After mastering these best practices, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-09-20
 **Last Updated:** 2025-10-18

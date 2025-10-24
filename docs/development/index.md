@@ -173,7 +173,7 @@ Problem diagnosis and solutions for common issues:
 
 When adding new documents to the development directory:
 
-1. Choose appropriate [template](../templates/README.md) based on document type
+1. Choose appropriate  based on document type
 2. Place in correct subdirectory (architecture, guides, infrastructure, troubleshooting)
 3. Follow markdown quality standards and guidelines
 4. Update this index with link and brief description
@@ -183,6 +183,6 @@ When adding new documents to the development directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-21

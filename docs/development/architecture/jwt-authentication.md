@@ -1144,6 +1144,6 @@ Performance: 99.8% stateless
 
 ## Document Information
 
-**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Template:** architecture-template.md
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-16

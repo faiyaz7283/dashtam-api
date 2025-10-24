@@ -104,7 +104,7 @@ architecture/
 
 When adding new architecture documents to this directory:
 
-1. Choose appropriate [template](../../templates/architecture-template.md) - Use for system design documents
+1. Choose appropriate architecture-template.md (located in docs/templates/) - Use for system design documents
 2. Focus on **why** decisions were made, not just **what** was implemented
 3. Include diagrams using [Mermaid syntax](../guides/mermaid-diagram-standards.md)
 4. Reference implementation guides for details
@@ -116,7 +116,7 @@ When adding new architecture documents to this directory:
 
 When documenting significant architectural decisions:
 
-1. Use the [architecture-template.md](../../templates/architecture-template.md)
+1. Use the architecture-template.md (located in docs/templates/)
 2. Follow the format: Context → Problem → Options → Analysis → Decision → Consequences
 3. Document decision date and decision maker
 4. Include links to related implementations
@@ -126,6 +126,6 @@ When documenting significant architectural decisions:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-21

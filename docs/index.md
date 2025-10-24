@@ -9,7 +9,6 @@ All documentation is organized by audience and purpose to help you quickly find 
 **Main Sections:**
 
 - [Development Documentation](#development-documentation) - Architecture, infrastructure, guides, and testing
-- [Research & Decisions](#research--decisions) - Technical research and architectural decision records
 - [API Flows](#api-flows) - Manual API testing workflows
 
 ## Directory Structure
@@ -220,20 +219,20 @@ User-centric manual API testing workflows designed for HTTPS-first development e
 
 Reusable templates for creating new documentation that follows project standards.
 
-- [Templates Index](templates/README.md) - Template system overview and guidelines
-- [Index Root Template](templates/index-root-template.md) - Root documentation index template
-- [Index Section Template](templates/index-section-template.md) - Section documentation index template
-- [General Template](templates/general-template.md) - General purpose documentation template
-- [Architecture Template](templates/architecture-template.md) - Architecture documentation template
-- [Guide Template](templates/guide-template.md) - Developer guide template
-- [Infrastructure Template](templates/infrastructure-template.md) - Infrastructure documentation template
-- [Testing Template](templates/testing-template.md) - Testing documentation template
-- [Troubleshooting Template](templates/troubleshooting-template.md) - Troubleshooting guide template
-- [Research Template](templates/research-template.md) - Research and ADR template
-- [Audit Template](templates/audit-template.md) - Code audit and review template
-- [API Flow Template](templates/api-flow-template.md) - API testing workflow template
-- [Implementation Template](templates/implementation-template.md) - Implementation guide template
-- [README Template](templates/readme-template.md) - README documentation template
+-  - Template system overview and guidelines
+-  - Root documentation index template
+-  - Section documentation index template
+-  - General purpose documentation template
+-  - Architecture documentation template
+-  - Developer guide template
+-  - Infrastructure documentation template
+-  - Testing documentation template
+-  - Troubleshooting guide template
+-  - Research and ADR template
+-  - Code audit and review template
+-  - API testing workflow template
+-  - Implementation guide template
+-  - README documentation template
 
 ## Quick Links
 
@@ -247,7 +246,7 @@ Reusable templates for creating new documentation that follows project standards
 
 - [Testing Strategy](testing/strategy.md) - Testing approach and best practices
 - [Git Workflow](development/guides/git-workflow.md) - Version control guidelines
-- [Template System](templates/README.md) - Documentation template reference
+-  - Documentation template reference
 
 **External Resources:**
 
@@ -262,7 +261,7 @@ Reusable templates for creating new documentation that follows project standards
 - [Development Documentation](development/index.md) - Architecture, guides, infrastructure, testing
 - [Research & Decisions](research/index.md) - Technical research and decision records
 - [API Flows](api-flows/index.md) - Manual testing workflows
-- [Documentation Templates](templates/README.md) - Template system and standards
+-  - Template system and standards
 
 **Related Repositories:**
 
@@ -274,7 +273,7 @@ Reusable templates for creating new documentation that follows project standards
 
 When adding new documentation:
 
-1. Follow appropriate [template](templates/README.md) from the templates directory
+1. Follow appropriate  from the templates directory
 2. Place documents in correct category directory
 3. Use Directory Structure section above as reference
 4. Update relevant index.md file with new links and descriptions
@@ -285,6 +284,6 @@ When adding new documentation:
 
 ## Document Information
 
-**Template:** [index-root-template.md](templates/index-root-template.md)
+**Template:** 
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-21

@@ -82,7 +82,7 @@ docs/
 
 When adding new documentation:
 
-1. Follow appropriate [templates](templates/README.md)
+1. Follow appropriate templates: README.md (located in docs/templates/)
 2. Place documents in correct section directories
 3. Refer to the Directory Structure section above for file layout
 4. Update this index with links and descriptions

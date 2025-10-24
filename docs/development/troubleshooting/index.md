@@ -86,8 +86,8 @@ troubleshooting/
 
 **Templates:**
 
-- [Troubleshooting Template](../../templates/troubleshooting-template.md) - Use for new troubleshooting guides
-- [Template README](../../templates/README.md) - Documentation template system
+- Troubleshooting Template: troubleshooting-template.md (located in docs/templates/) - Use for new troubleshooting guides
+- Template README: README.md (located in docs/templates/) - Documentation template system
 
 **External Resources:**
 
@@ -110,7 +110,7 @@ troubleshooting/
 
 When adding new troubleshooting guides to this directory:
 
-1. **Use the template**: Start with [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+1. **Use the template**: Start with troubleshooting-template.md (located in docs/templates/)
 2. **Document the journey**: Include symptoms → investigation → root cause → solution
 3. **Add context**: Explain why the issue occurred and how to prevent it
 4. **Include evidence**: Screenshots, logs, code snippets showing the problem
@@ -122,6 +122,6 @@ When adding new troubleshooting guides to this directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-01-06
 **Last Updated:** 2025-10-21

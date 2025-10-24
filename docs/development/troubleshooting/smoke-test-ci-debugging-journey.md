@@ -534,6 +534,6 @@ def assert_db_state(session, expected_users=1, expected_tokens=0):
 
 ## Document Information
 
-**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+**Template:** troubleshooting-template.md
 **Created:** 2025-10-06
 **Last Updated:** 2025-10-18

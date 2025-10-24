@@ -560,7 +560,7 @@ After this cleanup, the documentation will be:
 
 **Standards and Guidelines:**
 
-- [Template System README](../templates/README.md) - Documentation template standards
+-  - Documentation template standards
 - [Mermaid Diagram Standards](../development/guides/mermaid-diagram-standards.md) - Diagram requirements
 
 **Implementation Documents:**
@@ -576,6 +576,6 @@ After this cleanup, the documentation will be:
 
 ## Document Information
 
-**Template:** [audit-template.md](../templates/audit-template.md)
+**Template:** audit-template.md
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-18

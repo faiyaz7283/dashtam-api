@@ -479,13 +479,13 @@ plugins:
 - [Flowchart Documentation](https://mermaid.js.org/syntax/flowchart.html) - Flowchart syntax details
 - [Sequence Diagram Documentation](https://mermaid.js.org/syntax/sequenceDiagram.html) - Sequence diagram guide
 - [ER Diagram Documentation](https://mermaid.js.org/syntax/entityRelationshipDiagram.html) - Entity relationship diagrams
-- [Documentation Template System](../../templates/README.md) - Template usage guide
+- Documentation Template System: README.md (located in docs/templates/) - Template usage guide
 - `WARP.md` (project root) - Project standards and Mermaid requirements
 
 ---
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-13
 **Last Updated:** 2025-10-20

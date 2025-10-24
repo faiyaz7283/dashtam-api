@@ -621,6 +621,6 @@ postgres:
 
 ## Document Information
 
-**Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
+**Template:** infrastructure-template.md
 **Created:** 2025-10-12
 **Last Updated:** 2025-01-17

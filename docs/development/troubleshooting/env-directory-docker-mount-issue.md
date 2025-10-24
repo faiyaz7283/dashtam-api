@@ -475,6 +475,6 @@ No ongoing monitoring needed. The four-layer protection system ensures the issue
 
 ## Document Information
 
-**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+**Template:** troubleshooting-template.md
 **Created:** 2025-10-01
 **Last Updated:** 2025-10-20

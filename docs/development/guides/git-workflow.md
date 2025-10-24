@@ -1113,6 +1113,6 @@ After mastering this Git workflow, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-20

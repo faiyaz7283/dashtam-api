@@ -459,6 +459,6 @@ This test will fail immediately if TrustedHostMiddleware configuration breaks Te
 
 ## Document Information
 
-**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+**Template:** troubleshooting-template.md
 **Created:** 2025-10-02
 **Last Updated:** 2025-10-20

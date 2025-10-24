@@ -306,7 +306,6 @@ class DashtamAuth:
         self.access_token = None
         self.refresh_token = None
 
-
 # Usage Example
 if __name__ == "__main__":
     auth = DashtamAuth()
@@ -970,6 +969,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-20

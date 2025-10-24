@@ -346,7 +346,6 @@ import pytest
 
 from src.services.encryption_service import EncryptionService
 
-
 class TestEncryptionService:
     """Test suite for EncryptionService."""
 
@@ -395,7 +394,6 @@ from sqlmodel import Session, select
 from src.models.provider import Provider
 from src.models.user import User
 
-
 class TestProviderOperations:
     """Test suite for provider database operations."""
 
@@ -440,7 +438,6 @@ from fastapi.testclient import TestClient
 
 from src.models.user import User
 
-
 class TestProviderEndpoints:
     """Test suite for provider API endpoints."""
 
@@ -484,7 +481,6 @@ Tests critical user journeys end-to-end.
 import logging
 
 from fastapi.testclient import TestClient
-
 
 def test_complete_registration_flow(client: TestClient, caplog):
     """Smoke test: Complete user registration flow.
@@ -871,6 +867,6 @@ headers = get_superuser_token_headers(client)
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-13
 **Last Updated:** 2025-10-18

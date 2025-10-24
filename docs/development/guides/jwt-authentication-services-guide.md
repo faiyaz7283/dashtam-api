@@ -94,7 +94,6 @@ The PasswordService handles all password-related operations with bcrypt.
 ```python
 import bcrypt
 
-
 class PasswordService:
     """Service for password hashing, verification, and validation.
     
@@ -228,7 +227,6 @@ The JWTService handles JWT access token generation and validation.
 from datetime import datetime, timedelta, timezone
 import jwt
 from uuid import UUID
-
 
 class JWTService:
     """Service for JWT access token generation and validation.
@@ -387,7 +385,6 @@ The EmailService handles email notifications via AWS SES.
 ```python
 import boto3
 from botocore.exceptions import ClientError
-
 
 class EmailService:
     """Service for sending authentication emails via AWS SES.
@@ -602,7 +599,6 @@ from src.models.user import User
 from src.models.email_verification_token import EmailVerificationToken
 from src.services.password_service import PasswordService
 from src.services.email_service import EmailService
-
 
 class AuthService:
     """Service orchestrating authentication flows.
@@ -1530,6 +1526,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-19
 **Last Updated:** 2025-10-19

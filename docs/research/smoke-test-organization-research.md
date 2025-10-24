@@ -2,32 +2,6 @@
 
 Research and decision record for smoke test organization, SSL/TLS in test environments, and CI/CD integration best practices.
 
----
-
-## Table of Contents
-
-- [Context](#context)
-  - [Current State](#current-state)
-  - [Desired State](#desired-state)
-  - [Constraints](#constraints)
-- [Problem Statement](#problem-statement)
-  - [Why This Matters](#why-this-matters)
-- [Research Questions](#research-questions)
-- [Options Considered](#options-considered)
-  - [Option 1: Keep Shell Script, Move to tests/](#option-1-keep-shell-script-move-to-tests)
-  - [Option 2: Convert to pytest](#option-2-convert-to-pytest)
-  - [Option 3: Hybrid Approach](#option-3-hybrid-approach)
-  - [Option 4: SSL/TLS Approaches](#option-4-ssltls-approaches)
-- [Analysis](#analysis)
-- [Decision](#decision)
-- [Consequences](#consequences)
-- [Implementation](#implementation)
-- [Follow-Up](#follow-up)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Context
 
 The Dashtam project had a comprehensive smoke test script (`test-api-flows.sh`, 452 lines) located in the `scripts/` directory. This script tested critical authentication flows but was inconsistent with industry best practices for test organization. Additionally, the test and CI environments lacked SSL/TLS support, creating a production parity gap.
@@ -627,9 +601,9 @@ tests/
 
 **Project Documentation:**
 
-- [Smoke Test README](../../../tests/smoke/README.md)
+- Smoke Test README (`tests/smoke/README.md` in project root)
 - [Smoke Test Implementation Guide](../development/troubleshooting/smoke-test-caplog-solution.md)
-- [Testing Guide](testing/guide.md)
+- [Testing Guide](../development/guides/testing-guide.md)
 - [Testing Best Practices](../development/guides/testing-best-practices.md)
 
 **Industry Research Sources:**
@@ -658,6 +632,6 @@ tests/
 
 ## Document Information
 
-**Template:** [research-template.md](../templates/research-template.md)
+**Template:** research-template.md
 **Created:** 2025-10-06
 **Last Updated:** 2025-10-06

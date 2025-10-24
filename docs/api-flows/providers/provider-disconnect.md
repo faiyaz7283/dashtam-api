@@ -2,22 +2,6 @@
 
 Disconnect an authorized provider and optionally delete its instance.
 
----
-
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-  - [1) Disconnect provider session](#1-disconnect-provider-session-invalidate-connection)
-  - [2) Verify provider status](#2-verify-provider-status)
-  - [3) (Optional) Delete provider instance](#3-optional-delete-provider-instance)
-- [Troubleshooting](#troubleshooting)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
-
----
-
 ## Purpose
 
 Revoke a provider connection for a user and clean up resources if needed.
@@ -88,6 +72,6 @@ curl -sk -X DELETE "$BASE_URL/api/v1/providers/$PROVIDER_ID" \
 
 ## Document Information
 
-**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Template:** api-flow-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-15

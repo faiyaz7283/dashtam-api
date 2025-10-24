@@ -2,50 +2,6 @@
 
 A comprehensive quick reference guide for developers using the Dashtam JWT authentication system with Pattern A (JWT Access + Opaque Refresh tokens).
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-  - [Authentication Pattern](#authentication-pattern)
-  - [All API Endpoints](#all-api-endpoints)
-  - [Token Lifecycle](#token-lifecycle)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Register a New User](#step-1-register-a-new-user)
-  - [Step 2: Verify Email](#step-2-verify-email)
-  - [Step 3: Login](#step-3-login)
-  - [Step 4: Make Authenticated Requests](#step-4-make-authenticated-requests)
-  - [Step 5: Refresh Access Token](#step-5-refresh-access-token)
-  - [Step 6: Logout](#step-6-logout)
-- [Examples](#examples)
-  - [Example 1: Python Client Implementation](#example-1-python-client-implementation)
-  - [Example 2: JavaScript/TypeScript Client Implementation](#example-2-javascripttypescript-client-implementation)
-  - [Example 3: React Hook Implementation](#example-3-react-hook-implementation)
-- [Verification](#verification)
-  - [Check 1: Registration and Email Verification](#check-1-registration-and-email-verification)
-  - [Check 2: Token Validation](#check-2-token-validation)
-  - [Check 3: Protected Endpoint Access](#check-3-protected-endpoint-access)
-  - [Check 4: Token Expiry Testing](#check-4-token-expiry-testing)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Token Validation Failed](#issue-1-token-validation-failed)
-  - [Issue 2: Refresh Token Not Found or Revoked](#issue-2-refresh-token-not-found-or-revoked)
-  - [Issue 3: Email Not Verified](#issue-3-email-not-verified)
-  - [Issue 4: Account is Locked](#issue-4-account-is-locked)
-  - [Common Error Codes](#common-error-codes)
-- [Best Practices](#best-practices)
-  - [Security Best Practices](#security-best-practices)
-  - [Token Storage Security](#token-storage-security)
-  - [Common Patterns](#common-patterns)
-  - [Quick Reference Card](#quick-reference-card)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide provides quick reference information for integrating with Dashtam's JWT authentication system. You'll learn how to register users, authenticate, manage tokens, and handle common authentication scenarios.
@@ -349,7 +305,6 @@ class DashtamAuth:
         # Clear tokens
         self.access_token = None
         self.refresh_token = None
-
 
 # Usage Example
 if __name__ == "__main__":
@@ -1014,6 +969,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-20

@@ -2,31 +2,6 @@
 
 Research and decision analysis comparing monolithic and modular smoke test designs for optimal CI/CD visibility and debugging experience.
 
----
-
-## Table of Contents
-
-- [Context](#context)
-  - [Current State](#current-state)
-  - [Desired State](#desired-state)
-  - [Constraints](#constraints)
-- [Problem Statement](#problem-statement)
-  - [Why This Matters](#why-this-matters)
-- [Research Questions](#research-questions)
-- [Options Considered](#options-considered)
-  - [Option 1: Monolithic Design (Current)](#option-1-monolithic-design-current)
-  - [Option 2: Modular Design (Original)](#option-2-modular-design-original)
-  - [Historical Context: Why Original Design Failed](#historical-context-why-original-design-failed)
-- [Analysis](#analysis)
-- [Decision](#decision)
-- [Consequences](#consequences)
-- [Implementation](#implementation)
-- [Follow-Up](#follow-up)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Context
 
 With isolated pytest sessions now working correctly (using `-m smoke` marker), we can revisit our smoke test design approach without the database state pollution issues that originally forced us to adopt a monolithic design.
@@ -531,7 +506,7 @@ If modular design proves problematic:
 
 - [Smoke Test Caplog Solution](../development/troubleshooting/smoke-test-caplog-solution.md) - Token extraction implementation
 - [Smoke Test CI Debugging](../development/troubleshooting/smoke-test-ci-debugging-journey.md) - Session isolation fixes
-- [Testing Strategy](../development/testing/strategy.md) - Overall testing approach
+- [Testing Strategy](../testing/strategy.md) - Overall testing approach
 
 **External Resources:**
 
@@ -543,6 +518,6 @@ If modular design proves problematic:
 
 ## Document Information
 
-**Template:** [research-template.md](../templates/research-template.md)
+**Template:** research-template.md
 **Created:** 2025-10-07
 **Last Updated:** 2025-10-18

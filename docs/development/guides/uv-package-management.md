@@ -2,51 +2,6 @@
 
 A comprehensive guide for using UV (version 0.8.22+) as the modern Python package manager in Dashtam, covering installation, workflows, Docker integration, and best practices.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-  - [Why UV](#why-uv)
-  - [Core Concepts](#core-concepts)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Install UV](#step-1-install-uv)
-  - [Step 2: Initialize Project](#step-2-initialize-project)
-  - [Step 3: Manage Dependencies](#step-3-manage-dependencies)
-  - [Step 4: Sync Environment](#step-4-sync-environment)
-  - [Step 5: Run Commands](#step-5-run-commands)
-  - [Step 6: Integrate with Docker](#step-6-integrate-with-docker)
-- [Examples](#examples)
-  - [Example 1: Adding New Dependency in Dashtam](#example-1-adding-new-dependency-in-dashtam)
-  - [Example 2: After Pulling Changes](#example-2-after-pulling-changes)
-  - [Example 3: Upgrading Dependencies](#example-3-upgrading-dependencies)
-  - [Example 4: Docker Multi-Stage Build](#example-4-docker-multi-stage-build)
-  - [Example 5: Migration from pip](#example-5-migration-from-pip)
-- [Verification](#verification)
-  - [Check 1: UV Installation](#check-1-uv-installation)
-  - [Check 2: Dependencies Installed](#check-2-dependencies-installed)
-  - [Check 3: Environment Synced](#check-3-environment-synced)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: No module named package](#issue-1-no-module-named-package)
-  - [Issue 2: uv command not found](#issue-2-uv-command-not-found)
-  - [Issue 3: Environment Out of Sync](#issue-3-environment-out-of-sync)
-  - [Issue 4: Dependency Conflicts](#issue-4-dependency-conflicts)
-- [Best Practices](#best-practices)
-  - [Command Usage](#command-usage)
-  - [Version Control](#version-control)
-  - [Docker Integration](#docker-integration)
-  - [Performance Optimization](#performance-optimization)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-  - [Quick Command Cheat Sheet](#quick-command-cheat-sheet)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 UV is an extremely fast Python package manager and resolver, written in Rust. It's designed as a drop-in replacement for pip, pip-tools, poetry, and other Python package management tools.
@@ -839,14 +794,13 @@ After mastering UV package management, consider:
 - [UV Documentation](https://docs.astral.sh/uv/) - Official UV documentation
 - [UV GitHub Repository](https://github.com/astral-sh/uv) - Source code and issues
 - [PEP 621](https://peps.python.org/pep-0621/) - Project metadata standard
-- [Dashtam Docker Configuration](../../docker/Dockerfile) - Project Dockerfile
-- [Dashtam WARP.md](../../../WARP.md) - Project rules for UV usage
+- `WARP.md` (project root) - Project rules for UV usage
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/) - Docker optimization
 
 ---
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-20

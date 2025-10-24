@@ -2,72 +2,6 @@
 
 Dashtam uses **Alembic** for database schema migrations, providing version-controlled, automated database schema evolution.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [Key Features](#key-features)
-- [Purpose](#purpose)
-- [Components](#components)
-  - [Component 1: Alembic Migration Engine](#component-1-alembic-migration-engine)
-  - [Component 2: Migration Scripts](#component-2-migration-scripts)
-  - [Component 3: Alembic Configuration](#component-3-alembic-configuration)
-  - [Component 4: SQLModel Database Models](#component-4-sqlmodel-database-models)
-  - [Component 5: Docker Integration](#component-5-docker-integration)
-  - [Migration Workflow](#migration-workflow)
-  - [Directory Structure](#directory-structure)
-- [Configuration](#configuration)
-  - [alembic.ini](#alembicini)
-  - [env.py (Migration Environment)](#envpy-migration-environment)
-  - [Ports and Services](#ports-and-services)
-- [Setup Instructions](#setup-instructions)
-  - [Prerequisites](#prerequisites)
-  - [Quick Start Commands](#quick-start-commands)
-  - [Emergency Commands](#emergency-commands)
-  - [Installation Steps](#installation-steps)
-- [Operation](#operation)
-  - [Automatic Migration Execution](#automatic-migration-execution)
-    - [Development Environment](#development-environment)
-    - [Test Environment](#test-environment)
-    - [CI/CD Environment](#cicd-environment)
-  - [Creating New Migrations](#creating-new-migrations)
-    - [Method 1: Autogeneration (Recommended)](#method-1-autogeneration-recommended)
-    - [Method 2: Empty Migration (Manual)](#method-2-empty-migration-manual)
-- [Monitoring](#monitoring)
-  - [Checking Migration Status](#checking-migration-status)
-  - [Logs](#logs)
-  - [Metrics to Monitor](#metrics-to-monitor)
-  - [Health Checks](#health-checks)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Migration Fails on Startup](#issue-1-migration-fails-on-startup)
-  - [Issue 2: Autogeneration Misses Changes](#issue-2-autogeneration-misses-changes)
-  - [Issue 3: Migration Works Locally, Fails in CI](#issue-3-migration-works-locally-fails-in-ci)
-  - [Issue 4: Downgrade Fails](#issue-4-downgrade-fails)
-  - [Issue 5: Timezone Comparison Errors](#issue-5-timezone-comparison-errors)
-  - [Advanced Scenario: Branching and Merge Migrations](#advanced-scenario-branching-and-merge-migrations)
-  - [Data Migrations](#data-migrations)
-  - [Testing Migrations in Isolation](#testing-migrations-in-isolation)
-- [Maintenance](#maintenance)
-  - [Migration Best Practices](#migration-best-practices)
-    - [DO's](#dos)
-    - [DON'Ts](#donts)
-- [Security](#security)
-  - [Timezone-Aware Datetime Implementation](#timezone-aware-datetime-implementation)
-    - [Why TIMESTAMPTZ?](#why-timestamptz)
-    - [Implementation](#implementation)
-    - [Converting Existing Columns](#converting-existing-columns)
-- [Performance Optimization](#performance-optimization)
-  - [Integration with CI/CD](#integration-with-cicd)
-    - [GitHub Actions Workflow](#github-actions-workflow)
-- [References](#references)
-  - [Migration Checklist](#migration-checklist)
-  - [Related Documentation](#related-documentation)
-  - [External Resources](#external-resources)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam uses **Alembic** for database schema migrations, providing version-controlled, automated database schema evolution. All environments (development, test, and CI/CD) automatically run migrations on startup, ensuring database schemas are always synchronized with the codebase.
@@ -1014,8 +948,7 @@ Before committing a migration:
 
 - [Docker Setup](docker-setup.md) - Container configuration
 - [CI/CD Pipeline](ci-cd.md) - Automated testing
-- [Database Models](../../api/models.md) - SQLModel reference
-- [Testing Strategy](../testing/strategy.md) - Test infrastructure
+- [Testing Strategy](../../testing/strategy.md) - Test infrastructure
 
 ### External Resources
 
@@ -1028,6 +961,6 @@ Before committing a migration:
 
 ## Document Information
 
-**Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
+**Template:** infrastructure-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-17

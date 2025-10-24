@@ -2,66 +2,6 @@
 
 Documentation of development, test, and CI/CD environment workflows with detailed state transitions and configuration hierarchies.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [Key Features](#key-features)
-- [Purpose](#purpose)
-- [Components](#components)
-  - [Component 1: Development Environment](#component-1-development-environment)
-  - [Component 2: Test Environment](#component-2-test-environment)
-  - [Component 3: PostgreSQL Database Container](#component-3-postgresql-database-container)
-  - [Component 4: Configuration Management](#component-4-configuration-management)
-  - [Component 5: Docker Compose Orchestration](#component-5-docker-compose-orchestration)
-- [Configuration](#configuration)
-  - [Environment Files](#environment-files)
-  - [Docker Compose Files](#docker-compose-files)
-  - [Ports and Services](#ports-and-services)
-- [Setup Instructions](#setup-instructions)
-  - [Prerequisites](#prerequisites)
-  - [Starting Development Environment](#starting-development-environment)
-    - [Step 1: Start All Services](#step-1-start-all-services)
-    - [Step 2: Verify Services](#step-2-verify-services)
-    - [Step 3: Access Application](#step-3-access-application)
-  - [Starting Test Environment](#starting-test-environment)
-    - [Step 1: Setup Test Environment](#step-1-setup-test-environment)
-    - [Step 2: Run Tests](#step-2-run-tests)
-    - [Step 3: Clean Up](#step-3-clean-up)
-  - [Switching Between Environments](#switching-between-environments)
-- [Operation](#operation)
-  - [Development Workflow](#development-workflow)
-  - [Development Environment Flow](#development-environment-flow)
-  - [Test Environment Flow](#test-environment-flow)
-  - [Database State Management](#database-state-management)
-  - [Database State Comparison](#database-state-comparison)
-  - [Environment Switching](#environment-switching)
-  - [Environment Switching Flow](#environment-switching-flow)
-  - [Configuration Loading Hierarchy](#configuration-loading-hierarchy)
-- [Monitoring](#monitoring)
-  - [Container Status](#container-status)
-  - [Database Status](#database-status)
-  - [Logs](#logs)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Container Name Conflicts](#issue-1-container-name-conflicts)
-  - [Issue 2: Database Connection Errors](#issue-2-database-connection-errors)
-  - [Issue 3: Test Data Not Clean](#issue-3-test-data-not-clean)
-- [Maintenance](#maintenance)
-  - [Best Practices](#best-practices)
-  - [Safety Features](#safety-features)
-- [Security](#security)
-  - [Test Database Safety Checks](#test-database-safety-checks)
-  - [Data Isolation](#data-isolation)
-- [Performance Optimization](#performance-optimization)
-  - [Test Database Optimizations](#test-database-optimizations)
-- [References](#references)
-  - [Key Takeaways](#key-takeaways)
-  - [Related Documentation](#related-documentation)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam uses Docker Compose to orchestrate separate development and test environments. Both environments share the same container infrastructure but use different configurations, ensuring complete data isolation while allowing rapid environment switching.
@@ -863,12 +803,12 @@ SET full_page_writes = OFF;
 - [Docker Setup](docker-setup.md) - Container configuration details
 - [Database Migrations](database-migrations.md) - Alembic migration system
 - [CI/CD Pipeline](ci-cd.md) - GitHub Actions integration
-- [Testing Strategy](../testing/strategy.md) - Test infrastructure overview
+- [Testing Strategy](../../testing/strategy.md) - Test infrastructure overview
 
 ---
 
 ## Document Information
 
-**Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
+**Template:** infrastructure-template.md
 **Created:** 2025-10-01
 **Last Updated:** 2025-10-17

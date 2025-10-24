@@ -2,34 +2,6 @@
 
 End-to-end smoke test covering the complete authentication lifecycle from registration through logout.
 
----
-
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-  - [Step 1: User Registration](#step-1-user-registration)
-  - [Step 2: Email Verification](#step-2-email-verification)
-  - [Step 3: Login](#step-3-login)
-  - [Step 4: Access Protected Resource](#step-4-access-protected-resource)
-  - [Step 5: Update Profile](#step-5-update-profile)
-  - [Step 6: Token Refresh](#step-6-token-refresh)
-  - [Step 7: Password Reset Request](#step-7-password-reset-request)
-  - [Step 8: Password Reset Confirmation](#step-8-password-reset-confirmation)
-  - [Step 9: Logout (Refresh Token Revocation)](#step-9-logout-refresh-token-revocation)
-- [Troubleshooting](#troubleshooting)
-  - [Registration fails with 409 Conflict](#registration-fails-with-409-conflict)
-  - [Cannot extract token from logs](#cannot-extract-token-from-logs)
-  - [Login fails with 400 "Email not verified"](#login-fails-with-400-email-not-verified)
-  - [Refresh token still works after logout](#refresh-token-still-works-after-logout)
-  - [Access token rejected after logout](#access-token-rejected-after-logout)
-  - [SSL certificate errors](#ssl-certificate-errors)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
-
----
-
 ## Purpose
 
 Run a full authentication lifecycle smoke test from registration through logout. Tests all major auth components in a single end-to-end flow for manual verification.
@@ -423,6 +395,6 @@ curl -k -X GET "$BASE_URL/api/v1/auth/me" ...
 
 ## Document Information
 
-**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Template:** api-flow-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-15

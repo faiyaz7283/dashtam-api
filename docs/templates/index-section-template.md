@@ -73,7 +73,7 @@
 
 When adding new documents to this directory:
 
-1. Follow appropriate [template](../templates/README.md)
+1. Follow appropriate README.md (located in docs/templates/)
 2. Place in correct subdirectory or at section level
 3. Update this index with link and brief description
 4. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
@@ -82,6 +82,6 @@ When adding new documents to this directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../../templates/index-section-template.md)
+**Template:** index-section-template.md (located in docs/templates/)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD

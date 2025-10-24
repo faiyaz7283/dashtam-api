@@ -2,64 +2,6 @@
 
 Comprehensive guide to Dashtam's Docker-based multi-environment infrastructure with isolated development, testing, and CI/CD environments.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [Key Features](#key-features)
-  - [Architecture Diagram](#architecture-diagram)
-- [Purpose](#purpose)
-  - [Problem 1: Container Conflicts](#problem-1-container-conflicts)
-  - [Problem 2: Data Contamination](#problem-2-data-contamination)
-  - [Problem 3: Manual Workflow](#problem-3-manual-workflow)
-  - [Problem 4: CI/CD Integration](#problem-4-cicd-integration)
-  - [Problem 5: SSL Testing Gap](#problem-5-ssl-testing-gap)
-- [Components](#components)
-  - [Development Environment](#development-environment)
-  - [Test Environment](#test-environment)
-  - [CI/CD Environment](#cicd-environment)
-- [Configuration](#configuration)
-  - [Environment Variables](#environment-variables)
-  - [Docker Compose Files](#docker-compose-files)
-  - [Ports and Services](#ports-and-services)
-- [Setup Instructions](#setup-instructions)
-  - [Prerequisites](#prerequisites)
-  - [First-Time Setup](#first-time-setup)
-    - [Step 1: Clone Repository](#step-1-clone-repository)
-    - [Step 2: Generate SSL Certificates](#step-2-generate-ssl-certificates)
-    - [Step 3: Create Environment Files](#step-3-create-environment-files)
-    - [Step 4: Start Development Environment](#step-4-start-development-environment)
-  - [SSL Certificates](#ssl-certificates)
-- [Operation](#operation)
-  - [Development Workflow](#development-workflow)
-  - [Testing Workflow](#testing-workflow)
-  - [CI/CD Workflow](#cicd-workflow)
-- [Monitoring](#monitoring)
-  - [Health Checks](#health-checks)
-  - [Service Status](#service-status)
-  - [Logs](#logs)
-- [Troubleshooting](#troubleshooting)
-  - [Container Name Conflicts](#container-name-conflicts)
-  - [Port Already in Use](#port-already-in-use)
-  - [Database Connection Errors](#database-connection-errors)
-  - [SSL Certificate Issues](#ssl-certificate-issues)
-- [Maintenance](#maintenance)
-  - [Updating Images](#updating-images)
-  - [Cleaning Up Resources](#cleaning-up-resources)
-  - [Backup and Restore](#backup-and-restore)
-- [Security](#security)
-  - [Network Isolation](#network-isolation)
-  - [SSL/TLS Configuration](#ssltls-configuration)
-  - [Secrets Management](#secrets-management)
-- [Performance Optimization](#performance-optimization)
-  - [CI/CD Optimizations](#cicd-optimizations)
-  - [Development Speed](#development-speed)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam uses a **multi-environment Docker architecture** that provides complete isolation between development, testing, and CI/CD workflows. Each environment runs independently with its own containers, networks, and storage.
@@ -842,6 +784,6 @@ command: >
 
 ## Document Information
 
-**Template:** [infrastructure-template.md](../../templates/infrastructure-template.md)
+**Template:** infrastructure-template.md
 **Created:** 2025-10-17
 **Last Updated:** 2025-10-17

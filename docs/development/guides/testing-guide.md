@@ -2,58 +2,6 @@
 
 Quick reference for writing and running tests following the project's synchronous testing pattern with comprehensive examples and best practices.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [Testing Goals](#testing-goals)
-  - [Scope](#scope)
-  - [Testing Strategy](#testing-strategy)
-  - [Test Pyramid](#test-pyramid)
-  - [Testing Principles](#testing-principles)
-- [Prerequisites](#prerequisites)
-  - [Required Tools](#required-tools)
-  - [Test Environment Setup](#test-environment-setup)
-  - [Test Data](#test-data)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understanding Test Types](#step-1-understanding-test-types)
-  - [Step 2: Writing Your First Test](#step-2-writing-your-first-test)
-  - [Step 3: Using Fixtures](#step-3-using-fixtures)
-  - [Step 4: Running Tests](#step-4-running-tests)
-  - [Step 5: Checking Coverage](#step-5-checking-coverage)
-- [Examples](#examples)
-  - [Example 1: Unit Test](#example-1-unit-test)
-  - [Example 2: Integration Test](#example-2-integration-test)
-  - [Example 3: API Test](#example-3-api-test)
-  - [Example 4: Smoke Test](#example-4-smoke-test)
-- [Verification](#verification)
-  - [Verify Tests Pass](#verify-tests-pass)
-  - [Verify Coverage](#verify-coverage)
-  - [Verify Linting](#verify-linting)
-- [Troubleshooting](#troubleshooting)
-  - [Tests Failing Intermittently](#tests-failing-intermittently)
-  - [Slow Tests](#slow-tests)
-  - [Coverage Not Accurate](#coverage-not-accurate)
-  - [Database Cleanup Not Working](#database-cleanup-not-working)
-  - [Test Hangs or Times Out](#test-hangs-or-times-out)
-- [Best Practices](#best-practices)
-  - [General Principles](#general-principles)
-  - [Test Naming](#test-naming)
-  - [Test Isolation](#test-isolation)
-  - [Assertions](#assertions)
-  - [Error Testing](#error-testing)
-  - [Common Patterns](#common-patterns)
-- [Next Steps](#next-steps)
-- [References](#references)
-  - [Project Documentation](#project-documentation)
-  - [External Resources](#external-resources)
-  - [Test Utilities](#test-utilities)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide provides quick-reference documentation for writing and running tests in the Dashtam project. The project uses a synchronous testing pattern with pytest and FastAPI TestClient to ensure fast, reliable test execution with proper database isolation.
@@ -398,7 +346,6 @@ import pytest
 
 from src.services.encryption_service import EncryptionService
 
-
 class TestEncryptionService:
     """Test suite for EncryptionService."""
 
@@ -447,7 +394,6 @@ from sqlmodel import Session, select
 from src.models.provider import Provider
 from src.models.user import User
 
-
 class TestProviderOperations:
     """Test suite for provider database operations."""
 
@@ -492,7 +438,6 @@ from fastapi.testclient import TestClient
 
 from src.models.user import User
 
-
 class TestProviderEndpoints:
     """Test suite for provider API endpoints."""
 
@@ -536,7 +481,6 @@ Tests critical user journeys end-to-end.
 import logging
 
 from fastapi.testclient import TestClient
-
 
 def test_complete_registration_flow(client: TestClient, caplog):
     """Smoke test: Complete user registration flow.
@@ -877,19 +821,19 @@ def test_list_with_pagination(client, db_session, test_user):
 
 After completing this guide, consider:
 
-- [ ] Read [Testing Strategy](strategy.md) for overall testing approach
-- [ ] Review [Testing Best Practices](../guides/testing-best-practices.md) for advanced patterns
-- [ ] Check [Test Docstring Standards](../guides/test-docstring-standards.md) for documentation conventions
-- [ ] Explore [Smoke Test Documentation](../../../tests/smoke/README.md) for end-to-end testing
+- [ ] Read [Testing Strategy](../../testing/strategy.md) for overall testing approach
+- [ ] Review [Testing Best Practices](testing-best-practices.md) for advanced patterns
+- [ ] Check [Test Docstring Standards](test-docstring-standards.md) for documentation conventions
+- [ ] Explore Smoke Test Documentation (`tests/smoke/README.md` in project root) for end-to-end testing
 
 ## References
 
 ### Project Documentation
 
-- [Testing Strategy](strategy.md) - Overall testing approach and philosophy
-- [Testing Best Practices](../guides/testing-best-practices.md) - Comprehensive best practices guide
-- [Test Docstring Standards](../guides/test-docstring-standards.md) - Docstring conventions for tests
-- [Smoke Test Documentation](../../../tests/smoke/README.md) - Smoke test patterns and utilities
+- [Testing Strategy](../../testing/strategy.md) - Overall testing approach and philosophy
+- [Testing Best Practices](testing-best-practices.md) - Comprehensive best practices guide
+- [Test Docstring Standards](test-docstring-standards.md) - Docstring conventions for tests
+- Smoke Test Documentation (`tests/smoke/README.md` in project root) - Smoke test patterns and utilities
 
 ### External Resources
 
@@ -923,6 +867,6 @@ headers = get_superuser_token_headers(client)
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-13
 **Last Updated:** 2025-10-18

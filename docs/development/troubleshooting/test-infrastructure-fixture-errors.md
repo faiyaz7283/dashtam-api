@@ -4,47 +4,6 @@ When attempting to merge Git Flow PR #1, CI tests failed with 148 out of 187 tes
 
 The investigation revealed that during the async-to-synchronous testing migration, new test files were created successfully, but old async test files were left behind and never deleted or updated. These orphaned tests were being collected by pytest, causing failures. The solution involved adding the missing fixture to conftest.py and archiving the 5 unmigrated async test files to `tests_old_unmigrated_archived/` directory.
 
----
-
-## Table of Contents
-
-- [Initial Problem](#initial-problem)
-  - [Symptoms](#symptoms)
-  - [Expected Behavior](#expected-behavior)
-  - [Actual Behavior](#actual-behavior)
-  - [Impact](#impact)
-- [Investigation Steps](#investigation-steps)
-  - [Step 1: Fixture Error Analysis](#step-1-fixture-error-analysis)
-  - [Step 2: Async Test Discovery](#step-2-async-test-discovery)
-- [Root Cause Analysis](#root-cause-analysis)
-  - [Primary Cause](#primary-cause)
-    - [Issue 1: Missing test_settings Fixture Registration](#issue-1-missing-test_settings-fixture-registration)
-    - [Issue 2: Unmigrated Async Tests](#issue-2-unmigrated-async-tests)
-  - [Contributing Factors](#contributing-factors)
-    - [Factor 1: Migration Documentation Gap](#factor-1-migration-documentation-gap)
-    - [Factor 2: Lack of Regular Test Execution](#factor-2-lack-of-regular-test-execution)
-- [Solution Implementation](#solution-implementation)
-  - [Approach](#approach)
-  - [Changes Made](#changes-made)
-    - [Change 1: tests/conftest.py - Add Missing Fixture](#change-1-testsconftestpy---add-missing-fixture)
-    - [Change 2: Archive Unmigrated Async Tests](#change-2-archive-unmigrated-async-tests)
-    - [Change 3: pytest.ini - Exclude Archived Tests](#change-3-pytestini---exclude-archived-tests)
-  - [Implementation Steps](#implementation-steps)
-- [Verification](#verification)
-  - [Test Results](#test-results)
-  - [Verification Steps](#verification-steps)
-  - [Regression Testing](#regression-testing)
-- [Lessons Learned](#lessons-learned)
-  - [Technical Insights](#technical-insights)
-  - [Process Improvements](#process-improvements)
-  - [Best Practices](#best-practices)
-- [Future Improvements](#future-improvements)
-  - [Short-Term Actions](#short-term-actions)
-  - [Long-Term Improvements](#long-term-improvements)
-- [References](#references)
-
----
-
 ## Initial Problem
 
 ### Symptoms
@@ -418,10 +377,8 @@ Verified that all existing functionality remained intact:
 
 **Related Documentation:**
 
-- [Testing Strategy](../testing/strategy.md) - Overall testing approach
-- [Testing Migration](../testing/migration.md) - Async-to-sync migration details
-- [Async Testing Research](../../research/async-testing.md) - Historical context
-- [Test Infrastructure Guide](../testing/guide.md) - Complete testing guide
+- [Testing Strategy](../../testing/strategy.md) - Overall testing approach
+- [Test Infrastructure Guide](../guides/testing-guide.md) - Complete testing guide
 
 **External Resources:**
 
@@ -439,6 +396,6 @@ Verified that all existing functionality remained intact:
 
 ## Document Information
 
-**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+**Template:** troubleshooting-template.md
 **Created:** 2025-10-02
 **Last Updated:** 2025-10-17

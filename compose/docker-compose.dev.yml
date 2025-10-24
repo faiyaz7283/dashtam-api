@@ -49,14 +49,12 @@ services:
       - ../env/.env.dev
     ports:
       - "${APP_PORT:-8000}:8000"
+      - "${MKDOCS_PORT:-8001}:8001"
     volumes:
-      - ../src:/app/src:rw
-      - ../tests:/app/tests:rw
-      - ../alembic:/app/alembic:rw
-      - ../alembic.ini:/app/alembic.ini:ro
-      - ../certs:/app/certs:ro
-      - ../pyproject.toml:/app/pyproject.toml:ro
-      - ../uv.lock:/app/uv.lock:ro
+      # Mount entire project for full dev experience (mkdocs, config files, etc.)
+      - ..:/app:rw
+      # Exclude .venv to prevent host/container conflicts (anonymous volume takes precedence)
+      - /app/.venv
     depends_on:
       postgres:
         condition: service_healthy

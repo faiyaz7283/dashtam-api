@@ -2,23 +2,6 @@
 
 Create a provider instance, obtain an authorization URL, complete the OAuth flow, and verify the connection.
 
----
-
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-  - [1) Create provider instance](#1-create-provider-instance)
-  - [2) Request authorization URL](#2-request-authorization-url)
-  - [3) Authorize in browser](#3-authorize-in-browser)
-  - [4) Verify connection status](#4-verify-connection-status)
-- [Troubleshooting](#troubleshooting)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
-
----
-
 ## Purpose
 
 Manually test the end-to-end OAuth onboarding flow for a provider (e.g., Schwab).
@@ -194,6 +177,6 @@ Expected: HTTP 200 OK with message "Provider disconnected successfully". See [Pr
 
 ## Document Information
 
-**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Template:** api-flow-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-15

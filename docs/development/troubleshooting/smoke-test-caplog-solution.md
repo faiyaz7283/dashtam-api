@@ -6,49 +6,6 @@ Investigation revealed that pytest's built-in `caplog` fixture provides a superi
 
 Implementation replaced shell script token extraction with pure Python log parsing using caplog. The solution achieved 96% test success rate (22/23 tests passing, 1 skipped due to unrelated API bug), eliminated external dependencies, and enabled tests to run consistently across all environments. The smoke test suite now validates the complete authentication flow (registration → verification → login → password reset → logout) with no environment-specific workarounds.
 
----
-
-## Table of Contents
-
-- [Initial Problem](#initial-problem)
-  - [Symptoms](#symptoms)
-  - [Expected Behavior](#expected-behavior)
-  - [Actual Behavior](#actual-behavior)
-  - [Impact](#impact)
-- [Investigation Steps](#investigation-steps)
-  - [Step 1: Container Environment Analysis](#step-1-container-environment-analysis)
-  - [Step 2: Alternative Log Capture Methods](#step-2-alternative-log-capture-methods)
-  - [Step 3: Token Extraction Pattern Design](#step-3-token-extraction-pattern-design)
-- [Root Cause Analysis](#root-cause-analysis)
-  - [Primary Cause](#primary-cause)
-  - [Contributing Factors](#contributing-factors)
-    - [Factor 1: Shell Script Complexity](#factor-1-shell-script-complexity)
-    - [Factor 2: Race Conditions](#factor-2-race-conditions)
-    - [Factor 3: Maintenance Burden](#factor-3-maintenance-burden)
-- [Solution Implementation](#solution-implementation)
-  - [Approach](#approach)
-  - [Changes Made](#changes-made)
-    - [Change 1: Token Extraction Function](#change-1-token-extraction-function)
-    - [Change 2: Fixture with Caplog Integration](#change-2-fixture-with-caplog-integration)
-    - [Change 3: Log Capture in Test Functions](#change-3-log-capture-in-test-functions)
-  - [Implementation Steps](#implementation-steps)
-- [Verification](#verification)
-  - [Test Results](#test-results)
-  - [Verification Steps](#verification-steps)
-  - [Regression Testing](#regression-testing)
-- [Lessons Learned](#lessons-learned)
-  - [Technical Insights](#technical-insights)
-  - [Process Improvements](#process-improvements)
-  - [Best Practices](#best-practices)
-- [Future Improvements](#future-improvements)
-  - [Short-Term Actions](#short-term-actions)
-  - [Long-Term Improvements](#long-term-improvements)
-  - [Monitoring & Prevention](#monitoring--prevention)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Initial Problem
 
 ### Symptoms
@@ -552,8 +509,8 @@ fi
 
 **Related Documentation:**
 
-- [Smoke Test README](../../../tests/smoke/README.md) - Complete smoke test documentation
-- [Testing Guide](../testing/guide.md) - Comprehensive testing strategy
+- Smoke Test README (`tests/smoke/README.md` in project root) - Complete smoke test documentation
+- [Testing Guide](../guides/testing-guide.md) - Comprehensive testing strategy
 - [Testing Best Practices](../guides/testing-best-practices.md) - Testing patterns
 
 **External Resources:**
@@ -570,6 +527,6 @@ fi
 
 ## Document Information
 
-**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+**Template:** troubleshooting-template.md
 **Created:** 2025-10-06
 **Last Updated:** 2025-10-18

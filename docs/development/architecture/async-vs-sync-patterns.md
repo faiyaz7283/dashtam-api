@@ -2,50 +2,6 @@
 
 Define when to use async vs sync patterns in Dashtam, following industry best practices and maintaining consistency for optimal performance and code clarity.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [Why This Approach?](#why-this-approach)
-- [Context](#context)
-- [Architecture Goals](#architecture-goals)
-- [Design Decisions](#design-decisions)
-  - [Decision 1: Async for I/O-Bound Operations](#decision-1-async-for-io-bound-operations)
-  - [Decision 2: Sync for CPU-Bound Operations](#decision-2-sync-for-cpu-bound-operations)
-  - [Decision 3: Hybrid Approach for Endpoints](#decision-3-hybrid-approach-for-endpoints)
-  - [Decision Log](#decision-log)
-- [Components](#components)
-  - [Component 1: I/O-Bound Services (Async Pattern)](#component-1-io-bound-services-async-pattern)
-  - [Component 2: CPU-Bound Services (Sync Pattern)](#component-2-cpu-bound-services-sync-pattern)
-  - [Component 3: Service Classification](#component-3-service-classification)
-  - [Current Service Classification](#current-service-classification)
-    - [Async Services (I/O-bound)](#async-services-io-bound)
-    - [Sync Services (CPU-bound)](#sync-services-cpu-bound)
-- [Implementation Details](#implementation-details)
-  - [FastAPI Endpoint Pattern](#fastapi-endpoint-pattern)
-  - [Best Practices](#best-practices)
-    - [1. Don't Mix Patterns Within a Service](#1-dont-mix-patterns-within-a-service)
-    - [2. Call Sync from Async (Not Async from Sync)](#2-call-sync-from-async-not-async-from-sync)
-    - [3. Use Dependency Injection for Services](#3-use-dependency-injection-for-services)
-    - [4. Keep Service Initialization Lightweight](#4-keep-service-initialization-lightweight)
-- [Security Considerations](#security-considerations)
-- [Performance Considerations](#performance-considerations)
-  - [When CPU-Bound Work Blocks](#when-cpu-bound-work-blocks)
-  - [Current Performance Profile](#current-performance-profile)
-  - [Monitoring and Review Criteria](#monitoring-and-review-criteria)
-- [Testing Strategy](#testing-strategy)
-  - [Testing Async Services](#testing-async-services)
-  - [Testing Sync Services](#testing-sync-services)
-- [Future Enhancements](#future-enhancements)
-  - [Step 1: Add Async Wrappers](#step-1-add-async-wrappers)
-  - [Step 2: Update Endpoints](#step-2-update-endpoints)
-  - [Step 3: Deprecate Sync Methods](#step-3-deprecate-sync-methods)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam uses a hybrid async/sync architecture that maximizes performance while maintaining code clarity. This architectural pattern addresses the fundamental question: **when to use `async def` versus `def` in our codebase.**
@@ -565,6 +521,6 @@ def hash_password(self, password: str) -> str:
 
 ## Document Information
 
-**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Template:** architecture-template.md
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-16

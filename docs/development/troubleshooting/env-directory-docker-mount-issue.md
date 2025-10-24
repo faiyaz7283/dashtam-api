@@ -6,48 +6,6 @@ The solution implemented a comprehensive four-layer protection system: (1) `.doc
 
 **Duration**: ~30 minutes | **Impact**: Blocked all Docker startup | **Resolution**: Complete with automated prevention
 
----
-
-## Table of Contents
-
-- [Initial Problem](#initial-problem)
-  - [Symptoms](#symptoms)
-  - [Expected Behavior](#expected-behavior)
-  - [Actual Behavior](#actual-behavior)
-  - [Impact](#impact)
-- [Investigation Steps](#investigation-steps)
-  - [Step 1: Error Analysis](#step-1-error-analysis)
-  - [Step 2: Root Cause Identification](#step-2-root-cause-identification)
-- [Root Cause Analysis](#root-cause-analysis)
-  - [Primary Cause](#primary-cause)
-  - [Contributing Factors](#contributing-factors)
-    - [Factor 1: Missing .dockerignore](#factor-1-missing-dockerignore)
-    - [Factor 2: Docker Build Cache](#factor-2-docker-build-cache)
-- [Solution Implementation](#solution-implementation)
-  - [Approach](#approach)
-  - [Changes Made](#changes-made)
-    - [Change 1: .dockerignore File](#change-1-dockerignore-file)
-    - [Change 2: .gitignore Enhancement](#change-2-gitignore-enhancement)
-    - [Change 3: Enhanced make clean Command](#change-3-enhanced-make-clean-command)
-    - [Change 4: New dev-rebuild and test-rebuild Commands](#change-4-new-dev-rebuild-and-test-rebuild-commands)
-  - [Implementation Steps](#implementation-steps)
-- [Verification](#verification)
-  - [Test Results](#test-results)
-  - [Verification Steps](#verification-steps)
-  - [Regression Testing](#regression-testing)
-- [Lessons Learned](#lessons-learned)
-  - [Technical Insights](#technical-insights)
-  - [Process Improvements](#process-improvements)
-  - [Best Practices](#best-practices)
-- [Future Improvements](#future-improvements)
-  - [Short-Term Actions](#short-term-actions)
-  - [Long-Term Improvements](#long-term-improvements)
-  - [Monitoring & Prevention](#monitoring--prevention)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Initial Problem
 
 ### Symptoms
@@ -501,8 +459,6 @@ No ongoing monitoring needed. The four-layer protection system ensures the issue
 **Related Documentation:**
 
 - [Docker Setup](../infrastructure/docker-setup.md) - Docker configuration and best practices
-- [Environment Configuration](../infrastructure/environment-configuration.md) - Environment variable management
-- [Makefile Commands](../guides/makefile-commands.md) - Complete command reference
 
 **External Resources:**
 
@@ -519,6 +475,6 @@ No ongoing monitoring needed. The four-layer protection system ensures the issue
 
 ## Document Information
 
-**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+**Template:** troubleshooting-template.md
 **Created:** 2025-10-01
 **Last Updated:** 2025-10-20

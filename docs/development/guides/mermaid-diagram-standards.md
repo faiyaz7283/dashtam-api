@@ -2,40 +2,6 @@
 
 Complete guide to creating consistent, version-controlled diagrams in Dashtam documentation using Mermaid syntax for all visual content.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Choose the Right Diagram Type](#step-1-choose-the-right-diagram-type)
-  - [Step 2: Write Mermaid Syntax](#step-2-write-mermaid-syntax)
-  - [Step 3: Validate Your Diagram](#step-3-validate-your-diagram)
-  - [Step 4: Add to Documentation](#step-4-add-to-documentation)
-  - [Step 5: Apply Styling (Optional)](#step-5-apply-styling-optional)
-- [Examples](#examples)
-  - [Example 1: Simple Authentication Flow](#example-1-simple-authentication-flow)
-  - [Example 2: Database Schema](#example-2-database-schema)
-  - [Example 3: Decision Flow](#example-3-decision-flow)
-  - [Example 4: OAuth Sequence](#example-4-oauth-sequence)
-- [Verification](#verification)
-  - [Check 1: Syntax Validation](#check-1-syntax-validation)
-  - [Check 2: Rendering Verification](#check-2-rendering-verification)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Diagram Not Rendering](#issue-1-diagram-not-rendering)
-  - [Issue 2: Diagram Too Wide](#issue-2-diagram-too-wide)
-  - [Issue 3: Special Characters Breaking Diagram](#issue-3-special-characters-breaking-diagram)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 **CRITICAL RULE**: All diagrams in Dashtam documentation MUST use Mermaid syntax. This ensures consistency, version control compatibility, and seamless MkDocs integration.
@@ -513,13 +479,13 @@ plugins:
 - [Flowchart Documentation](https://mermaid.js.org/syntax/flowchart.html) - Flowchart syntax details
 - [Sequence Diagram Documentation](https://mermaid.js.org/syntax/sequenceDiagram.html) - Sequence diagram guide
 - [ER Diagram Documentation](https://mermaid.js.org/syntax/entityRelationshipDiagram.html) - Entity relationship diagrams
-- [Documentation Template System](../../templates/README.md) - Template usage guide
-- [WARP.md](../../../WARP.md) - Project standards and Mermaid requirements
+- Documentation Template System: README.md (located in docs/templates/) - Template usage guide
+- `WARP.md` (project root) - Project standards and Mermaid requirements
 
 ---
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-13
 **Last Updated:** 2025-10-20

@@ -40,8 +40,8 @@ FROM base AS development
 # Copy dependency files (as appuser)
 COPY --chown=appuser:appuser pyproject.toml uv.lock ./
 
-# Install dependencies from lockfile
-RUN uv sync --frozen
+# Install dependencies from lockfile (including docs group for MkDocs)
+RUN uv sync --frozen --all-groups
 
 # Copy application code (as appuser)
 COPY --chown=appuser:appuser . .

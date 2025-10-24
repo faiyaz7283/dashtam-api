@@ -2,52 +2,6 @@
 
 Comprehensive testing strategy for the Dashtam financial data aggregation platform using synchronous testing with FastAPI TestClient and SQLModel Session.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [Testing Goals](#testing-goals)
-  - [Scope](#scope)
-- [Testing Strategy](#testing-strategy)
-  - [Test Pyramid](#test-pyramid)
-  - [Testing Principles](#testing-principles)
-- [Test Types](#test-types)
-  - [Unit Tests](#unit-tests)
-  - [Integration Tests](#integration-tests)
-  - [End-to-End Tests](#end-to-end-tests)
-- [Setup](#setup)
-  - [Prerequisites](#prerequisites)
-  - [Test Environment Setup](#test-environment-setup)
-  - [Test Data](#test-data)
-- [Writing Tests](#writing-tests)
-  - [Test Structure](#test-structure)
-  - [Naming Conventions](#naming-conventions)
-  - [Fixtures](#fixtures)
-- [Running Tests](#running-tests)
-  - [Run All Tests](#run-all-tests)
-  - [Run Specific Tests](#run-specific-tests)
-  - [Run with Coverage](#run-with-coverage)
-  - [Run in Docker](#run-in-docker)
-- [Coverage](#coverage)
-  - [Coverage Goals](#coverage-goals)
-  - [Checking Coverage](#checking-coverage)
-- [Best Practices](#best-practices)
-  - [General Principles](#general-principles)
-  - [Testing Anti-Patterns to Avoid](#testing-anti-patterns-to-avoid)
-- [Common Patterns](#common-patterns)
-  - [Pattern 1: Unit Test Example](#pattern-1-unit-test-example)
-  - [Pattern 2: Integration Test Example](#pattern-2-integration-test-example)
-  - [Pattern 3: API Test Example](#pattern-3-api-test-example)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Tests Failing Intermittently](#issue-1-tests-failing-intermittently)
-  - [Issue 2: Slow Tests](#issue-2-slow-tests)
-  - [Issue 3: Coverage Not Accurate](#issue-3-coverage-not-accurate)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam uses a synchronous testing strategy with FastAPI's TestClient and SQLModel's Session, following the official FastAPI template pattern. This approach avoids async complexity while maintaining comprehensive test coverage.
@@ -619,6 +573,6 @@ source = ["src"]
 
 ## Document Information
 
-**Template:** [testing-template.md](../templates/testing-template.md)
+**Template:** testing-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-20

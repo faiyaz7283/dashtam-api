@@ -4,14 +4,24 @@
 
 ---
 
-## Table of Contents
+<!-- TABLE OF CONTENTS
 
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-- [Troubleshooting](#troubleshooting)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
+NOTE: MkDocs Material auto-generates the Table of Contents from headings.
+Do NOT include a manual TOC section in your document.
+
+The sections listed below are the REQUIRED top-level (##) sections for this template.
+All other content must be organized as subsections (###, ####) under these main sections.
+
+Required Top-Level Sections (in order):
+- Purpose
+- Prerequisites
+- Steps
+- Troubleshooting
+- Related Flows
+- Document Information
+
+MkDocs will automatically create a clickable TOC sidebar from these headings.
+-->
 
 ---
 

@@ -2,77 +2,6 @@
 
 Industry-standard JWT authentication system using Pattern A (JWT access tokens + opaque refresh tokens) for secure, scalable, and revocable user authentication.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Context](#context)
-  - [Operating Environment](#operating-environment)
-  - [System Constraints](#system-constraints)
-  - [Key Requirements](#key-requirements)
-- [Architecture Goals](#architecture-goals)
-- [Design Decisions](#design-decisions)
-  - [Decision 1: Pattern A - JWT Access + Opaque Refresh Tokens](#decision-1-pattern-a---jwt-access--opaque-refresh-tokens)
-  - [The Two-Token System](#the-two-token-system)
-  - [Why This Works](#why-this-works)
-  - [Rationale](#rationale)
-  - [Alternatives Considered](#alternatives-considered)
-    - [Pattern B: JWT Access + JWT Refresh (❌ Rejected)](#pattern-b-jwt-access--jwt-refresh--rejected)
-  - [Trade-offs](#trade-offs)
-- [Components](#components)
-  - [1. Access Token (JWT)](#1-access-token-jwt)
-  - [2. Refresh Token (Opaque)](#2-refresh-token-opaque)
-  - [3. Email Verification Token (Opaque)](#3-email-verification-token-opaque)
-  - [4. Password Reset Token (Opaque)](#4-password-reset-token-opaque)
-  - [Token Hashing Strategy](#token-hashing-strategy)
-  - [Why Hash Tokens?](#why-hash-tokens)
-  - [Validation Flow](#validation-flow)
-- [Implementation Details](#implementation-details)
-  - [Authentication Flows](#authentication-flows)
-    - [Flow 1: Registration & Email Verification](#flow-1-registration--email-verification)
-    - [Flow 2: Login](#flow-2-login)
-    - [Flow 3: Authenticated API Request](#flow-3-authenticated-api-request)
-    - [Flow 4: Token Refresh](#flow-4-token-refresh)
-    - [Flow 5: Logout](#flow-5-logout)
-    - [Flow 6: Password Reset with Session Revocation](#flow-6-password-reset-with-session-revocation)
-  - [Database Schema](#database-schema)
-    - [`users` Table](#users-table)
-    - [`refresh_tokens` Table](#refresh_tokens-table)
-    - [`email_verification_tokens` Table](#email_verification_tokens-table)
-    - [`password_reset_tokens` Table](#password_reset_tokens-table)
-  - [API Endpoints](#api-endpoints)
-    - [Authentication Endpoints](#authentication-endpoints)
-    - [Example Requests](#example-requests)
-      - [Register](#register)
-      - [Login](#login)
-      - [Protected Endpoint](#protected-endpoint)
-      - [Refresh Token](#refresh-token)
-  - [Services Architecture](#services-architecture)
-    - [AuthService](#authservice)
-    - [PasswordService](#passwordservice)
-    - [JWTService](#jwtservice)
-- [Security Considerations](#security-considerations)
-  - [Token Revocation & Logout Behavior](#token-revocation--logout-behavior)
-  - [Token Storage (Client-Side)](#token-storage-client-side)
-  - [Password Requirements](#password-requirements)
-  - [Account Lockout](#account-lockout)
-  - [Token Expiration](#token-expiration)
-  - [Rate Limiting (Future)](#rate-limiting-future)
-- [Performance Considerations](#performance-considerations)
-  - [Stateless Access Tokens](#stateless-access-tokens)
-  - [Refresh Token Database Lookups](#refresh-token-database-lookups)
-  - [Bcrypt Performance](#bcrypt-performance)
-- [Testing Strategy](#testing-strategy)
-  - [Test Pyramid](#test-pyramid)
-  - [Test Coverage Requirements](#test-coverage-requirements)
-  - [Key Test Scenarios](#key-test-scenarios)
-- [Future Enhancements](#future-enhancements)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 Dashtam implements **Pattern A** JWT authentication, the industry-standard approach used by Auth0, GitHub, Google, and 95% of production systems. This pattern combines:
@@ -1215,6 +1144,6 @@ Performance: 99.8% stateless
 
 ## Document Information
 
-**Template:** [architecture-template.md](../../templates/architecture-template.md)
+**Template:** architecture-template.md
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-16

@@ -4,18 +4,28 @@
 
 ---
 
-## Table of Contents
+<!-- TABLE OF CONTENTS
 
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-- [Examples](#examples)
-- [Verification](#verification)
-- [Troubleshooting](#troubleshooting)
-- [Best Practices](#best-practices)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
+NOTE: MkDocs Material auto-generates the Table of Contents from headings.
+Do NOT include a manual TOC section in your document.
+
+The sections listed below are the REQUIRED top-level (##) sections for this template.
+All other content must be organized as subsections (###, ####) under these main sections.
+
+Required Top-Level Sections (in order):
+- Overview
+- Prerequisites  
+- Step-by-Step Instructions
+- Examples
+- Verification
+- Troubleshooting
+- Best Practices
+- Next Steps
+- References
+- Document Information
+
+MkDocs will automatically create a clickable TOC sidebar from these headings.
+-->
 
 ---
 

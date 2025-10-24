@@ -2,61 +2,6 @@
 
 Complete guide to implementing and understanding the authentication services layer in Dashtam.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understand the Services Architecture](#step-1-understand-the-services-architecture)
-  - [Step 2: Implement PasswordService](#step-2-implement-passwordservice)
-    - [Password Hashing with bcrypt](#password-hashing-with-bcrypt)
-    - [Password Verification](#password-verification)
-    - [Password Complexity Validation](#password-complexity-validation)
-  - [Step 3: Implement JWTService](#step-3-implement-jwtservice)
-    - [Generate Access Tokens](#generate-access-tokens)
-    - [Validate Access Tokens](#validate-access-tokens)
-    - [Handle Token Expiration](#handle-token-expiration)
-  - [Step 4: Implement EmailService](#step-4-implement-emailservice)
-    - [Configure AWS SES](#configure-aws-ses)
-    - [Create Email Templates](#create-email-templates)
-    - [Send Verification Emails](#send-verification-emails)
-    - [Send Password Reset Emails](#send-password-reset-emails)
-  - [Step 5: Implement AuthService](#step-5-implement-authservice)
-    - [User Registration Flow](#user-registration-flow)
-    - [Email Verification Flow](#email-verification-flow)
-    - [Login Flow](#login-flow)
-    - [Token Refresh Flow](#token-refresh-flow)
-    - [Logout Flow](#logout-flow)
-    - [Password Reset Request Flow](#password-reset-request-flow)
-    - [Password Reset Confirm Flow](#password-reset-confirm-flow)
-  - [Step 6: Implement Token Generation](#step-6-implement-token-generation)
-  - [Step 7: Implement Account Lockout Logic](#step-7-implement-account-lockout-logic)
-- [Examples](#examples)
-  - [Example 1: Register New User](#example-1-register-new-user)
-  - [Example 2: Login and Get Tokens](#example-2-login-and-get-tokens)
-  - [Example 3: Refresh Access Token](#example-3-refresh-access-token)
-  - [Example 4: Password Reset Flow](#example-4-password-reset-flow)
-- [Verification](#verification)
-  - [Check 1: Verify PasswordService](#check-1-verify-passwordservice)
-  - [Check 2: Verify JWTService](#check-2-verify-jwtservice)
-  - [Check 3: Verify AuthService Integration](#check-3-verify-authservice-integration)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: bcrypt Hash Verification Slow](#issue-1-bcrypt-hash-verification-slow)
-  - [Issue 2: JWT Token Validation Fails](#issue-2-jwt-token-validation-fails)
-  - [Issue 3: Email Sending Fails](#issue-3-email-sending-fails)
-  - [Issue 4: Account Lockout Not Working](#issue-4-account-lockout-not-working)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide covers the complete authentication services layer, including password management, JWT token handling, email notifications, and the core authentication service that orchestrates user registration, login, logout, and password reset flows.
@@ -148,7 +93,6 @@ The PasswordService handles all password-related operations with bcrypt.
 
 ```python
 import bcrypt
-
 
 class PasswordService:
     """Service for password hashing, verification, and validation.
@@ -283,7 +227,6 @@ The JWTService handles JWT access token generation and validation.
 from datetime import datetime, timedelta, timezone
 import jwt
 from uuid import UUID
-
 
 class JWTService:
     """Service for JWT access token generation and validation.
@@ -442,7 +385,6 @@ The EmailService handles email notifications via AWS SES.
 ```python
 import boto3
 from botocore.exceptions import ClientError
-
 
 class EmailService:
     """Service for sending authentication emails via AWS SES.
@@ -657,7 +599,6 @@ from src.models.user import User
 from src.models.email_verification_token import EmailVerificationToken
 from src.services.password_service import PasswordService
 from src.services.email_service import EmailService
-
 
 class AuthService:
     """Service orchestrating authentication flows.
@@ -1575,8 +1516,8 @@ After completing this guide, consider:
 ## References
 
 - [JWT Authentication Architecture](../architecture/jwt-authentication.md) - Complete architecture guide
-- [Password Service Tests](../../../tests/unit/test_password_service.py) - Unit test examples
-- [JWT Service Tests](../../../tests/unit/test_jwt_service.py) - JWT testing patterns
+- `tests/unit/test_password_service.py` - Unit test examples
+- `tests/unit/test_jwt_service.py` - JWT testing patterns
 - [bcrypt Documentation](https://github.com/pyca/bcrypt) - Password hashing library
 - [PyJWT Documentation](https://pyjwt.readthedocs.io/) - JWT token library
 - [AWS SES Documentation](https://docs.aws.amazon.com/ses/) - Email service setup
@@ -1585,6 +1526,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-19
 **Last Updated:** 2025-10-19

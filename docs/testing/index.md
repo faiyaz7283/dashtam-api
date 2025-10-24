@@ -76,19 +76,19 @@ For detailed implementation guidance, see:
 **Development Documentation:**
 
 - [Development Index](../development/index.md) - All development documentation
-- [Main README](../../README.md) - Project overview
+- `README.md` (project root) - Project overview
 
 ## Contributing
 
 When adding new testing documentation to this directory:
 
-1. Use [testing-template.md](../templates/testing-template.md) for testing documentation
+1. Use  for testing documentation
 2. Cover both strategy and implementation details
 3. Include code examples and test patterns
 4. Document test setup, execution, and verification
 5. Link to related architecture decisions
 6. Update this index with link and brief description
-7. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
+7. Run markdown linting: `make lint-md FILE="path/to/file.md"`
 
 ### Testing Documentation Guidelines
 
@@ -103,6 +103,6 @@ When adding new testing documentation to this directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-21

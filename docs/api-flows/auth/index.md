@@ -63,7 +63,7 @@ auth/
 
 When adding new authentication flows to this directory:
 
-1. Follow the appropriate [API flow template](../../templates/api-flow-template.md)
+1. Follow the appropriate API flow template
 2. Use HTTPS with self-signed certificates (dev TLS) - Use `curl -k` for development
 3. Include prerequisite steps and cleanup where applicable
 4. Use environment variables for sensitive data (no real secrets)
@@ -75,6 +75,6 @@ When adding new authentication flows to this directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-21

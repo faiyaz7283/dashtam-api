@@ -2,43 +2,6 @@
 
 Comprehensive guide to maintaining consistent, high-quality Markdown documentation using markdownlint-cli2 with automated validation and safe formatting practices.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understand the Linting Strategy](#step-1-understand-the-linting-strategy)
-  - [Step 2: Configure markdownlint](#step-2-configure-markdownlint)
-  - [Step 3: Run Markdown Linting](#step-3-run-markdown-linting)
-  - [Step 4: Fix Common Issues](#step-4-fix-common-issues)
-  - [Step 5: Use Auto-Fix Carefully](#step-5-use-auto-fix-carefully)
-  - [Step 6: Integrate into Workflow](#step-6-integrate-into-workflow)
-- [Examples](#examples)
-  - [Example 1: Linting Single File](#example-1-linting-single-file)
-  - [Example 2: Fixing Common Violations](#example-2-fixing-common-violations)
-  - [Example 3: VS Code Integration](#example-3-vs-code-integration)
-  - [Example 4: Pre-Commit Hook](#example-4-pre-commit-hook)
-  - [Example 5: GitHub Actions CI](#example-5-github-actions-ci)
-- [Verification](#verification)
-  - [Check 1: Linting Passes](#check-1-linting-passes)
-  - [Check 2: Visual Presentation Preserved](#check-2-visual-presentation-preserved)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Line Too Long (MD013)](#issue-1-line-too-long-md013)
-  - [Issue 2: Multiple Headings Same Content (MD024)](#issue-2-multiple-headings-same-content-md024)
-  - [Issue 3: Bare URL Without Brackets (MD034)](#issue-3-bare-url-without-brackets-md034)
-  - [Issue 4: Formatting Breaks Visual Presentation](#issue-4-formatting-breaks-visual-presentation)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide provides a phased approach to implementing markdown linting in Dashtam using markdownlint-cli2. The strategy prioritizes safety and gradual adoption, ensuring documentation quality improves without breaking existing formatting.
@@ -875,8 +838,8 @@ Add to "Coding Standards" section:
 - [markdownlint-cli2 Documentation](https://github.com/DavidAnson/markdownlint-cli2) - Official tool documentation
 - [markdownlint Rules](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) - Complete rule reference
 - [Mermaid Diagram Standards](mermaid-diagram-standards.md) - Diagram creation guidelines
-- [Documentation Template System](../../templates/README.md) - Template usage guide
-- [WARP.md](../../../WARP.md) - Project coding standards and markdown quality rules
+- Documentation Template System: README.md (located in docs/templates/) - Template usage guide
+- `WARP.md` (project root) - Project coding standards and markdown quality rules
 - [Docstring Standards Guide](docstring-standards.md) - Python documentation standards
 - [Documentation Implementation Guide](documentation-implementation-guide.md) - MkDocs setup
 
@@ -884,6 +847,6 @@ Add to "Coding Standards" section:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-11
 **Last Updated:** 2025-10-20

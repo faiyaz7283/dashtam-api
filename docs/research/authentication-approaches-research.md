@@ -2,35 +2,6 @@
 
 Comprehensive evaluation of modern authentication methods for Dashtam's user authentication system, analyzing JWT, OAuth2/OIDC, Passkeys, Magic Links, Social Auth, and Session-Based approaches to determine the optimal implementation strategy.
 
----
-
-## Table of Contents
-
-- [Context](#context)
-  - [Current State](#current-state)
-  - [Desired State](#desired-state)
-  - [Constraints](#constraints)
-- [Problem Statement](#problem-statement)
-  - [Why This Matters](#why-this-matters)
-- [Research Questions](#research-questions)
-- [Options Considered](#options-considered)
-  - [Quick Comparison Matrix](#quick-comparison-matrix)
-  - [Option 1: JWT (JSON Web Tokens) with Refresh Tokens](#option-1-jwt-json-web-tokens-with-refresh-tokens)
-  - [Option 2: OAuth2 / OpenID Connect (OIDC)](#option-2-oauth2--openid-connect-oidc)
-  - [Option 3: Passkeys (WebAuthn / FIDO2)](#option-3-passkeys-webauthn--fido2)
-  - [Option 4: Magic Links (Passwordless Email)](#option-4-magic-links-passwordless-email)
-  - [Option 5: Session-Based Authentication (Traditional)](#option-5-session-based-authentication-traditional)
-  - [Option 6: Hybrid Approach (JWT + Session Tokens)](#option-6-hybrid-approach-jwt--session-tokens)
-- [Analysis](#analysis)
-- [Decision](#decision)
-- [Consequences](#consequences)
-- [Implementation](#implementation)
-- [Follow-Up](#follow-up)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Context
 
 Dashtam is a secure financial data aggregation platform that connects to multiple financial institutions. The platform currently uses mock authentication (test user auto-creation) which blocks implementation of critical security features including rate limiting, token breach rotation, and proper user management.
@@ -1163,6 +1134,6 @@ uv add py-webauthn  # WebAuthn/FIDO2 implementation
 
 ## Document Information
 
-**Template:** [research-template.md](../templates/research-template.md)
+**Template:** research-template.md
 **Created:** 2025-10-04
 **Last Updated:** 2025-10-17

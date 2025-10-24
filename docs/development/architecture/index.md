@@ -70,7 +70,7 @@ architecture/
 **Related Documentation:**
 
 - [Development Guides](../guides/index.md) - How-to guides and implementation details
-- [Testing Strategy](../testing/strategy.md) - Testing approach and framework
+- [Testing Strategy](../../testing/strategy.md) - Testing approach and framework
 - [Infrastructure Setup](../infrastructure/docker-setup.md) - Docker and environment configuration
 
 **Implementation Guides:**
@@ -93,39 +93,39 @@ architecture/
 
 - [Development Guides](../guides/index.md) - Implementation guides and tutorials
 - [Infrastructure](../infrastructure/index.md) - Docker, CI/CD, database
-- [Testing](../testing/index.md) - Testing strategy and best practices
+- [Testing](../../testing/index.md) - Testing strategy and best practices
 
 **Other Documentation:**
 
-- [Main README](../../README.md) - Project overview
-- [WARP.md](../../../WARP.md) - Project rules and standards
+- `README.md` (project root) - Project overview
+- `WARP.md` (project root) - Project rules and standards
 
 ## Contributing
 
 When adding new architecture documents to this directory:
 
-1. Choose appropriate [template](../../templates/architecture-template.md) - Use for system design documents
+1. Choose appropriate architecture-template.md (located in docs/templates/) - Use for system design documents
 2. Focus on **why** decisions were made, not just **what** was implemented
 3. Include diagrams using [Mermaid syntax](../guides/mermaid-diagram-standards.md)
 4. Reference implementation guides for details
 5. Document tradeoffs and alternatives considered
 6. Update this index with a link and brief description
-7. Run markdown linting: `make lint-md-file FILE="path/to/file.md"`
+7. Run markdown linting: `make lint-md FILE="path/to/file.md"`
 
 ### Architecture Decision Records (ADRs)
 
 When documenting significant architectural decisions:
 
-1. Use the [architecture-template.md](../../templates/architecture-template.md)
+1. Use the architecture-template.md (located in docs/templates/)
 2. Follow the format: Context → Problem → Options → Analysis → Decision → Consequences
 3. Document decision date and decision maker
 4. Include links to related implementations
-5. Update WARP.md if the decision impacts project standards
+5. Update `WARP.md` (project root) if the decision impacts project standards
 
 ---
 
 ## Document Information
 
-**Template:** [index-section-template.md](../../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-21

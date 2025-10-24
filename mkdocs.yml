@@ -1,0 +1,137 @@
+# MkDocs Configuration for Dashtam Documentation
+# https://www.mkdocs.org/user-guide/configuration/
+
+# Site Metadata
+site_name: Dashtam Documentation
+site_description: Secure, modern financial data aggregation platform - Developer documentation
+site_author: Faiyaz Haider
+site_url: https://faiyazhaider.github.io/Dashtam/
+
+# Repository
+repo_name: Dashtam
+repo_url: https://github.com/faiyazhaider/Dashtam
+edit_uri: edit/development/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 Faiyaz Haider
+
+# Documentation Directory
+docs_dir: docs
+
+# Build Directory
+site_dir: site
+
+# Theme Configuration (Material)
+theme:
+  name: material
+  language: en
+  
+  # Color Palette
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  
+  # Features
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - content.code.copy
+
+# Markdown Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.mark
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Plugins
+plugins:
+  - search
+  - mermaid2
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: true
+            show_object_full_path: false
+            show_category_heading: true
+            show_if_no_docstring: false
+            show_signature: true
+            show_signature_annotations: true
+            separate_signature: true
+            members_order: source
+            group_by_category: true
+            show_bases: true
+            show_inheritance_diagram: false
+
+# Navigation
+nav:
+  - Home: index.md
+  - API Reference:
+      - Overview: api/index.md
+      - Services: api/services.md
+      - Models: api/models.md
+      - Core: api/core.md
+  - Development:
+    - Architecture:
+      - Overview: development/architecture/overview.md
+      - JWT Authentication: development/architecture/jwt-authentication.md
+      - RESTful API Design: development/architecture/restful-api-design.md
+      - Schemas Design: development/architecture/schemas-design.md
+    - Guides:
+      - Testing Guide: development/guides/testing-guide.md
+      - Git Workflow: development/guides/git-workflow.md
+      - Git Quick Reference: development/guides/git-quick-reference.md
+      - UV Package Management: development/guides/uv-package-management.md
+      - Mermaid Diagram Standards: development/guides/mermaid-diagram-standards.md
+    - Infrastructure:
+      - Docker Setup: development/infrastructure/docker-setup.md
+      - Database Migrations: development/infrastructure/database-migrations.md
+  - Reviews:
+    - REST API Audit (2025-10-05): reviews/REST_API_AUDIT_REPORT_2025-10-05.md

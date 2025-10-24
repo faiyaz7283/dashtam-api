@@ -4,20 +4,30 @@
 
 ---
 
-## Table of Contents
+<!-- TABLE OF CONTENTS
 
-- [Overview](#overview)
-- [Testing Strategy](#testing-strategy)
-- [Test Types](#test-types)
-- [Setup](#setup)
-- [Writing Tests](#writing-tests)
-- [Running Tests](#running-tests)
-- [Coverage](#coverage)
-- [Best Practices](#best-practices)
-- [Common Patterns](#common-patterns)
-- [Troubleshooting](#troubleshooting)
-- [References](#references)
-- [Document Information](#document-information)
+NOTE: MkDocs Material auto-generates the Table of Contents from headings.
+Do NOT include a manual TOC section in your document.
+
+The sections listed below are the REQUIRED top-level (##) sections for this template.
+All other content must be organized as subsections (###, ####) under these main sections.
+
+Required Top-Level Sections (in order):
+- Overview
+- Testing Strategy
+- Test Types
+- Setup
+- Writing Tests
+- Running Tests
+- Coverage
+- Best Practices
+- Common Patterns
+- Troubleshooting
+- References
+- Document Information
+
+MkDocs will automatically create a clickable TOC sidebar from these headings.
+-->
 
 ---
 

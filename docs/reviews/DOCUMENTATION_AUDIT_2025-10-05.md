@@ -2,64 +2,6 @@
 
 Comprehensive audit of Dashtam project documentation reviewing 43 markdown files for accuracy, relevance, and organization. Identifies redundancies, outdated content, and provides actionable cleanup recommendations.
 
----
-
-## Table of Contents
-
-- [Executive Summary](#executive-summary)
-  - [Key Findings](#key-findings)
-  - [Overall Assessment](#overall-assessment)
-- [Audit Metadata](#audit-metadata)
-- [Audit Objectives](#audit-objectives)
-- [Scope and Methodology](#scope-and-methodology)
-  - [Audit Scope](#audit-scope)
-  - [Methodology](#methodology)
-- [Findings](#findings)
-  - [Category 1: Architecture Documents](#category-1-architecture-documents)
-  - [Category 2: Implementation Guides](#category-2-implementation-guides)
-  - [Category 3: Review Documents](#category-3-review-documents)
-  - [Category 4: Infrastructure Documents](#category-4-infrastructure-documents)
-  - [Category 5: Testing Documents](#category-5-testing-documents)
-  - [Category 6: Research Documents](#category-6-research-documents)
-  - [Category 7: Development Root Files](#category-7-development-root-files)
-  - [Category 8: Docs Root Files](#category-8-docs-root-files)
-  - [Category 9: Redundancy Analysis](#category-9-redundancy-analysis)
-    - [Finding 9.1: JWT Authentication Redundancy (4 files)](#finding-91-jwt-authentication-redundancy-4-files)
-    - [Finding 9.2: REST API Compliance Redundancy (4 files)](#finding-92-rest-api-compliance-redundancy-4-files)
-    - [Finding 9.3: Architecture Overview Redundancy (2 files)](#finding-93-architecture-overview-redundancy-2-files)
-  - [Category 10: Naming Convention Issues](#category-10-naming-convention-issues)
-    - [Finding 10.1: Inconsistent Casing](#finding-101-inconsistent-casing)
-    - [Finding 10.2: Inconsistent Date Formats](#finding-102-inconsistent-date-formats)
-    - [Finding 10.3: File Type Indicators](#finding-103-file-type-indicators)
-  - [Category 11: Content Accuracy Issues](#category-11-content-accuracy-issues)
-    - [Finding 11.1: Outdated Test Coverage References](#finding-111-outdated-test-coverage-references)
-    - [Finding 11.2: Outdated Project Status](#finding-112-outdated-project-status)
-    - [Finding 11.3: Outdated Endpoint References](#finding-113-outdated-endpoint-references)
-- [Compliance Assessment](#compliance-assessment)
-  - [Documentation Quality Metrics](#documentation-quality-metrics)
-  - [Organization Score](#organization-score)
-- [Recommendations](#recommendations)
-  - [Immediate Actions (High Priority)](#immediate-actions-high-priority)
-  - [File Rename Suggestions](#file-rename-suggestions)
-  - [Documentation Structure Improvements](#documentation-structure-improvements)
-- [Action Items](#action-items)
-  - [Phase 1: Archive & Delete (Cleanup)](#phase-1-archive--delete-cleanup)
-    - [DELETE Files](#delete-files)
-    - [ARCHIVE Files](#archive-files)
-  - [Phase 2: Merge & Consolidate](#phase-2-merge--consolidate)
-    - [MERGE Files](#merge-files)
-  - [Phase 3: Update Content](#phase-3-update-content)
-    - [UPDATE Files](#update-files)
-    - [KEEP AS-IS Files](#keep-as-is-files)
-  - [Phase 4: Verify Links](#phase-4-verify-links)
-    - [Proposed Naming Conventions](#proposed-naming-conventions)
-- [Historical Context](#historical-context)
-  - [Metrics Summary](#metrics-summary)
-- [Related Documentation](#related-documentation)
-- [Document Information](#document-information)
-
----
-
 ## Executive Summary
 
 This audit reviews all documentation in the Dashtam project to ensure accuracy, relevance, and organization. The documentation is generally well-organized but contains some redundancy and outdated references that need attention.
@@ -234,7 +176,7 @@ Review all Dashtam project documentation to assess quality, identify issues, and
 
 | File | Lines | Size | Modified | Status | Recommendation |
 |------|-------|------|----------|--------|----------------|
-| `testing/guide.md` | 612 | 15K | 2025-10-03 | ✅ Current | **KEEP** - Testing guide |
+| `development/guides/testing-guide.md` | 612 | 15K | 2025-10-03 | ✅ Current | **KEEP** - Testing guide |
 | `testing/strategy.md` | 590 | 17K | 2025-10-03 | ✅ Current | **KEEP** - Testing strategy |
 | `guides/testing-best-practices.md` | 657 | 24K | 2025-10-18 | ✅ Current | **KEEP** - Testing patterns (moved) |
 | `testing/migration.md` | 408 | 14K | 2025-10-03 | ⚠️ Historical | **ARCHIVE** - Migration complete |
@@ -618,8 +560,8 @@ After this cleanup, the documentation will be:
 
 **Standards and Guidelines:**
 
-- [Template System README](../../templates/README.md) - Documentation template standards
-- [Mermaid Diagram Standards](../guides/mermaid-diagram-standards.md) - Diagram requirements
+-  - Documentation template standards
+- [Mermaid Diagram Standards](../development/guides/mermaid-diagram-standards.md) - Diagram requirements
 
 **Implementation Documents:**
 
@@ -634,6 +576,6 @@ After this cleanup, the documentation will be:
 
 ## Document Information
 
-**Template:** [audit-template.md](../templates/audit-template.md)
+**Template:** audit-template.md
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-18

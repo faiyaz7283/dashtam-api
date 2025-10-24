@@ -18,6 +18,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Prepare CI environment configuration
+        run: |
+          cp env/.env.ci.example env/.env.ci
+          echo "✅ CI environment configuration prepared"
+
       - name: Start test environment
         run: |
           docker compose -f compose/docker-compose.ci.yml up -d --build
@@ -78,6 +83,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Prepare CI environment configuration
+        run: |
+          cp env/.env.ci.example env/.env.ci
+          echo "✅ CI environment configuration prepared"
 
       - name: Start test environment (isolated for smoke tests)
         run: |

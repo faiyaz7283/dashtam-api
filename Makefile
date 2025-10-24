@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format lint-md lint-md-fix lint-md-file md-check migrate migrate-down migrate-create migrate-history migrate-current migrate-show certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-pr git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
+.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format lint-md lint-md-check lint-md-fix md-check migrate migrate-down migrate-create migrate-history migrate-current migrate-show certs keys setup clean auth-schwab check ps status-all git-status git-sync git-feature git-fix git-finish git-pr git-release-start git-release-finish git-hotfix-start git-hotfix-finish git-cleanup git-branch-protection
 
 # Default target - show help
 help:
@@ -47,9 +47,19 @@ help:
 	@echo "✨ Code Quality (uses dev environment):"
 	@echo "  make lint           - Run Python linters (ruff)"
 	@echo "  make format         - Format Python code (ruff)"
-	@echo "  make lint-md        - Lint all markdown files"
-	@echo "  make lint-md-fix    - Fix auto-fixable markdown issues (careful!)"
-	@echo "  make lint-md-file FILE=path/to/file.md - Lint specific markdown file(s)"
+	@echo ""
+	@echo "📚 Documentation:"
+	@echo "  make docs-serve     - Start MkDocs live preview (port 8001)"
+	@echo "  make docs-build     - Build static documentation site"
+	@echo "  make docs-stop      - Stop MkDocs preview server"
+	@echo ""
+	@echo "📝 Markdown Linting:"
+	@echo "  make lint-md                          - Lint all markdown files"
+	@echo "  make lint-md FILE=path/to/file.md     - Lint single file"
+	@echo "  make lint-md DIR=docs/guides          - Lint entire directory"
+	@echo "  make lint-md-fix                      - Fix issues (with prompt)"
+	@echo "  make lint-md-fix DRY_RUN=1            - Preview changes only"
+	@echo "  make lint-md-fix DIFF=1               - Generate patch file"
 	@echo ""
 	@echo "📦 Database Migrations (uses dev environment):"
 	@echo "  make migrate          - Apply all pending migrations (upgrade to head)"
@@ -106,6 +116,7 @@ dev-up:
 # Stop development environment
 dev-down:
 	@echo "🛑 Stopping DEVELOPMENT environment..."
+	@$(MAKE) _docs-cleanup 2>/dev/null || true
 	@docker compose -f compose/docker-compose.dev.yml down
 	@echo "✅ Development environment stopped"
 
@@ -120,6 +131,8 @@ dev-rebuild:
 	@echo "🔄 Rebuilding DEVELOPMENT images from scratch..."
 	@echo "  → Removing problematic .env directory (if exists)..."
 	@if [ -d ".env" ]; then rm -rf .env && echo "    ✓ Removed .env directory"; fi
+	@echo "  → Stopping MkDocs processes..."
+	@$(MAKE) _docs-cleanup 2>/dev/null || true
 	@echo "  → Stopping containers..."
 	@docker compose -f compose/docker-compose.dev.yml down 2>/dev/null || true
 	@echo "  → Removing old images..."
@@ -137,7 +150,10 @@ dev-logs-%:
 	@docker compose -f compose/docker-compose.dev.yml logs -f $*
 
 # Restart development environment
-dev-restart: dev-down dev-up
+dev-restart:
+	@$(MAKE) _docs-cleanup 2>/dev/null || true
+	@$(MAKE) dev-down
+	@$(MAKE) dev-up
 
 # Show development service status
 dev-status:
@@ -359,63 +375,265 @@ format:
 	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff format src/ tests/
 	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff check --fix src/ tests/
 
-# Markdown linting commands (uses one-off Node.js container)
+# ============================================================================
+# MARKDOWN LINTING COMMANDS
+# ============================================================================
+# 
+# Professional markdown linting with flexible targeting and safety controls.
+# 
+# Commands:
+#   lint-md      - Check markdown files (non-destructive, CI-friendly)
+#   lint-md-fix  - Fix markdown issues with safety controls
+# 
+# Targeting Options (apply to both commands):
+#   (none)                          - All markdown files in project
+#   FILE=path/to/file.md            - Single file
+#   FILES="file1.md file2.md"       - Multiple specific files
+#   DIR=docs/guides                 - Entire directory
+#   DIRS="docs tests"               - Multiple directories
+#   PATTERN="docs/**/*.md"          - Custom glob pattern
+#   PATHS="README.md docs/"         - Mixed files and directories
+# 
+# Safety Options (lint-md-fix only):
+#   DRY_RUN=1                       - Preview changes without applying
+#   DIFF=1                          - Generate patch file for manual review
+# 
+# Examples:
+#   make lint-md                              # Check all files
+#   make lint-md FILE=README.md               # Check single file
+#   make lint-md DIR=docs/guides              # Check directory
+#   make lint-md-fix DRY_RUN=1                # Preview all fixes
+#   make lint-md-fix FILE=README.md           # Fix single file (prompt)
+#   make lint-md-fix DIR=docs DIFF=1          # Generate patch for docs/
+# 
+# ============================================================================
+
+# Configuration
 MARKDOWN_LINT_IMAGE := node:24-alpine
 MARKDOWN_LINT_CMD := npx markdownlint-cli2
+MARKDOWN_BASE_PATTERN := '**/*.md'
+# Note: Ignore patterns are configured in .markdownlint-cli2.jsonc
 
-# Lint all markdown files (non-destructive check)
+# ----------------------------------------------------------------------------
+# Helper: Build lint target from parameters
+# ----------------------------------------------------------------------------
+# Determines what files/directories to lint based on provided parameters.
+# Priority order: FILE > FILES > DIR > DIRS > PATTERN > PATHS > all files
+# 
+# Sets: LINT_TARGET (the glob pattern(s) to pass to markdownlint)
+#       TARGET_DESC (human-readable description for output)
+# ----------------------------------------------------------------------------
+define build_lint_target
+	$(eval LINT_TARGET := )
+	$(eval TARGET_DESC := )
+	
+	$(if $(FILE),\
+		$(eval LINT_TARGET := '$(FILE)')\
+		$(eval TARGET_DESC := $(FILE)))
+	
+	$(if $(FILES),\
+		$(eval LINT_TARGET := $(FILES))\
+		$(eval TARGET_DESC := $(FILES)))
+	
+	$(if $(DIR),\
+		$(eval LINT_TARGET := '$(DIR)/**/*.md')\
+		$(eval TARGET_DESC := $(DIR)/))
+	
+	$(if $(DIRS),\
+		$(eval LINT_TARGET := $(foreach dir,$(DIRS),'$(dir)/**/*.md'))\
+		$(eval TARGET_DESC := $(DIRS)))
+	
+	$(if $(PATTERN),\
+		$(eval LINT_TARGET := '$(PATTERN)')\
+		$(eval TARGET_DESC := $(PATTERN)))
+	
+	$(if $(PATHS),\
+		$(eval LINT_TARGET := $(PATHS))\
+		$(eval TARGET_DESC := $(PATHS)))
+	
+	$(if $(LINT_TARGET),,\
+		$(eval LINT_TARGET := $(MARKDOWN_BASE_PATTERN))\
+		$(eval TARGET_DESC := all markdown files))
+endef
+
+# ----------------------------------------------------------------------------
+# Command: lint-md
+# ----------------------------------------------------------------------------
+# Non-destructive markdown linting (check only, no modifications).
+# Safe for CI/CD pipelines. Uses read-only Docker volume mount.
+# 
+# Exit codes:
+#   0 - All files pass linting
+#   1 - Linting errors found
+# ----------------------------------------------------------------------------
 lint-md:
-	@echo "🔍 Linting markdown files..."
+	@$(call build_lint_target)
+	@echo "🔍 Linting: $(TARGET_DESC)"
 	@docker run --rm \
 		-v $(PWD):/workspace:ro \
 		-w /workspace \
 		$(MARKDOWN_LINT_IMAGE) \
-		$(MARKDOWN_LINT_CMD) "**/*.md" "#node_modules"
+		sh -c "$(MARKDOWN_LINT_CMD) $(LINT_TARGET) || exit 1"
+	@echo "✅ Markdown linting complete!"
 
-# Fix auto-fixable markdown issues (with warning prompt)
+# CI-friendly alias (identical to lint-md)
+lint-md-check: lint-md
+
+# ----------------------------------------------------------------------------
+# Command: lint-md-fix
+# ----------------------------------------------------------------------------
+# Fix markdown linting issues with safety controls.
+# Three modes of operation:
+#   1. DRY_RUN=1 - Preview what would be fixed (no changes)
+#   2. DIFF=1    - Generate patch file for manual review/application
+#   3. (default) - Apply fixes after interactive confirmation
+# 
+# Always requires explicit confirmation before modifying files.
+# Uses writable Docker volume mount (careful!).
+# ----------------------------------------------------------------------------
 lint-md-fix:
-	@echo "⚠️  WARNING: This will modify markdown files!"
-	@echo "   - Review changes carefully after running"
-	@echo "   - Test visual presentation on GitHub"
-	@echo "   - Commit changes separately"
-	@echo ""
-	@read -p "Continue? (yes/no): " confirm; \
-	if [ "$$confirm" = "yes" ]; then \
-		echo "🔧 Fixing markdown files..."; \
-		docker run --rm \
-			-v $(PWD):/workspace \
-			-w /workspace \
-			$(MARKDOWN_LINT_IMAGE) \
-			$(MARKDOWN_LINT_CMD) --fix "**/*.md" "#node_modules"; \
-		echo "✅ Auto-fix complete. Please review all changes!"; \
-	else \
-		echo "❌ Operation cancelled"; \
-	fi
+	@$(call build_lint_target)
+	@$(call _lint_md_fix_execute)
 
-# Lint specific markdown file(s)
-# Usage: make lint-md-file FILE="path/to/file.md" (relative or absolute)
-# Usage: make lint-md-file FILE="docs/**/*.md" (glob pattern)
-lint-md-file:
-	@if [ -z "$(FILE)" ]; then \
-		echo "🔍 Linting specific markdown file(s)..."; \
-		read -p "Enter file path(s) (e.g., README.md or 'docs/**/*.md'): " files; \
+# ----------------------------------------------------------------------------
+# Helper: Execute lint-md-fix based on mode
+# ----------------------------------------------------------------------------
+# Handles three execution modes:
+#   - DRY_RUN mode: Preview changes without applying
+#   - DIFF mode: Generate git patch file
+#   - Default mode: Apply fixes with confirmation prompt
+# 
+# Internal function called by lint-md-fix target.
+# ----------------------------------------------------------------------------
+define _lint_md_fix_execute
+	@if [ "$(DRY_RUN)" = "1" ]; then \
+		$(call _lint_md_fix_dry_run); \
+	elif [ "$(DIFF)" = "1" ]; then \
+		$(call _lint_md_fix_diff); \
 	else \
-		echo "🔍 Linting: $(FILE)"; \
-		files="$(FILE)"; \
-		if echo "$$files" | grep -q "^/"; then \
-			project_root="$(PWD)"; \
-			files=$${files#$$project_root/}; \
-			echo "   (converted to relative: $$files)"; \
-		fi; \
-	fi; \
+		$(call _lint_md_fix_apply); \
+	fi
+endef
+
+# ----------------------------------------------------------------------------
+# Helper: Dry-run mode (preview changes)
+# ----------------------------------------------------------------------------
+# Shows what would be fixed without modifying any files.
+# Uses read-only mount for safety.
+# Useful for reviewing impact before applying fixes.
+# ----------------------------------------------------------------------------
+define _lint_md_fix_dry_run
+	echo "🔍 DRY RUN: Previewing changes for $(TARGET_DESC)..."; \
+	echo "   (no files will be modified)"; \
+	echo ""; \
 	docker run --rm \
 		-v $(PWD):/workspace:ro \
 		-w /workspace \
 		$(MARKDOWN_LINT_IMAGE) \
-		$(MARKDOWN_LINT_CMD) "$$files"
+		sh -c "$(MARKDOWN_LINT_CMD) --fix --dry-run $(LINT_TARGET) 2>&1 \
+			| grep -E '(would fix|Error|Warning)' \
+			|| echo '   ✅ No fixable issues found'"; \
+	echo ""; \
+	echo "💡 To apply fixes, run without DRY_RUN:"; \
+	echo "   make lint-md-fix $(if $(FILE),FILE=$(FILE))$(if $(DIR),DIR=$(DIR))$(if $(PATTERN),PATTERN=$(PATTERN))"
+endef
 
-# Alias for convenience
+# ----------------------------------------------------------------------------
+# Helper: DIFF mode (generate patch file)
+# ----------------------------------------------------------------------------
+# Creates a git patch file showing proposed changes.
+# Patch can be reviewed and manually applied with: git apply <patch-file>
+# 
+# Process:
+#   1. Capture current state
+#   2. Apply markdownlint fixes
+#   3. Generate git diff as patch
+#   4. Restore original state (cleanup)
+#   5. Save patch to timestamped file
+# ----------------------------------------------------------------------------
+define _lint_md_fix_diff
+	echo "📝 Generating diff patch for $(TARGET_DESC)..."; \
+	echo ""; \
+	timestamp=$$(date +%Y%m%d_%H%M%S); \
+	patch_file="markdown-lint-fix_$$timestamp.patch"; \
+	echo "📄 Patch file: $$patch_file"; \
+	echo ""; \
+	docker run --rm \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		$(MARKDOWN_LINT_IMAGE) \
+		sh -c "git diff > /tmp/before.patch && \
+			$(MARKDOWN_LINT_CMD) --fix $(LINT_TARGET) && \
+			git diff > /workspace/$$patch_file && \
+			git checkout -- . && \
+			cat /workspace/$$patch_file"; \
+	echo ""; \
+	echo "✅ Patch generated: $$patch_file"; \
+	echo ""; \
+	echo "📖 Next steps:"; \
+	echo "   1. Review patch: cat $$patch_file"; \
+	echo "   2. Apply patch:  git apply $$patch_file"; \
+	echo "   3. Verify:       make lint-md"; \
+	echo "   4. Commit:       git add . && git commit -m 'docs: fix markdown linting'"
+endef
+
+# ----------------------------------------------------------------------------
+# Helper: Apply mode (fix with confirmation)
+# ----------------------------------------------------------------------------
+# Apply markdown linting fixes after interactive confirmation.
+# 
+# Safety features:
+#   - Clear warning about file modifications
+#   - Shows what will be modified
+#   - Requires explicit "yes" confirmation
+#   - Provides rollback instructions
+# 
+# Process:
+#   1. Display warning and target
+#   2. Prompt for confirmation
+#   3. Apply fixes if confirmed
+#   4. Show git diff for review
+#   5. Provide next-step instructions
+# ----------------------------------------------------------------------------
+define _lint_md_fix_apply
+	echo "⚠️  WARNING: This will modify markdown files!"; \
+	echo ""; \
+	echo "   Target: $(TARGET_DESC)"; \
+	echo ""; \
+	echo "   Changes will be applied immediately."; \
+	echo "   Review changes with 'git diff' after running."; \
+	echo ""; \
+	echo "💡 Tip: Use DRY_RUN=1 to preview, or DIFF=1 to generate patch"; \
+	echo "   Example: make lint-md-fix $(if $(FILE),FILE=$(FILE))$(if $(DIR),DIR=$(DIR)) DRY_RUN=1"; \
+	echo ""; \
+	read -p "Continue with fix? (yes/no): " confirm; \
+	if [ "$$confirm" != "yes" ]; then \
+		echo "❌ Operation cancelled"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "🔧 Fixing markdown files: $(TARGET_DESC)..."; \
+	docker run --rm \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		$(MARKDOWN_LINT_IMAGE) \
+		$(MARKDOWN_LINT_CMD) --fix $(LINT_TARGET); \
+	echo ""; \
+	echo "✅ Auto-fix complete!"; \
+	echo ""; \
+	echo "📖 Next steps:"; \
+	echo "   1. Review changes:  git diff"; \
+	echo "   2. Verify linting:  make lint-md"; \
+	echo "   3. Commit changes:  git add . && git commit -m 'docs: fix markdown linting'"; \
+	echo "   4. Rollback if needed: git checkout -- ."
+endef
+
+# Convenience alias
 md-check: lint-md
+
+# ============================================================================
+# END MARKDOWN LINTING COMMANDS
+# ============================================================================
 
 # ============================================================================
 # DATABASE MIGRATION COMMANDS (Alembic)
@@ -464,6 +682,62 @@ migrate-show:
 # Legacy alias for backwards compatibility
 migration: migrate-create
 	@echo "💡 Tip: Use 'make migrate-create' instead (migration is deprecated)"
+
+# ============================================================================
+# DOCUMENTATION COMMANDS (MkDocs)
+# ============================================================================
+
+# Start MkDocs live preview server (port 8001)
+docs-serve:
+	@echo "📚 Starting MkDocs live preview server..."
+	@echo ""
+	@$(MAKE) _docs-cleanup
+	@echo "🚀 Starting MkDocs serve with live reload..."
+	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && uv run mkdocs serve --dev-addr=0.0.0.0:8001 --watch docs"
+	@sleep 3
+	@echo ""
+	@echo "✅ MkDocs server started!"
+	@echo ""
+	@echo "📖 Documentation: http://localhost:8001/Dashtam/"
+	@echo "🔄 Live reload enabled - changes will auto-update"
+	@echo ""
+	@echo "💡 If changes don't appear, hard refresh your browser:"
+	@echo "   • Mac: Cmd + Shift + R"
+	@echo "   • Windows/Linux: Ctrl + Shift + R"
+	@echo ""
+	@echo "🛑 Stop server: make docs-stop"
+	@echo "🏗️  Build static: make docs-build"
+
+# Build static documentation site
+docs-build:
+	@echo "🏗️  Building static documentation..."
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build
+	@echo "✅ Documentation built to site/ directory"
+
+# Stop MkDocs preview server
+docs-stop:
+	@echo "🛑 Stopping MkDocs preview server..."
+	@echo "   Restarting app container to clean up processes..."
+	@docker compose -f compose/docker-compose.dev.yml restart app
+	@echo "✅ MkDocs server stopped"
+
+## Restart MkDocs server with cache clear (if changes not appearing)
+docs-restart:
+	@echo "🔄 Restarting MkDocs with full cache clear..."
+	@$(MAKE) docs-stop
+	@sleep 2
+	@echo "🧹 Cleaning site directory..."
+	@docker compose -f compose/docker-compose.dev.yml exec app rm -rf /app/site
+	@$(MAKE) docs-serve
+	@echo ""
+	@echo "✅ MkDocs restarted with clean cache!"
+
+# Internal: Cleanup MkDocs processes (used by dev lifecycle commands)
+# Note: Just gracefully restarts the app container
+.PHONY: _docs-cleanup
+_docs-cleanup:
+	@echo "   → Restarting app container..."
+	@docker compose -f compose/docker-compose.dev.yml restart app 2>/dev/null || true
 
 # ============================================================================
 # PROVIDER AUTH & UTILITIES
@@ -822,3 +1096,4 @@ git-branch-protection:
 	echo "Protected branches:" && \
 	echo "  • main - Tests + 1 approval required (admins enforced)" && \
 	echo "  • development - Tests + 1 approval required"
+

@@ -71,7 +71,7 @@ guides/
 **Related Documentation:**
 
 - [Architecture Overview](../architecture/overview.md) - System design and patterns
-- [Testing Strategy](../testing/strategy.md) - Testing approach and framework
+- [Testing Strategy](../../testing/strategy.md) - Testing approach and framework
 - [Infrastructure Setup](../infrastructure/docker-setup.md) - Docker configuration
 
 **External Resources:**
@@ -89,13 +89,13 @@ guides/
 
 - [Architecture](../architecture/index.md) - System design and decisions
 - [Infrastructure](../infrastructure/index.md) - Docker, CI/CD, database
-- [Testing](../testing/index.md) - Testing documentation
+- [Testing](../../testing/index.md) - Testing documentation
 
 ## Contributing
 
 When adding new guides to this directory:
 
-1. Choose appropriate [template](../../templates/guide-template.md) - Use for step-by-step how-to guides
+1. Choose appropriate guide-template.md (located in docs/templates/) - Use for step-by-step how-to guides
 2. Include clear prerequisites and requirements
 3. Provide complete code examples with explanations
 4. Use [Mermaid diagrams](mermaid-diagram-standards.md) for visual concepts
@@ -107,6 +107,6 @@ When adding new guides to this directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-03
 **Last Updated:** 2025-10-21

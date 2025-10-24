@@ -28,7 +28,7 @@ providers/
 
 - [System Architecture](../../development/architecture/overview.md) - System design and provider architecture
 - [Token Rotation Guide](../../development/guides/token-rotation.md) - OAuth token rotation and refresh
-- [Testing Strategy](../../development/testing/strategy.md) - Testing approaches and patterns
+- [Testing Strategy](../../testing/strategy.md) - Testing approaches and patterns
 
 **Provider Documentation:**
 
@@ -53,7 +53,7 @@ providers/
 
 When adding new provider flows to this directory:
 
-1. Follow the appropriate [API flow template](../../templates/api-flow-template.md)
+1. Follow the appropriate API flow template
 2. Use HTTPS with self-signed certificates (dev TLS) - Use `curl -k` for development
 3. Document all OAuth steps and token flows
 4. Include prerequisites (provider credentials, environment variables)
@@ -66,6 +66,6 @@ When adding new provider flows to this directory:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-21

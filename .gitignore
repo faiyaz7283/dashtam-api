@@ -11,6 +11,7 @@
 
 # Ignore ALL actual env files in env/ directory (they contain secrets)
 # Only commit .example files
+# This includes: .env.dev, .env.test, .env.ci, .env.prod
 env/.env
 env/.env.*
 !env/.env.*.example
@@ -71,4 +72,4 @@ coverage.xml
 
 # Local development
 .local/
-tmp/
+tmp/site/

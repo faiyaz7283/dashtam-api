@@ -2,54 +2,6 @@
 
 A comprehensive quick reference guide for developers building RESTful APIs following Dashtam's established patterns, conventions, and best practices.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Choose Correct HTTP Method](#step-1-choose-correct-http-method)
-  - [Step 2: Select Appropriate Status Codes](#step-2-select-appropriate-status-codes)
-  - [Step 3: Design RESTful URLs](#step-3-design-restful-urls)
-  - [Step 4: Implement Request/Response Schemas](#step-4-implement-requestresponse-schemas)
-  - [Step 5: Add Authentication and Authorization](#step-5-add-authentication-and-authorization)
-  - [Step 6: Handle Common Patterns](#step-6-handle-common-patterns)
-    - [Pattern 1: Resource Existence Check](#pattern-1-resource-existence-check)
-    - [Pattern 2: Duplicate Check](#pattern-2-duplicate-check)
-    - [Pattern 3: Pagination](#pattern-3-pagination)
-    - [Pattern 4: Filtering](#pattern-4-filtering)
-    - [Pattern 5: Sorting](#pattern-5-sorting)
-    - [Pattern 6: Query Parameter Conventions](#pattern-6-query-parameter-conventions)
-- [Examples](#examples)
-  - [Example 1: Complete CRUD Endpoint Implementation](#example-1-complete-crud-endpoint-implementation)
-  - [Example 2: Comprehensive Test Suite](#example-2-comprehensive-test-suite)
-  - [Example 3: Error Handling](#example-3-error-handling)
-  - [Example 4: Naming Conventions](#example-4-naming-conventions)
-- [Verification](#verification)
-  - [Check 1: HTTP Method and Status Code Verification](#check-1-http-method-and-status-code-verification)
-  - [Check 2: Response Format Consistency](#check-2-response-format-consistency)
-  - [Check 3: Error Handling](#check-3-error-handling)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: Wrong Status Code Returned](#issue-1-wrong-status-code-returned)
-  - [Issue 2: Inconsistent Response Format](#issue-2-inconsistent-response-format)
-  - [Issue 3: Validation Errors Not Helpful](#issue-3-validation-errors-not-helpful)
-  - [Issue 4: Authorization Bypass](#issue-4-authorization-bypass)
-- [Best Practices](#best-practices)
-  - [API Design Principles](#api-design-principles)
-  - [Schema Design Patterns](#schema-design-patterns)
-  - [Security Best Practices](#security-best-practices)
-  - [Testing Best Practices](#testing-best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-  - [Quick Checklist](#quick-checklist)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide provides quick reference information for building REST APIs in Dashtam. You'll learn HTTP method usage, status codes, URL patterns, endpoint implementation, and testing strategies.
@@ -1112,6 +1064,6 @@ After mastering REST API patterns, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-20

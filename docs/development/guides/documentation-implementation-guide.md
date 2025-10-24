@@ -2,68 +2,6 @@
 
 Step-by-step guide for implementing MkDocs with Material theme for the Dashtam project, including automated API documentation generation and CI/CD deployment.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-  - [Key Benefits](#key-benefits)
-  - [Technology Comparison](#technology-comparison)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Install MkDocs and Basic Setup](#step-1-install-mkdocs-and-basic-setup)
-    - [Add MkDocs Dependencies](#add-mkdocs-dependencies)
-    - [Step 1.2: Initialize MkDocs](#step-12-initialize-mkdocs)
-    - [Step 1.3: Basic Configuration](#step-13-basic-configuration)
-    - [Test Basic Setup](#test-basic-setup)
-  - [Step 2: Configure Material Theme](#step-2-configure-material-theme)
-    - [Step 2.1: Complete Theme Configuration](#step-21-complete-theme-configuration)
-    - [Step 2.2: Configure Extra Features](#step-22-configure-extra-features)
-    - [Step 2.3: Configure Markdown Extensions](#step-23-configure-markdown-extensions)
-    - [Step 2.4: Test Enhanced Theme](#step-24-test-enhanced-theme)
-  - [Step 3: API Documentation Auto-Generation](#step-3-api-documentation-auto-generation)
-    - [Step 3.1: Configure mkdocstrings Plugin](#step-31-configure-mkdocstrings-plugin)
-    - [Step 3.2: Create API Reference Pages](#step-32-create-api-reference-pages)
-    - [Step 3.3: Test API Documentation Generation](#step-33-test-api-documentation-generation)
-  - [Step 4: Diagrams & Visuals](#step-4-diagrams--visuals)
-    - [Step 4.1: Configure Mermaid Plugin](#step-41-configure-mermaid-plugin)
-    - [Step 4.2: Create Architecture Diagrams](#step-42-create-architecture-diagrams)
-    - [Step 4.3: Add Component Diagrams](#step-43-add-component-diagrams)
-    - [Step 4.4: Test Diagrams](#step-44-test-diagrams)
-  - [Step 5: GitHub Actions CI/CD](#step-5-github-actions-cicd)
-    - [Step 5.1: Create Documentation Workflow](#step-51-create-documentation-workflow)
-    - [Step 5.2: Update Makefile](#step-52-update-makefile)
-    - [Step 5.3: Configure GitHub Pages](#step-53-configure-github-pages)
-    - [Step 5.4: Test CI/CD Pipeline](#step-54-test-cicd-pipeline)
-  - [Step 6: Documentation Organization](#step-6-documentation-organization)
-    - [Step 6.1: Update Navigation Structure](#step-61-update-navigation-structure)
-    - [Step 6.2: Create Missing Index Pages](#step-62-create-missing-index-pages)
-    - [Step 6.3: Add Cross-References](#step-63-add-cross-references)
-    - [Step 6.4: Update Main README](#step-64-update-main-readme)
-- [Examples](#examples)
-  - [Example 1: Basic MkDocs Setup](#example-1-basic-mkdocs-setup)
-  - [Example 2: Auto-Generated API Documentation](#example-2-auto-generated-api-documentation)
-- [Verification](#verification)
-  - [Check 1: Local Build Verification](#check-1-local-build-verification)
-  - [Check 2: Development Server](#check-2-development-server)
-  - [Check 3: CI/CD Pipeline](#check-3-cicd-pipeline)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: MkDocs Build Errors](#issue-1-mkdocs-build-errors)
-  - [Issue 2: GitHub Actions Deployment Failures](#issue-2-github-actions-deployment-failures)
-  - [Issue 3: API Documentation Not Generating](#issue-3-api-documentation-not-generating)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-  - [Official Documentation](#official-documentation)
-  - [Project Documentation](#project-documentation)
-  - [External Resources](#external-resources)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide provides comprehensive instructions for implementing a modern, automated documentation system for the Dashtam project using MkDocs with the Material theme.
@@ -210,7 +148,7 @@ nav:
       - Configuration: setup/configuration.md
   - Development:
       - Architecture: development/architecture/overview.md
-      - Testing: development/testing/guide.md
+      - Testing: development/guides/testing-guide.md
   - API Reference:
       - Endpoints: api/endpoints.md
 ```
@@ -727,7 +665,6 @@ Create diagrams for key components in their respective docs.
 
 ```markdown
 
-
     ## Token Rotation Process
 
     ```mermaid
@@ -939,8 +876,8 @@ nav:
           - Database Migrations: development/infrastructure/database-migrations.md
       
       - Testing:
-          - Strategy: development/testing/strategy.md
-          - Guide: development/testing/guide.md
+          - Strategy: testing/strategy.md
+          - Guide: development/guides/testing-guide.md
           - Best Practices: development/guides/testing-best-practices.md
       
       - Guides:
@@ -968,7 +905,7 @@ Welcome to the Dashtam developer documentation. This section contains everything
 ## Quick Links
 
 - [Architecture Overview](architecture/overview.md) - System design and patterns
-- [Testing Guide](testing/guide.md) - How to write and run tests
+- [Testing Guide](development/guides/testing-guide.md) - How to write and run tests
 - [Docker Setup](infrastructure/docker-setup.md) - Container configuration
 - [Git Workflow](guides/git-workflow.md) - Branch strategy and conventions
 
@@ -977,7 +914,7 @@ Welcome to the Dashtam developer documentation. This section contains everything
 1. **Clone the repository** and set up your development environment
 2. **Read the architecture overview** to understand system design
 3. **Review coding standards** in [Docstring Standards](guides/docstring-standards.md)
-4. **Run the test suite** following the [Testing Guide](testing/guide.md)
+4. **Run the test suite** following the [Testing Guide](development/guides/testing-guide.md)
 5. **Make your changes** following the [Git Workflow](guides/git-workflow.md)
 
 ## Key Documentation
@@ -1007,7 +944,7 @@ Add navigation links between related documents.
 - [RESTful API Design](restful-api-design.md) - API design principles
 - [JWT Authentication](jwt-authentication.md) - Authentication implementation
 - [Database Migrations](../infrastructure/database-migrations.md) - Schema evolution
-- [Testing Strategy](../testing/strategy.md) - How we test the architecture
+- [Testing Strategy](../../testing/strategy.md) - How we test the architecture
 
 ## See Also
 
@@ -1072,7 +1009,7 @@ Dashtam connects to multiple financial institutions through OAuth2, providing a 
 - [GitHub Repository](https://github.com/faiyazhaider/Dashtam)
 - [API Documentation](/api/endpoints)
 - [Development Setup](/development/infrastructure/docker-setup)
-- [Testing Guide](/development/testing/guide)
+- [Testing Guide](/development/guides/testing-guide)
 
 ## Getting Help
 
@@ -1279,7 +1216,7 @@ After completing this guide, consider:
 - [Docstring Standards](docstring-standards.md) - Google-style docstring guide
 - [Git Workflow](git-workflow.md) - Contributing documentation changes
 - [Docker Setup](../infrastructure/docker-setup.md) - Running docs in Docker
-- [Testing Guide](../testing/guide.md) - Testing documentation examples
+- [Testing Guide](../guides/testing-guide.md) - Testing documentation examples
 
 ### External Resources
 
@@ -1291,6 +1228,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-11
 **Last Updated:** 2025-10-15

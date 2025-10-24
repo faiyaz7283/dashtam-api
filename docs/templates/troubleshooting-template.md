@@ -4,17 +4,27 @@
 
 ---
 
-## Table of Contents
+<!-- TABLE OF CONTENTS
 
-- [Initial Problem](#initial-problem)
-- [Investigation Steps](#investigation-steps)
-- [Root Cause Analysis](#root-cause-analysis)
-- [Solution Implementation](#solution-implementation)
-- [Verification](#verification)
-- [Lessons Learned](#lessons-learned)
-- [Future Improvements](#future-improvements)
-- [References](#references)
-- [Document Information](#document-information)
+NOTE: MkDocs Material auto-generates the Table of Contents from headings.
+Do NOT include a manual TOC section in your document.
+
+The sections listed below are the REQUIRED top-level (##) sections for this template.
+All other content must be organized as subsections (###, ####) under these main sections.
+
+Required Top-Level Sections (in order):
+- Initial Problem
+- Investigation Steps
+- Root Cause Analysis
+- Solution Implementation
+- Verification
+- Lessons Learned
+- Future Improvements
+- References
+- Document Information
+
+MkDocs will automatically create a clickable TOC sidebar from these headings.
+-->
 
 ---
 

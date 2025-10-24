@@ -121,13 +121,13 @@ if __name__ == "__main__":
     import uvicorn
 
     # Run with SSL in development
-    if settings.SSL_CERT_FILE and settings.SSL_KEY_FILE:
+    if settings.API_SSL_CERT_FILE and settings.API_SSL_KEY_FILE:
         uvicorn.run(
             app,
             host=settings.HOST,
             port=settings.PORT,
-            ssl_certfile=settings.SSL_CERT_FILE,
-            ssl_keyfile=settings.SSL_KEY_FILE,
+            ssl_certfile=settings.API_SSL_CERT_FILE,
+            ssl_keyfile=settings.API_SSL_KEY_FILE,
             reload=settings.RELOAD,
         )
     else:

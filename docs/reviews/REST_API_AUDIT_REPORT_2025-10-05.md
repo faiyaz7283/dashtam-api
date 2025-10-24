@@ -2,73 +2,6 @@
 
 Comprehensive audit of Dashtam REST API evaluating compliance with industry-standard RESTful principles. Final score: **10/10 - Production Ready & Fully Compliant**.
 
----
-
-## Table of Contents
-
-- [Executive Summary](#executive-summary)
-  - [Key Findings](#key-findings)
-  - [Overall Assessment](#overall-assessment)
-  - [Changes Since Last Audit](#changes-since-last-audit)
-- [Audit Metadata](#audit-metadata)
-- [Audit Objectives](#audit-objectives)
-- [Scope and Methodology](#scope-and-methodology)
-  - [Audit Scope](#audit-scope)
-  - [Methodology](#methodology)
-- [Findings](#findings)
-  - [Category 1: REST API Architecture](#category-1-rest-api-architecture)
-    - [Finding 1.1: API Structure](#finding-11-api-structure)
-    - [Finding 1.2: Router Files Organization](#finding-12-router-files-organization)
-  - [Category 2: Endpoint RESTful Compliance](#category-2-endpoint-restful-compliance)
-    - [Finding 2.1: Authentication Endpoints (`/auth`)](#finding-21-authentication-endpoints-auth)
-    - [Finding 2.2: Password Reset Endpoints (`/password-resets`)](#finding-22-password-reset-endpoints-password-resets)
-    - [Finding 2.3: Provider Endpoints (`/providers`)](#finding-23-provider-endpoints-providers)
-    - [Finding 2.4: Provider Authorization (OAuth Sub-Resource)](#finding-24-provider-authorization-oauth-sub-resource)
-    - [Finding 2.5: Provider Types Endpoints (`/provider-types`)](#finding-25-provider-types-endpoints-provider-types)
-  - [Category 3: Schema Organization](#category-3-schema-organization)
-    - [Finding 3.1: Schema Files Separation](#finding-31-schema-files-separation)
-    - [Finding 3.2: Inline Schema Check](#finding-32-inline-schema-check)
-  - [Category 4: Router Architecture](#category-4-router-architecture)
-    - [Finding 4.1: Router Independence](#finding-41-router-independence)
-    - [Finding 4.2: Duplicate Router Elimination](#finding-42-duplicate-router-elimination)
-  - [Category 5: Code Quality & Testing](#category-5-code-quality--testing)
-    - [Finding 5.1: Test Coverage](#finding-51-test-coverage)
-    - [Finding 5.2: Linting & Formatting](#finding-52-linting--formatting)
-    - [Finding 5.3: Documentation Quality](#finding-53-documentation-quality)
-  - [Category 6: Security Features](#category-6-security-features)
-    - [Finding 6.1: Security Implementation](#finding-61-security-implementation)
-    - [Finding 6.2: Error Handling](#finding-62-error-handling)
-- [Compliance Assessment](#compliance-assessment)
-  - [Compliance Checklist](#compliance-checklist)
-    - [Core REST Principles](#core-rest-principles)
-    - [Code Organization](#code-organization)
-    - [API Design](#api-design)
-    - [Testing & Quality](#testing--quality)
-  - [Compliance Score](#compliance-score)
-  - [Score Interpretation](#score-interpretation)
-  - [RESTful Design Principles Evaluation](#restful-design-principles-evaluation)
-- [Recommendations](#recommendations)
-  - [High Priority (Critical)](#high-priority-critical)
-  - [Medium Priority (Important)](#medium-priority-important)
-    - [Recommendation 1: Implement Rate Limiting](#recommendation-1-implement-rate-limiting)
-    - [Recommendation 2: Fix Deprecation Warnings](#recommendation-2-fix-deprecation-warnings)
-  - [Low Priority (Nice to Have)](#low-priority-nice-to-have)
-    - [Recommendation 3: Add HATEOAS Links](#recommendation-3-add-hateoas-links)
-    - [Recommendation 4: Webhook Support](#recommendation-4-webhook-support)
-- [Action Items](#action-items)
-  - [Immediate Actions (Within 1 Week)](#immediate-actions-within-1-week)
-  - [Short-Term Actions (Within 1 Month)](#short-term-actions-within-1-month)
-  - [Long-Term Actions (Future)](#long-term-actions-future)
-- [Historical Context](#historical-context)
-  - [Previous Audits](#previous-audits)
-  - [Progress Tracking](#progress-tracking)
-  - [Change Log (Previous Audit → Current)](#change-log-previous-audit--current)
-  - [File Changes](#file-changes)
-- [Related Documentation](#related-documentation)
-- [Document Information](#document-information)
-
----
-
 ## Executive Summary
 
 This audit evaluates the Dashtam REST API against industry-standard RESTful principles following comprehensive cleanup and refactoring. The API has achieved **perfect compliance** with zero architectural issues.
@@ -604,7 +537,7 @@ None required. API is production-ready.
 
 ### Previous Audits
 
-- **2025-10-04**: [Previous REST API Audit](rest-api-compliance-review.md) - Score: 9.5/10 - [Initial audit]
+- **2025-10-04**: Previous REST API Audit - Score: 9.5/10 (document archived)
 
 ### Progress Tracking
 
@@ -644,17 +577,17 @@ tests/api/test_auth_endpoints.py      # Tests for deprecated router
 
 **Audit Reports:**
 
-- [REST API Compliance Review](rest-api-compliance-review.md) - Date: 2025-10-04 (previous audit - 9.5/10)
+- This is the current REST API audit (supersedes previous 2025-10-04 audit)
 
 **Standards and Guidelines:**
 
-- [RESTful API Design Architecture](../architecture/restful-api-design.md) - REST API design principles
-- [Schema Design Patterns](../architecture/schemas-design.md) - Pydantic schema organization
+- [RESTful API Design Architecture](../development/architecture/restful-api-design.md) - REST API design principles
+- [Schema Design Patterns](../development/architecture/schemas-design.md) - Pydantic schema organization
 
 **Implementation Documents:**
 
-- [REST API Compliance Implementation Plan](../guides/rest-api-compliance-implementation-plan.md) - How issues were fixed
-- [RESTful API Quick Reference](../guides/restful-api-quick-reference.md) - Quick reference guide
+- REST API Compliance Implementation Plan (not created) - How issues were fixed
+- [RESTful API Quick Reference](../development/guides/restful-api-quick-reference.md) - Quick reference guide
 
 **External References:**
 
@@ -666,6 +599,6 @@ tests/api/test_auth_endpoints.py      # Tests for deprecated router
 
 ## Document Information
 
-**Template:** [audit-template.md](../templates/audit-template.md)
+**Template:** audit-template.md
 **Created:** 2025-10-05
 **Last Updated:** 2025-10-18

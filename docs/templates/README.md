@@ -18,7 +18,8 @@ This directory contains standardized templates for all Dashtam documentation. Us
 | [research-template.md](research-template.md) | Research and ADR documents | Technical research, decision records, options analysis |
 | [audit-template.md](audit-template.md) | Audit reports and compliance reviews | REST API audits, documentation audits, security audits, code quality reviews |
 | [api-flow-template.md](api-flow-template.md) | API manual testing flows | User-centric API workflows for manual testing |
-| [index-template.md](index-template.md) | Directory navigation pages | Navigation/index pages (docs/index.md, docs/development/index.md) |
+| [index-root-template.md](index-root-template.md) | Root documentation index | Root documentation entry point (docs/index.md only) |
+| [index-section-template.md](index-section-template.md) | Section/directory index | Navigation/index pages for documentation sections |
 | [readme-template.md](readme-template.md) | Feature/component READMEs | Feature documentation (env/README.md, tests/smoke/README.md) |
 | [mermaid-diagram-standards.md](../development/guides/mermaid-diagram-standards.md) | **Diagram standards** | **REQUIRED: All diagrams MUST use Mermaid** |
 
@@ -39,7 +40,7 @@ This directory contains standardized templates for all Dashtam documentation. Us
 - **Researching options/decisions?** → Use `research-template.md`
 - **Writing audit report/compliance review?** → Use `audit-template.md`
 |- **Creating API flow?** → Use `api-flow-template.md`
-|- **Creating root-level documentation index (docs/index.md)?** → Use `index-root-template.md`
+|- **Creating root-level documentation index (docs/index.md only)?** → Use `index-root-template.md`
 |- **Creating section/directory index?** → Use `index-section-template.md`
 |- **Documenting a feature/component?** → Use `readme-template.md`
 |- **Not sure?** → Use `general-template.md`
@@ -129,7 +130,7 @@ All templates include standard metadata at the **bottom** of the document:
 
 - **"Template:" field (required)**: Replaced "Category" with "Template" to clearly link to the template file being used
 - **Link to template**: The Template field must be a relative markdown link to the actual template file
-- **Example**: `**Template:** [guide-template.md](../../templates/guide-template.md)`
+- **Example**: `**Template:** guide-template.md (located in docs/templates/)`
 
 **Why at the bottom?**
 
@@ -186,11 +187,12 @@ All documentation files MUST follow these structural requirements:
 
 ### 1. Table of Contents (TOC) Requirements
 
-**CRITICAL RULE: Each Template's TOC Defines Mandatory Top-Level Sections**
+#### Critical Rule: Each Template's TOC Defines Mandatory Top-Level Sections
 
-🔴 **The TOC in each template file defines the MANDATORY top-level sections that ALL documents using that template MUST have.**
+The TOC in each template file defines the MANDATORY top-level sections that ALL documents using that template MUST have.
 
 For example:
+
 - All documents using `guide-template.md` MUST have: Overview, Prerequisites, Step-by-Step Instructions, Examples, Verification, Troubleshooting, Best Practices, Next Steps, References, Document Information
 - All documents using `architecture-template.md` MUST have: Overview, Context, Architecture Goals, Design Decisions, Components, Implementation Details, Security Considerations, Performance Considerations, Testing Strategy, Future Enhancements, References, Document Information
 
@@ -203,6 +205,7 @@ For example:
 - ✅ **TOC entries must match section headings exactly**
 
 **What this means:**
+
 - You CANNOT skip any top-level section from your template's TOC
 - You CAN add subsections like "## Design Decisions" → "### Decision 1: Pattern Choice"
 - You MUST list all these subsections in your document's TOC
@@ -273,7 +276,7 @@ All documents MUST use this simplified format:
 
 ## Document Information
 
-**Template:** [template-name.md](../../templates/template-name.md)
+**Template:** template-name.md (located in docs/templates/)
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
 ```
@@ -328,7 +331,7 @@ All templates now use simplified metadata **without the "Status" field**:
 
 **Required Fields:**
 
-- **Template**: Relative markdown link to the template file (e.g., `[guide-template.md](../../templates/guide-template.md)`)
+- **Template**: Relative markdown link to the template file (e.g., `guide-template.md (located in docs/templates/)`)
 - **Created**: Document creation date (YYYY-MM-DD)
 - **Last Updated**: Last modification date (YYYY-MM-DD)
 
@@ -444,7 +447,7 @@ Proper structure with:
   
   ## Document Information
   
-  **Template:** [guide-template.md](../../templates/guide-template.md)
+  **Template:** guide-template.md (located in docs/templates/)
   **Created:** 2025-10-13
   **Last Updated:** 2025-10-13
   ```

@@ -47,9 +47,9 @@ Financial provider integration workflows:
 
 **Related Documentation:**
 
-- [API Flow Template](../templates/api-flow-template.md) - Template for creating new API flows
-- [Template System Guide](../templates/README.md) - Complete template documentation
-- [Development Guide](../development/) - Developer documentation
+-  - Template for creating new API flows
+-  - Complete template documentation
+- [Development Guide](../development/index.md) - Developer documentation
 - [Testing Strategy](../testing/strategy.md) - Overall testing approach
 
 **External Resources:**
@@ -65,14 +65,13 @@ Financial provider integration workflows:
 **Related Directories:**
 
 - [Development Documentation](../development/index.md)
-- [Templates](../templates/README.md)
-- [Testing](../testing/)
+- [Testing](../testing/index.md)
 
 ## Contributing
 
 When adding new API flow documents:
 
-1. Copy the [API Flow Template](../templates/api-flow-template.md)
+1. Copy the 
 2. Place in appropriate subdirectory (auth/ or providers/)
 3. Follow established conventions and structure
 4. Update this index with link and description
@@ -92,6 +91,6 @@ When adding new API flow documents:
 
 ## Document Information
 
-**Template:** [index-section-template.md](../templates/index-section-template.md)
+**Template:** index-section-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-21

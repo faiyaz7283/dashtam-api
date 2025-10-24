@@ -2,21 +2,6 @@
 
 Register a new user using the HTTPS-enabled development environment.
 
----
-
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Steps](#steps)
-  - [1) Register](#1-register)
-  - [2) Extract verification token from logs](#2-extract-verification-token-from-logs)
-- [Troubleshooting](#troubleshooting)
-- [Related Flows](#related-flows)
-- [Document Information](#document-information)
-
----
-
 ## Purpose
 
 Create a new user account that can later be verified and used to log in.
@@ -137,6 +122,6 @@ echo "Verification token: $VERIFICATION_TOKEN"
 
 ## Document Information
 
-**Template:** [api-flow-template.md](../../templates/api-flow-template.md)
+**Template:** api-flow-template.md
 **Created:** 2025-10-15
 **Last Updated:** 2025-10-15

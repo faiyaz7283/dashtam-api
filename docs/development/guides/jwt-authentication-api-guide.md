@@ -2,55 +2,6 @@
 
 Complete guide to implementing and using the authentication API endpoints in Dashtam.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-  - [What You'll Learn](#what-youll-learn)
-  - [When to Use This Guide](#when-to-use-this-guide)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Instructions](#step-by-step-instructions)
-  - [Step 1: Understand the API Architecture](#step-1-understand-the-api-architecture)
-  - [Step 2: Define Request/Response Schemas](#step-2-define-requestresponse-schemas)
-    - [Registration Schemas](#registration-schemas)
-    - [Login Schemas](#login-schemas)
-    - [Token Refresh Schemas](#token-refresh-schemas)
-    - [Email Verification Schemas](#email-verification-schemas)
-    - [Password Reset Schemas](#password-reset-schemas)
-    - [User Profile Schemas](#user-profile-schemas)
-  - [Step 3: Implement Registration Endpoint](#step-3-implement-registration-endpoint)
-  - [Step 4: Implement Email Verification Endpoint](#step-4-implement-email-verification-endpoint)
-  - [Step 5: Implement Login Endpoint](#step-5-implement-login-endpoint)
-  - [Step 6: Implement Token Refresh Endpoint](#step-6-implement-token-refresh-endpoint)
-  - [Step 7: Implement Logout Endpoint](#step-7-implement-logout-endpoint)
-  - [Step 8: Implement Password Reset Request Endpoint](#step-8-implement-password-reset-request-endpoint)
-  - [Step 9: Implement Password Reset Confirm Endpoint](#step-9-implement-password-reset-confirm-endpoint)
-  - [Step 10: Implement User Profile Endpoints](#step-10-implement-user-profile-endpoints)
-  - [Step 11: Implement Authentication Dependency](#step-11-implement-authentication-dependency)
-  - [Step 12: Register Router with FastAPI](#step-12-register-router-with-fastapi)
-- [Examples](#examples)
-  - [Example 1: Complete Registration Flow](#example-1-complete-registration-flow)
-  - [Example 2: Login and Token Refresh](#example-2-login-and-token-refresh)
-  - [Example 3: Password Reset Flow](#example-3-password-reset-flow)
-  - [Example 4: Authenticated Request](#example-4-authenticated-request)
-- [Verification](#verification)
-  - [Check 1: Test Registration Endpoint](#check-1-test-registration-endpoint)
-  - [Check 2: Test Login Flow](#check-2-test-login-flow)
-  - [Check 3: Test Protected Endpoints](#check-3-test-protected-endpoints)
-- [Troubleshooting](#troubleshooting)
-  - [Issue 1: 422 Validation Error on Registration](#issue-1-422-validation-error-on-registration)
-  - [Issue 2: 401 Unauthorized on Protected Endpoints](#issue-2-401-unauthorized-on-protected-endpoints)
-  - [Issue 3: CORS Errors in Browser](#issue-3-cors-errors-in-browser)
-  - [Issue 4: Slow Response Times](#issue-4-slow-response-times)
-- [Best Practices](#best-practices)
-  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-- [Next Steps](#next-steps)
-- [References](#references)
-- [Document Information](#document-information)
-
----
-
 ## Overview
 
 This guide covers all authentication API endpoints, including registration, login, logout, token refresh, email verification, password reset, and user profile management. Each endpoint includes request/response schemas, implementation details, and practical examples.
@@ -157,7 +108,6 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from uuid import UUID
 from datetime import datetime
 
-
 class UserRegistrationRequest(BaseModel):
     """Request schema for user registration."""
     
@@ -174,7 +124,6 @@ class UserRegistrationRequest(BaseModel):
             }
         }
     )
-
 
 class UserRegistrationResponse(BaseModel):
     """Response schema for user registration."""
@@ -216,7 +165,6 @@ class UserLoginRequest(BaseModel):
         }
     )
 
-
 class TokenResponse(BaseModel):
     """Response schema for login (contains tokens)."""
     
@@ -242,7 +190,6 @@ class TokenResponse(BaseModel):
             }
         }
     )
-
 
 class UserResponse(BaseModel):
     """User details in responses."""
@@ -280,7 +227,6 @@ class TokenRefreshRequest(BaseModel):
             }
         }
     )
-
 
 class TokenRefreshResponse(BaseModel):
     """Response schema for token refresh."""
@@ -325,14 +271,12 @@ class PasswordResetRequestRequest(BaseModel):
         }
     )
 
-
 class PasswordResetRequestResponse(BaseModel):
     """Response schema for password reset request."""
     
     message: str = Field(
         default="If an account exists, a password reset email has been sent."
     )
-
 
 class PasswordResetConfirmRequest(BaseModel):
     """Request schema for password reset confirmation."""
@@ -348,7 +292,6 @@ class PasswordResetConfirmRequest(BaseModel):
             }
         }
     )
-
 
 class PasswordResetConfirmResponse(BaseModel):
     """Response schema for password reset confirmation."""
@@ -373,7 +316,6 @@ class UserProfileUpdateRequest(BaseModel):
             }
         }
     )
-
 
 class UserProfileResponse(BaseModel):
     """Response schema for user profile."""
@@ -411,7 +353,6 @@ from src.services.email_service import EmailService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
-
 def get_auth_service(session: AsyncSession = Depends(get_session)) -> AuthService:
     """Dependency to get AuthService instance."""
     password_service = PasswordService()
@@ -423,7 +364,6 @@ def get_auth_service(session: AsyncSession = Depends(get_session)) -> AuthServic
         from_email=settings.FROM_EMAIL
     )
     return AuthService(session, password_service, jwt_service, email_service)
-
 
 @router.post(
     "/register",
@@ -816,7 +756,6 @@ async def get_profile(
     """
     return UserProfileResponse.model_validate(current_user)
 
-
 @router.patch(
     "/me",
     response_model=UserProfileResponse,
@@ -876,7 +815,6 @@ from src.services.jwt_service import JWTService
 from src.core.config import settings
 
 security = HTTPBearer()
-
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -1361,7 +1299,7 @@ After completing this guide, consider:
 - [ ] [JWT Authentication Database Guide](jwt-authentication-database-guide.md) - Database schema reference
 - [ ] [JWT Authentication Services Guide](jwt-authentication-services-guide.md) - Service implementation
 - [ ] [Testing Guide](testing-guide.md) - Automated API testing
-- [ ] [API Flow Guides](../../api-flows/) - Manual testing flows
+- [ ] [API Flow Guides](../../api-flows/index.md) - Manual testing flows
 - [ ] Implement rate limiting for authentication endpoints
 - [ ] Set up API monitoring and alerting
 
@@ -1369,7 +1307,7 @@ After completing this guide, consider:
 
 - [JWT Authentication Architecture](../architecture/jwt-authentication.md) - Complete architecture guide
 - [RESTful API Design](../architecture/restful-api-design.md) - REST API standards
-- [API Endpoint Tests](../../../tests/integration/test_api_auth.py) - Integration test examples
+- `tests/integration/test_api_auth.py` - Integration test examples
 - [FastAPI Documentation](https://fastapi.tiangolo.com/) - FastAPI framework
 - [Pydantic V2 Documentation](https://docs.pydantic.dev/latest/) - Schema validation
 - [HTTP Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) - Status code reference
@@ -1378,6 +1316,6 @@ After completing this guide, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
+**Template:** guide-template.md
 **Created:** 2025-10-19
 **Last Updated:** 2025-10-19

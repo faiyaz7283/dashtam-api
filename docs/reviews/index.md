@@ -44,7 +44,7 @@ reviews/
 **Related Documentation:**
 
 - [RESTful API Design](../development/architecture/restful-api-design.md) - REST API design standards
- - Documentation creation guide
+- Documentation creation guide
 - [Markdown Linting Guide](../development/guides/markdown-linting-guide.md) - Quality standards
 
 **Standards & Guidelines:**
@@ -75,7 +75,7 @@ Create new audit/review documents when:
 
 ### Audit Document Process
 
-1. Use  for audit documents
+1. Use appropriate template for audit documents
 2. Follow structure: Executive Summary → Methodology → Findings → Recommendations → Action Items
 3. Include scoring/rating where applicable
 4. Document audit date and auditor

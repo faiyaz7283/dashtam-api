@@ -219,20 +219,20 @@ User-centric manual API testing workflows designed for HTTPS-first development e
 
 Reusable templates for creating new documentation that follows project standards.
 
- - Template system overview and guidelines
- - Root documentation index template
- - Section documentation index template
- - General purpose documentation template
- - Architecture documentation template
- - Developer guide template
- - Infrastructure documentation template
- - Testing documentation template
- - Troubleshooting guide template
- - Research and ADR template
- - Code audit and review template
- - API testing workflow template
- - Implementation guide template
- - README documentation template
+- Template system overview and guidelines
+- Root documentation index template
+- Section documentation index template
+- General purpose documentation template
+- Architecture documentation template
+- Developer guide template
+- Infrastructure documentation template
+- Testing documentation template
+- Troubleshooting guide template
+- Research and ADR template
+- Code audit and review template
+- API testing workflow template
+- Implementation guide template
+- README documentation template
 
 ## Quick Links
 
@@ -246,7 +246,7 @@ Reusable templates for creating new documentation that follows project standards
 
 - [Testing Strategy](testing/strategy.md) - Testing approach and best practices
 - [Git Workflow](development/guides/git-workflow.md) - Version control guidelines
- - Documentation template reference
+- Documentation template reference
 
 **External Resources:**
 
@@ -261,7 +261,7 @@ Reusable templates for creating new documentation that follows project standards
 - [Development Documentation](development/index.md) - Architecture, guides, infrastructure, testing
 - [Research & Decisions](research/index.md) - Technical research and decision records
 - [API Flows](api-flows/index.md) - Manual testing workflows
- - Template system and standards
+- Template system and standards
 
 **Related Repositories:**
 
@@ -273,7 +273,7 @@ Reusable templates for creating new documentation that follows project standards
 
 When adding new documentation:
 
-1. Follow appropriate  from the templates directory
+1. Follow appropriate template from the templates directory
 2. Place documents in correct category directory
 3. Use Directory Structure section above as reference
 4. Update relevant index.md file with new links and descriptions

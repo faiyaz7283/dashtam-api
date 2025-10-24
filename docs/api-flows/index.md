@@ -47,8 +47,8 @@ Financial provider integration workflows:
 
 **Related Documentation:**
 
- - Template for creating new API flows
- - Complete template documentation
+- Template for creating new API flows
+- Complete template documentation
 - [Development Guide](../development/index.md) - Developer documentation
 - [Testing Strategy](../testing/strategy.md) - Overall testing approach
 

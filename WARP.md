@@ -138,6 +138,17 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
   - ✅ **Directory reorganization**: testing/ and reviews/ moved to docs root level (project-wide)
   - ✅ **Historical directory eliminated**: Update-or-delete paradigm (no archiving)
   - ✅ **Comprehensive guides**: Template system guide, Mermaid standards, markdown linting
+- ✅ **MKDOCS DOCUMENTATION SYSTEM COMPLETE** (October 2025, feature/mkdocs-documentation-system)
+  - ✅ **MkDocs Material Theme**: Modern, professional documentation site with auto-generated TOC
+  - ✅ **API Reference**: Auto-generated from Python docstrings (services, models, core modules)
+  - ✅ **Zero Build Warnings**: Clean mkdocs build with strict validation (--strict mode)
+  - ✅ **GitHub Pages Deployment**: Automated CI/CD deployment from development branch
+  - ✅ **Live Preview**: `make docs-serve` with hot reload and cache management (`make docs-restart`)
+  - ✅ **Template Cleanup**: Removed 13 clickable template links, fixed 3 directory links, removed broken anchors
+  - ✅ **Documentation URL**: https://faiyazhaider.github.io/Dashtam/
+  - ✅ **Makefile Commands**: `docs-serve`, `docs-build`, `docs-stop`, `docs-restart`
+  - ✅ **Deployment Guide**: Complete infrastructure guide (docs/development/infrastructure/docs-deployment.md)
+  - ✅ **Modern README**: Reduced from 929 to 208 lines (77% reduction) with badges and quick start
 - ✅ **Core infrastructure at 76% test coverage, production-ready foundation**
 - 🚧 Financial data endpoints (accounts, transactions) pending implementation
 - 🚧 Additional provider integrations pending
@@ -1129,6 +1140,14 @@ Always use the Makefile for common operations:
 
 - `make lint` - Run code linting (ruff check)
 - `make format` - Format code (ruff format)
+- `make lint-md` - Run markdown linting
+
+**Documentation:**
+
+- `make docs-serve` - Live preview documentation with hot reload
+- `make docs-build` - Build static documentation site
+- `make docs-stop` - Stop documentation server
+- `make docs-restart` - Restart docs with cache clear
 
 **CI/CD:**
 
@@ -1153,9 +1172,12 @@ Always use the Makefile for common operations:
 
 ### Database Migrations
 
-- Use Alembic for schema migrations (future)
-- Currently using `init_db.py` for development
-- Tables are created automatically on startup in dev mode
+- **Alembic fully integrated** - All schema changes via migrations
+- Initial migration: `bce8c437167b` (complete schema)
+- Automatic execution in dev/test/CI environments
+- Makefile commands: `migrate-create`, `migrate-up`, `migrate-down`, `migrate-history`
+- Documentation: `docs/development/infrastructure/database-migrations.md`
+- **Never** manually create tables - always use migrations
 
 ## Error Handling Patterns
 
@@ -1836,86 +1858,33 @@ When working on this project:
 9. Always use HTTPS/SSL for all communications
 10. Create audit log entries for significant operations
 11. **ALWAYS follow the Phase Completion Workflow after finishing any phase**
-12. **ALWAYS maintain the AI Session Journal** for session continuity
+12. **Monitor context window usage** - Create comprehensive handoffs when approaching limits
+13. **Use MkDocs for documentation** - `make docs-serve` for live preview, auto-deploys to GitHub Pages
+14. **Never create work summary files in project** - Use git commits, PRs, and docs/ for documentation
 
-### AI Session Journal System
+**Context Management:**
 
-**CRITICAL**: Maintain session journal at `~/ai_dev_sessions/Dashtam/` for continuity between AI interactions.
+- Stay aware of context window usage throughout session
+- Before reaching maximum context, create comprehensive handoff summary
+- Switch to new context cleanly without losing progress
+- Document all important decisions in git commits and WARP.md updates
 
-**Purpose:**
+**Documentation Workflow:**
 
-- Resume work after critical errors or interruptions
-- Track progress and decisions across sessions
-- Provide context for future AI agents
-- Document architectural decisions and rationale
-
-**Three-Phase Workflow:** All sessions must follow this structured approach:
-
-**Phase 1: Session Initialization** 🎯 (Start of session)
-
-1. Create timestamped session file: `YYYY-MM-DD_HHMMSS_brief-description.md`
-2. Document session goals and objectives
-3. List planned tasks with checkboxes for tracking
-4. Identify research areas needed
-5. Note current branch and starting commit
-6. Document known blockers or concerns
-7. Define success criteria
-
-**Phase 2: Progressive Updates** 📝 (During work)
-
-1. Check off completed tasks as you finish them
-2. Document key decisions and rationale
-3. Note unexpected issues and how resolved
-4. Record important commits and commands
-5. Add new tasks as discovered
-6. Update blockers and their status
-
-**Phase 3: Final Summary** ✅ (End of session)
-
-1. Summarize what was accomplished
-2. Document what changed from original plan (and why)
-3. List key achievements and their impact
-4. Record lessons learned and gotchas
-5. Note metrics (tests, coverage, commits, etc.)
-6. Document PR details if applicable
-7. Provide recommendations for next session
-
-**Session Retention:**
-
-- Default: Keep 10 most recent sessions per project
-- Configured in `~/ai_dev_sessions/Dashtam/.session_config`
-- Older sessions automatically DELETED (not archived) to prevent unbounded growth
-
-**Template Selection:**
-
-- **`session-comprehensive.md`** - For complex multi-task work, research, architecture changes
-- **`session-template.md`** - For quick fixes, single-focus tasks, routine updates
-- Both templates available at: `~/ai_dev_sessions/templates/`
-
-**Workflow:**
-
-```bash
-# 1. Check for existing sessions at start
-ls -t ~/ai_dev_sessions/Dashtam/ | head -5
-
-# 2. Create new session file (Phase 1)
-cd ~/ai_dev_sessions/Dashtam
-cp ~/ai_dev_sessions/templates/session-comprehensive.md \
-   $(date +%Y-%m-%d_%H%M%S)_task-description.md
-
-# 3. Update throughout work using edit_files or create_file tools (Phase 2)
-
-# 4. Complete final summary at end of session (Phase 3)
-```
+- All documentation follows MkDocs structure in `docs/`
+- Use templates from `docs/templates/` for new documentation
+- Test locally with `make docs-serve` before committing
+- Zero tolerance for build warnings (`make docs-build` must pass)
+- Documentation auto-deploys to https://faiyazhaider.github.io/Dashtam/
 
 **Critical Rules:**
 
-1. **NEVER commit session journal files** to the Dashtam project repository. They belong in the separate `~/ai_dev_sessions/` directory.
-2. **NEVER create work summary files** in the project (e.g., MIGRATION_SUMMARY.md, TASK_SUMMARY.md, etc.). Use:
-   - AI session journals for session documentation
-   - Comprehensive git commit messages for change documentation
+1. **NEVER create work summary files** in the project (e.g., MIGRATION_SUMMARY.md, TASK_SUMMARY.md, SESSION_NOTES.md)
+2. **Use proper documentation locations**:
+   - Comprehensive git commit messages for changes
    - Pull request descriptions for feature summaries
-   - Project documentation (in docs/) for user-facing information only
-3. **Work artifacts belong outside the project**: Session notes, task lists, work summaries, and progress tracking belong in `~/ai_dev_sessions/` or `/tmp/`, NOT in the project repository.
+   - `docs/` directory for user-facing documentation (MkDocs)
+   - `/tmp/` for temporary working files
+3. **Work artifacts stay out of repo**: Progress tracking, task lists, session notes belong in `/tmp/` or external systems
 
 Remember: This is a financial data platform where security and reliability are paramount. Every decision should prioritize data protection and system stability.

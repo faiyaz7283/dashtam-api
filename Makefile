@@ -691,14 +691,19 @@ migration: migrate-create
 docs-serve:
 	@echo "📚 Starting MkDocs live preview server..."
 	@echo ""
-	@echo "🚀 Starting MkDocs serve..."
-	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && uv run mkdocs serve --dev-addr=0.0.0.0:8001"
+	@$(MAKE) _docs-cleanup
+	@echo "🚀 Starting MkDocs serve with live reload..."
+	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && uv run mkdocs serve --dev-addr=0.0.0.0:8001 --watch docs"
 	@sleep 3
 	@echo ""
 	@echo "✅ MkDocs server started!"
 	@echo ""
 	@echo "📖 Documentation: http://localhost:8001/Dashtam/"
 	@echo "🔄 Live reload enabled - changes will auto-update"
+	@echo ""
+	@echo "💡 If changes don't appear, hard refresh your browser:"
+	@echo "   • Mac: Cmd + Shift + R"
+	@echo "   • Windows/Linux: Ctrl + Shift + R"
 	@echo ""
 	@echo "🛑 Stop server: make docs-stop"
 	@echo "🏗️  Build static: make docs-build"
@@ -715,6 +720,17 @@ docs-stop:
 	@echo "   Restarting app container to clean up processes..."
 	@docker compose -f compose/docker-compose.dev.yml restart app
 	@echo "✅ MkDocs server stopped"
+
+## Restart MkDocs server with cache clear (if changes not appearing)
+docs-restart:
+	@echo "🔄 Restarting MkDocs with full cache clear..."
+	@$(MAKE) docs-stop
+	@sleep 2
+	@echo "🧹 Cleaning site directory..."
+	@docker compose -f compose/docker-compose.dev.yml exec app rm -rf /app/site
+	@$(MAKE) docs-serve
+	@echo ""
+	@echo "✅ MkDocs restarted with clean cache!"
 
 # Internal: Cleanup MkDocs processes (used by dev lifecycle commands)
 # Note: Just gracefully restarts the app container
@@ -1081,33 +1097,3 @@ git-branch-protection:
 	echo "  • main - Tests + 1 approval required (admins enforced)" && \
 	echo "  • development - Tests + 1 approval required"
 
-# =============================================================================
-# Documentation Commands (MkDocs)
-# =============================================================================
-
-## Build documentation site
-docs-build:
-	@echo "📚 Building documentation..."
-	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build
-
-## Serve documentation locally with live reload
-docs-serve:
-	@echo "🌐 Starting documentation server at http://localhost:8000"
-	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs serve -a 0.0.0.0:8080
-
-## Check documentation (lint + link validation)
-docs-check:
-	@echo "🔍 Checking documentation..."
-	@echo "  → Running markdown linting..."
-	@make lint-md
-	@echo "  → Validating links..."
-	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build --strict
-	@echo "✅ Documentation check complete!"
-
-## Clean built documentation
-docs-clean:
-	@echo "🧹 Cleaning documentation build..."
-	@rm -rf site/
-	@echo "✅ Documentation cleaned!"
-
-.PHONY: docs-build docs-serve docs-check docs-clean

@@ -347,10 +347,16 @@ src/
 │   │   ├── __init__.py
 │   │   ├── base.py             # Abstract algorithm interface
 │   │   └── token_bucket.py     # Token bucket implementation
-│   └── storage/
+│   ├── storage/
+│   │   ├── __init__.py
+│   │   ├── base.py             # Abstract storage interface
+│   │   └── redis_storage.py    # Redis implementation with Lua
+│   └── tests/                  # Co-located tests (for independence) 🧪
 │       ├── __init__.py
-│       ├── base.py             # Abstract storage interface
-│       └── redis_storage.py    # Redis implementation with Lua
+│       ├── test_config.py      # Configuration tests
+│       ├── test_algorithms.py  # Algorithm tests
+│       ├── test_storage.py     # Storage tests
+│       └── test_service.py     # Service tests
 │
 ├── services/                   # Business logic services
 │   ├── auth_service.py
@@ -375,6 +381,12 @@ src/
   - `providers/` = External integrations (Schwab, Plaid)
 - **SOLID at Package Level:** Rate limiting package is independently deployable/replaceable
 - **Pluggable:** Can be extracted to PyPI package without restructuring
+- **Co-located Tests:** Tests live in `src/rate_limiting/tests/` for complete independence
+  - Rate limiting package can be copied to another project with tests intact
+  - Aligns with DDD bounded context philosophy (self-contained domain)
+  - Enables future extraction to standalone PyPI package
+  - Project-wide tests stay in `tests/` (integration, smoke, etc.)
+  - Pytest configured to discover tests in both locations (see `pytest.ini`)
 
 #### Step 1.1: Create Configuration Module (Single Source of Truth)
 

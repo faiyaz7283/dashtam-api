@@ -4,7 +4,7 @@ name: dashtam-test
 # 
 # Key differences from development:
 # - Different container names with -test suffix
-# - Different ports (8001, 5433, 6380, 8183) to avoid conflicts
+# - Different ports (8002, 5433, 6380, 8184) to avoid conflicts
 # - Ephemeral storage (tmpfs) for faster tests and clean state
 # - Separate network (dashtam-test-network)
 # - Test database with test user
@@ -64,7 +64,7 @@ services:
     env_file:
       - ../env/.env.test
     ports:
-      - "8001:8000"  # Different external port (8001), internal stays 8000
+      - "8002:8000"  # Different external port (8002), internal stays 8000
     volumes:
       - ../src:/app/src:rw
       - ../tests:/app/tests:rw
@@ -101,7 +101,7 @@ services:
     env_file:
       - ../env/.env.test
     ports:
-      - "8183:8182"  # Different external port
+      - "8184:8182"  # Different external port
     volumes:
       - ../certs:/app/certs:ro
     depends_on:

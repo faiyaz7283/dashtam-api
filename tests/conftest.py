@@ -12,8 +12,10 @@ Key Principles:
 """
 
 from collections.abc import Generator
+import asyncio
 
 import pytest
+import redis.asyncio as redis
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine, delete
 
@@ -137,6 +139,85 @@ def db_session(db: Session, request) -> Generator[Session, None, None]:
         db.commit()
     except Exception:
         db.rollback()
+
+
+@pytest.fixture(scope="function", autouse=True)
+def reset_rate_limits():
+    """Reset Redis rate limit buckets before each test for isolation.
+
+    This fixture ensures test isolation by clearing all rate limit state
+    from Redis between tests. Without this, rate limit buckets persist
+    across tests causing failures when tests expect fresh buckets.
+
+    Why autouse=True:
+        - Ensures all tests start with clean rate limit state
+        - Prevents test order dependencies
+        - Matches pytest best practices for test isolation
+
+    Redis Key Pattern:
+        rate_limit:* (all rate limiting keys)
+
+    Examples of keys deleted:
+        - rate_limit:ip:ip:testclient:POST /api/v1/auth/register:tokens
+        - rate_limit:ip:ip:testclient:POST /api/v1/auth/register:time
+        - rate_limit:user:uuid:GET /api/v1/providers:tokens
+
+    Note:
+        This fixture uses SCAN + DEL pattern (production-safe) instead of
+        FLUSHDB to avoid affecting other test data in Redis.
+
+        This is a synchronous fixture that wraps async Redis operations
+        using asyncio.run() to work with synchronous pytest tests.
+    """
+
+    async def _cleanup_redis():
+        """Async function to cleanup Redis rate limit keys."""
+        # Connect to test Redis (Docker service in test environment)
+        redis_client = redis.Redis(
+            host="redis",  # Docker service name in test environment
+            port=6379,
+            db=0,
+            decode_responses=True,
+        )
+
+        try:
+            # Delete all rate limit keys using SCAN pattern (production-safe)
+            # SCAN is preferred over KEYS in production, but both work in tests
+            cursor = 0
+            pattern = "rate_limit:*"
+
+            while True:
+                # Scan for rate limit keys (returns cursor and batch of keys)
+                cursor, keys = await redis_client.scan(
+                    cursor=cursor, match=pattern, count=100
+                )
+
+                # Delete keys if any found
+                if keys:
+                    await redis_client.delete(*keys)
+
+                # Break when cursor returns to 0 (full scan complete)
+                if cursor == 0:
+                    break
+
+        except Exception as e:
+            # Log but don't fail tests if Redis cleanup fails
+            # Tests should still pass even if rate limiter is unavailable (fail-open)
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to reset rate limits in Redis: {e}")
+
+        finally:
+            # Clean up Redis connection
+            await redis_client.aclose()
+
+    # Run async cleanup synchronously (compatible with sync pytest tests)
+    asyncio.run(_cleanup_redis())
+
+    yield  # Run test
+
+    # No cleanup needed after test (cleanup happens before next test)
 
 
 @pytest.fixture(scope="session")

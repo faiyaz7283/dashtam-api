@@ -184,8 +184,8 @@ test-up:
 	@sleep 5
 	@echo "✅ Test services started!"
 	@echo ""
-	@echo "📡 Test App:  http://localhost:8001"
-	@echo "📡 Callback:  http://127.0.0.1:8183"
+	@echo "📡 Test App:  http://localhost:8002"
+	@echo "📡 Callback:  http://127.0.0.1:8184"
 	@echo "🐘 PostgreSQL: localhost:5433"
 	@echo "🔴 Redis:      localhost:6380"
 	@echo ""

@@ -12,7 +12,6 @@ Test Strategy:
 - Validates fail-open behavior
 """
 
-
 from fastapi import status
 from fastapi.testclient import TestClient
 

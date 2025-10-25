@@ -1778,10 +1778,19 @@ docs/
 
 - Lint code: `make lint` (ruff check)
 - Format code: `make format` (ruff format)
+- **Lint markdown** (if any docs changed): `make lint-md` or `make lint-md FILE="path/to/file.md"`
 - Fix all linting errors and warnings
 - Ensure code follows project standards
 
-**6. Documentation Updates** 📚
+**6. Documentation Quality** 📚
+
+- **CRITICAL**: If any documentation was added/modified:
+  - Lint markdown files: `make lint-md FILE="path/to/file.md"`
+  - Build MkDocs site: `make docs-build`
+  - Verify **ZERO warnings/errors** (MkDocs uses `--strict` mode)
+  - Check for broken links, missing files, invalid references
+  - Test locally: `make docs-serve` (optional but recommended)
+- Update all relevant documentation for completed work
 
 - Update all relevant documentation for completed work
 - Update WARP.md if project rules or context changed
@@ -1829,10 +1838,11 @@ Related to: [issue/feature reference]
 Before marking a phase as complete, verify:
 
 - [ ] All phase deliverables implemented
-- [ ] All new code tested (unit + integration + A
-PI)
+- [ ] All new code tested (unit + integration + API)
 - [ ] All existing tests still pass
-- [ ] Code linted and formatted
+- [ ] Code linted and formatted (`make lint`, `make format`)
+- [ ] **Markdown linted** (`make lint-md` - if docs changed)
+- [ ] **MkDocs builds cleanly** (`make docs-build` - zero warnings/errors)
 - [ ] Documentation updated
 - [ ] WARP.md updated if needed
 - [ ] Changes committed with clear message

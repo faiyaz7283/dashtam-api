@@ -9,7 +9,7 @@ SOLID Principles Tested:
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from src.rate_limiting.algorithms.token_bucket import TokenBucketAlgorithm
 from src.rate_limiting.config import (
@@ -121,7 +121,9 @@ class TestTokenBucketAlgorithm:
     ):
         """Test fail-open behavior when storage fails."""
         # Mock storage raises exception
-        mock_storage.check_and_consume.side_effect = Exception("Redis connection failed")
+        mock_storage.check_and_consume.side_effect = Exception(
+            "Redis connection failed"
+        )
 
         allowed, retry_after = await token_bucket_algorithm.is_allowed(
             storage=mock_storage,
@@ -221,9 +223,7 @@ class TestTokenBucketAlgorithm:
         assert calls[1][1]["key"] == "ip:192.168.1.2:login"
 
     @pytest.mark.asyncio
-    async def test_respects_rule_parameters(
-        self, token_bucket_algorithm, mock_storage
-    ):
+    async def test_respects_rule_parameters(self, token_bucket_algorithm, mock_storage):
         """Test that algorithm respects all rule parameters."""
         rule = RateLimitRule(
             strategy=RateLimitStrategy.TOKEN_BUCKET,

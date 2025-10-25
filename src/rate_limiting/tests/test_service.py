@@ -9,14 +9,9 @@ SOLID Principles Tested:
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from src.rate_limiting.service import RateLimiterService
-from src.rate_limiting.config import (
-    RateLimitRule,
-    RateLimitStrategy,
-    RateLimitStorage,
-)
 
 
 @pytest.fixture
@@ -63,14 +58,12 @@ class TestRateLimiterService:
         assert retry_after == 0.0
         assert rule is not None
         assert rule.scope == "ip"
-        
+
         # Verify algorithm was called
         mock_algorithm.is_allowed.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_is_allowed_rate_limited(
-        self, rate_limiter_service, mock_algorithm
-    ):
+    async def test_is_allowed_rate_limited(self, rate_limiter_service, mock_algorithm):
         """Test rate limit check when rate limited."""
         # Mock algorithm returns rate limited
         mock_algorithm.is_allowed.return_value = (False, 12.0)
@@ -100,7 +93,7 @@ class TestRateLimiterService:
         assert allowed is True
         assert retry_after == 0.0
         assert rule is None
-        
+
         # Algorithm should not be called
         mock_algorithm.is_allowed.assert_not_called()
 
@@ -118,7 +111,7 @@ class TestRateLimiterService:
         )
 
         assert allowed is True
-        
+
         # Verify algorithm called with cost=5
         call_args = mock_algorithm.is_allowed.call_args
         assert call_args[1]["cost"] == 5
@@ -177,7 +170,9 @@ class TestRateLimiterService:
         self, rate_limiter_service, mock_algorithm
     ):
         """Test fail-open behavior when config lookup fails."""
-        with patch("src.rate_limiting.service.RateLimitConfig.get_rule") as mock_get_rule:
+        with patch(
+            "src.rate_limiting.service.RateLimitConfig.get_rule"
+        ) as mock_get_rule:
             # Mock config raises exception
             mock_get_rule.side_effect = Exception("Config error")
 
@@ -238,9 +233,7 @@ class TestRateLimiterService:
         assert call_args[1]["cost"] == 1
 
     @pytest.mark.asyncio
-    async def test_schwab_api_rate_limit(
-        self, rate_limiter_service, mock_algorithm
-    ):
+    async def test_schwab_api_rate_limit(self, rate_limiter_service, mock_algorithm):
         """Test Schwab API rate limit configuration."""
         mock_algorithm.is_allowed.return_value = (True, 0.0)
 

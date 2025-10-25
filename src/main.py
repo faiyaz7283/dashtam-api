@@ -14,6 +14,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from src.core.config import settings
 from src.core.database import close_db
 from src.api.v1 import api_router
+from src.rate_limiting.middleware import RateLimitMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -79,6 +80,9 @@ app.add_middleware(
     if settings.DEBUG
     else ["localhost", "127.0.0.1", "app", "backend", "0.0.0.0", "testserver"],
 )
+
+# Add rate limiting middleware (lazy initialization on first request)
+app.add_middleware(RateLimitMiddleware)
 
 # Include API routers
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)

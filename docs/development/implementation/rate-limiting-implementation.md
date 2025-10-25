@@ -2765,10 +2765,9 @@ Legend:
 
 ### Internal Documentation
 
-- [Rate Limiting Research](../research/rate-limiting-research.md) - Comprehensive algorithm comparison
-- [Testing Guide](guides/testing-guide.md) - Testing patterns and conventions
-- [SOLID Principles](guides/solid-principles.md) - Design principles reference
-- [WARP.md](../../WARP.md) - Project rules and context
+- [Rate Limiting Research](../../research/rate-limiting-research.md) - Comprehensive algorithm comparison
+- [Testing Guide](../guides/testing-guide.md) - Testing patterns and conventions
+- Project Rules: See WARP.md in project root (not in MkDocs site)
 
 ### External Resources
 

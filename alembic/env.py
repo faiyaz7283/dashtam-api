@@ -30,6 +30,7 @@ from src.models.provider import (  # noqa: F401
     ProviderToken,
     ProviderAuditLog,
 )
+from src.rate_limiting.models import RateLimitAuditLog  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

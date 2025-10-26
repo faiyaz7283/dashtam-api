@@ -165,10 +165,14 @@ class DatabaseAuditBackend(AuditBackend):
             # Use provided timestamp or default to current UTC time
             log_timestamp = timestamp or datetime.now(timezone.utc)
 
+            # Sanitize IP address (handle test IPs and invalid values)
+            # PostgreSQL INET type requires valid IPv4/IPv6
+            sanitized_ip = self._sanitize_ip_address(ip_address)
+
             # Create audit log entry using app-provided model class
             audit_log = self.model_class(
                 timestamp=log_timestamp,
-                ip_address=ip_address,
+                ip_address=sanitized_ip,
                 endpoint=endpoint,
                 rule_name=rule_name,
                 limit=limit,
@@ -208,3 +212,36 @@ class DatabaseAuditBackend(AuditBackend):
                 },
                 exc_info=True,
             )
+
+    def _sanitize_ip_address(self, ip_address: str) -> str:
+        """Sanitize IP address for database storage.
+
+        Handles test IPs and invalid values by converting them to valid
+        loopback addresses. This ensures audit logs can always be created.
+
+        Args:
+            ip_address: Raw IP address string (may be invalid)
+
+        Returns:
+            Valid IP address string (IPv4 or IPv6)
+
+        Examples:
+            >>> _sanitize_ip_address("192.168.1.1")
+            "192.168.1.1"
+            >>> _sanitize_ip_address("testclient")
+            "127.0.0.1"
+            >>> _sanitize_ip_address("unknown")
+            "127.0.0.1"
+        """
+        import ipaddress
+
+        try:
+            # Try to parse as valid IP
+            ipaddress.ip_address(ip_address)
+            return ip_address
+        except ValueError:
+            # Invalid IP - use loopback for testing/unknown IPs
+            logger.debug(
+                f"Invalid IP address '{ip_address}', using 127.0.0.1 for audit log"
+            )
+            return "127.0.0.1"

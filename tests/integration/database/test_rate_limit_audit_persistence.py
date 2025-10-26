@@ -19,7 +19,6 @@ Note:
     test database and verify actual database operations.
 """
 
-import pytest
 from datetime import datetime, timezone
 
 from sqlmodel import Session, select
@@ -180,7 +179,9 @@ class TestRateLimitAuditLogPersistence:
         db_session.refresh(log)
 
         # PostgreSQL normalizes IPv6 (compresses zeros: 0db8 → db8)
-        assert "2001:db8:85a3" in str(log.ip_address) or "2001:0db8:85a3" in str(log.ip_address)
+        assert "2001:db8:85a3" in str(log.ip_address) or "2001:0db8:85a3" in str(
+            log.ip_address
+        )
 
     def test_query_by_identifier(self, db_session: Session):
         """Test querying audit logs by identifier.
@@ -195,9 +196,10 @@ class TestRateLimitAuditLogPersistence:
         """
         # Use unique identifiers to avoid test pollution
         from uuid import uuid4
+
         unique_id1 = str(uuid4())
         unique_id2 = str(uuid4())
-        
+
         log1 = RateLimitAuditLog(
             identifier=f"user:{unique_id1}",
             ip_address="192.168.1.1",
@@ -283,6 +285,7 @@ class TestRateLimitAuditLogPersistence:
         """
         # Use truly unique IP to avoid conflicts with other test runs
         from uuid import uuid4
+
         unique_ip = f"203.0.113.{uuid4().int % 254 + 1}"  # Random IP in test range
 
         log = RateLimitAuditLog(
@@ -358,6 +361,7 @@ class TestRateLimitAuditLogPersistence:
         """
         # Use unique identifier to avoid pollution from other test runs
         from uuid import uuid4
+
         identifier = f"user:repeat-offender-{uuid4()}"
 
         # Create 3 violations

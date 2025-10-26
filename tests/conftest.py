@@ -130,8 +130,9 @@ def db_session(db: Session, request) -> Generator[Session, None, None]:
 
     # Optional: Explicit cleanup after each test
     # Deletes are cascaded based on model relationships
+    # Note: Rate limiting tests manage their own cleanup (bounded context)
     try:
-        db.execute(delete(ProviderAuditLog))
+        db.execute(delete(ProviderAuditLog))  # Provider audit logs
         db.execute(delete(ProviderToken))
         db.execute(delete(ProviderConnection))
         db.execute(delete(Provider))

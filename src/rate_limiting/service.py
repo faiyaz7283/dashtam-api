@@ -230,6 +230,9 @@ class RateLimiterService:
             # Calculate execution time
             execution_time_ms = (time.perf_counter() - start_time) * 1000
 
+            # Calculate window from refill rate (tokens/min -> seconds to fill bucket)
+            window_seconds = int((rule.max_tokens / rule.refill_rate) * 60)
+
             if allowed:
                 # Rate limit check passed (HIT)
                 logger.info(
@@ -237,10 +240,10 @@ class RateLimiterService:
                     extra={
                         "endpoint": endpoint,
                         "identifier": identifier,
-                        "rule_name": rule.name,
+                        "rule_endpoint": endpoint,  # endpoint serves as rule identifier
                         "cost": cost,
                         "limit": rule.max_tokens,
-                        "window_seconds": rule.window_seconds,
+                        "window_seconds": window_seconds,
                         "execution_time_ms": f"{execution_time_ms:.2f}",
                         "result": "allowed",
                     },
@@ -252,10 +255,10 @@ class RateLimiterService:
                     extra={
                         "endpoint": endpoint,
                         "identifier": identifier,
-                        "rule_name": rule.name,
+                        "rule_endpoint": endpoint,  # endpoint serves as rule identifier
                         "cost": cost,
                         "limit": rule.max_tokens,
-                        "window_seconds": rule.window_seconds,
+                        "window_seconds": window_seconds,
                         "retry_after": f"{retry_after:.2f}",
                         "execution_time_ms": f"{execution_time_ms:.2f}",
                         "result": "blocked",

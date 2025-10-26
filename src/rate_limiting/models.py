@@ -1,16 +1,35 @@
-"""Rate Limiting Data Models.
+"""Rate Limiting Data Models (DEPRECATED).
 
-This module defines database models for the rate limiting bounded context.
+DEPRECATION NOTICE:
+    This module is deprecated. The concrete RateLimitAuditLog model
+    has been moved to src/models/rate_limit_audit.py (Dashtam's implementation).
+    
+    Rate limiting package now only provides the abstract interface.
+    Apps implement their own database-specific models.
 
-Models:
-    RateLimitAuditLog: Audit trail for rate limit violations
+Migration Path:
+    OLD: from src.rate_limiting.models import RateLimitAuditLog
+    NEW: from src.models.rate_limit_audit import RateLimitAuditLog
 
-Architecture:
-    - Follows SOLID principles (Single Responsibility)
-    - Part of rate_limiting bounded context (DDD)
-    - Uses SQLModel for async database operations
-    - Immutable audit trail (no updates or deletes)
+Architecture Change:
+    - Rate limiting package: Only provides abstract interface
+    - Dashtam app: Implements PostgreSQL + SQLModel version
+    - Other apps: Can implement MySQL, MongoDB, etc.
 """
+
+import warnings
+
+warnings.warn(
+    "src.rate_limiting.models is deprecated. "
+    "Import from src.models.rate_limit_audit instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# Re-export for backward compatibility (temporary)
+from src.models.rate_limit_audit import RateLimitAuditLog  # noqa: F401
+
+__all__ = ["RateLimitAuditLog"]
 
 from datetime import datetime, timezone
 from typing import Optional

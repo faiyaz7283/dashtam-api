@@ -74,7 +74,7 @@ def run_async(coro):
 class TestDatabaseAuditBackend:
     """Test DatabaseAuditBackend implementation."""
 
-    def test_log_violation_success(self, db_session: Session):
+    def test_log_violation_success(self, rate_limit_db_session: Session):
         """Test successful audit log creation.
 
         Verifies that:
@@ -86,17 +86,19 @@ class TestDatabaseAuditBackend:
         Args:
             db_session: Synchronous database session fixture
         """
-        wrapped_session = AsyncToSyncWrapper(db_session)
+        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
         backend = DatabaseAuditBackend(wrapped_session)
+        unique_ip = "192.168.1.1"
+        unique_endpoint = "/api/v1/auth/login-success-test"
         
         # Don't use user_id to avoid foreign key constraint
         # (test_log_violation_with_authenticated_user tests with real user)
         async def _log():
             await backend.log_violation(
                 user_id=None,  # No user_id (unauthenticated request)
-                ip_address="192.168.1.1",
-                endpoint="/api/v1/auth/login",
-                rule_name="auth_login",
+                ip_address=unique_ip,
+                endpoint=unique_endpoint,
+                rule_name="auth_login_success",
                 limit=5,
                 window_seconds=60,
                 violation_count=1,
@@ -104,20 +106,20 @@ class TestDatabaseAuditBackend:
 
         run_async(_log())
 
-        # Verify record inserted
-        result = db_session.execute(
+        # Verify record inserted (use unique identifiers)
+        result = rate_limit_db_session.execute(
             select(RateLimitAuditLog).where(
-                RateLimitAuditLog.endpoint == "/api/v1/auth/login"
+                RateLimitAuditLog.endpoint == unique_endpoint
             ).where(
-                RateLimitAuditLog.ip_address == "192.168.1.1"
+                RateLimitAuditLog.ip_address == unique_ip
             )
         )
         log = result.scalar_one()
 
         assert log.user_id is None
-        assert log.ip_address == "192.168.1.1"
-        assert log.endpoint == "/api/v1/auth/login"
-        assert log.rule_name == "auth_login"
+        assert log.ip_address == unique_ip
+        assert log.endpoint == unique_endpoint
+        assert log.rule_name == "auth_login_success"
         assert log.limit == 5
         assert log.window_seconds == 60
         assert log.violation_count == 1
@@ -127,7 +129,7 @@ class TestDatabaseAuditBackend:
         assert log.created_at.tzinfo is not None
 
     def test_log_violation_with_authenticated_user(
-        self, db_session: Session, test_user: User
+        self, rate_limit_db_session: Session, test_user: User
     ):
         """Test audit log with authenticated user.
 
@@ -140,7 +142,7 @@ class TestDatabaseAuditBackend:
             db_session: Synchronous database session fixture
             test_user: Test user fixture (from conftest.py)
         """
-        wrapped_session = AsyncToSyncWrapper(db_session)
+        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
         backend = DatabaseAuditBackend(wrapped_session)
 
         async def _log():
@@ -157,7 +159,7 @@ class TestDatabaseAuditBackend:
         run_async(_log())
 
         # Verify audit log created with user_id
-        result = db_session.execute(
+        result = rate_limit_db_session.execute(
             select(RateLimitAuditLog).where(
                 RateLimitAuditLog.user_id == test_user.id
             )
@@ -168,7 +170,7 @@ class TestDatabaseAuditBackend:
         assert log.endpoint == "/api/v1/providers"
         assert log.violation_count == 2
 
-    def test_log_violation_without_user_id(self, db_session: Session):
+    def test_log_violation_without_user_id(self, rate_limit_db_session: Session):
         """Test audit log without authenticated user (anonymous request).
 
         Verifies that:
@@ -179,15 +181,17 @@ class TestDatabaseAuditBackend:
         Args:
             db_session: Synchronous database session fixture
         """
-        wrapped_session = AsyncToSyncWrapper(db_session)
+        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
         backend = DatabaseAuditBackend(wrapped_session)
+        unique_ip = "203.0.113.42"
+        unique_endpoint = "/api/v1/auth/login-no-user-test"
 
         async def _log():
             await backend.log_violation(
                 user_id=None,
-                ip_address="203.0.113.42",
-                endpoint="/api/v1/auth/login",
-                rule_name="auth_login",
+                ip_address=unique_ip,
+                endpoint=unique_endpoint,
+                rule_name="auth_login_no_user",
                 limit=5,
                 window_seconds=60,
                 violation_count=1,
@@ -195,19 +199,21 @@ class TestDatabaseAuditBackend:
 
         run_async(_log())
 
-        # Verify audit log created without user_id
-        result = db_session.execute(
+        # Verify audit log created without user_id (use unique identifiers)
+        result = rate_limit_db_session.execute(
             select(RateLimitAuditLog).where(
-                RateLimitAuditLog.ip_address == "203.0.113.42"
+                RateLimitAuditLog.ip_address == unique_ip
+            ).where(
+                RateLimitAuditLog.endpoint == unique_endpoint
             )
         )
         log = result.scalar_one()
 
         assert log.user_id is None
-        assert log.ip_address == "203.0.113.42"
-        assert log.endpoint == "/api/v1/auth/login"
+        assert log.ip_address == unique_ip
+        assert log.endpoint == unique_endpoint
 
-    def test_log_violation_fail_open_on_database_error(self, db_session: Session):
+    def test_log_violation_fail_open_on_database_error(self, rate_limit_db_session: Session):
         """Test fail-open behavior when database operation fails.
 
         Verifies that:
@@ -220,9 +226,9 @@ class TestDatabaseAuditBackend:
             db_session: Synchronous database session fixture
         """
         # Close session to simulate database error
-        db_session.close()
+        rate_limit_db_session.close()
 
-        wrapped_session = AsyncToSyncWrapper(db_session)
+        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
         backend = DatabaseAuditBackend(wrapped_session)
 
         # Should not raise exception (fail-open)
@@ -242,7 +248,7 @@ class TestDatabaseAuditBackend:
         except Exception as e:
             pytest.fail(f"Audit backend should fail-open, but raised: {e}")
 
-    def test_log_violation_validates_data(self, db_session: Session):
+    def test_log_violation_validates_data(self, rate_limit_db_session: Session):
         """Test data validation in audit log model.
 
         Verifies that:
@@ -253,16 +259,18 @@ class TestDatabaseAuditBackend:
         Args:
             db_session: Synchronous database session fixture
         """
-        wrapped_session = AsyncToSyncWrapper(db_session)
+        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
         backend = DatabaseAuditBackend(wrapped_session)
+        unique_ip = "192.168.2.2"
+        unique_endpoint = "/api/v1/test-validation"
 
         # Valid data should succeed
         async def _log():
             await backend.log_violation(
                 user_id=None,
-                ip_address="192.168.1.1",
-                endpoint="/api/v1/test",
-                rule_name="test_rule",
+                ip_address=unique_ip,
+                endpoint=unique_endpoint,
+                rule_name="test_rule_validation",
                 limit=10,
                 window_seconds=60,
                 violation_count=1,
@@ -270,16 +278,18 @@ class TestDatabaseAuditBackend:
 
         run_async(_log())
 
-        # Verify log created
-        result = db_session.execute(
+        # Verify log created (use unique identifiers)
+        result = rate_limit_db_session.execute(
             select(RateLimitAuditLog).where(
-                RateLimitAuditLog.rule_name == "test_rule"
+                RateLimitAuditLog.rule_name == "test_rule_validation"
+            ).where(
+                RateLimitAuditLog.ip_address == unique_ip
             )
         )
         log = result.scalar_one_or_none()
         assert log is not None
 
-    def test_log_violation_timezone_aware_timestamps(self, db_session: Session):
+    def test_log_violation_timezone_aware_timestamps(self, rate_limit_db_session: Session):
         """Test that timestamps are timezone-aware (UTC).
 
         Verifies that:
@@ -291,7 +301,7 @@ class TestDatabaseAuditBackend:
         Args:
             db_session: Synchronous database session fixture
         """
-        wrapped_session = AsyncToSyncWrapper(db_session)
+        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
         backend = DatabaseAuditBackend(wrapped_session)
         
         # Use unique IP to avoid collision with other tests
@@ -311,7 +321,7 @@ class TestDatabaseAuditBackend:
         run_async(_log())
 
         # Retrieve and verify (use unique identifiers to avoid collision)
-        result = db_session.execute(
+        result = rate_limit_db_session.execute(
             select(RateLimitAuditLog).where(
                 RateLimitAuditLog.rule_name == "test_rule_tz"
             ).where(
@@ -333,7 +343,7 @@ class TestDatabaseAuditBackend:
         assert (now - log.timestamp).total_seconds() < 60
         assert (now - log.created_at).total_seconds() < 60
 
-    def test_log_violation_multiple_violations(self, db_session: Session):
+    def test_log_violation_multiple_violations(self, rate_limit_db_session: Session):
         """Test logging multiple violations from same IP/endpoint.
 
         Verifies that:
@@ -345,19 +355,19 @@ class TestDatabaseAuditBackend:
         Args:
             db_session: Synchronous database session fixture
         """
-        wrapped_session = AsyncToSyncWrapper(db_session)
+        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
         backend = DatabaseAuditBackend(wrapped_session)
-        ip = "192.168.1.100"
-        endpoint = "/api/v1/auth/login"
+        unique_ip = "192.168.1.100"
+        unique_endpoint = "/api/v1/auth/login-multi-test"
 
         # Log 3 violations (simulating 3 requests over limit)
         async def _log_all():
             for i in range(1, 4):
                 await backend.log_violation(
                     user_id=None,
-                    ip_address=ip,
-                    endpoint=endpoint,
-                    rule_name="auth_login",
+                    ip_address=unique_ip,
+                    endpoint=unique_endpoint,
+                    rule_name="auth_login_multi",
                     limit=5,
                     window_seconds=60,
                     violation_count=i,
@@ -366,10 +376,10 @@ class TestDatabaseAuditBackend:
         run_async(_log_all())
 
         # Query all violations for this IP/endpoint
-        result = db_session.execute(
+        result = rate_limit_db_session.execute(
             select(RateLimitAuditLog)
-            .where(RateLimitAuditLog.ip_address == ip)
-            .where(RateLimitAuditLog.endpoint == endpoint)
+            .where(RateLimitAuditLog.ip_address == unique_ip)
+            .where(RateLimitAuditLog.endpoint == unique_endpoint)
         )
         logs = result.scalars().all()
 
@@ -377,7 +387,7 @@ class TestDatabaseAuditBackend:
         violation_counts = sorted([log.violation_count for log in logs])
         assert violation_counts == [1, 2, 3]
 
-    def test_log_violation_ipv6_address(self, db_session: Session):
+    def test_log_violation_ipv6_address(self, rate_limit_db_session: Session):
         """Test audit log with IPv6 address.
 
         Verifies that:
@@ -388,16 +398,17 @@ class TestDatabaseAuditBackend:
         Args:
             db_session: Synchronous database session fixture
         """
-        wrapped_session = AsyncToSyncWrapper(db_session)
+        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
         backend = DatabaseAuditBackend(wrapped_session)
         ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
+        unique_endpoint = "/api/v1/test-ipv6"
 
         async def _log():
             await backend.log_violation(
                 user_id=None,
                 ip_address=ipv6,
-                endpoint="/api/v1/test",
-                rule_name="test_rule",
+                endpoint=unique_endpoint,
+                rule_name="test_rule_ipv6",
                 limit=10,
                 window_seconds=60,
                 violation_count=1,
@@ -405,9 +416,13 @@ class TestDatabaseAuditBackend:
 
         run_async(_log())
 
-        # Verify IPv6 stored correctly
-        result = db_session.execute(
-            select(RateLimitAuditLog).where(RateLimitAuditLog.ip_address == ipv6)
+        # Verify IPv6 stored correctly (use unique identifiers)
+        result = rate_limit_db_session.execute(
+            select(RateLimitAuditLog).where(
+                RateLimitAuditLog.ip_address == ipv6
+            ).where(
+                RateLimitAuditLog.endpoint == unique_endpoint
+            )
         )
         log = result.scalar_one()
 

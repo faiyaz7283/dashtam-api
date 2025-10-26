@@ -1,219 +1,153 @@
 """Unit tests for rate limiting audit backend.
 
 Tests the DatabaseAuditBackend implementation including success cases,
-error handling, fail-open behavior, and timezone awareness.
+error handling, fail-open behavior, and database-agnostic design.
 
 Architecture:
-    - Tests isolated audit backend (unit tests)
-    - Uses async-to-sync wrapper pattern (follows project pattern)
-    - Verifies data persistence and validation
+    - Tests use MOCKS (no real database operations)
+    - Database-agnostic (tests bounded context isolation)
+    - Verifies audit backend calls model correctly
     - Tests fail-open design (errors don't raise exceptions)
 
+Design Philosophy:
+    These tests verify the rate limiting audit backend in isolation,
+    without coupling to Dashtam's database models or PostgreSQL.
+    The backend accepts any model implementing RateLimitAuditLogBase.
+
 Note:
-    DatabaseAuditBackend is async, but tests are synchronous.
-    We use AsyncToSyncWrapper (same pattern as conftest.py) to bridge.
+    No AsyncToSyncWrapper needed - tests mock session operations.
 """
 
 import asyncio
 import pytest
 from datetime import datetime, timezone
-from uuid import uuid4
-
-from sqlmodel import Session, select
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
-from src.rate_limiting.models import RateLimitAuditLog
-from src.models.user import User
+from src.rate_limiting.models.base import RateLimitAuditLogBase
 
 
-class AsyncToSyncWrapper:
-    """Wrapper to make sync Session work with async audit backend.
-
-    This is the same pattern used in tests/conftest.py for TestClient.
-    Allows synchronous tests to call async DatabaseAuditBackend methods.
-    """
-
-    def __init__(self, sync_session: Session):
-        self.session = sync_session
-
-    async def execute(self, *args, **kwargs):
-        """Wrap sync execute to be awaitable."""
-        return self.session.execute(*args, **kwargs)
-
-    async def commit(self):
-        """Wrap sync commit to be awaitable."""
-        result = self.session.commit()
-        self.session.expire_all()
-        return result
-
-    async def rollback(self):
-        """Wrap sync rollback to be awaitable."""
-        return self.session.rollback()
-
-    def add(self, *args, **kwargs):
-        """Direct pass-through for add (not awaited)."""
-        return self.session.add(*args, **kwargs)
-
-    async def close(self):
-        """Wrap close to be awaitable."""
-        pass  # Session lifecycle managed by fixture
-
-
-def run_async(coro):
-    """Helper to run async coroutine synchronously.
-
-    Args:
-        coro: Async coroutine to execute
+@pytest.fixture
+def mock_session():
+    """Create a mock database session.
 
     Returns:
-        Result of coroutine execution
+        AsyncMock session with commit, rollback, close, add, execute methods.
     """
-    return asyncio.run(coro)
+    session = AsyncMock()
+    session.add = Mock()  # Synchronous (not awaited)
+    session.commit = AsyncMock()
+    session.rollback = AsyncMock()
+    session.close = AsyncMock()
+    session.execute = AsyncMock()
+    return session
+
+
+@pytest.fixture
+def mock_model_class():
+    """Create a mock model class implementing RateLimitAuditLogBase.
+
+    Returns:
+        Mock model class that can be instantiated.
+    """
+    mock_class = Mock()
+    mock_instance = Mock(spec=RateLimitAuditLogBase)
+    mock_class.return_value = mock_instance
+    return mock_class
 
 
 class TestDatabaseAuditBackend:
-    """Test DatabaseAuditBackend implementation."""
+    """Test DatabaseAuditBackend implementation (database-agnostic with mocks).
 
-    def test_log_violation_success(self, rate_limit_db_session: Session):
+    Tests verify:
+    - Audit backend works with ANY model implementing RateLimitAuditLogBase
+    - No coupling to Dashtam's PostgreSQL or SQLModel
+    - Fail-open error handling
+    - Correct model instantiation and session usage
+    """
+
+    @pytest.mark.asyncio
+    async def test_log_violation_success(self, mock_session, mock_model_class):
         """Test successful audit log creation.
 
         Verifies that:
-        - Audit log entry created in database
-        - All fields populated correctly
-        - Timestamps are timezone-aware
-        - Record persisted after commit
+        - Model instantiated with correct parameters
+        - Session.add called with model instance
+        - Session.commit called
+        - identifier parameter used correctly
 
         Args:
-            db_session: Synchronous database session fixture
+            mock_session: Mock database session fixture
+            mock_model_class: Mock model class fixture
         """
-        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
-        backend = DatabaseAuditBackend(wrapped_session)
-        unique_ip = "192.168.1.1"
-        unique_endpoint = "/api/v1/auth/login-success-test"
+        backend = DatabaseAuditBackend(
+            session=mock_session,
+            model_class=mock_model_class,
+        )
+
+        # Log a violation
+        await backend.log_violation(
+            identifier="user:123e4567-e89b-12d3-a456-426614174000",
+            ip_address="192.168.1.1",
+            endpoint="/api/v1/auth/login",
+            rule_name="auth_login",
+            limit=5,
+            window_seconds=60,
+            violation_count=1,
+        )
+
+        # Verify model instantiated with correct parameters
+        mock_model_class.assert_called_once()
+        call_kwargs = mock_model_class.call_args[1]
         
-        # Don't use user_id to avoid foreign key constraint
-        # (test_log_violation_with_authenticated_user tests with real user)
-        async def _log():
-            await backend.log_violation(
-                user_id=None,  # No user_id (unauthenticated request)
-                ip_address=unique_ip,
-                endpoint=unique_endpoint,
-                rule_name="auth_login_success",
-                limit=5,
-                window_seconds=60,
-                violation_count=1,
-            )
+        assert call_kwargs["identifier"] == "user:123e4567-e89b-12d3-a456-426614174000"
+        assert call_kwargs["ip_address"] == "192.168.1.1"
+        assert call_kwargs["endpoint"] == "/api/v1/auth/login"
+        assert call_kwargs["rule_name"] == "auth_login"
+        assert call_kwargs["limit"] == 5
+        assert call_kwargs["window_seconds"] == 60
+        assert call_kwargs["violation_count"] == 1
+        assert "timestamp" in call_kwargs  # Auto-generated
 
-        run_async(_log())
+        # Verify session operations
+        mock_session.add.assert_called_once()
+        mock_session.commit.assert_awaited_once()
 
-        # Verify record inserted (use unique identifiers)
-        result = rate_limit_db_session.execute(
-            select(RateLimitAuditLog).where(
-                RateLimitAuditLog.endpoint == unique_endpoint
-            ).where(
-                RateLimitAuditLog.ip_address == unique_ip
-            )
-        )
-        log = result.scalar_one()
-
-        assert log.user_id is None
-        assert log.ip_address == unique_ip
-        assert log.endpoint == unique_endpoint
-        assert log.rule_name == "auth_login_success"
-        assert log.limit == 5
-        assert log.window_seconds == 60
-        assert log.violation_count == 1
-
-        # Verify timestamps are timezone-aware
-        assert log.timestamp.tzinfo is not None
-        assert log.created_at.tzinfo is not None
-
-    def test_log_violation_with_authenticated_user(
-        self, rate_limit_db_session: Session, test_user: User
-    ):
-        """Test audit log with authenticated user.
+    @pytest.mark.asyncio
+    async def test_log_violation_with_ip_identifier(self, mock_session, mock_model_class):
+        """Test audit log with IP-based identifier (anonymous request).
 
         Verifies that:
-        - user_id foreign key populated correctly
-        - Links to existing user record
-        - User relationship maintained
+        - IP identifier format supported ("ip:address")
+        - identifier field populated correctly
+        - Works for unauthenticated requests
 
         Args:
-            db_session: Synchronous database session fixture
-            test_user: Test user fixture (from conftest.py)
+            mock_session: Mock database session fixture
+            mock_model_class: Mock model class fixture
         """
-        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
-        backend = DatabaseAuditBackend(wrapped_session)
-
-        async def _log():
-            await backend.log_violation(
-                user_id=test_user.id,
-                ip_address="10.0.0.1",
-                endpoint="/api/v1/providers",
-                rule_name="api_user",
-                limit=100,
-                window_seconds=60,
-                violation_count=2,
-            )
-
-        run_async(_log())
-
-        # Verify audit log created with user_id
-        result = rate_limit_db_session.execute(
-            select(RateLimitAuditLog).where(
-                RateLimitAuditLog.user_id == test_user.id
-            )
+        backend = DatabaseAuditBackend(
+            session=mock_session,
+            model_class=mock_model_class,
         )
-        log = result.scalar_one()
 
-        assert log.user_id == test_user.id
-        assert log.endpoint == "/api/v1/providers"
-        assert log.violation_count == 2
-
-    def test_log_violation_without_user_id(self, rate_limit_db_session: Session):
-        """Test audit log without authenticated user (anonymous request).
-
-        Verifies that:
-        - user_id can be None (unauthenticated requests)
-        - IP address still tracked
-        - Audit log still created successfully
-
-        Args:
-            db_session: Synchronous database session fixture
-        """
-        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
-        backend = DatabaseAuditBackend(wrapped_session)
-        unique_ip = "203.0.113.42"
-        unique_endpoint = "/api/v1/auth/login-no-user-test"
-
-        async def _log():
-            await backend.log_violation(
-                user_id=None,
-                ip_address=unique_ip,
-                endpoint=unique_endpoint,
-                rule_name="auth_login_no_user",
-                limit=5,
-                window_seconds=60,
-                violation_count=1,
-            )
-
-        run_async(_log())
-
-        # Verify audit log created without user_id (use unique identifiers)
-        result = rate_limit_db_session.execute(
-            select(RateLimitAuditLog).where(
-                RateLimitAuditLog.ip_address == unique_ip
-            ).where(
-                RateLimitAuditLog.endpoint == unique_endpoint
-            )
+        await backend.log_violation(
+            identifier="ip:203.0.113.42",
+            ip_address="203.0.113.42",
+            endpoint="/api/v1/auth/login",
+            rule_name="auth_login_anonymous",
+            limit=5,
+            window_seconds=60,
+            violation_count=1,
         )
-        log = result.scalar_one()
 
-        assert log.user_id is None
-        assert log.ip_address == unique_ip
-        assert log.endpoint == unique_endpoint
+        # Verify identifier format
+        call_kwargs = mock_model_class.call_args[1]
+        assert call_kwargs["identifier"] == "ip:203.0.113.42"
+        assert call_kwargs["ip_address"] == "203.0.113.42"
 
-    def test_log_violation_fail_open_on_database_error(self, rate_limit_db_session: Session):
+    @pytest.mark.asyncio
+    async def test_log_violation_fail_open_on_database_error(self, mock_session, mock_model_class):
         """Test fail-open behavior when database operation fails.
 
         Verifies that:
@@ -223,18 +157,21 @@ class TestDatabaseAuditBackend:
         - System remains operational
 
         Args:
-            db_session: Synchronous database session fixture
+            mock_session: Mock database session fixture
+            mock_model_class: Mock model class fixture
         """
-        # Close session to simulate database error
-        rate_limit_db_session.close()
+        # Simulate database error on commit
+        mock_session.commit.side_effect = Exception("Database connection lost")
 
-        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
-        backend = DatabaseAuditBackend(wrapped_session)
+        backend = DatabaseAuditBackend(
+            session=mock_session,
+            model_class=mock_model_class,
+        )
 
         # Should not raise exception (fail-open)
-        async def _log():
+        try:
             await backend.log_violation(
-                user_id=uuid4(),
+                identifier="user:123e4567-e89b-12d3-a456-426614174000",
                 ip_address="192.168.1.1",
                 endpoint="/api/v1/test",
                 rule_name="test_rule",
@@ -242,188 +179,171 @@ class TestDatabaseAuditBackend:
                 window_seconds=60,
                 violation_count=1,
             )
-
-        try:
-            run_async(_log())
         except Exception as e:
             pytest.fail(f"Audit backend should fail-open, but raised: {e}")
 
-    def test_log_violation_validates_data(self, rate_limit_db_session: Session):
-        """Test data validation in audit log model.
+        # Verify model was created (attempt was made)
+        mock_model_class.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_log_violation_timestamp_generation(self, mock_session, mock_model_class):
+        """Test that timestamps are auto-generated.
 
         Verifies that:
-        - Field validators work correctly
-        - Invalid data is caught
-        - Model validation enforced
+        - timestamp parameter passed to model
+        - Timestamp is timezone-aware (UTC)
+        - Timestamp is recent (within last few seconds)
 
         Args:
-            db_session: Synchronous database session fixture
+            mock_session: Mock database session fixture
+            mock_model_class: Mock model class fixture
         """
-        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
-        backend = DatabaseAuditBackend(wrapped_session)
-        unique_ip = "192.168.2.2"
-        unique_endpoint = "/api/v1/test-validation"
-
-        # Valid data should succeed
-        async def _log():
-            await backend.log_violation(
-                user_id=None,
-                ip_address=unique_ip,
-                endpoint=unique_endpoint,
-                rule_name="test_rule_validation",
-                limit=10,
-                window_seconds=60,
-                violation_count=1,
-            )
-
-        run_async(_log())
-
-        # Verify log created (use unique identifiers)
-        result = rate_limit_db_session.execute(
-            select(RateLimitAuditLog).where(
-                RateLimitAuditLog.rule_name == "test_rule_validation"
-            ).where(
-                RateLimitAuditLog.ip_address == unique_ip
-            )
+        backend = DatabaseAuditBackend(
+            session=mock_session,
+            model_class=mock_model_class,
         )
-        log = result.scalar_one_or_none()
-        assert log is not None
 
-    def test_log_violation_timezone_aware_timestamps(self, rate_limit_db_session: Session):
-        """Test that timestamps are timezone-aware (UTC).
-
-        Verifies that:
-        - timestamp field is timezone-aware
-        - created_at field is timezone-aware
-        - Both in UTC timezone
-        - Complies with PCI-DSS requirements
-
-        Args:
-            db_session: Synchronous database session fixture
-        """
-        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
-        backend = DatabaseAuditBackend(wrapped_session)
+        before_log = datetime.now(timezone.utc)
         
-        # Use unique IP to avoid collision with other tests
-        unique_ip = "192.168.99.99"
-
-        async def _log():
-            await backend.log_violation(
-                user_id=None,
-                ip_address=unique_ip,
-                endpoint="/api/v1/test-timezone",
-                rule_name="test_rule_tz",
-                limit=10,
-                window_seconds=60,
-                violation_count=1,
-            )
-
-        run_async(_log())
-
-        # Retrieve and verify (use unique identifiers to avoid collision)
-        result = rate_limit_db_session.execute(
-            select(RateLimitAuditLog).where(
-                RateLimitAuditLog.rule_name == "test_rule_tz"
-            ).where(
-                RateLimitAuditLog.ip_address == unique_ip
-            )
+        await backend.log_violation(
+            identifier="user:123e4567-e89b-12d3-a456-426614174000",
+            ip_address="192.168.1.1",
+            endpoint="/api/v1/test",
+            rule_name="test_rule",
+            limit=10,
+            window_seconds=60,
+            violation_count=1,
         )
-        log = result.scalar_one()
 
+        after_log = datetime.now(timezone.utc)
+
+        # Verify timestamp parameter
+        call_kwargs = mock_model_class.call_args[1]
+        assert "timestamp" in call_kwargs
+        
+        timestamp = call_kwargs["timestamp"]
+        
         # Verify timezone-aware
-        assert log.timestamp.tzinfo is not None
-        assert log.created_at.tzinfo is not None
+        assert timestamp.tzinfo is not None
+        assert timestamp.tzinfo == timezone.utc
+        
+        # Verify recent (within test execution time)
+        assert before_log <= timestamp <= after_log
 
-        # Verify UTC
-        assert log.timestamp.tzinfo == timezone.utc
-        assert log.created_at.tzinfo == timezone.utc
-
-        # Verify timestamps are recent (within last minute)
-        now = datetime.now(timezone.utc)
-        assert (now - log.timestamp).total_seconds() < 60
-        assert (now - log.created_at).total_seconds() < 60
-
-    def test_log_violation_multiple_violations(self, rate_limit_db_session: Session):
-        """Test logging multiple violations from same IP/endpoint.
+    @pytest.mark.asyncio
+    async def test_log_violation_multiple_calls(self, mock_session, mock_model_class):
+        """Test logging multiple violations (verifies no state pollution).
 
         Verifies that:
-        - Multiple audit logs can be created
-        - violation_count field tracks how many over limit
-        - Each violation logged separately
-        - Query returns all violations
+        - Multiple calls work correctly
+        - Each call creates separate model instance
+        - No state pollution between calls
+        - Session operations called for each violation
 
         Args:
-            db_session: Synchronous database session fixture
+            mock_session: Mock database session fixture
+            mock_model_class: Mock model class fixture
         """
-        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
-        backend = DatabaseAuditBackend(wrapped_session)
-        unique_ip = "192.168.1.100"
-        unique_endpoint = "/api/v1/auth/login-multi-test"
-
-        # Log 3 violations (simulating 3 requests over limit)
-        async def _log_all():
-            for i in range(1, 4):
-                await backend.log_violation(
-                    user_id=None,
-                    ip_address=unique_ip,
-                    endpoint=unique_endpoint,
-                    rule_name="auth_login_multi",
-                    limit=5,
-                    window_seconds=60,
-                    violation_count=i,
-                )
-
-        run_async(_log_all())
-
-        # Query all violations for this IP/endpoint
-        result = rate_limit_db_session.execute(
-            select(RateLimitAuditLog)
-            .where(RateLimitAuditLog.ip_address == unique_ip)
-            .where(RateLimitAuditLog.endpoint == unique_endpoint)
+        backend = DatabaseAuditBackend(
+            session=mock_session,
+            model_class=mock_model_class,
         )
-        logs = result.scalars().all()
 
-        assert len(logs) == 3
-        violation_counts = sorted([log.violation_count for log in logs])
-        assert violation_counts == [1, 2, 3]
+        # Log first violation
+        await backend.log_violation(
+            identifier="user:111e1111-e11b-11d1-a111-111111111111",
+            ip_address="192.168.1.1",
+            endpoint="/api/v1/endpoint1",
+            rule_name="rule1",
+            limit=5,
+            window_seconds=60,
+            violation_count=1,
+        )
 
-    def test_log_violation_ipv6_address(self, rate_limit_db_session: Session):
-        """Test audit log with IPv6 address.
+        # Log second violation
+        await backend.log_violation(
+            identifier="user:222e2222-e22b-22d2-a222-222222222222",
+            ip_address="10.0.0.1",
+            endpoint="/api/v1/endpoint2",
+            rule_name="rule2",
+            limit=10,
+            window_seconds=120,
+            violation_count=2,
+        )
+
+        # Verify two separate model instances created
+        assert mock_model_class.call_count == 2
+
+        # Verify session operations called twice
+        assert mock_session.add.call_count == 2
+        assert mock_session.commit.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_log_violation_with_none_identifier(self, mock_session, mock_model_class):
+        """Test audit log with None identifier (edge case).
 
         Verifies that:
-        - IPv6 addresses supported (up to 45 chars)
-        - Full IPv6 address stored correctly
-        - No truncation or data loss
+        - None identifier is handled correctly
+        - System doesn't break
+        - Model still instantiated
 
         Args:
-            db_session: Synchronous database session fixture
+            mock_session: Mock database session fixture
+            mock_model_class: Mock model class fixture
         """
-        wrapped_session = AsyncToSyncWrapper(rate_limit_db_session)
-        backend = DatabaseAuditBackend(wrapped_session)
-        ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
-        unique_endpoint = "/api/v1/test-ipv6"
-
-        async def _log():
-            await backend.log_violation(
-                user_id=None,
-                ip_address=ipv6,
-                endpoint=unique_endpoint,
-                rule_name="test_rule_ipv6",
-                limit=10,
-                window_seconds=60,
-                violation_count=1,
-            )
-
-        run_async(_log())
-
-        # Verify IPv6 stored correctly (use unique identifiers)
-        result = rate_limit_db_session.execute(
-            select(RateLimitAuditLog).where(
-                RateLimitAuditLog.ip_address == ipv6
-            ).where(
-                RateLimitAuditLog.endpoint == unique_endpoint
-            )
+        backend = DatabaseAuditBackend(
+            session=mock_session,
+            model_class=mock_model_class,
         )
-        log = result.scalar_one()
 
-        assert log.ip_address == ipv6
+        await backend.log_violation(
+            identifier=None,
+            ip_address="192.168.1.1",
+            endpoint="/api/v1/test",
+            rule_name="test_rule",
+            limit=10,
+            window_seconds=60,
+            violation_count=1,
+        )
+
+        # Verify model created with None identifier
+        call_kwargs = mock_model_class.call_args[1]
+        assert call_kwargs["identifier"] is None
+        assert call_kwargs["ip_address"] == "192.168.1.1"
+
+    @pytest.mark.asyncio
+    async def test_backend_works_with_any_model_class(self, mock_session):
+        """Test backend accepts any model class (database-agnostic design).
+
+        Verifies that:
+        - Backend doesn't import concrete model
+        - Works with any model class passed to constructor
+        - True dependency inversion
+
+        Args:
+            mock_session: Mock database session fixture
+        """
+        # Create custom mock model class (simulating different ORM)
+        custom_model_class = Mock()
+        custom_instance = Mock()
+        custom_model_class.return_value = custom_instance
+
+        # Backend should accept ANY model class
+        backend = DatabaseAuditBackend(
+            session=mock_session,
+            model_class=custom_model_class,
+        )
+
+        await backend.log_violation(
+            identifier="user:123e4567-e89b-12d3-a456-426614174000",
+            ip_address="192.168.1.1",
+            endpoint="/api/v1/test",
+            rule_name="test_rule",
+            limit=10,
+            window_seconds=60,
+            violation_count=1,
+        )
+
+        # Verify custom model class was used
+        custom_model_class.assert_called_once()
+        mock_session.add.assert_called_once_with(custom_instance)

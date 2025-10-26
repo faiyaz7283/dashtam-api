@@ -516,31 +516,31 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             The audit backend itself also has fail-open error handling.
         """
         try:
-            # Parse identifier to extract user_id and ip_address
-            user_id = None
+            # Parse identifier to extract IP address
+            # Format: "user:{uuid}" or "ip:{address}"
             ip_address = "unknown"
 
-            if identifier.startswith("user:"):
-                from uuid import UUID
-
-                user_id_str = identifier.replace("user:", "")
-                try:
-                    user_id = UUID(user_id_str)
-                except ValueError:
-                    logger.warning(f"Invalid user UUID in identifier: {identifier}")
-            elif identifier.startswith("ip:"):
+            if identifier.startswith("ip:"):
                 ip_address = identifier.replace("ip:", "")
+            # For user identifiers, we can't determine IP from identifier alone
+            # The IP should ideally be passed from request context, but for now
+            # we'll set it to "unknown" for user-scoped violations
 
             # Create fresh database session for audit logging
             from src.core.database import get_session
+            from src.models.rate_limit_audit import RateLimitAuditLog
             from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
             
             async for session in get_session():
-                audit_backend = DatabaseAuditBackend(session)
+                # Create database-agnostic audit backend with Dashtam's model
+                audit_backend = DatabaseAuditBackend(
+                    session=session,
+                    model_class=RateLimitAuditLog,
+                )
                 
                 # Log violation to audit backend
                 await audit_backend.log_violation(
-                    user_id=user_id,
+                    identifier=identifier,  # Pass raw identifier
                     ip_address=ip_address,
                     endpoint=endpoint,
                     rule_name=rule.name,

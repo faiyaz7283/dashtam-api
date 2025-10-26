@@ -30,7 +30,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.rate_limiting.audit_backend import AuditBackend
+from src.rate_limiting.audit_backends.base import AuditBackend
 from src.rate_limiting.models import RateLimitAuditLog
 
 logger = logging.getLogger(__name__)

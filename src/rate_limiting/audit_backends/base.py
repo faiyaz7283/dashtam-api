@@ -9,7 +9,7 @@ Architecture:
     - Single Responsibility: Each backend handles one audit destination
 
 Example Usage:
-    >>> from src.rate_limiting.audit_backend import AuditBackend
+    >>> from src.rate_limiting.audit_backends.base import AuditBackend
     >>> from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
     >>>
     >>> # Inject backend via dependency injection

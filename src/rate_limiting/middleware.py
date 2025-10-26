@@ -46,7 +46,6 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-from src.rate_limiting.audit_backends.base import AuditBackend
 from src.rate_limiting.config import RateLimitRule
 from src.rate_limiting.service import RateLimiterService
 from src.services.jwt_service import JWTService, JWTError
@@ -96,22 +95,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         ```
     """
 
-    def __init__(self, app: ASGIApp, audit_backend: Optional[AuditBackend] = None):
+    def __init__(self, app: ASGIApp):
         """Initialize rate limit middleware.
 
         Args:
             app: FastAPI/Starlette application instance.
-            audit_backend: Optional audit backend for logging rate limit violations.
-                          If None, violations are not audited to database.
 
         Note:
             Rate limiter service is initialized lazily on first request.
+            Audit backend creates fresh database session per violation.
             This follows FastAPI best practices for middleware with async
             dependencies that must be created after app startup.
         """
         super().__init__(app)
         self._rate_limiter: Optional[RateLimiterService] = None
-        self.audit_backend = audit_backend
         self.jwt_service = JWTService()
         self._logger = logging.getLogger(__name__)
 
@@ -436,7 +433,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         )
 
         # Audit rate limit violation to database (fail-open)
-        if self.audit_backend and rule:
+        if rule:
             await self._audit_violation(
                 identifier=identifier,
                 endpoint=endpoint_key,
@@ -504,8 +501,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     ) -> None:
         """Audit rate limit violation to configured backend.
 
-        Extracts IP address and optional user ID from identifier, then logs
-        the violation to the audit backend (typically database).
+        Creates a fresh database session for each audit log to avoid
+        session lifecycle issues. The backend handles session cleanup.
 
         Fail-open design: Audit failures are logged but don't block the response.
 
@@ -534,16 +531,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             elif identifier.startswith("ip:"):
                 ip_address = identifier.replace("ip:", "")
 
-            # Log violation to audit backend
-            await self.audit_backend.log_violation(
-                user_id=user_id,
-                ip_address=ip_address,
-                endpoint=endpoint,
-                rule_name=rule.name,
-                limit=rule.max_tokens,
-                window_seconds=rule.window_seconds,
-                violation_count=1,
-            )
+            # Create fresh database session for audit logging
+            from src.core.database import get_session
+            from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
+            
+            async for session in get_session():
+                audit_backend = DatabaseAuditBackend(session)
+                
+                # Log violation to audit backend
+                await audit_backend.log_violation(
+                    user_id=user_id,
+                    ip_address=ip_address,
+                    endpoint=endpoint,
+                    rule_name=rule.name,
+                    limit=rule.max_tokens,
+                    window_seconds=rule.window_seconds,
+                    violation_count=1,
+                )
+                break  # Only need one iteration
 
         except Exception as e:
             # Fail-open: Log error but don't propagate

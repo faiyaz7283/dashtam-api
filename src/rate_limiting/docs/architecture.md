@@ -469,8 +469,5 @@ RULES = {
 
 ## Document Information
 
-**Template:** [architecture-template.md](../../templates/architecture-template.md)
-
 **Created:** 2025-10-26
-
 **Last Updated:** 2025-10-26

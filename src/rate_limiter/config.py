@@ -28,7 +28,7 @@ Key Design Decisions:
 
 Usage:
     ```python
-    from src.rate_limiting.config import RateLimitConfig, RateLimitStrategy
+    from src.rate_limiter.config import RateLimitConfig, RateLimitStrategy
 
     # Get rule for specific endpoint
     rule = RateLimitConfig.get_rule("POST /api/v1/auth/login")

@@ -15,7 +15,7 @@ SOLID Principles Tested:
 import pytest
 from pydantic import ValidationError
 
-from src.rate_limiting.config import (
+from src.rate_limiter.config import (
     RateLimitConfig,
     RateLimitRule,
     RateLimitStorage,

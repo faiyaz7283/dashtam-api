@@ -30,7 +30,7 @@ Example:
 
 Usage:
     ```python
-    from src.rate_limiting.algorithms.token_bucket import TokenBucketAlgorithm
+    from src.rate_limiter.algorithms.token_bucket import TokenBucketAlgorithm
 
     algorithm = TokenBucketAlgorithm()
     allowed, retry_after = await algorithm.is_allowed(
@@ -45,11 +45,11 @@ Usage:
 import logging
 from typing import TYPE_CHECKING
 
-from src.rate_limiting.algorithms.base import RateLimitAlgorithm
+from src.rate_limiter.algorithms.base import RateLimitAlgorithm
 
 if TYPE_CHECKING:
-    from src.rate_limiting.config import RateLimitRule
-    from src.rate_limiting.storage.base import RateLimitStorage
+    from src.rate_limiter.config import RateLimitRule
+    from src.rate_limiter.storage.base import RateLimitStorage
 
 logger = logging.getLogger(__name__)
 

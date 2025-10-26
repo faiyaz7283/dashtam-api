@@ -11,7 +11,7 @@ SOLID Principles Tested:
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from src.rate_limiting.service import RateLimiterService
+from src.rate_limiter.service import RateLimiterService
 
 
 @pytest.fixture
@@ -171,7 +171,7 @@ class TestRateLimiterService:
     ):
         """Test fail-open behavior when config lookup fails."""
         with patch(
-            "src.rate_limiting.service.RateLimitConfig.get_rule"
+            "src.rate_limiter.service.RateLimitConfig.get_rule"
         ) as mock_get_rule:
             # Mock config raises exception
             mock_get_rule.side_effect = Exception("Config error")

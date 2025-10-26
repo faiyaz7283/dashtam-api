@@ -13,7 +13,7 @@ Architecture:
 Example Usage (Dashtam - PostgreSQL):
     >>> from sqlalchemy.ext.asyncio import AsyncSession
     >>> from src.models.rate_limit_audit import RateLimitAuditLog
-    >>> from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
+    >>> from src.rate_limiter.audit_backends.database import DatabaseAuditBackend
     >>>
     >>> backend = DatabaseAuditBackend(db_session, RateLimitAuditLog)
     >>> await backend.log_violation(
@@ -38,7 +38,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.rate_limiting.audit_backends.base import AuditBackend
+from src.rate_limiter.audit_backends.base import AuditBackend
 
 logger = logging.getLogger(__name__)
 

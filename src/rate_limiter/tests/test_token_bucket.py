@@ -11,8 +11,8 @@ SOLID Principles Tested:
 import pytest
 from unittest.mock import AsyncMock
 
-from src.rate_limiting.algorithms.token_bucket import TokenBucketAlgorithm
-from src.rate_limiting.config import (
+from src.rate_limiter.algorithms.token_bucket import TokenBucketAlgorithm
+from src.rate_limiter.config import (
     RateLimitRule,
     RateLimitStrategy,
     RateLimitStorage,

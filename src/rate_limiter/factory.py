@@ -10,7 +10,7 @@ SOLID Principles:
 
 Usage:
     ```python
-    from src.rate_limiting.factory import get_rate_limiter_service
+    from src.rate_limiter.factory import get_rate_limiter_service
 
     # In FastAPI startup
     rate_limiter = await get_rate_limiter_service()
@@ -20,9 +20,9 @@ Usage:
 
 from redis.asyncio import Redis
 
-from src.rate_limiting.algorithms.token_bucket import TokenBucketAlgorithm
-from src.rate_limiting.service import RateLimiterService
-from src.rate_limiting.storage.redis_storage import RedisRateLimitStorage
+from src.rate_limiter.algorithms.token_bucket import TokenBucketAlgorithm
+from src.rate_limiter.service import RateLimiterService
+from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
 
 
 async def get_rate_limiter_service() -> RateLimiterService:

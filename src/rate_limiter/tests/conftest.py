@@ -17,10 +17,10 @@ Design Philosophy:
 
 Integration Tests:
     Integration tests (testing Dashtam's PostgreSQL implementation) live in
-    tests/integration/rate_limiting/ and use Dashtam's test fixtures.
+    tests/integration/rate_limiter/ and use Dashtam's test fixtures.
 
 Usage:
-    Tests in src/rate_limiting/tests/ automatically use these fixtures.
+    Tests in src/rate_limiter/tests/ automatically use these fixtures.
 
     Example:
         @pytest.mark.asyncio

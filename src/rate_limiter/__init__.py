@@ -20,7 +20,7 @@ SOLID Compliance:
 Quick Start:
     ```python
     from redis.asyncio import Redis
-    from src.rate_limiting import (
+    from src.rate_limiter import (
         RateLimiterService,
         TokenBucketAlgorithm,
         RedisRateLimitStorage,
@@ -52,7 +52,7 @@ For more information, see:
 """
 
 # Configuration
-from src.rate_limiting.config import (
+from src.rate_limiter.config import (
     RateLimitConfig,
     RateLimitRule,
     RateLimitStorage as RateLimitStorageEnum,
@@ -60,19 +60,19 @@ from src.rate_limiting.config import (
 )
 
 # Algorithms
-from src.rate_limiting.algorithms import (
+from src.rate_limiter.algorithms import (
     RateLimitAlgorithm,
     TokenBucketAlgorithm,
 )
 
 # Storage
-from src.rate_limiting.storage import (
+from src.rate_limiter.storage import (
     RateLimitStorage,
     RedisRateLimitStorage,
 )
 
 # Service
-from src.rate_limiting.service import RateLimiterService
+from src.rate_limiter.service import RateLimiterService
 
 __all__ = [
     # Configuration

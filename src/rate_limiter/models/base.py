@@ -14,7 +14,7 @@ Usage:
     Apps create concrete implementations for their chosen database.
 
 Example (PostgreSQL):
-    >>> from src.rate_limiting.models.postgresql import RateLimitAuditLog
+    >>> from src.rate_limiter.models.postgresql import RateLimitAuditLog
     >>> log = RateLimitAuditLog(
     ...     ip_address="192.168.1.1",
     ...     endpoint="POST /api/v1/auth/login",

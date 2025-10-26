@@ -28,7 +28,7 @@ Key Design Decisions:
 
 Usage:
     ```python
-    from src.rate_limiting.algorithms.base import RateLimitAlgorithm
+    from src.rate_limiter.algorithms.base import RateLimitAlgorithm
 
     class MyAlgorithm(RateLimitAlgorithm):
         async def is_allowed(self, storage, key, rule, cost):
@@ -41,8 +41,8 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.rate_limiting.config import RateLimitRule
-    from src.rate_limiting.storage.base import RateLimitStorage
+    from src.rate_limiter.config import RateLimitRule
+    from src.rate_limiter.storage.base import RateLimitStorage
 
 
 class RateLimitAlgorithm(ABC):

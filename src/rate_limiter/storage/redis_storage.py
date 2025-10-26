@@ -26,7 +26,7 @@ Why Lua Scripts:
 Usage:
     ```python
     from redis.asyncio import Redis
-    from src.rate_limiting.storage.redis_storage import RedisRateLimitStorage
+    from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
 
     redis_client = Redis(host="localhost", port=6379, decode_responses=True)
     storage = RedisRateLimitStorage(redis_client)
@@ -46,7 +46,7 @@ from typing import Optional
 
 from redis.asyncio import Redis
 
-from src.rate_limiting.storage.base import RateLimitStorage
+from src.rate_limiter.storage.base import RateLimitStorage
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +157,7 @@ class RedisRateLimitStorage(RateLimitStorage):
         Basic usage:
         ```python
         from redis.asyncio import Redis
-        from src.rate_limiting.storage.redis_storage import RedisRateLimitStorage
+        from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
 
         redis_client = Redis(host="localhost", port=6379, decode_responses=True)
         storage = RedisRateLimitStorage(redis_client)

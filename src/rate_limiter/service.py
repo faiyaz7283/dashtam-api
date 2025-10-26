@@ -30,9 +30,9 @@ Key Design Decisions:
 
 Usage:
     ```python
-    from src.rate_limiting.service import RateLimiterService
-    from src.rate_limiting.algorithms import TokenBucketAlgorithm
-    from src.rate_limiting.storage import RedisRateLimitStorage
+    from src.rate_limiter.service import RateLimiterService
+    from src.rate_limiter.algorithms import TokenBucketAlgorithm
+    from src.rate_limiter.storage import RedisRateLimitStorage
 
     algorithm = TokenBucketAlgorithm()
     storage = RedisRateLimitStorage(redis_client)
@@ -50,9 +50,9 @@ import logging
 import time
 from typing import Optional
 
-from src.rate_limiting.algorithms.base import RateLimitAlgorithm
-from src.rate_limiting.config import RateLimitConfig, RateLimitRule
-from src.rate_limiting.storage.base import RateLimitStorage
+from src.rate_limiter.algorithms.base import RateLimitAlgorithm
+from src.rate_limiter.config import RateLimitConfig, RateLimitRule
+from src.rate_limiter.storage.base import RateLimitStorage
 
 logger = logging.getLogger(__name__)
 

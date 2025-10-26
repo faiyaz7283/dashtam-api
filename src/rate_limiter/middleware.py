@@ -28,8 +28,8 @@ Key Design Decisions:
 
 Usage:
     ```python
-    from src.rate_limiting.middleware import RateLimitMiddleware
-    from src.rate_limiting.factory import get_rate_limiter_service
+    from src.rate_limiter.middleware import RateLimitMiddleware
+    from src.rate_limiter.factory import get_rate_limiter_service
 
     # In main.py startup
     rate_limiter = await get_rate_limiter_service()
@@ -46,8 +46,8 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-from src.rate_limiting.config import RateLimitRule
-from src.rate_limiting.service import RateLimiterService
+from src.rate_limiter.config import RateLimitRule
+from src.rate_limiter.service import RateLimiterService
 from src.services.jwt_service import JWTService, JWTError
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     Examples:
         Basic usage (no dependency injection needed):
         ```python
-        from src.rate_limiting.middleware import RateLimitMiddleware
+        from src.rate_limiter.middleware import RateLimitMiddleware
 
         # In main.py - simply add middleware
         app.add_middleware(RateLimitMiddleware)
@@ -123,7 +123,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             Thread-safe as middleware dispatch is called sequentially per request.
         """
         if self._rate_limiter is None:
-            from src.rate_limiting.factory import get_rate_limiter_service
+            from src.rate_limiter.factory import get_rate_limiter_service
 
             self._rate_limiter = await get_rate_limiter_service()
             self._logger.info("Rate limiting middleware initialized (lazy)")
@@ -529,7 +529,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Create fresh database session for audit logging
             from src.core.database import get_session
             from src.models.rate_limit_audit import RateLimitAuditLog
-            from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
+            from src.rate_limiter.audit_backends.database import DatabaseAuditBackend
 
             async for session in get_session():
                 # Create database-agnostic audit backend with Dashtam's model

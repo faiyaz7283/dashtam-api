@@ -22,8 +22,8 @@ import pytest
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock
 
-from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
-from src.rate_limiting.models.base import RateLimitAuditLogBase
+from src.rate_limiter.audit_backends.database import DatabaseAuditBackend
+from src.rate_limiter.models.base import RateLimitAuditLogBase
 
 
 @pytest.fixture

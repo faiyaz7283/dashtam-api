@@ -11,7 +11,7 @@ Available Storage Backends:
 
 Usage:
     ```python
-    from src.rate_limiting.storage import RateLimitStorage, RedisRateLimitStorage
+    from src.rate_limiter.storage import RateLimitStorage, RedisRateLimitStorage
 
     storage = RedisRateLimitStorage(redis_client)
     allowed, retry_after, remaining = await storage.check_and_consume(
@@ -20,8 +20,8 @@ Usage:
     ```
 """
 
-from src.rate_limiting.storage.base import RateLimitStorage
-from src.rate_limiting.storage.redis_storage import RedisRateLimitStorage
+from src.rate_limiter.storage.base import RateLimitStorage
+from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
 
 __all__ = [
     "RateLimitStorage",

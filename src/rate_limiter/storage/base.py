@@ -30,7 +30,7 @@ Key Design Decisions:
 
 Usage:
     ```python
-    from src.rate_limiting.storage.base import RateLimitStorage
+    from src.rate_limiter.storage.base import RateLimitStorage
 
     class MyStorage(RateLimitStorage):
         async def check_and_consume(self, key, max_tokens, refill_rate, cost):

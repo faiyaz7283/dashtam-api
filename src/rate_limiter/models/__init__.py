@@ -20,7 +20,7 @@ Example (Dashtam - PostgreSQL + SQLModel):
     >>> # In src/models/rate_limit_audit.py (Dashtam's implementation)
     >>> from sqlmodel import Field, SQLModel
     >>> from sqlalchemy.dialects.postgresql import INET
-    >>> from src.rate_limiting.models import RateLimitAuditLogBase
+    >>> from src.rate_limiter.models import RateLimitAuditLogBase
     >>>
     >>> class RateLimitAuditLog(SQLModel, table=True):
     ...     # Implements RateLimitAuditLogBase interface
@@ -32,7 +32,7 @@ Example (Dashtam - PostgreSQL + SQLModel):
 Example (Other App - MySQL + Django ORM):
     >>> # In their app (Django implementation)
     >>> from django.db import models
-    >>> from src.rate_limiting.models import RateLimitAuditLogBase
+    >>> from src.rate_limiter.models import RateLimitAuditLogBase
     >>>
     >>> class RateLimitAuditLog(models.Model):
     ...     # Implements RateLimitAuditLogBase interface
@@ -44,7 +44,7 @@ Example (Other App - MySQL + Django ORM):
 Example (Other App - MongoDB + Pydantic):
     >>> # In their app (MongoDB implementation)
     >>> from pydantic import BaseModel
-    >>> from src.rate_limiting.models import RateLimitAuditLogBase
+    >>> from src.rate_limiter.models import RateLimitAuditLogBase
     >>>
     >>> class RateLimitAuditLog(BaseModel):
     ...     # Implements RateLimitAuditLogBase interface
@@ -54,7 +54,7 @@ Example (Other App - MongoDB + Pydantic):
     ...     # ... rest of fields from base ...
 """
 
-from src.rate_limiting.models.base import RateLimitAuditLogBase
+from src.rate_limiter.models.base import RateLimitAuditLogBase
 
 __all__ = [
     "RateLimitAuditLogBase",  # Abstract interface (the contract)

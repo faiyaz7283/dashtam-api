@@ -1,7 +1,7 @@
 """Unit tests for rate limiting package.
 
-This test suite is co-located with the rate_limiting package to maintain
-complete independence and portability. The rate_limiting package can be
+This test suite is co-located with the rate_limiter package to maintain
+complete independence and portability. The rate_limiter package can be
 extracted to a separate project or PyPI package with its tests intact.
 
 Test Organization:
@@ -12,11 +12,11 @@ Test Organization:
 
 Running Tests:
     # Run all rate limiting tests
-    pytest src/rate_limiting/tests/
+    pytest src/rate_limiter/tests/
 
     # Run with coverage
-    pytest src/rate_limiting/tests/ --cov=src.rate_limiting
+    pytest src/rate_limiter/tests/ --cov=src.rate_limiter
 
     # Run specific test file
-    pytest src/rate_limiting/tests/test_config.py -v
+    pytest src/rate_limiter/tests/test_config.py -v
 """

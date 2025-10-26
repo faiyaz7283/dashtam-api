@@ -14,7 +14,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from src.core.config import settings
 from src.core.database import close_db
 from src.api.v1 import api_router
-from src.rate_limiting.middleware import RateLimitMiddleware
+from src.rate_limiter.middleware import RateLimitMiddleware
 
 # Configure logging
 logging.basicConfig(

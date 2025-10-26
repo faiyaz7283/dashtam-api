@@ -24,7 +24,7 @@ import pytest
 from unittest.mock import patch
 import fakeredis.aioredis
 
-from src.rate_limiting.storage.redis_storage import RedisRateLimitStorage
+from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
 
 
 # ============================================================================

@@ -9,8 +9,8 @@ Architecture:
     - Single Responsibility: Each backend handles one audit destination
 
 Example Usage:
-    >>> from src.rate_limiting.audit_backends.base import AuditBackend
-    >>> from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
+    >>> from src.rate_limiter.audit_backends.base import AuditBackend
+    >>> from src.rate_limiter.audit_backends.database import DatabaseAuditBackend
     >>>
     >>> # Inject backend via dependency injection
     >>> backend: AuditBackend = DatabaseAuditBackend(db_session)
@@ -44,7 +44,7 @@ class AuditBackend(ABC):
         - Extensibility: New backends without changing existing code
 
     Implementations:
-        - DatabaseAuditBackend: Logs to PostgreSQL (src.rate_limiting.audit_backends.database)
+        - DatabaseAuditBackend: Logs to PostgreSQL (src.rate_limiter.audit_backends.database)
         - Future: FileAuditBackend, SyslogAuditBackend, etc.
 
     Example:

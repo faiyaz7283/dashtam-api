@@ -11,15 +11,15 @@ Available Algorithms:
 
 Usage:
     ```python
-    from src.rate_limiting.algorithms import RateLimitAlgorithm, TokenBucketAlgorithm
+    from src.rate_limiter.algorithms import RateLimitAlgorithm, TokenBucketAlgorithm
 
     algorithm = TokenBucketAlgorithm()
     allowed, retry_after = await algorithm.is_allowed(storage, key, rule, cost)
     ```
 """
 
-from src.rate_limiting.algorithms.base import RateLimitAlgorithm
-from src.rate_limiting.algorithms.token_bucket import TokenBucketAlgorithm
+from src.rate_limiter.algorithms.base import RateLimitAlgorithm
+from src.rate_limiter.algorithms.token_bucket import TokenBucketAlgorithm
 
 __all__ = [
     "RateLimitAlgorithm",

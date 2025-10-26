@@ -46,6 +46,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
+from src.rate_limiting.audit_backends.base import AuditBackend
 from src.rate_limiting.config import RateLimitRule
 from src.rate_limiting.service import RateLimiterService
 from src.services.jwt_service import JWTService, JWTError
@@ -95,11 +96,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         ```
     """
 
-    def __init__(self, app: ASGIApp):
+    def __init__(self, app: ASGIApp, audit_backend: Optional[AuditBackend] = None):
         """Initialize rate limit middleware.
 
         Args:
             app: FastAPI/Starlette application instance.
+            audit_backend: Optional audit backend for logging rate limit violations.
+                          If None, violations are not audited to database.
 
         Note:
             Rate limiter service is initialized lazily on first request.
@@ -108,6 +111,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         """
         super().__init__(app)
         self._rate_limiter: Optional[RateLimiterService] = None
+        self.audit_backend = audit_backend
         self.jwt_service = JWTService()
         self._logger = logging.getLogger(__name__)
 
@@ -424,12 +428,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             "X-RateLimit-Reset": str(int(retry_after)),
         }
 
-        # Log rate limit violation
+        # Log rate limit violation (structured logging)
         logger.warning(
             f"Rate limit exceeded: endpoint={endpoint_key}, "
             f"identifier={identifier}, "
             f"retry_after={retry_after:.2f}s"
         )
+
+        # Audit rate limit violation to database (fail-open)
+        if self.audit_backend and rule:
+            await self._audit_violation(
+                identifier=identifier,
+                endpoint=endpoint_key,
+                rule=rule,
+            )
 
         return JSONResponse(status_code=429, content=response_data, headers=headers)
 
@@ -483,3 +495,63 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             # Don't break response if header addition fails
             logger.error(f"Failed to add rate limit headers: {e}")
+
+    async def _audit_violation(
+        self,
+        identifier: str,
+        endpoint: str,
+        rule: RateLimitRule,
+    ) -> None:
+        """Audit rate limit violation to configured backend.
+
+        Extracts IP address and optional user ID from identifier, then logs
+        the violation to the audit backend (typically database).
+
+        Fail-open design: Audit failures are logged but don't block the response.
+
+        Args:
+            identifier: Request identifier ("user:{uuid}" or "ip:{address}").
+            endpoint: Endpoint key that was rate limited.
+            rule: Rate limit rule that was violated.
+
+        Note:
+            This method never raises exceptions. All errors are caught and logged.
+            The audit backend itself also has fail-open error handling.
+        """
+        try:
+            # Parse identifier to extract user_id and ip_address
+            user_id = None
+            ip_address = "unknown"
+
+            if identifier.startswith("user:"):
+                from uuid import UUID
+
+                user_id_str = identifier.replace("user:", "")
+                try:
+                    user_id = UUID(user_id_str)
+                except ValueError:
+                    logger.warning(f"Invalid user UUID in identifier: {identifier}")
+            elif identifier.startswith("ip:"):
+                ip_address = identifier.replace("ip:", "")
+
+            # Log violation to audit backend
+            await self.audit_backend.log_violation(
+                user_id=user_id,
+                ip_address=ip_address,
+                endpoint=endpoint,
+                rule_name=rule.name,
+                limit=rule.max_tokens,
+                window_seconds=rule.window_seconds,
+                violation_count=1,
+            )
+
+        except Exception as e:
+            # Fail-open: Log error but don't propagate
+            logger.error(
+                f"Failed to audit rate limit violation: {e}",
+                extra={
+                    "identifier": identifier,
+                    "endpoint": endpoint,
+                    "rule_name": rule.name,
+                },
+            )

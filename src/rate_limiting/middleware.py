@@ -168,7 +168,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
             if not allowed:
                 # Rate limited: return HTTP 429
-                return self._rate_limit_response(
+                return await self._rate_limit_response(
                     request=request,
                     retry_after=retry_after,
                     rule=rule,
@@ -371,7 +371,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Last resort fallback
         return "ip:unknown"
 
-    def _rate_limit_response(
+    async def _rate_limit_response(
         self,
         request: Request,
         retry_after: float,

@@ -530,22 +530,26 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             from src.core.database import get_session
             from src.models.rate_limit_audit import RateLimitAuditLog
             from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
-            
+
             async for session in get_session():
                 # Create database-agnostic audit backend with Dashtam's model
                 audit_backend = DatabaseAuditBackend(
                     session=session,
                     model_class=RateLimitAuditLog,
                 )
-                
+
                 # Log violation to audit backend
+                # Note: rule doesn't have 'name' or 'window_seconds' attributes
+                # Use endpoint as rule_name and calculate window from refill_rate
+                window_seconds = int((rule.max_tokens / rule.refill_rate) * 60)
+
                 await audit_backend.log_violation(
                     identifier=identifier,  # Pass raw identifier
                     ip_address=ip_address,
                     endpoint=endpoint,
-                    rule_name=rule.name,
+                    rule_name=endpoint,  # Use endpoint as rule name
                     limit=rule.max_tokens,
-                    window_seconds=rule.window_seconds,
+                    window_seconds=window_seconds,
                     violation_count=1,
                 )
                 break  # Only need one iteration

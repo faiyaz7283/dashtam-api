@@ -76,10 +76,10 @@ class RateLimitAuditLogBase(ABC):
         ```python
         from sqlmodel import Field, SQLModel, Column
         from sqlalchemy.dialects.postgresql import INET
-        
+
         class RateLimitAuditLog(SQLModel, table=True):
             __tablename__ = "rate_limit_audit_logs"
-            
+
             id: UUID = Field(default_factory=uuid4, primary_key=True)
             ip_address: str = Field(sa_column=Column(INET))  # PostgreSQL native
             endpoint: str = Field(...)
@@ -96,7 +96,7 @@ class RateLimitAuditLogBase(ABC):
         ```python
         class MySQLRateLimitAuditLog(SQLModel, table=True):
             __tablename__ = "rate_limit_audit_logs"
-            
+
             id: UUID = Field(default_factory=uuid4, primary_key=True)
             ip_address: str = Field(sa_column=Column(String(45)))  # VARCHAR
             # ... rest same as PostgreSQL ...
@@ -115,4 +115,6 @@ class RateLimitAuditLogBase(ABC):
     created_at: datetime  # Must be timezone-aware (UTC)
 
     # Optional fields
-    identifier: Optional[str] = None  # App-defined tracking (user, tenant, session, etc.)
+    identifier: Optional[str] = (
+        None  # App-defined tracking (user, tenant, session, etc.)
+    )

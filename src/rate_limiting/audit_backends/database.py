@@ -35,7 +35,6 @@ Example Usage (Other App - MySQL):
 import logging
 from datetime import datetime, timezone
 from typing import Optional
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

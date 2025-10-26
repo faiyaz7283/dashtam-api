@@ -21,15 +21,13 @@ Integration Tests:
 
 Usage:
     Tests in src/rate_limiting/tests/ automatically use these fixtures.
-    
+
     Example:
         @pytest.mark.asyncio
         async def test_audit_backend(mock_session, mock_model_class):
             backend = DatabaseAuditBackend(mock_session, mock_model_class)
             await backend.log_violation(...)
 """
-
-import pytest
 
 # All fixtures for rate limiting unit tests are defined in individual test files
 # to maintain test isolation and clarity. Common fixtures can be added here

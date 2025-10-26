@@ -18,10 +18,9 @@ Note:
     No AsyncToSyncWrapper needed - tests mock session operations.
 """
 
-import asyncio
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, Mock
 
 from src.rate_limiting.audit_backends.database import DatabaseAuditBackend
 from src.rate_limiting.models.base import RateLimitAuditLogBase
@@ -99,7 +98,7 @@ class TestDatabaseAuditBackend:
         # Verify model instantiated with correct parameters
         mock_model_class.assert_called_once()
         call_kwargs = mock_model_class.call_args[1]
-        
+
         assert call_kwargs["identifier"] == "user:123e4567-e89b-12d3-a456-426614174000"
         assert call_kwargs["ip_address"] == "192.168.1.1"
         assert call_kwargs["endpoint"] == "/api/v1/auth/login"
@@ -114,7 +113,9 @@ class TestDatabaseAuditBackend:
         mock_session.commit.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_log_violation_with_ip_identifier(self, mock_session, mock_model_class):
+    async def test_log_violation_with_ip_identifier(
+        self, mock_session, mock_model_class
+    ):
         """Test audit log with IP-based identifier (anonymous request).
 
         Verifies that:
@@ -147,7 +148,9 @@ class TestDatabaseAuditBackend:
         assert call_kwargs["ip_address"] == "203.0.113.42"
 
     @pytest.mark.asyncio
-    async def test_log_violation_fail_open_on_database_error(self, mock_session, mock_model_class):
+    async def test_log_violation_fail_open_on_database_error(
+        self, mock_session, mock_model_class
+    ):
         """Test fail-open behavior when database operation fails.
 
         Verifies that:
@@ -186,7 +189,9 @@ class TestDatabaseAuditBackend:
         mock_model_class.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_log_violation_timestamp_generation(self, mock_session, mock_model_class):
+    async def test_log_violation_timestamp_generation(
+        self, mock_session, mock_model_class
+    ):
         """Test that timestamps are auto-generated.
 
         Verifies that:
@@ -204,7 +209,7 @@ class TestDatabaseAuditBackend:
         )
 
         before_log = datetime.now(timezone.utc)
-        
+
         await backend.log_violation(
             identifier="user:123e4567-e89b-12d3-a456-426614174000",
             ip_address="192.168.1.1",
@@ -220,13 +225,13 @@ class TestDatabaseAuditBackend:
         # Verify timestamp parameter
         call_kwargs = mock_model_class.call_args[1]
         assert "timestamp" in call_kwargs
-        
+
         timestamp = call_kwargs["timestamp"]
-        
+
         # Verify timezone-aware
         assert timestamp.tzinfo is not None
         assert timestamp.tzinfo == timezone.utc
-        
+
         # Verify recent (within test execution time)
         assert before_log <= timestamp <= after_log
 
@@ -279,7 +284,9 @@ class TestDatabaseAuditBackend:
         assert mock_session.commit.await_count == 2
 
     @pytest.mark.asyncio
-    async def test_log_violation_with_none_identifier(self, mock_session, mock_model_class):
+    async def test_log_violation_with_none_identifier(
+        self, mock_session, mock_model_class
+    ):
         """Test audit log with None identifier (edge case).
 
         Verifies that:

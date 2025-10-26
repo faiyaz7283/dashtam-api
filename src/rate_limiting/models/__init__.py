@@ -21,7 +21,7 @@ Example (Dashtam - PostgreSQL + SQLModel):
     >>> from sqlmodel import Field, SQLModel
     >>> from sqlalchemy.dialects.postgresql import INET
     >>> from src.rate_limiting.models import RateLimitAuditLogBase
-    >>> 
+    >>>
     >>> class RateLimitAuditLog(SQLModel, table=True):
     ...     # Implements RateLimitAuditLogBase interface
     ...     id: UUID = Field(default_factory=uuid4, primary_key=True)
@@ -33,7 +33,7 @@ Example (Other App - MySQL + Django ORM):
     >>> # In their app (Django implementation)
     >>> from django.db import models
     >>> from src.rate_limiting.models import RateLimitAuditLogBase
-    >>> 
+    >>>
     >>> class RateLimitAuditLog(models.Model):
     ...     # Implements RateLimitAuditLogBase interface
     ...     id = models.UUIDField(primary_key=True)
@@ -45,7 +45,7 @@ Example (Other App - MongoDB + Pydantic):
     >>> # In their app (MongoDB implementation)
     >>> from pydantic import BaseModel
     >>> from src.rate_limiting.models import RateLimitAuditLogBase
-    >>> 
+    >>>
     >>> class RateLimitAuditLog(BaseModel):
     ...     # Implements RateLimitAuditLogBase interface
     ...     id: UUID

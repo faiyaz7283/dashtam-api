@@ -47,6 +47,7 @@ Usage:
 """
 
 import logging
+import time
 from typing import Optional
 
 from src.rate_limiting.algorithms.base import RateLimitAlgorithm
@@ -197,12 +198,22 @@ class RateLimiterService:
             )
             ```
         """
+        # Start timing for performance monitoring
+        start_time = time.perf_counter()
+
         try:
             # Step 1: Look up rate limit rule
             rule = RateLimitConfig.get_rule(endpoint)
             if rule is None or not rule.enabled:
                 # No rate limiting configured for this endpoint
-                logger.debug(f"No rate limit rule for endpoint={endpoint}")
+                logger.debug(
+                    "Rate limit: No rule configured",
+                    extra={
+                        "endpoint": endpoint,
+                        "identifier": identifier,
+                        "rule_configured": False,
+                    },
+                )
                 return True, 0.0, None
 
             # Step 2: Build unique key
@@ -216,24 +227,59 @@ class RateLimiterService:
                 cost=cost,
             )
 
+            # Calculate execution time
+            execution_time_ms = (time.perf_counter() - start_time) * 1000
+
             if allowed:
+                # Rate limit check passed (HIT)
                 logger.info(
-                    f"Rate limit check passed: endpoint={endpoint}, "
-                    f"identifier={identifier}, cost={cost}"
+                    "Rate limit: Request allowed",
+                    extra={
+                        "endpoint": endpoint,
+                        "identifier": identifier,
+                        "rule_name": rule.name,
+                        "cost": cost,
+                        "limit": rule.max_tokens,
+                        "window_seconds": rule.window_seconds,
+                        "execution_time_ms": f"{execution_time_ms:.2f}",
+                        "result": "allowed",
+                    },
                 )
             else:
+                # Rate limit check failed (MISS)
                 logger.warning(
-                    f"Rate limit exceeded: endpoint={endpoint}, "
-                    f"identifier={identifier}, retry_after={retry_after:.2f}s"
+                    "Rate limit: Request blocked",
+                    extra={
+                        "endpoint": endpoint,
+                        "identifier": identifier,
+                        "rule_name": rule.name,
+                        "cost": cost,
+                        "limit": rule.max_tokens,
+                        "window_seconds": rule.window_seconds,
+                        "retry_after": f"{retry_after:.2f}",
+                        "execution_time_ms": f"{execution_time_ms:.2f}",
+                        "result": "blocked",
+                    },
                 )
 
             return allowed, retry_after, rule
 
         except Exception as e:
+            # Calculate execution time even for failures
+            execution_time_ms = (time.perf_counter() - start_time) * 1000
+
             # Fail-open: Allow request if any error occurs
             logger.error(
-                f"Rate limiter service failed for endpoint={endpoint}, "
-                f"identifier={identifier}: {e}. Failing open (allowing request)."
+                "Rate limit: Service failure (fail-open)",
+                extra={
+                    "endpoint": endpoint,
+                    "identifier": identifier,
+                    "cost": cost,
+                    "error": str(e),
+                    "execution_time_ms": f"{execution_time_ms:.2f}",
+                    "result": "fail_open",
+                },
+                exc_info=True,
             )
             return True, 0.0, None
 

@@ -1,6 +1,6 @@
-"""Factory function for rate limiter service dependency injection.
+"""Factory function for Rate Limiter service dependency injection.
 
-This module provides factory functions to create and configure the rate limiter
+This module provides factory functions to create and configure the Rate Limiter
 service with all its dependencies. It implements the Dependency Inversion
 Principle by creating concrete implementations and injecting them into the service.
 
@@ -26,7 +26,7 @@ from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
 
 
 async def get_rate_limiter_service() -> RateLimiterService:
-    """Factory function to create rate limiter service with dependencies.
+    """Factory function to create Rate Limiter service with dependencies.
 
     This function implements the Dependency Inversion Principle:
     - High-level service (RateLimiterService) depends on abstractions

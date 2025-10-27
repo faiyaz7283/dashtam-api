@@ -1,12 +1,12 @@
-# Rate Limiting Observability
+# Rate Limiter Observability
 
-Comprehensive guide to monitoring, logging, metrics, and alerting for the rate limiting system.
+Comprehensive guide to monitoring, logging, metrics, and alerting for the Rate Limiter system.
 
 ---
 
 ## Overview
 
-The rate limiting system provides rich observability through structured logging, database audit trails, and performance metrics. This enables real-time monitoring, attack detection, and system health analysis.
+The Rate Limiter system provides rich observability through structured logging, database audit trails, and performance metrics. This enables real-time monitoring, attack detection, and system health analysis.
 
 ### Why Observability Matters
 
@@ -20,10 +20,10 @@ Proper observability enables:
 
 ## Context
 
-The rate limiting system generates observability data from three sources:
+The Rate Limiter system generates observability data from three sources:
 
 1. **Structured Logs**: Real-time events with rich context (Python logging)
-2. **Audit Database**: Permanent violation records (PostgreSQL)
+2. **Audit Database**: Permanent violation records (database-agnostic)
 3. **Performance Metrics**: Latency and throughput measurements
 
 All sources follow fail-open design - observability failures never block requests.
@@ -207,31 +207,33 @@ ORDER BY hour;
 
 ```sql
 SELECT 
-    ip_address,
+    identifier,
     COUNT(*) as violations,
     COUNT(DISTINCT endpoint) as endpoints_hit,
     MIN(timestamp) as first_seen,
     MAX(timestamp) as last_seen
 FROM rate_limit_audit_logs
 WHERE timestamp > NOW() - INTERVAL '1 day'
-GROUP BY ip_address
+  AND identifier LIKE 'ip:%'
+GROUP BY identifier
 HAVING COUNT(*) > 100
 ORDER BY violations DESC
 LIMIT 50;
 ```
 
-**Identify abusive users:**
+**Identify abusive identifiers:**
 
 ```sql
 SELECT 
-    u.email,
-    u.id as user_id,
+    identifier,
     COUNT(*) as violations,
-    STRING_AGG(DISTINCT ral.endpoint, ', ') as endpoints
-FROM rate_limit_audit_logs ral
-JOIN users u ON ral.user_id = u.id
-WHERE ral.timestamp > NOW() - INTERVAL '1 day'
-GROUP BY u.id, u.email
+    STRING_AGG(DISTINCT endpoint, ', ') as endpoints,
+    MIN(timestamp) as first_seen,
+    MAX(timestamp) as last_seen
+FROM rate_limit_audit_logs
+WHERE timestamp > NOW() - INTERVAL '1 day'
+  AND identifier LIKE 'user:%'
+GROUP BY identifier
 HAVING COUNT(*) > 500
 ORDER BY violations DESC;
 ```
@@ -243,7 +245,7 @@ SELECT
     DATE_TRUNC('minute', timestamp) as minute,
     endpoint,
     COUNT(*) as violations,
-    COUNT(DISTINCT ip_address) as unique_ips
+    COUNT(DISTINCT identifier) as unique_identifiers
 FROM rate_limit_audit_logs
 WHERE timestamp BETWEEN '2025-10-26 12:00:00+00' 
                     AND '2025-10-26 13:00:00+00'
@@ -257,8 +259,8 @@ ORDER BY minute, violations DESC;
 SELECT 
     rule_name,
     COUNT(*) as total_violations,
-    COUNT(DISTINCT ip_address) as unique_ips,
-    COUNT(DISTINCT user_id) as unique_users,
+    COUNT(DISTINCT identifier) FILTER (WHERE identifier LIKE 'ip:%') as unique_ips,
+    COUNT(DISTINCT identifier) FILTER (WHERE identifier LIKE 'user:%') as unique_users,
     AVG(violation_count) as avg_requests_over_limit
 FROM rate_limit_audit_logs
 WHERE timestamp > NOW() - INTERVAL '7 days'
@@ -273,8 +275,8 @@ flowchart TB
     Logs[(rate_limit_audit_logs)]
     
     Logs --> Q1[Query by Endpoint<br/>SELECT * WHERE endpoint = ?]
-    Logs --> Q2[Query by IP<br/>SELECT * WHERE ip_address = ?]
-    Logs --> Q3[Query by User<br/>SELECT * WHERE user_id = ?]
+    Logs --> Q2[Query by Identifier<br/>SELECT * WHERE identifier = ?]
+    Logs --> Q3[Query by Pattern<br/>SELECT * WHERE identifier LIKE ?]
     Logs --> Q4[Query by Time Range<br/>SELECT * WHERE timestamp BETWEEN ? AND ?]
     
     Q1 --> Analysis[Security Analysis]
@@ -366,7 +368,7 @@ expr: rate(rate_limit_fail_open_total[5m]) > 10
 for: 5m
 severity: critical
 annotations:
-  summary: "Rate limiter fail-open events detected"
+  summary: "Rate Limiter fail-open events detected"
   description: "{{ $value }} fail-open events/min in last 5 minutes"
   runbook: "https://docs.example.com/runbooks/rate-limiter-fail-open"
 ```
@@ -532,7 +534,7 @@ rps_by_endpoint = {
 
 - Fail-open counter increasing
 - Error logs showing exceptions
-- Rate limiting not enforcing
+- Rate Limiter not enforcing
 
 **Investigation:**
 
@@ -576,15 +578,15 @@ rps_by_endpoint = {
 
 **PCI-DSS:**
 
-- ✅ Audit trail with UTC timestamps (TIMESTAMPTZ)
+- ✅ Audit trail with UTC timestamps (timezone-aware)
 - ✅ Immutable logs (no UPDATE/DELETE)
 - ✅ Indexed for fast queries
-- ✅ Foreign key relationships (user_id)
+- ✅ Queryable by identifier for analysis
 
 **GDPR:**
 
-- ✅ Cascade delete (user deletion removes audit logs)
-- ✅ Queryable by user_id for data exports
+- ✅ Optional cascade delete (application controls relationships)
+- ✅ Queryable by identifier for data exports
 - ✅ Retention policies supported (date-based cleanup)
 
 **SOC 2:**
@@ -602,8 +604,8 @@ rps_by_endpoint = {
 SELECT 
     DATE_TRUNC('day', timestamp) as day,
     COUNT(*) as total_violations,
-    COUNT(DISTINCT ip_address) as unique_ips,
-    COUNT(DISTINCT user_id) FILTER (WHERE user_id IS NOT NULL) as unique_users
+    COUNT(DISTINCT identifier) FILTER (WHERE identifier LIKE 'ip:%') as unique_ips,
+    COUNT(DISTINCT identifier) FILTER (WHERE identifier LIKE 'user:%') as unique_users
 FROM rate_limit_audit_logs
 WHERE timestamp > DATE_TRUNC('month', CURRENT_DATE)
 GROUP BY day
@@ -616,7 +618,7 @@ ORDER BY day;
 SELECT 
     endpoint,
     COUNT(*) as violations_blocked,
-    COUNT(DISTINCT ip_address) as attacking_ips,
+    COUNT(DISTINCT identifier) FILTER (WHERE identifier LIKE 'ip:%') as attacking_ips,
     AVG(violation_count) as avg_requests_over_limit
 FROM rate_limit_audit_logs
 WHERE timestamp > NOW() - INTERVAL '30 days'
@@ -626,9 +628,9 @@ ORDER BY violations_blocked DESC;
 
 ## References
 
-- [Rate Limiting Architecture](architecture.md)
-- [Rate Limiting Audit Trail](audit.md)
-- [Rate Limiting Request Flow](request-flow.md)
+- [Rate Limiter Architecture](architecture.md)
+- [Rate Limiter Audit Trail](audit.md)
+- [Rate Limiter Request Flow](request-flow.md)
 - [Grafana Dashboard Examples](https://grafana.com/docs/grafana/latest/)
 - [ELK Stack Documentation](https://www.elastic.co/guide/index.html)
 
@@ -637,4 +639,4 @@ ORDER BY violations_blocked DESC;
 ## Document Information
 
 **Created:** 2025-10-26
-**Last Updated:** 2025-10-26
+**Last Updated:** 2025-10-31

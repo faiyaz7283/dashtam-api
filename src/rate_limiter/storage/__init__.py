@@ -1,6 +1,6 @@
-"""Rate limiting storage backends package.
+"""Rate Limiter storage backends package.
 
-This package contains all rate limiting storage implementations following
+This package contains all Rate Limiter storage implementations following
 the Strategy Pattern. Each storage backend implements the RateLimitStorage
 interface and can be swapped without changing the algorithm or service code.
 

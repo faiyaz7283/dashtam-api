@@ -1,6 +1,6 @@
-"""Rate Limiting Models Package.
+"""Rate Limiter Models Package.
 
-This package provides the abstract interface for rate limiting audit logs.
+This package provides the abstract interface for Rate Limiter audit logs.
 Apps implement their own database-specific models based on this interface.
 
 Architecture:
@@ -13,7 +13,7 @@ Exports:
     - RateLimitAuditLogBase: Abstract interface defining required fields
 
 Usage Pattern:
-    Rate limiting package provides the interface.
+    Rate Limiter package provides the interface.
     Apps implement the concrete model for their database.
 
 Example (Dashtam - PostgreSQL + SQLModel):

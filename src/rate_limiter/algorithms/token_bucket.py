@@ -1,6 +1,6 @@
-"""Token Bucket rate limiting algorithm implementation.
+"""Token Bucket Rate Limiter algorithm implementation.
 
-This module implements the Token Bucket algorithm for rate limiting. It's the
+This module implements the Token Bucket algorithm for Rate Limiter. It's the
 recommended algorithm for financial APIs due to:
 - Allows bursts (better UX than fixed window)
 - Smooth traffic (better than fixed window edge cases)
@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 class TokenBucketAlgorithm(RateLimitAlgorithm):
-    """Token Bucket rate limiting algorithm.
+    """Token Bucket Rate Limiter algorithm.
 
     Implements the token bucket algorithm by delegating storage operations
     to the storage backend. The algorithm itself is stateless - all state
@@ -70,7 +70,7 @@ class TokenBucketAlgorithm(RateLimitAlgorithm):
 
     Fail-Open Strategy:
         If storage fails (Redis down, network error, etc.), this returns
-        (True, 0.0) to allow the request. This ensures rate limiting doesn't
+        (True, 0.0) to allow the request. This ensures Rate Limiter doesn't
         become a single point of failure for the application.
 
     Thread Safety:
@@ -182,7 +182,7 @@ class TokenBucketAlgorithm(RateLimitAlgorithm):
 
         except Exception as e:
             # Fail-open: Allow request if storage fails
-            # This ensures rate limiting doesn't break the application
+            # This ensures Rate Limiter doesn't break the application
             logger.error(
                 f"Token bucket algorithm failed for key={key}: {e}. "
                 f"Failing open (allowing request)."

@@ -1,9 +1,9 @@
-"""Rate limiter service orchestrator.
+"""Rate Limiter service orchestrator.
 
 This module provides the main RateLimiterService class that orchestrates
-rate limiting by combining configuration, algorithms, and storage backends.
+Rate Limiter by combining configuration, algorithms, and storage backends.
 It follows the Facade pattern, providing a simple interface to the complex
-rate limiting subsystem.
+Rate Limiter subsystem.
 
 SOLID Principles:
     - S: Single responsibility (orchestration only, no algorithm/storage logic)
@@ -26,7 +26,7 @@ Key Design Decisions:
     3. Fail-open strategy
        - If algorithm/storage fails, allow request
        - Log errors for monitoring
-       - Rate limiting not single point of failure
+       - Rate Limiter not single point of failure
 
 Usage:
     ```python
@@ -58,11 +58,11 @@ logger = logging.getLogger(__name__)
 
 
 class RateLimiterService:
-    """Rate limiter service orchestrator.
+    """Rate Limiter service orchestrator.
 
     This service combines configuration, algorithms, and storage backends
-    to provide a simple interface for rate limiting. It follows the Facade
-    pattern, hiding the complexity of the rate limiting subsystem.
+    to provide a simple interface for Rate Limiter. It follows the Facade
+    pattern, hiding the complexity of the Rate Limiter subsystem.
 
     SOLID: Dependency Inversion Principle
         This class depends on abstractions (RateLimitAlgorithm, RateLimitStorage)
@@ -73,7 +73,7 @@ class RateLimiterService:
 
     Fail-Open Strategy:
         If any component fails (algorithm, storage, config), this service
-        allows the request to proceed. This ensures rate limiting doesn't
+        allows the request to proceed. This ensures Rate Limiter doesn't
         become a single point of failure.
 
     Thread Safety:
@@ -116,10 +116,10 @@ class RateLimiterService:
         algorithm: RateLimitAlgorithm,
         storage: RateLimitStorage,
     ):
-        """Initialize rate limiter service.
+        """Initialize Rate Limiter service.
 
         Args:
-            algorithm: Rate limiting algorithm implementation (e.g., TokenBucketAlgorithm).
+            algorithm: Rate Limiter algorithm implementation (e.g., TokenBucketAlgorithm).
             storage: Storage backend for rate limit state (e.g., RedisRateLimitStorage).
 
         Note:
@@ -137,9 +137,9 @@ class RateLimiterService:
         identifier: str,
         cost: int = 1,
     ) -> tuple[bool, float, Optional[RateLimitRule]]:
-        """Check if request is allowed under rate limiting rules.
+        """Check if request is allowed under Rate Limiter rules.
 
-        This is the main entry point for rate limiting. It:
+        This is the main entry point for Rate Limiter. It:
         1. Looks up rate limit rule for endpoint
         2. Builds unique key from endpoint and identifier
         3. Delegates to algorithm for rate limit check
@@ -167,7 +167,7 @@ class RateLimiterService:
             with fail-open behavior (return True, 0.0, None).
 
         Examples:
-            IP-based rate limiting (login endpoint):
+            IP-based Rate Limiter (login endpoint):
             ```python
             allowed, retry_after, rule = await rate_limiter.is_allowed(
                 endpoint="POST /api/v1/auth/login",
@@ -181,7 +181,7 @@ class RateLimiterService:
                 )
             ```
 
-            User-based rate limiting (provider endpoints):
+            User-based Rate Limiter (provider endpoints):
             ```python
             allowed, retry_after, rule = await rate_limiter.is_allowed(
                 endpoint="GET /api/v1/providers",
@@ -189,7 +189,7 @@ class RateLimiterService:
             )
             ```
 
-            User-per-provider rate limiting (API calls):
+            User-per-provider Rate Limiter (API calls):
             ```python
             allowed, retry_after, rule = await rate_limiter.is_allowed(
                 endpoint=\"schwab_api\",
@@ -205,7 +205,7 @@ class RateLimiterService:
             # Step 1: Look up rate limit rule
             rule = RateLimitConfig.get_rule(endpoint)
             if rule is None or not rule.enabled:
-                # No rate limiting configured for this endpoint
+                # No Rate Limiter configured for this endpoint
                 logger.debug(
                     "Rate limit: No rule configured",
                     extra={

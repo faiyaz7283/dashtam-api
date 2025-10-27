@@ -1,4 +1,4 @@
-"""Unit tests for rate limiting audit backend.
+"""Unit tests for Rate Limiter audit backend.
 
 Tests the DatabaseAuditBackend implementation including success cases,
 error handling, fail-open behavior, and database-agnostic design.
@@ -10,7 +10,7 @@ Architecture:
     - Tests fail-open design (errors don't raise exceptions)
 
 Design Philosophy:
-    These tests verify the rate limiting audit backend in isolation,
+    These tests verify the Rate Limiter audit backend in isolation,
     without coupling to Dashtam's database models or PostgreSQL.
     The backend accepts any model implementing RateLimitAuditLogBase.
 
@@ -155,7 +155,7 @@ class TestDatabaseAuditBackend:
 
         Verifies that:
         - Database errors don't raise exceptions
-        - Fail-open design (audit failure doesn't block rate limiting)
+        - Fail-open design (audit failure doesn't block Rate Limiter)
         - Error logged but not propagated
         - System remains operational
 

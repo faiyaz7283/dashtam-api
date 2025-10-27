@@ -1,12 +1,12 @@
-# Rate Limiting Request Flow
+# Rate Limiter Request Flow
 
-Complete documentation of HTTP request lifecycle through the rate limiting system, from client request to final response.
+Complete documentation of HTTP request lifecycle through the Rate Limiter system, from client request to final response.
 
 ---
 
 ## Overview
 
-This document details the complete request flow through the rate limiting middleware, including identifier extraction, rate limit checks, audit logging, and response generation. Understanding this flow is essential for debugging, monitoring, and extending the system.
+This document details the complete request flow through the Rate Limiter middleware, including identifier extraction, rate limit checks, audit logging, and response generation. Understanding this flow is essential for debugging, monitoring, and extending the system.
 
 ### Why This Matters
 
@@ -19,7 +19,7 @@ The request flow determines:
 
 ## Context
 
-Every HTTP request to the Dashtam API passes through the RateLimitMiddleware before reaching endpoint handlers. The middleware:
+Every HTTP request passes through the RateLimitMiddleware before reaching endpoint handlers. The middleware:
 
 1. Extracts endpoint key and identifier
 2. Checks rate limits via service layer
@@ -39,7 +39,7 @@ sequenceDiagram
     participant Storage as Redis
     participant Audit as AuditBackend
     participant Endpoint as API Endpoint
-    participant DB as PostgreSQL
+    participant DB as Database
 
     Client->>Middleware: HTTP Request
     
@@ -78,7 +78,7 @@ sequenceDiagram
 #### Actions
 
 1. Middleware receives incoming HTTP request
-2. Lazy initialization of rate limiter service (first request only)
+2. Lazy initialization of Rate Limiter service (first request only)
 3. Error handling wrapper activated (fail-open)
 
 #### Code
@@ -259,11 +259,12 @@ X-RateLimit-Reset: 12
 
 #### Audit Logging
 
-1. Parse identifier to extract user_id and ip_address
+1. Pass identifier to audit backend (application controls format)
 2. Create fresh database session
 3. Call `DatabaseAuditBackend.log_violation()`
-4. Insert into `rate_limit_audit_logs` table
-5. Fail-open on any errors
+4. Backend creates audit log using application's model class
+5. Insert into audit table (table name controlled by application)
+6. Fail-open on any errors
 
 **Timing:** ~5-10ms (async audit write)
 
@@ -326,7 +327,7 @@ except Exception as e:
     return await call_next(request)
 ```
 
-**Philosophy:** Rate limiter failures should never cause denial-of-service.
+**Philosophy:** Rate Limiter failures should never cause denial-of-service.
 
 ## Configuration Flow
 
@@ -372,7 +373,7 @@ RULES = {
 # In RateLimiterService
 rule = RateLimitConfig.get_rule(endpoint_key)
 if rule is None:
-    return (True, 0.0, None)  # No rate limiting
+    return (True, 0.0, None)  # No Rate Limiter
 ```
 
 ## Performance Characteristics
@@ -455,7 +456,7 @@ flowchart LR
 
 1. Malicious user with valid JWT hammers API endpoints
 2. User-scoped limit (100/min) enforced
-3. Violations logged with user_id
+3. Violations logged with identifier (e.g., "user:uuid")
 4. Account can be suspended based on violation count
 
 **Scenario 3: DDoS Attempt:**
@@ -492,15 +493,14 @@ flowchart LR
 #### From Audit Logs (Database)
 
 - Violation count by endpoint
-- Violation count by IP address
-- Violation count by user_id
+- Violation count by identifier
 - Violations per hour/day (trending)
 
 ### Alert Conditions
 
 #### Critical Alerts
 
-- Fail-open events > 10/min (rate limiter degraded)
+- Fail-open events > 10/min (Rate Limiter degraded)
 - Audit write failures > 10/min (database issues)
 - Execution time > 50ms p95 (Redis slow)
 
@@ -556,9 +556,9 @@ flowchart LR
 
 ## References
 
-- [Rate Limiting Architecture](architecture.md)
-- [Rate Limiting Audit Trail](audit.md)
-- [Rate Limiting Observability](observability.md)
+- [Rate Limiter Architecture](architecture.md)
+- [Rate Limiter Audit Trail](audit.md)
+- [Rate Limiter Observability](observability.md)
 - [Token Bucket Algorithm](https://en.wikipedia.org/wiki/Token_bucket)
 - [RFC 6585 (429 Status Code)](https://tools.ietf.org/html/rfc6585)
 
@@ -567,4 +567,4 @@ flowchart LR
 ## Document Information
 
 **Created:** 2025-10-26
-**Last Updated:** 2025-10-26
+**Last Updated:** 2025-10-31

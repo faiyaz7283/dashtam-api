@@ -1,8 +1,8 @@
-"""Rate limiting algorithms package.
+"""Rate Limiter algorithms package.
 
-This package contains all rate limiting algorithm implementations following
+This package contains all Rate Limiter algorithm implementations following
 the Strategy Pattern. Each algorithm implements the RateLimitAlgorithm interface
-and can be swapped without changing the rate limiter service.
+and can be swapped without changing the Rate Limiter service.
 
 Available Algorithms:
     - TokenBucketAlgorithm: Token bucket with refill (best for financial APIs)

@@ -1,41 +1,44 @@
-# Rate Limiting Architecture
+# Rate Limiter Architecture
 
-Comprehensive overview of the Dashtam rate limiting system, including components, algorithms, storage, and audit trail.
+A production-ready, database-agnostic rate limiting package for Python web applications with token bucket algorithm, distributed Redis storage, and pluggable audit backends.
 
 ---
 
 ## Overview
 
-The Dashtam rate limiting system is a production-ready, distributed rate limiter built with FastAPI middleware, Redis storage, and PostgreSQL audit logging. It enforces per-endpoint request limits to protect API resources from abuse while maintaining high performance and reliability.
+The Rate Limiter is a standalone, reusable package that provides distributed rate limiting for API endpoints. It implements the token bucket algorithm for smooth rate limiting with burst capacity, uses Redis for distributed state management, and offers a pluggable audit backend system that works with any database.
 
 ### Why This Approach?
 
 The architecture prioritizes:
 
-- **Fail-open design**: System degradation never blocks legitimate traffic
-- **Distributed state**: Redis enables rate limiting across multiple app instances
-- **Audit trail**: PostgreSQL provides permanent record for security analysis
+- **Database Agnostic**: Works with any database (PostgreSQL, MySQL, MongoDB, SQLite) or ORM (SQLModel, Django, SQLAlchemy, none)
+- **Fail-Open Design**: System degradation never blocks legitimate traffic
+- **Distributed State**: Redis enables rate limiting across multiple application instances
+- **Pluggable Audit**: Abstract audit backend supports any storage implementation
 - **Performance**: Token bucket algorithm with atomic Lua scripts (2-3ms p95 latency)
-- **Observability**: Structured logging with rich metrics for monitoring
+- **Portable**: Zero coupling to specific application frameworks or databases
 
 ## Context
 
-The rate limiting system operates within the Dashtam financial data aggregation platform, protecting API endpoints from:
+The Rate Limiter package is designed to be embedded in web applications (FastAPI, Django, Flask, etc.) to protect API resources from abuse. It addresses common scenarios:
 
 - Brute force attacks on authentication endpoints (IP-scoped limits)
 - API abuse from authenticated users (user-scoped limits)
-- Provider API rate limit exhaustion (user-per-provider scoped limits)
+- Rate limit enforcement per user-per-resource (composite scoping)
+- Compliance requirements for audit trails
 
-**Business Requirements:**
+**Key Requirements:**
 
-- Protect authentication endpoints (5 requests/minute per IP)
-- Limit API access per user (100 requests/minute)
-- Prevent Schwab API quota exhaustion (100 requests/minute per user per provider)
-- Maintain audit trail for compliance and security analysis
-- Never block requests due to rate limiter failures
+- Protect endpoints with configurable rate limits
+- Support multiple scoping strategies (IP, user, custom identifiers)
+- Maintain audit trail for security analysis
+- Never block requests due to rate limiter failures (fail-open)
+- Work with any database or ORM (zero coupling)
 
 ## Architecture Goals
 
+- **Portability**: Zero dependencies on specific databases, ORMs, or application frameworks
 - **Reliability**: Fail-open at all layers (algorithm, storage, audit, middleware)
 - **Performance**: Sub-5ms rate limit checks with atomic operations
 - **Scalability**: Distributed state supports horizontal scaling
@@ -67,7 +70,7 @@ The rate limiting system operates within the Dashtam financial data aggregation 
 **Alternatives Considered:**
 
 - **In-memory (dict)**: Not distributed, lost on restart (rejected)
-- **PostgreSQL**: Too slow for high-frequency checks (rejected)
+- **Database storage**: Too slow for high-frequency checks (rejected)
 - **Memcached**: No Lua scripting for atomic operations (rejected)
 
 **Trade-offs:**
@@ -76,35 +79,37 @@ The rate limiting system operates within the Dashtam financial data aggregation 
 - ✅ Pros: Built-in TTL for automatic cleanup
 - ⚠️ Cons: Additional infrastructure dependency
 
-### Decision 3: PostgreSQL Audit Logs
+### Decision 3: Database-Agnostic Audit Backend
 
-**Rationale:** Immutable audit trail required for security analysis, compliance, and attack pattern detection.
+**Rationale:** Applications have diverse database requirements. Abstract interface allows any application to implement audit logging with their chosen database.
 
 **Alternatives Considered:**
 
+- **Hardcode PostgreSQL**: Couples package to specific database (rejected)
+- **No audit trail**: Insufficient for security/compliance needs (rejected)
 - **Logs only**: Not queryable, no retention guarantees (rejected)
-- **Redis TTL**: Data loss on eviction (rejected)
 
 **Trade-offs:**
 
-- ✅ Pros: Queryable, indexed, permanent record, SQL analytics
-- ✅ Pros: Foreign key to users table for authenticated requests
-- ⚠️ Cons: Additional write load (mitigated by fail-open + async)
+- ✅ Pros: Works with any database (PostgreSQL, MySQL, MongoDB, SQLite)
+- ✅ Pros: Works with any ORM (SQLModel, Django ORM, SQLAlchemy, none)
+- ✅ Pros: Applications control their own data models
+- ⚠️ Cons: Applications must implement audit backend (simple interface)
 
-### Decision 4: FastAPI Middleware Integration
+### Decision 4: Dependency Injection for All Components
 
-**Rationale:** Middleware intercepts all requests before routing, enabling centralized rate limiting without endpoint modifications.
+**Rationale:** Enables testing with mocks, swapping implementations, and zero coupling between layers.
 
 **Alternatives Considered:**
 
-- **Dependency injection per endpoint**: Requires manual configuration for each endpoint (rejected)
-- **Decorator pattern**: Not idiomatic for FastAPI, harder to test (rejected)
+- **Hard-coded implementations**: Not testable, not pluggable (rejected)
+- **Service locator pattern**: Global state, hard to test (rejected)
 
 **Trade-offs:**
 
-- ✅ Pros: Centralized, automatic coverage, easy to disable
-- ✅ Pros: Runs before endpoint code (protects resources)
-- ⚠️ Cons: Slight overhead on all requests (mitigated by <5ms check time)
+- ✅ Pros: Fully testable with mocks, swappable implementations
+- ✅ Pros: SOLID compliant (Dependency Inversion Principle)
+- ⚠️ Cons: Slightly more verbose initialization
 
 ## Components
 
@@ -114,16 +119,16 @@ The rate limiting system operates within the Dashtam financial data aggregation 
 flowchart TB
     Client[Client Request]
     
-    Client --> Middleware[RateLimitMiddleware]
-    Middleware --> Service[RateLimiterService]
-    Service --> Config[RateLimitConfig]
-    Service --> Algorithm[TokenBucketAlgorithm]
-    Service --> Storage[RedisRateLimitStorage]
+    Client --> Middleware[RateLimitMiddleware<br/>FastAPI/Django/Flask]
+    Middleware --> Service[RateLimiterService<br/>Orchestrator]
+    Service --> Config[RateLimitConfig<br/>SSOT]
+    Service --> Algorithm[Algorithm Interface<br/>TokenBucketAlgorithm]
+    Service --> Storage[Storage Interface<br/>RedisRateLimitStorage]
     
-    Middleware --> Audit[AuditBackend]
-    Audit --> Database[(PostgreSQL)]
+    Middleware --> Audit[Audit Interface<br/>App-Defined Backend]
+    Audit -.-> AppDB[(Application Database<br/>PostgreSQL/MySQL/MongoDB)]
     
-    Storage --> Redis[(Redis)]
+    Storage --> Redis[(Redis<br/>Distributed State)]
     
     Service --> Logger[Structured Logging]
     
@@ -132,40 +137,17 @@ flowchart TB
     style Algorithm fill:#f3e5f5
     style Storage fill:#e8f5e9
     style Audit fill:#fce4ec
+    style AppDB stroke-dasharray: 5 5
 ```
 
-### Component 1: RateLimitMiddleware
-
-**Purpose:** Intercepts all HTTP requests and enforces rate limits before endpoint execution.
-
-**Responsibilities:**
-
-- Extract endpoint key from request path and method
-- Determine identifier (user ID from JWT or IP address)
-- Call rate limiter service to check if request is allowed
-- Return HTTP 429 if rate limited
-- Add rate limit headers to successful responses
-- Audit rate limit violations to database
-
-**Interfaces:**
-
-- Input: HTTP Request (FastAPI Request object)
-- Output: HTTP Response (429 if rate limited, otherwise from endpoint)
-
-**Dependencies:**
-
-- RateLimiterService: Rate limit enforcement
-- JWTService: Extract user ID from access tokens
-- DatabaseAuditBackend: Log violations to PostgreSQL
-
-### Component 2: RateLimiterService
+### Component 1: RateLimiterService
 
 **Purpose:** Orchestrates rate limiting decisions by coordinating configuration, algorithm, and storage.
 
 **Responsibilities:**
 
 - Look up rate limit rule for endpoint
-- Build storage key based on scope (ip, user, user_provider)
+- Build storage key based on scope (IP, user, custom identifiers)
 - Delegate token bucket checks to algorithm
 - Measure execution time for observability
 - Log structured events (allowed, blocked, fail-open)
@@ -173,16 +155,36 @@ flowchart TB
 
 **Interfaces:**
 
-- Input: (endpoint: str, identifier: str, cost: int) → (allowed: bool, retry_after: float, rule: RateLimitRule)
+- Input: `(endpoint: str, identifier: str, cost: int) → (allowed: bool, retry_after: float, rule: RateLimitRule)`
 - Output: Rate limit decision tuple
 
 **Dependencies:**
 
-- RateLimitConfig: Rule lookup
-- TokenBucketAlgorithm: Rate limit algorithm implementation
-- RedisRateLimitStorage: Distributed state storage
+- `RateLimitConfig`: Rule lookup
+- `RateLimitAlgorithm`: Rate limit algorithm implementation (strategy pattern)
+- `RateLimitStorage`: Distributed state storage (strategy pattern)
 
-### Component 3: TokenBucketAlgorithm
+### Component 2: RateLimitAlgorithm (Interface)
+
+**Purpose:** Abstract interface for rate limiting algorithms. Implementations provide specific algorithms (token bucket, sliding window, etc.).
+
+**Responsibilities:**
+
+- Check if request is allowed given rate limit rules
+- Update state atomically
+- Calculate retry_after for denied requests
+- Fail-open on errors
+
+**Interfaces:**
+
+- Input: `(key: str, max_tokens: int, refill_rate: float, cost: int) → (allowed: bool, retry_after: float)`
+- Output: Rate limit decision
+
+**Dependencies:**
+
+- `RateLimitStorage`: State persistence (injected)
+
+### Component 3: TokenBucketAlgorithm (Implementation)
 
 **Purpose:** Implements token bucket rate limiting algorithm with smooth refills and burst capacity.
 
@@ -196,16 +198,35 @@ flowchart TB
 
 **Interfaces:**
 
-- Input: (key, max_tokens, refill_rate, cost) → (allowed: bool, retry_after: float)
-- Output: Rate limit decision
+- Implements `RateLimitAlgorithm` interface
 
 **Dependencies:**
 
-- RedisRateLimitStorage: Atomic read-modify-write operations
+- `RateLimitStorage`: Atomic read-modify-write operations
 
-### Component 4: RedisRateLimitStorage
+### Component 4: RateLimitStorage (Interface)
 
-**Purpose:** Provides atomic, distributed storage operations for rate limit buckets using Redis.
+**Purpose:** Abstract interface for distributed state storage. Implementations provide storage backends (Redis, etc.).
+
+**Responsibilities:**
+
+- Store rate limit bucket state atomically
+- Execute atomic read-modify-write operations
+- Provide TTL-based automatic cleanup
+- Fail-open on connection errors
+
+**Interfaces:**
+
+- Input: `(key: str, max_tokens: int, refill_rate: float, cost: int) → (allowed: bool, retry_after: float)`
+- Output: Rate limit decision from atomic operation
+
+**Dependencies:**
+
+- Storage backend (Redis, Memcached, etc.)
+
+### Component 5: RedisRateLimitStorage (Implementation)
+
+**Purpose:** Provides atomic, distributed storage operations for rate limit buckets using Redis Lua scripts.
 
 **Responsibilities:**
 
@@ -216,90 +237,34 @@ flowchart TB
 
 **Interfaces:**
 
-- Input: (key, max_tokens, refill_rate, cost) → (allowed: bool, retry_after: float)
-- Output: Rate limit decision from atomic Lua script
+- Implements `RateLimitStorage` interface
 
 **Dependencies:**
 
 - Redis: Distributed key-value store
-- token_bucket.lua: Atomic token bucket logic
+- `token_bucket.lua`: Atomic token bucket logic
 
-### Token Bucket Algorithm Flow
+### Component 6: AuditBackend (Interface)
 
-```mermaid
-flowchart TD
-    Start[Request Arrives] --> Check{Bucket Exists?}
-    
-    Check -->|No| Create[Create Bucket<br/>tokens = max_tokens<br/>last_refill = now]
-    Check -->|Yes| Refill[Calculate Tokens to Add<br/>elapsed = now - last_refill<br/>add = elapsed * refill_rate]
-    
-    Create --> HasTokens{tokens >= cost?}
-    Refill --> Update[Update Bucket<br/>tokens = min tokens + add, max<br/>last_refill = now]
-    Update --> HasTokens
-    
-    HasTokens -->|Yes| Consume[tokens -= cost]
-    HasTokens -->|No| Deny[Return DENIED<br/>retry_after = cost / refill_rate]
-    
-    Consume --> Allow[Return ALLOWED]
-    
-    Allow --> End[Continue Request]
-    Deny --> Block[Return HTTP 429]
-    
-    style Start fill:#e8f5e9
-    style Allow fill:#c8e6c9
-    style Deny fill:#ffcdd2
-    style Block fill:#ef9a9a
-```
-
-### Storage Layer (Redis Lua)
-
-```mermaid
-sequenceDiagram
-    participant Service as RateLimiterService
-    participant Storage as RedisRateLimitStorage
-    participant Redis as Redis Server
-    participant Lua as Lua Script
-
-    Service->>Storage: is_allowed(key, max, refill, cost)
-    Storage->>Redis: EVALSHA script_hash
-    Redis->>Lua: Execute token_bucket.lua
-    
-    Lua->>Lua: GET bucket data
-    Lua->>Lua: Calculate refill
-    Lua->>Lua: Check if allowed
-    Lua->>Lua: Update tokens
-    Lua->>Lua: SET bucket data
-    
-    Lua-->>Redis: Return [allowed, retry_after]
-    Redis-->>Storage: Result
-    Storage-->>Service: (bool, float)
-    
-    Note over Redis,Lua: Atomic operation<br/>2-3ms latency
-```
-
-### Component 5: DatabaseAuditBackend
-
-**Purpose:** Logs all rate limit violations to PostgreSQL for security analysis and compliance.
+**Purpose:** Abstract interface for audit logging. Applications implement this to log violations to their database of choice.
 
 **Responsibilities:**
 
-- Create immutable audit log records
-- Extract user_id and ip_address from identifiers
-- Create fresh database session per violation
-- Fail-open on database errors (never block requests)
-- Log structured events for observability
+- Log rate limit violations
+- Accept flexible identifier format (app-defined)
+- Fail-open on errors (never block requests)
+- Support async operations
 
 **Interfaces:**
 
-- Input: (ip_address, endpoint, rule_name, limit, window_seconds, violation_count, user_id?)
-- Output: None (async, fire-and-forget with error logging)
+- Input: `(identifier: str, ip_address: str, endpoint: str, rule_name: str, limit: int, window_seconds: int, violation_count: int)`
+- Output: None (fire-and-forget with error logging)
 
 **Dependencies:**
 
-- PostgreSQL: Persistent audit trail storage
-- AsyncSession: Per-request database session
+- None (applications provide their own database/ORM)
 
-### Component 6: RateLimitConfig
+### Component 7: RateLimitConfig
 
 **Purpose:** Single source of truth (SSOT) for all rate limit rules and settings.
 
@@ -307,13 +272,13 @@ sequenceDiagram
 
 - Define rate limit rules per endpoint
 - Map endpoint keys to rules
-- Provide global settings (algorithm, storage backend, fail-open)
-- Support different scopes (ip, user, user_provider)
+- Provide global settings (default algorithm, storage backend)
+- Support different scopes (ip, user, custom identifiers)
 
 **Interfaces:**
 
-- Input: endpoint_key: str
-- Output: RateLimitRule | None
+- Input: `endpoint_key: str`
+- Output: `RateLimitRule | None`
 
 **Dependencies:**
 
@@ -323,29 +288,29 @@ sequenceDiagram
 
 ### Key Patterns Used
 
-- **Strategy Pattern**: Algorithm abstraction (TokenBucketAlgorithm implements RateLimitAlgorithm interface)
-- **Strategy Pattern**: Storage abstraction (RedisRateLimitStorage implements RateLimitStorage interface)
-- **Strategy Pattern**: Audit abstraction (DatabaseAuditBackend implements AuditBackend interface)
+- **Strategy Pattern**: Algorithm abstraction (`TokenBucketAlgorithm` implements `RateLimitAlgorithm` interface)
+- **Strategy Pattern**: Storage abstraction (`RedisRateLimitStorage` implements `RateLimitStorage` interface)
+- **Strategy Pattern**: Audit abstraction (applications implement `AuditBackend` interface)
 - **Dependency Injection**: Service receives algorithm and storage dependencies
 - **Single Responsibility**: Each component has one reason to change
-- **Fail-Open**: Multi-layer error handling (algorithm, storage, audit, middleware)
+- **Fail-Open**: Multi-layer error handling (algorithm, storage, audit)
 - **SOLID Principles**: All 5 principles explicitly followed
+- **DDD Bounded Context**: Zero coupling to application code
 
 ### Code Organization
 
 ```text
-src/rate_limiting/
+src/rate_limiter/
 ├── __init__.py              # Public API exports
 ├── config.py                # RateLimitConfig (SSOT)
 ├── service.py               # RateLimiterService (orchestrator)
-├── middleware.py            # RateLimitMiddleware (FastAPI integration)
+├── middleware.py            # Framework integration examples
 ├── factory.py               # Dependency injection factory
-├── models.py                # RateLimitAuditLog SQLModel
 ├── algorithms/
 │   ├── __init__.py
 │   ├── base.py              # RateLimitAlgorithm interface
 │   └── token_bucket.py      # TokenBucketAlgorithm implementation
-├── storage_backends/
+├── storage/
 │   ├── __init__.py
 │   ├── base.py              # RateLimitStorage interface
 │   ├── redis_storage.py     # RedisRateLimitStorage implementation
@@ -354,70 +319,111 @@ src/rate_limiting/
 ├── audit_backends/
 │   ├── __init__.py
 │   ├── base.py              # AuditBackend interface
-│   └── database.py          # DatabaseAuditBackend implementation
-└── tests/
-    ├── conftest.py          # Shared fixtures
-    ├── test_config.py       # Configuration tests
-    ├── test_token_bucket.py # Algorithm tests
-    ├── test_redis_storage.py# Storage tests
-    ├── test_service.py      # Service tests
-    └── test_audit_backend.py# Audit tests
+│   └── database.py          # Database-agnostic implementation
+├── models/
+│   ├── __init__.py
+│   └── base.py              # RateLimitAuditLogBase interface
+├── tests/                   # Bounded context unit tests (mocks)
+│   ├── conftest.py          # Test fixtures
+│   ├── test_config.py       # Configuration tests
+│   ├── test_token_bucket.py # Algorithm tests
+│   ├── test_redis_storage.py# Storage tests
+│   ├── test_service.py      # Service tests
+│   └── test_audit_backend.py# Audit tests
+└── docs/                    # Package-level documentation
+    ├── architecture.md      # This file
+    ├── audit.md             # Audit backend implementation guide
+    ├── observability.md     # Monitoring and logging
+    └── request-flow.md      # Request flow diagrams
 ```
 
 ### Configuration
 
-**Environment Variables:**
-
-- `REDIS_HOST`: Redis hostname (default: "redis")
-- `REDIS_PORT`: Redis port (default: 6379)
-- `DATABASE_URL`: PostgreSQL connection string
-- `SECRET_KEY`: JWT verification key
-
-**Rate Limit Rules (src/rate_limiting/config.py):**
+**Example Rate Limit Rules:**
 
 ```python
+from rate_limiter.config import RateLimitConfig, RateLimitRule, RateLimitStrategy
+
 RULES = {
     "POST /api/v1/auth/login": RateLimitRule(
+        strategy=RateLimitStrategy.TOKEN_BUCKET,
+        storage=RateLimitStorage.REDIS,
         scope="ip",
-        max_tokens=5,
+        max_tokens=20,
         refill_rate=5.0,  # 5 tokens per minute
+        enabled=True,
     ),
-    "GET /api/v1/providers": RateLimitRule(
+    "GET /api/v1/users": RateLimitRule(
+        strategy=RateLimitStrategy.TOKEN_BUCKET,
+        storage=RateLimitStorage.REDIS,
         scope="user",
         max_tokens=100,
         refill_rate=100.0,  # 100 tokens per minute
-    ),
-    "schwab_api": RateLimitRule(
-        scope="user_provider",
-        max_tokens=100,
-        refill_rate=100.0,
+        enabled=True,
     ),
 }
+```
+
+**Example Audit Backend Implementation (Application-Defined):**
+
+```python
+from rate_limiter.audit_backends.base import AuditBackend
+from my_app.models import RateLimitAuditLog  # Your model
+
+class MyAuditBackend(AuditBackend):
+    def __init__(self, session):
+        self.session = session
+        
+    async def log_violation(
+        self,
+        identifier: str,
+        ip_address: str,
+        endpoint: str,
+        rule_name: str,
+        limit: int,
+        window_seconds: int,
+        violation_count: int,
+    ):
+        try:
+            log = RateLimitAuditLog(
+                identifier=identifier,
+                ip_address=ip_address,
+                endpoint=endpoint,
+                rule_name=rule_name,
+                limit=limit,
+                window_seconds=window_seconds,
+                violation_count=violation_count,
+            )
+            self.session.add(log)
+            await self.session.commit()
+        except Exception:
+            # Fail-open: log error but don't raise
+            logger.error("Failed to log audit violation")
 ```
 
 ## Security Considerations
 
 ### Threats Addressed
 
-- **Brute Force Attacks**: IP-scoped rate limits on auth endpoints (5/min)
-- **API Abuse**: User-scoped rate limits on all authenticated endpoints (100/min)
-- **Provider Quota Exhaustion**: User-per-provider limits for external APIs (100/min)
+- **Brute Force Attacks**: IP-scoped rate limits on auth endpoints
+- **API Abuse**: User-scoped rate limits on authenticated endpoints
+- **Resource Exhaustion**: Per-endpoint limits prevent resource exhaustion
 - **DDoS Amplification**: Rate limits prevent API as attack vector
 
 ### Security Best Practices
 
-- **Audit Trail**: All violations logged with IP, endpoint, user_id, timestamp
+- **Audit Trail**: All violations logged with flexible identifier, IP, endpoint, timestamp
 - **Fail-Open**: Rate limiter failures never create denial-of-service
-- **Immutable Logs**: Audit records cannot be modified or deleted
-- **JWT Validation**: User ID extracted securely from validated access tokens
-- **Timezone Awareness**: All timestamps in UTC (TIMESTAMPTZ) for compliance
+- **IP Sanitization**: Invalid IPs handled gracefully (e.g., test clients)
+- **Flexible Identifiers**: Applications control identifier format (user ID, session ID, tenant ID, etc.)
+- **No Sensitive Data**: Package never stores or logs sensitive data
 
 ## Performance Considerations
 
 ### Performance Characteristics
 
 - **Rate Limit Check Latency**: 2-3ms p95 (Redis Lua script execution)
-- **Memory per Bucket**: ~100 bytes (2 values: tokens, last_refill)
+- **Memory per Bucket**: ~100 bytes (2 values: tokens, last_refill_time)
 - **Audit Log Write**: Async, non-blocking (fail-open on errors)
 - **Middleware Overhead**: <5ms per request (check + headers)
 
@@ -425,49 +431,60 @@ RULES = {
 
 - **Atomic Lua Scripts**: Single Redis roundtrip for read-modify-write
 - **Key TTL**: Automatic cleanup of inactive buckets (2x window duration)
-- **Lazy Middleware Init**: Rate limiter created on first request (not at startup)
-- **Per-Request Audit Sessions**: Fresh database session per violation (no shared state)
+- **Lazy Initialization**: Components created on demand
+- **Fail-Open Design**: Errors never block request processing
 
 ## Testing Strategy
 
-### Unit Tests
+### Unit Tests (78 tests)
+
+**Package-level tests using mocks (zero database coupling):**
 
 - **Config**: 25 tests covering rule validation and lookup
 - **Token Bucket Algorithm**: 8 tests covering refill, denial, burst
-- **Redis Storage**: Integration tests with real Redis instance
 - **Service**: 13 tests covering orchestration and fail-open
-- **Audit Backend**: 8 tests covering persistence and timezone awareness
+- **Audit Backend**: 7 tests covering interface compliance (mocks only)
+- **Redis Storage**: Integration tests with real Redis instance
 
-### Integration Tests
+**Key principle**: Unit tests verify the package works with ANY database by using mocks.
 
-- **Middleware**: Tests verifying end-to-end rate limiting flow
-- **Audit Logging**: Tests verifying database writes on violations
-- **Multi-Endpoint**: Tests verifying independent rate limits per endpoint
+### Integration Tests (Application-Level)
 
-### End-to-End Tests
+**Applications test their concrete implementations:**
 
-- **API Tests**: Full HTTP request flow with rate limit enforcement
-- **Smoke Tests**: Critical path validation (registration, login, rate limit)
+- Database persistence tests (PostgreSQL, MySQL, etc.)
+- ORM integration tests (SQLModel, Django ORM, etc.)
+- INET type validation (PostgreSQL-specific)
+- Foreign key constraints (if applicable)
+- Timezone-aware datetimes
+
+### End-to-End Tests (Application-Level)
+
+**Full request-to-audit-log flow:**
+
+- HTTP 429 responses create audit records
+- Multiple violations create multiple records
+- Audit logs queryable by endpoint/IP/identifier
 
 ## Future Enhancements
 
+- **Additional Algorithms**: Sliding window, fixed window implementations
+- **Additional Storage Backends**: PostgreSQL, Memcached implementations
 - **Distributed Rate Limiting**: Redis Cluster support for higher scale
 - **Dynamic Rule Updates**: Hot-reload configuration without restart
-- **Rate Limit Dashboard**: Admin UI for viewing violations and adjusting limits
-- **Machine Learning**: Anomaly detection for adaptive rate limiting
 - **Circuit Breaker**: Automatic backoff for misbehaving clients
+- **Standalone PyPI Package**: Publish as `rate-limiter` on PyPI
 
 ## References
 
-- [Rate Limiting Audit Trail Architecture](rate-limiting-audit.md)
-- [Rate Limiting Request Flow](rate-limiting-request-flow.md)
-- [Rate Limiting Observability](rate-limiting-observability.md)
-- [Rate Limiting Implementation Guide](../implementation/rate-limiting-implementation.md)
+- [Audit Backend Implementation Guide](audit.md)
+- [Request Flow Diagrams](request-flow.md)
+- [Observability and Monitoring](observability.md)
 - [Token Bucket Algorithm (Wikipedia)](https://en.wikipedia.org/wiki/Token_bucket)
 
 ---
 
 ## Document Information
 
-**Created:** 2025-10-26
+**Created:** 2025-10-26  
 **Last Updated:** 2025-10-26

@@ -6,11 +6,11 @@ Apps implement their own database-specific versions based on this structure.
 Architecture:
     - Database Agnostic: No dependency on PostgreSQL, MySQL, or any specific database
     - Interface Definition: Defines required fields for any audit backend
-    - Portability: Enables rate limiting package to work with any database
+    - Portability: Enables Rate Limiter package to work with any database
     - Extensibility: Apps create their own implementations (PostgreSQL, MySQL, SQLite)
 
 Usage:
-    Rate limiting package depends only on this abstract structure.
+    Rate Limiter package depends only on this abstract structure.
     Apps create concrete implementations for their chosen database.
 
 Example (PostgreSQL):

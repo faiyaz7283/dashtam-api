@@ -89,7 +89,7 @@ class TestRateLimiterService:
             cost=1,
         )
 
-        # Should allow (no rate limiting configured)
+        # Should allow (no Rate Limiter configured)
         assert allowed is True
         assert retry_after == 0.0
         assert rule is None

@@ -1,6 +1,6 @@
-"""Redis storage backend for rate limiting with Lua script atomicity.
+"""Redis storage backend for Rate Limiter with Lua script atomicity.
 
-This module implements the Redis storage backend for rate limiting. It uses
+This module implements the Redis storage backend for Rate Limiter. It uses
 Lua scripts for atomic operations, preventing race conditions when multiple
 requests check the rate limit simultaneously.
 
@@ -130,7 +130,7 @@ end
 
 
 class RedisRateLimitStorage(RateLimitStorage):
-    """Redis storage backend for rate limiting.
+    """Redis storage backend for Rate Limiter.
 
     Uses Lua scripts for atomic token bucket operations. The script runs inside
     Redis, preventing race conditions when multiple requests check the same
@@ -349,7 +349,7 @@ class RedisRateLimitStorage(RateLimitStorage):
         """
         try:
             self._script_sha = await self.redis.script_load(TOKEN_BUCKET_LUA)
-            logger.info(f"Loaded rate limiting Lua script: {self._script_sha}")
+            logger.info(f"Loaded Rate Limiter Lua script: {self._script_sha}")
         except Exception as e:
             logger.error(f"Failed to load Lua script: {e}")
             raise

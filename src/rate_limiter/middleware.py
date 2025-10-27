@@ -1,7 +1,7 @@
-"""Rate limiting middleware for FastAPI.
+"""Rate Limiter middleware for FastAPI.
 
 This module provides HTTP middleware to enforce rate limits on all incoming
-requests. It integrates with the rate limiting service to check limits before
+requests. It integrates with the Rate Limiter service to check limits before
 allowing requests to proceed to endpoints.
 
 SOLID Principles:
@@ -12,7 +12,7 @@ SOLID Principles:
 Key Design Decisions:
     1. Middleware is HTTP-layer only (no business logic)
        - Extracts HTTP request information (IP, user_id, endpoint)
-       - Calls rate limiter service for decision
+       - Calls Rate Limiter service for decision
        - Returns HTTP 429 or proceeds to endpoint
 
     2. Graceful handling of authentication
@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """FastAPI middleware for rate limiting.
+    """FastAPI middleware for Rate Limiter.
 
     Intercepts all HTTP requests before they reach endpoints and enforces
     rate limits based on configuration. Returns HTTP 429 if rate limited,
@@ -79,10 +79,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         - D: Depends on RateLimiterService abstraction
 
     Lazy Initialization Pattern:
-        The rate limiter service is initialized on first request rather than
+        The Rate Limiter service is initialized on first request rather than
         at middleware registration. This is required because:
         - FastAPI middleware must be registered before app starts
-        - Rate limiter needs async Redis client (created during request)
+        - Rate Limiter needs async Redis client (created during request)
         - Lazy init ensures Redis is available when needed
 
     Examples:
@@ -102,7 +102,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             app: FastAPI/Starlette application instance.
 
         Note:
-            Rate limiter service is initialized lazily on first request.
+            Rate Limiter service is initialized lazily on first request.
             Audit backend creates fresh database session per violation.
             This follows FastAPI best practices for middleware with async
             dependencies that must be created after app startup.
@@ -113,20 +113,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._logger = logging.getLogger(__name__)
 
     async def _get_rate_limiter(self) -> RateLimiterService:
-        """Get or create rate limiter service (lazy initialization).
+        """Get or create Rate Limiter service (lazy initialization).
 
         Returns:
             Initialized RateLimiterService instance.
 
         Note:
-            Creates rate limiter on first call, then caches for subsequent requests.
+            Creates Rate Limiter on first call, then caches for subsequent requests.
             Thread-safe as middleware dispatch is called sequentially per request.
         """
         if self._rate_limiter is None:
             from src.rate_limiter.factory import get_rate_limiter_service
 
             self._rate_limiter = await get_rate_limiter_service()
-            self._logger.info("Rate limiting middleware initialized (lazy)")
+            self._logger.info("Rate Limiter middleware initialized (lazy)")
 
         return self._rate_limiter
 
@@ -136,7 +136,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         This is the main middleware entry point. It:
         1. Extracts endpoint key (e.g., "POST /api/v1/auth/login")
         2. Extracts identifier (user_id or IP address)
-        3. Calls rate limiter service to check if allowed
+        3. Calls Rate Limiter service to check if allowed
         4. Returns HTTP 429 if rate limited
         5. Proceeds to endpoint if allowed
         6. Adds rate limit headers to response
@@ -153,7 +153,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             logged, and requests are allowed to proceed (fail-open).
         """
         try:
-            # Get or initialize rate limiter (lazy initialization)
+            # Get or initialize Rate Limiter (lazy initialization)
             rate_limiter = await self._get_rate_limiter()
 
             # Extract endpoint key and identifier
@@ -254,7 +254,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return f"{method} {path}"
 
     async def _get_identifier(self, request: Request) -> str:
-        """Extract identifier for rate limiting.
+        """Extract identifier for Rate Limiter.
 
         Determines identifier based on authentication status:
         - If authenticated: Use user ID from JWT token

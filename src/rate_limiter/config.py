@@ -1,6 +1,6 @@
-"""Rate limiting configuration module.
+"""Rate Limiter configuration module.
 
-This module provides the single source of truth (SSOT) for all rate limiting
+This module provides the single source of truth (SSOT) for all Rate Limiter
 configuration in the Dashtam application. It defines strategies, storage backends,
 and per-endpoint rate limit rules.
 
@@ -33,9 +33,9 @@ Usage:
     # Get rule for specific endpoint
     rule = RateLimitConfig.get_rule("POST /api/v1/auth/login")
 
-    # Check if endpoint has rate limiting
+    # Check if endpoint has Rate Limiter
     if rule.enabled:
-        # Apply rate limiting
+        # Apply Rate Limiter
         ...
     ```
 """
@@ -47,7 +47,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class RateLimitStrategy(str, Enum):
-    """Rate limiting algorithm strategies.
+    """Rate Limiter algorithm strategies.
 
     Attributes:
         TOKEN_BUCKET: Allows bursts, smooth traffic. Best for financial APIs.
@@ -77,7 +77,7 @@ class RateLimitStorage(str, Enum):
 class RateLimitRule(BaseModel):
     """Configuration for a single rate limit rule.
 
-    This defines how rate limiting is applied to a specific endpoint or operation.
+    This defines how Rate Limiter is applied to a specific endpoint or operation.
 
     Attributes:
         strategy: Algorithm to use (token bucket, sliding window, etc.).
@@ -117,7 +117,7 @@ class RateLimitRule(BaseModel):
     model_config = ConfigDict(frozen=True)  # Immutable for thread safety
 
     strategy: RateLimitStrategy = Field(
-        ..., description="Rate limiting algorithm to use"
+        ..., description="Rate Limiter algorithm to use"
     )
     storage: RateLimitStorage = Field(..., description="Storage backend for state")
     max_tokens: int = Field(..., gt=0, description="Maximum tokens/requests allowed")
@@ -128,12 +128,12 @@ class RateLimitRule(BaseModel):
         ...,
         description="Identifier type: 'ip', 'user', 'user_provider', 'global'",
     )
-    enabled: bool = Field(True, description="Whether rate limiting is active")
+    enabled: bool = Field(True, description="Whether Rate Limiter is active")
     cost: int = Field(1, gt=0, description="Number of tokens consumed per request")
 
 
 class RateLimitConfig:
-    """Central configuration for all rate limiting rules.
+    """Central configuration for all Rate Limiter rules.
 
     This class provides a registry of rate limit rules for all API endpoints.
     Each endpoint can have its own strategy, storage backend, and limits.
@@ -153,10 +153,10 @@ class RateLimitConfig:
         # Get rule for specific endpoint
         rule = RateLimitConfig.get_rule("POST /api/v1/auth/login")
         if rule and rule.enabled:
-            # Apply rate limiting
+            # Apply Rate Limiter
             ...
 
-        # Check if endpoint has rate limiting
+        # Check if endpoint has Rate Limiter
         if RateLimitConfig.has_rule("GET /api/v1/providers"):
             # Endpoint is rate limited
             ...
@@ -169,7 +169,7 @@ class RateLimitConfig:
 
     RULES: dict[str, RateLimitRule] = {
         # =====================================================================
-        # Authentication Endpoints (IP-based rate limiting)
+        # Authentication Endpoints (IP-based Rate Limiter)
         # =====================================================================
         # These endpoints are vulnerable to brute force attacks and must be
         # aggressively rate limited. IP-based scoping prevents attackers from
@@ -207,7 +207,7 @@ class RateLimitConfig:
             enabled=True,
         ),
         # =====================================================================
-        # Provider Management Endpoints (User-based rate limiting)
+        # Provider Management Endpoints (User-based Rate Limiter)
         # =====================================================================
         # Authenticated users managing their own provider connections.
         # More generous limits since authenticated users are less likely to abuse.
@@ -271,7 +271,7 @@ class RateLimitConfig:
             enabled=True,
         ),
         # =====================================================================
-        # Provider API Calls (User-per-provider rate limiting)
+        # Provider API Calls (User-per-provider Rate Limiter)
         # =====================================================================
         # These limits MUST match the actual provider's API limits to prevent
         # quota violations. Scope is "user_provider" to track per user per provider.
@@ -319,7 +319,7 @@ class RateLimitConfig:
             ```python
             rule = RateLimitConfig.get_rule("POST /api/v1/auth/login")
             if rule and rule.enabled:
-                # Apply rate limiting
+                # Apply Rate Limiter
                 is_allowed, retry_after = rate_limiter.check(endpoint, ip_address)
             ```
         """

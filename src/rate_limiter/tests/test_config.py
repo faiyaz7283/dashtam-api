@@ -1,4 +1,4 @@
-"""Unit tests for rate limiting configuration module.
+"""Unit tests for Rate Limiter configuration module.
 
 Tests the configuration SSOT (Single Source of Truth) including:
 - RateLimitStrategy enum

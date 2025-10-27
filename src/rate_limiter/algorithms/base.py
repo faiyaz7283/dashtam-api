@@ -1,8 +1,8 @@
-"""Abstract base class for rate limiting algorithms.
+"""Abstract base class for Rate Limiter algorithms.
 
-This module defines the interface that all rate limiting algorithms must implement.
+This module defines the interface that all Rate Limiter algorithms must implement.
 It follows the Strategy Pattern, allowing algorithms to be swapped without changing
-the rate limiter service code.
+the Rate Limiter service code.
 
 SOLID Principles:
     - S: Single responsibility (defines algorithm contract only)
@@ -19,7 +19,7 @@ Key Design Decisions:
     2. Algorithm doesn't know about HTTP/FastAPI
        - Takes generic parameters (key, tokens, rate)
        - No dependency on request/response objects
-       - Pure rate limiting logic
+       - Pure Rate Limiter logic
 
     3. Error handling is algorithm's responsibility
        - Must never raise exceptions to caller
@@ -46,11 +46,11 @@ if TYPE_CHECKING:
 
 
 class RateLimitAlgorithm(ABC):
-    """Abstract base class for rate limiting algorithms.
+    """Abstract base class for Rate Limiter algorithms.
 
-    All rate limiting algorithms must inherit from this class and implement
+    All Rate Limiter algorithms must inherit from this class and implement
     the `is_allowed()` method. This ensures consistent behavior and allows
-    algorithms to be swapped without changing the rate limiter service.
+    algorithms to be swapped without changing the Rate Limiter service.
 
     SOLID: Liskov Substitution Principle
         Any implementation of this interface must be substitutable for any other.
@@ -97,7 +97,7 @@ class RateLimitAlgorithm(ABC):
         rule: "RateLimitRule",
         cost: int = 1,
     ) -> tuple[bool, float]:
-        """Check if request is allowed under this rate limiting algorithm.
+        """Check if request is allowed under this Rate Limiter algorithm.
 
         Args:
             storage: Storage backend for rate limit state.
@@ -125,7 +125,7 @@ class RateLimitAlgorithm(ABC):
             2. Fail-open on errors
                - If storage unavailable, return (True, 0.0)
                - Log error for monitoring
-               - Don't let rate limiting break the application
+               - Don't let Rate Limiter break the application
 
             3. Calculate retry_after accurately
                - Clients need to know when to retry

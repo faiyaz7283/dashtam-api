@@ -1,8 +1,8 @@
-"""Abstract base class for rate limiting storage backends.
+"""Abstract base class for Rate Limiter storage backends.
 
-This module defines the interface that all rate limiting storage implementations
+This module defines the interface that all Rate Limiter storage implementations
 must follow. It follows the Strategy Pattern, allowing storage backends to be
-swapped without changing the rate limiter service or algorithm code.
+swapped without changing the Rate Limiter service or algorithm code.
 
 SOLID Principles:
     - S: Single responsibility (defines storage contract only)
@@ -21,7 +21,7 @@ Key Design Decisions:
     2. Fail-open strategy
        - If storage fails, return success (don't break app)
        - Log errors for monitoring
-       - Rate limiting is not single point of failure
+       - Rate Limiter is not single point of failure
 
     3. Storage doesn't know about algorithms or HTTP
        - Generic operations (check_and_consume, get_remaining, reset)
@@ -43,7 +43,7 @@ from abc import ABC, abstractmethod
 
 
 class RateLimitStorage(ABC):
-    """Abstract base class for rate limiting storage backends.
+    """Abstract base class for Rate Limiter storage backends.
 
     All storage implementations must inherit from this class and implement
     the three required methods. This ensures consistent behavior and allows
@@ -90,7 +90,7 @@ class RateLimitStorage(ABC):
     ) -> tuple[bool, float, int]:
         """Atomically check if tokens available and consume them if so.
 
-        This is the core operation for token bucket rate limiting. It must be
+        This is the core operation for token bucket Rate Limiter. It must be
         atomic to prevent race conditions where multiple requests check at the
         same time and all get allowed.
 

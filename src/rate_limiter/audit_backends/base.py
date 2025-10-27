@@ -1,4 +1,4 @@
-"""Audit Backend Interface for Rate Limiting.
+"""Audit Backend Interface for Rate Limiter.
 
 This module defines the abstract interface for rate limit violation audit logging.
 

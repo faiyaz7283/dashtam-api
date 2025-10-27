@@ -1,4 +1,4 @@
-"""Unit tests for rate limiting package.
+"""Unit tests for Rate Limiter package.
 
 This test suite is co-located with the rate_limiter package to maintain
 complete independence and portability. The rate_limiter package can be
@@ -11,7 +11,7 @@ Test Organization:
     - test_service.py: Service orchestrator tests
 
 Running Tests:
-    # Run all rate limiting tests
+    # Run all Rate Limiter tests
     pytest src/rate_limiter/tests/
 
     # Run with coverage

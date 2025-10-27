@@ -1,4 +1,4 @@
-"""Audit Backend Implementations for Rate Limiting.
+"""Audit Backend Implementations for Rate Limiter.
 
 This package contains concrete implementations of the AuditBackend interface.
 

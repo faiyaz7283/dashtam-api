@@ -1,17 +1,17 @@
-"""Rate Limiting Bounded Context Test Configuration.
+"""Rate Limiter Bounded Context Test Configuration.
 
-This module provides test fixtures isolated to the rate limiting bounded context.
+This module provides test fixtures isolated to the Rate Limiter bounded context.
 Following DDD principles, this bounded context is fully database-agnostic and
 uses mocks for testing.
 
 Architecture:
-    - Bounded Context: Rate limiting is a self-contained domain
+    - Bounded Context: Rate Limiter is a self-contained domain
     - Mock-Based Testing: No real database operations in unit tests
     - Zero Coupling: No dependencies on Dashtam's database models
     - Database-Agnostic: Works with any database/ORM
 
 Design Philosophy:
-    The rate limiting bounded context is designed to be extracted as a
+    The Rate Limiter bounded context is designed to be extracted as a
     standalone package. Unit tests use mocks to verify behavior without
     coupling to any specific database implementation.
 
@@ -29,7 +29,7 @@ Usage:
             await backend.log_violation(...)
 """
 
-# All fixtures for rate limiting unit tests are defined in individual test files
+# All fixtures for Rate Limiter unit tests are defined in individual test files
 # to maintain test isolation and clarity. Common fixtures can be added here
 # as needed.
 

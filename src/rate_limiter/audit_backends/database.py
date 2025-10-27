@@ -1,4 +1,4 @@
-"""Database Audit Backend for Rate Limiting.
+"""Database Audit Backend for Rate Limiter.
 
 This module implements database-agnostic audit logging for rate limit violations.
 Apps provide their own model class (PostgreSQL, MySQL, SQLite, etc.).
@@ -201,7 +201,7 @@ class DatabaseAuditBackend(AuditBackend):
 
         except Exception as e:
             # Fail-open: Log error but don't raise
-            # Audit logging failures should not block rate limiting enforcement
+            # Audit logging failures should not block rate limiter enforcement
             logger.error(
                 f"Failed to log rate limit violation to database: {e}",
                 extra={

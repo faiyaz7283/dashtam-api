@@ -1,11 +1,11 @@
-"""Rate limiting package for Dashtam financial API.
+"""Rate Limiter package for Dashtam financial API.
 
-This package provides a comprehensive, SOLID-compliant rate limiting solution
+This package provides a comprehensive, SOLID-compliant Rate Limiter solution
 following the Strategy Pattern and Dependency Injection principles.
 
 Architecture:
     - config.py: Single source of truth for all rate limit rules
-    - algorithms/: Pluggable rate limiting algorithms (token bucket, sliding window, etc.)
+    - algorithms/: Pluggable Rate Limiter algorithms (token bucket, sliding window, etc.)
     - storage/: Pluggable storage backends (Redis, PostgreSQL, memory)
     - service.py: Orchestrator service (combines config + algorithm + storage)
     - middleware.py: FastAPI middleware integration (Phase 2)

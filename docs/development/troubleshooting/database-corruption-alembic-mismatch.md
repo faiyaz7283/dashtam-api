@@ -522,7 +522,7 @@ check-migration-state:
 
 - [Database Migrations Guide](../infrastructure/database-migrations.md)
 - [Docker Setup Guide](../infrastructure/docker-setup.md)
-- [Testing Guide](../../testing/testing-guide.md)
+- [Testing Guide](../guides/testing-guide.md)
 
 **External Resources:**
 
@@ -537,6 +537,6 @@ check-migration-state:
 
 ## Document Information
 
-**Template:** [troubleshooting-template.md](../../templates/troubleshooting-template.md)
+**Template:** troubleshooting-template.md
 **Created:** 2025-10-26
 **Last Updated:** 2025-10-26

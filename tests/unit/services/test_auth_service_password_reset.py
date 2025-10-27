@@ -71,7 +71,9 @@ class TestAuthServicePasswordResetDelegation:
             yield service
 
     @pytest.fixture
-    def auth_service(self, mock_session, mock_password_service, mock_password_reset_service):
+    def auth_service(
+        self, mock_session, mock_password_service, mock_password_reset_service
+    ):
         """Create AuthService with mocked dependencies."""
         return AuthService(mock_session)
 

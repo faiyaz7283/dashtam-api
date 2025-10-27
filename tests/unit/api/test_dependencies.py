@@ -70,9 +70,7 @@ class TestGetCurrentUser:
         mock_jwt_service.verify_token_type = Mock()
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         result = Mock()
         result.scalar_one_or_none = Mock(return_value=active_user)
@@ -98,9 +96,7 @@ class TestGetCurrentUser:
         mock_jwt_service = Mock()
         mock_jwt_service.verify_token_type = Mock(side_effect=JWTError("Invalid token"))
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         # Act & Assert
         with pytest.raises(HTTPException) as exc_info:
@@ -119,9 +115,7 @@ class TestGetCurrentUser:
         mock_jwt_service.verify_token_type = Mock()
         mock_jwt_service.get_user_id_from_token = Mock(return_value=None)
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         # Act & Assert
         with pytest.raises(HTTPException) as exc_info:
@@ -140,9 +134,7 @@ class TestGetCurrentUser:
         mock_jwt_service.verify_token_type = Mock()
         mock_jwt_service.get_user_id_from_token = Mock(return_value=uuid4())
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         result = Mock()
         result.scalar_one_or_none = Mock(return_value=None)
@@ -167,9 +159,7 @@ class TestGetCurrentUser:
         mock_jwt_service.verify_token_type = Mock()
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         result = Mock()
         result.scalar_one_or_none = Mock(return_value=active_user)
@@ -188,15 +178,15 @@ class TestGetCurrentUser:
     ):
         """Test authentication fails for locked user."""
         # Arrange - lock account for 1 hour
-        active_user.account_locked_until = datetime.now(timezone.utc) + timedelta(hours=1)
+        active_user.account_locked_until = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
 
         mock_jwt_service = Mock()
         mock_jwt_service.verify_token_type = Mock()
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         result = Mock()
         result.scalar_one_or_none = Mock(return_value=active_user)
@@ -281,9 +271,7 @@ class TestGetOptionalCurrentUser:
         mock_jwt_service.verify_token_type = Mock()
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         result = Mock()
         result.scalar_one_or_none = Mock(return_value=active_user)
@@ -332,9 +320,7 @@ class TestGetOptionalCurrentUser:
         mock_jwt_service = Mock()
         mock_jwt_service.verify_token_type = Mock(side_effect=JWTError("Invalid"))
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         # Act
         user = await get_optional_current_user(mock_request, mock_session)
@@ -355,9 +341,7 @@ class TestGetOptionalCurrentUser:
         mock_jwt_service.verify_token_type = Mock()
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         result = Mock()
         result.scalar_one_or_none = Mock(return_value=active_user)
@@ -373,7 +357,9 @@ class TestGetOptionalCurrentUser:
     async def test_optional_user_locked(self, mock_session, active_user, monkeypatch):
         """Test optional authentication returns None for locked user."""
         # Arrange - lock account for 1 hour
-        active_user.account_locked_until = datetime.now(timezone.utc) + timedelta(hours=1)
+        active_user.account_locked_until = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
 
         mock_request = Mock(spec=Request)
         mock_request.headers = {"Authorization": "Bearer valid_token"}
@@ -382,9 +368,7 @@ class TestGetOptionalCurrentUser:
         mock_jwt_service.verify_token_type = Mock()
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
-        monkeypatch.setattr(
-            "src.api.dependencies.JWTService", lambda: mock_jwt_service
-        )
+        monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
 
         result = Mock()
         result.scalar_one_or_none = Mock(return_value=active_user)

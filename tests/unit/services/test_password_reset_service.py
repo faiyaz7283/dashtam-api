@@ -207,7 +207,9 @@ class TestPasswordResetService:
         user_result.scalar_one_or_none = Mock(return_value=sample_user)
 
         refresh_tokens_result = Mock()
-        refresh_tokens_result.scalars = Mock(return_value=Mock(all=Mock(return_value=[])))
+        refresh_tokens_result.scalars = Mock(
+            return_value=Mock(all=Mock(return_value=[]))
+        )
 
         mock_session.execute = AsyncMock(
             side_effect=[reset_token_result, user_result, refresh_tokens_result]
@@ -238,7 +240,9 @@ class TestPasswordResetService:
         user_result.scalar_one_or_none = Mock(return_value=sample_user)
 
         refresh_tokens_result = Mock()
-        refresh_tokens_result.scalars = Mock(return_value=Mock(all=Mock(return_value=[])))
+        refresh_tokens_result.scalars = Mock(
+            return_value=Mock(all=Mock(return_value=[]))
+        )
 
         mock_session.execute = AsyncMock(
             side_effect=[reset_token_result, user_result, refresh_tokens_result]
@@ -368,7 +372,12 @@ class TestPasswordResetService:
         mock_session.commit.assert_not_called()
 
     def test_request_reset_handles_email_sending_failure(
-        self, password_reset_service, mock_session, sample_user, mock_email_service, caplog
+        self,
+        password_reset_service,
+        mock_session,
+        sample_user,
+        mock_email_service,
+        caplog,
     ):
         """Test request_reset handles email sending failure gracefully."""
         # Arrange

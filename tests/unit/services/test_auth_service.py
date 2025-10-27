@@ -64,12 +64,18 @@ class TestAuthServiceRegistration:
             yield service
 
     @pytest.fixture
-    def auth_service(self, mock_session, mock_password_service, mock_verification_service):
+    def auth_service(
+        self, mock_session, mock_password_service, mock_verification_service
+    ):
         """Create AuthService with mocked dependencies."""
         return AuthService(mock_session)
 
     def test_register_user_success(
-        self, auth_service, mock_session, mock_password_service, mock_verification_service
+        self,
+        auth_service,
+        mock_session,
+        mock_password_service,
+        mock_verification_service,
     ):
         """Test successful user registration."""
         # Arrange - no existing user
@@ -261,8 +267,9 @@ class TestAuthServiceLogin:
         self, mock_session, mock_password_service, mock_jwt_service, verified_user
     ):
         """Create AuthService with mocked dependencies."""
-        with patch("src.services.auth_service.VerificationService"), patch(
-            "src.services.auth_service.PasswordResetService"
+        with (
+            patch("src.services.auth_service.VerificationService"),
+            patch("src.services.auth_service.PasswordResetService"),
         ):
             return AuthService(mock_session)
 
@@ -325,7 +332,9 @@ class TestAuthServiceLogin:
         # Act & Assert
         with pytest.raises(HTTPException) as exc_info:
             asyncio.run(
-                auth_service.login(email="active@example.com", password="wrong_password")
+                auth_service.login(
+                    email="active@example.com", password="wrong_password"
+                )
             )
 
         assert exc_info.value.status_code == 401
@@ -382,9 +391,7 @@ class TestAuthServiceLogin:
         original_hash = verified_user.password_hash
 
         # Act
-        asyncio.run(
-            auth_service.login(email="active@example.com", password="password")
-        )
+        asyncio.run(auth_service.login(email="active@example.com", password="password"))
 
         # Assert - verify password was rehashed
         assert mock_password_service.needs_rehash.called
@@ -442,12 +449,11 @@ class TestAuthServiceTokenRefresh:
         )
 
     @pytest.fixture
-    def auth_service(
-        self, mock_session, mock_password_service, mock_jwt_service
-    ):
+    def auth_service(self, mock_session, mock_password_service, mock_jwt_service):
         """Create AuthService with mocked dependencies."""
-        with patch("src.services.auth_service.VerificationService"), patch(
-            "src.services.auth_service.PasswordResetService"
+        with (
+            patch("src.services.auth_service.VerificationService"),
+            patch("src.services.auth_service.PasswordResetService"),
         ):
             return AuthService(mock_session)
 
@@ -581,9 +587,11 @@ class TestAuthServiceLogout:
     @pytest.fixture
     def auth_service(self, mock_session, mock_password_service):
         """Create AuthService with mocked dependencies."""
-        with patch("src.services.auth_service.VerificationService"), patch(
-            "src.services.auth_service.PasswordResetService"
-        ), patch("src.services.auth_service.JWTService"):
+        with (
+            patch("src.services.auth_service.VerificationService"),
+            patch("src.services.auth_service.PasswordResetService"),
+            patch("src.services.auth_service.JWTService"),
+        ):
             return AuthService(mock_session)
 
     def test_logout_success(
@@ -647,10 +655,11 @@ class TestAuthServiceProfileManagement:
     @pytest.fixture
     def auth_service(self, mock_session):
         """Create AuthService with mocked dependencies."""
-        with patch("src.services.auth_service.PasswordService"), patch(
-            "src.services.auth_service.JWTService"
-        ), patch("src.services.auth_service.VerificationService"), patch(
-            "src.services.auth_service.PasswordResetService"
+        with (
+            patch("src.services.auth_service.PasswordService"),
+            patch("src.services.auth_service.JWTService"),
+            patch("src.services.auth_service.VerificationService"),
+            patch("src.services.auth_service.PasswordResetService"),
         ):
             return AuthService(mock_session)
 

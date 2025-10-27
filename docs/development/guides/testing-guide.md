@@ -512,6 +512,123 @@ def test_complete_registration_flow(client: TestClient, caplog):
     assert "access_token" in response.json()
 ```
 
+### Example 5: Service Dependency Overrides for Router Testing
+
+**When to Use:** When testing routers that depend on services, you can override the service dependencies with mocks or test implementations to isolate the router logic.
+
+**Pattern:** Use FastAPI's `app.dependency_overrides` to replace service dependencies with mock implementations.
+
+```python path=null start=null
+"""API test with service dependency override.
+
+Demonstrates mocking services in router tests to isolate business logic.
+"""
+
+import pytest
+from unittest.mock import MagicMock
+from fastapi.testclient import TestClient
+from uuid import uuid4
+
+from src.main import app
+from src.services.provider_service import ProviderService
+from src.api.dependencies import get_provider_service
+from src.schemas.provider import ProviderResponse
+
+def test_get_provider_with_mock_service():
+    """Test GET /api/v1/providers/{provider_id} with mock service.
+    
+    Isolates router logic by mocking ProviderService dependency.
+    """
+    # Arrange: Create mock service
+    mock_service = MagicMock(spec=ProviderService)
+    provider_id = uuid4()
+    
+    # Configure mock response
+    mock_service.get_provider.return_value = ProviderResponse(
+        id=provider_id,
+        provider_key="schwab",
+        alias="Test Provider",
+        is_connected=True
+    )
+    
+    # Override dependency
+    app.dependency_overrides[get_provider_service] = lambda: mock_service
+    
+    try:
+        # Act: Make request
+        client = TestClient(app)
+        response = client.get(f"/api/v1/providers/{provider_id}")
+        
+        # Assert: Verify behavior
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == str(provider_id)
+        assert data["provider_key"] == "schwab"
+        
+        # Verify service was called correctly
+        mock_service.get_provider.assert_called_once_with(provider_id)
+    finally:
+        # Cleanup: Reset overrides
+        app.dependency_overrides.clear()
+```
+
+**Fixture-Based Override Pattern:**
+
+For reusable mock services across multiple tests:
+
+```python path=null start=null
+import pytest
+from unittest.mock import MagicMock
+from src.main import app
+from src.services.provider_service import ProviderService
+from src.api.dependencies import get_provider_service
+
+@pytest.fixture
+def mock_provider_service():
+    """Fixture providing mock ProviderService.
+    
+    Automatically overrides service dependency and cleans up.
+    """
+    mock = MagicMock(spec=ProviderService)
+    app.dependency_overrides[get_provider_service] = lambda: mock
+    
+    yield mock
+    
+    # Cleanup
+    app.dependency_overrides.clear()
+
+def test_with_fixture(mock_provider_service):
+    """Test using mock service fixture."""
+    # Configure mock
+    mock_provider_service.list_providers.return_value = []
+    
+    # Test endpoint
+    client = TestClient(app)
+    response = client.get("/api/v1/providers")
+    
+    assert response.status_code == 200
+    assert response.json() == []
+```
+
+**When to Use Mock Services vs Real Services:**
+
+| Scenario | Use Mock Service | Use Real Service |
+|----------|------------------|------------------|
+| Testing router validation logic | ✅ Yes | ❌ No |
+| Testing service business logic | ❌ No | ✅ Yes |
+| Testing error handling paths | ✅ Yes (easier to trigger errors) | ⚠️ Optional |
+| Testing database operations | ❌ No | ✅ Yes (integration test) |
+| Testing external API calls | ✅ Yes (mock HTTP calls) | ❌ No |
+| End-to-end smoke tests | ❌ No | ✅ Yes (full stack) |
+
+**Best Practices:**
+
+- ✅ **Always cleanup:** Use `try/finally` or fixtures to clear `dependency_overrides`
+- ✅ **Use `MagicMock(spec=...)`:** Ensures mock has correct interface
+- ✅ **Verify mock calls:** Use `assert_called_once_with()` to verify service usage
+- ✅ **Test both paths:** Test with mock AND with real service (integration test)
+- ❌ **Don't overuse:** Reserve for complex service dependencies, prefer real services
+
 ## Verification
 
 ### Verify Tests Pass

@@ -19,7 +19,9 @@ from src.core.database import get_session
 from src.models.user import User
 from src.services.auth_service import AuthService
 from src.services.jwt_service import JWTService, JWTError
+from src.services.password_reset_service import PasswordResetService
 from src.services.token_service import TokenService
+from src.services.verification_service import VerificationService
 
 logger = logging.getLogger(__name__)
 
@@ -312,3 +314,55 @@ def get_token_service(
             token_info = await token_service.get_token_info(provider_id)
     """
     return TokenService(session)
+
+
+def get_verification_service(
+    session: AsyncSession = Depends(get_session),
+) -> VerificationService:
+    """Get VerificationService instance with injected session.
+
+    This provides a consistent dependency injection point for VerificationService.
+    While currently not used directly in routers (AuthService delegates internally),
+    this enables future direct usage and testing.
+
+    Args:
+        session: Database session from dependency.
+
+    Returns:
+        VerificationService instance.
+
+    Example:
+        @router.post("/verify-email")
+        async def verify_email(
+            token: str,
+            verification_service: VerificationService = Depends(get_verification_service),
+        ):
+            user = await verification_service.verify_email(token)
+    """
+    return VerificationService(session)
+
+
+def get_password_reset_service(
+    session: AsyncSession = Depends(get_session),
+) -> PasswordResetService:
+    """Get PasswordResetService instance with injected session.
+
+    This provides a consistent dependency injection point for PasswordResetService.
+    While currently not used directly in routers (AuthService delegates internally),
+    this enables future direct usage and testing.
+
+    Args:
+        session: Database session from dependency.
+
+    Returns:
+        PasswordResetService instance.
+
+    Example:
+        @router.post("/password-resets")
+        async def request_reset(
+            email: str,
+            password_reset_service: PasswordResetService = Depends(get_password_reset_service),
+        ):
+            await password_reset_service.request_reset(email)
+    """
+    return PasswordResetService(session)

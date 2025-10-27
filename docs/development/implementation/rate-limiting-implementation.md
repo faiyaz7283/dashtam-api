@@ -2867,6 +2867,5 @@ Legend:
 
 ## Document Information
 
-**Template:** [implementation-template.md](../../templates/implementation-template.md)
 **Created:** 2025-10-25
 **Last Updated:** 2025-10-25

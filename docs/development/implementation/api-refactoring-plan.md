@@ -495,15 +495,15 @@ def test_register_endpoint(client):
 - [ ] Run linting: `make lint`
 - [ ] Run tests: `make test`
 
-### Phase 3: Service Extraction (2-3 hours, optional)
+### Phase 3: Service Extraction ✅ COMPLETE
 
-- [ ] Create VerificationService
-- [ ] Create PasswordResetService
-- [ ] Refactor AuthService to delegate
-- [ ] Add DI providers for new services
-- [ ] Update routers if needed
-- [ ] Update all tests
-- [ ] Run full test suite
+- [x] Create VerificationService (100% coverage)
+- [x] Create PasswordResetService (95% coverage)
+- [x] Refactor AuthService to delegate (88% coverage)
+- [x] Add DI providers for new services
+- [x] Update routers if needed
+- [x] Update all tests (63 new tests added)
+- [x] Run full test suite (395 tests passing, 86% coverage)
 
 ### Phase 4: Test Coverage (2-3 hours)
 

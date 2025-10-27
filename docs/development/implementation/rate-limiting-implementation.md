@@ -240,13 +240,13 @@ Every component explicitly maps to SOLID principles:
 2. **Database-driven configuration** - Runtime complexity
 3. **Python configuration file (SSOT)** - Centralized, type-safe
 
-**Decision:** Python configuration file (`src/rate_limiting/config.py`) as single source of truth
+**Decision:** Python configuration file (`src/rate_limiter/config.py`) as single source of truth
 
 **Rationale:**
 
 - ✅ **SRP:** Configuration isolated in one module
 - ✅ **OCP:** Add new endpoints without modifying core logic
-- ✅ **Co-location:** Configuration lives with the feature it configures (rate_limiting/)
+- ✅ **Co-location:** Configuration lives with the feature it configures (rate_limiter/)
 - ✅ Type-safe with Pydantic validation
 - ✅ Complete flexibility: each endpoint can use different strategy + storage
 - ✅ No duplication (DRY principle)
@@ -265,21 +265,21 @@ Every component explicitly maps to SOLID principles:
    - ❌ Hard to understand complete feature
    - ❌ Difficult to extract or reuse
 
-2. **Bundled under services:** `services/rate_limiting/` with submodules
+2. **Bundled under services:** `services/rate_limiter/` with submodules
    - ✅ Cohesive module
    - ❌ Conceptually confusing (is rate limiting a "service"?)
    - ❌ Mixed with business logic services (auth, email, token)
    - ❌ Harder to extract (tied to services/ semantics)
 
-3. **Separate package:** `src/rate_limiting/` at root level
+3. **Separate package:** `src/rate_limiter/` at root level
    - ✅ **True module independence** (self-contained feature)
    - ✅ **Conceptual clarity** (infrastructure, not business logic)
-   - ✅ **Clean separation** (services/ = business logic, rate_limiting/ = infrastructure)
+   - ✅ **Clean separation** (services/ = business logic, rate_limiter/ = infrastructure)
    - ✅ **Easy extraction** (copy entire package to new project)
    - ✅ **DDD alignment** (bounded context)
    - ✅ **Co-location** (config, middleware, models all in one place)
 
-**Decision:** Separate package architecture (`src/rate_limiting/`)
+**Decision:** Separate package architecture (`src/rate_limiter/`)
 
 **Rationale:**
 
@@ -289,7 +289,7 @@ Rate limiting is a **feature/bounded context**, not a business service:
 - ✅ **True Module Independence:** Complete package can exist standalone without coupling to services/
 - ✅ **Cleaner Architecture:**
   - `services/` = Business logic (auth, token, email, payments)
-  - `rate_limiting/` = Infrastructure feature (rate limiting, throttling)
+  - `rate_limiter/` = Infrastructure feature (rate limiting, throttling)
   - `providers/` = External integrations (Schwab, Plaid)
 - ✅ **Better Extractability:** Can be extracted to separate package (e.g., `dashtam-rate-limiting` on PyPI) without restructuring
 - ✅ **SOLID at Package Level:**
@@ -297,7 +297,7 @@ Rate limiting is a **feature/bounded context**, not a business service:
   - **O:** Can extend without touching other packages
   - **L:** Entire package can be swapped with alternative implementation
   - **I:** Clean interface exposed via `__init__.py`
-  - **D:** Application depends on rate_limiting abstraction, not internal implementation
+  - **D:** Application depends on rate_limiter abstraction, not internal implementation
 - ✅ **DDD Alignment:** Rate limiting is a bounded context (self-contained domain)
 - ✅ **Co-location Benefits:** Can bundle config.py, middleware.py, models.py together (true self-containment)
 - ✅ **Plugin Architecture:** Discoverable and registrable just like any other feature
@@ -347,7 +347,7 @@ Rate limiting is a **feature/bounded context**, not a business service:
 
 ```text
 src/
-├── rate_limiting/              # Self-contained rate limiting package ✨
+├── rate_limiter/              # Self-contained rate limiting package ✨
 │   ├── __init__.py             # Package exports
 │   ├── config.py               # Rate limit configuration (SSOT)
 │   ├── service.py              # Orchestrator service
@@ -384,15 +384,15 @@ src/
 
 **Key Architectural Principles:**
 
-- **Self-Containment:** Everything rate limiting related in `src/rate_limiting/`
+- **Self-Containment:** Everything rate limiting related in `src/rate_limiter/`
 - **Package by Feature:** Rate limiting is a bounded context (DDD)
 - **Clean Separation:**
   - `services/` = Business logic (auth, payments, orders)
-  - `rate_limiting/` = Infrastructure (rate limiting, throttling)
+  - `rate_limiter/` = Infrastructure (rate limiting, throttling)
   - `providers/` = External integrations (Schwab, Plaid)
 - **SOLID at Package Level:** Rate limiting package is independently deployable/replaceable
 - **Pluggable:** Can be extracted to PyPI package without restructuring
-- **Co-located Tests:** Tests live in `src/rate_limiting/tests/` for complete independence
+- **Co-located Tests:** Tests live in `src/rate_limiter/tests/` for complete independence
   - Rate limiting package can be copied to another project with tests intact
   - Aligns with DDD bounded context philosophy (self-contained domain)
   - Enables future extraction to standalone PyPI package
@@ -401,7 +401,7 @@ src/
 
 #### Step 1.1: Create Configuration Module (Single Source of Truth)
 
-**Description:** Create `src/rate_limiting/config.py` as the ONLY location for rate limit configuration.
+**Description:** Create `src/rate_limiter/config.py` as the ONLY location for rate limit configuration.
 
 **SOLID Mapping:**
 
@@ -412,7 +412,7 @@ src/
 **Actions:**
 
 ```python
-# src/rate_limiting/config.py
+# src/rate_limiter/config.py
 
 from enum import Enum
 from typing import Dict, Literal
@@ -547,7 +547,7 @@ class RateLimitConfig:
 
 **Verification:**
 
-- [ ] File created: `src/rate_limiting/config.py`
+- [ ] File created: `src/rate_limiter/config.py`
 - [ ] All rate limits defined in RULES dictionary
 - [ ] Pydantic models validate configuration
 - [ ] Type hints complete
@@ -556,7 +556,7 @@ class RateLimitConfig:
 
 **Deliverables:**
 
-- `src/rate_limiting/config.py` (SSOT configuration)
+- `src/rate_limiter/config.py` (SSOT configuration)
 
 #### Step 1.2: Create Algorithm Abstraction (Interface Segregation + Liskov)
 
@@ -573,14 +573,14 @@ class RateLimitConfig:
 **Actions:**
 
 ```python
-# src/rate_limiting/algorithms/base.py
+# src/rate_limiter/algorithms/base.py
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.rate_limiting.storage.base import RateLimitStorage
-    from src.rate_limiting.config import RateLimitRule
+    from src.rate_limiter.storage.base import RateLimitStorage
+    from src.rate_limiter.config import RateLimitRule
 
 class RateLimitAlgorithm(ABC):
     """Abstract base class for rate limiting algorithms.
@@ -626,7 +626,7 @@ class RateLimitAlgorithm(ABC):
 
 **Verification:**
 
-- [ ] File created: `src/rate_limiting/algorithms/base.py`
+- [ ] File created: `src/rate_limiter/algorithms/base.py`
 - [ ] Abstract base class with `@abstractmethod`
 - [ ] Minimal interface (Interface Segregation)
 - [ ] Type hints complete
@@ -635,8 +635,8 @@ class RateLimitAlgorithm(ABC):
 
 **Deliverables:**
 
-- `src/rate_limiting/algorithms/base.py`
-- `src/rate_limiting/algorithms/__init__.py`
+- `src/rate_limiter/algorithms/base.py`
+- `src/rate_limiter/algorithms/__init__.py`
 
 #### Step 1.3: Create Storage Abstraction (Interface Segregation + Liskov)
 
@@ -653,7 +653,7 @@ class RateLimitAlgorithm(ABC):
 **Actions:**
 
 ```python
-# src/rate_limiting/storage/base.py
+# src/rate_limiter/storage/base.py
 
 from abc import ABC, abstractmethod
 
@@ -734,7 +734,7 @@ class RateLimitStorage(ABC):
 
 **Verification:**
 
-- [ ] File created: `src/rate_limiting/storage/base.py`
+- [ ] File created: `src/rate_limiter/storage/base.py`
 - [ ] Abstract base class with `@abstractmethod`
 - [ ] Minimal interface (Interface Segregation)
 - [ ] Type hints complete
@@ -743,8 +743,8 @@ class RateLimitStorage(ABC):
 
 **Deliverables:**
 
-- `src/rate_limiting/storage/base.py`
-- `src/rate_limiting/storage/__init__.py`
+- `src/rate_limiter/storage/base.py`
+- `src/rate_limiter/storage/__init__.py`
 
 #### Step 1.4: Implement Token Bucket Algorithm
 
@@ -761,17 +761,17 @@ class RateLimitStorage(ABC):
 **Actions:**
 
 ```python
-# src/rate_limiting/algorithms/token_bucket.py
+# src/rate_limiter/algorithms/token_bucket.py
 
 import time
 import logging
 from typing import TYPE_CHECKING
 
-from src.rate_limiting.algorithms.base import RateLimitAlgorithm
+from src.rate_limiter.algorithms.base import RateLimitAlgorithm
 
 if TYPE_CHECKING:
-    from src.rate_limiting.storage.base import RateLimitStorage
-    from src.rate_limiting.config import RateLimitRule
+    from src.rate_limiter.storage.base import RateLimitStorage
+    from src.rate_limiter.config import RateLimitRule
 
 logger = logging.getLogger(__name__)
 
@@ -863,7 +863,7 @@ class TokenBucketAlgorithm(RateLimitAlgorithm):
 
 **Verification:**
 
-- [ ] File created: `src/rate_limiting/algorithms/token_bucket.py`
+- [ ] File created: `src/rate_limiter/algorithms/token_bucket.py`
 - [ ] Implements `RateLimitAlgorithm` interface
 - [ ] Complete docstring explaining algorithm
 - [ ] Error handling (fail open strategy)
@@ -873,7 +873,7 @@ class TokenBucketAlgorithm(RateLimitAlgorithm):
 
 **Deliverables:**
 
-- `src/rate_limiting/algorithms/token_bucket.py`
+- `src/rate_limiter/algorithms/token_bucket.py`
 
 #### Step 1.5: Implement Redis Storage with Lua Script
 
@@ -890,14 +890,14 @@ class TokenBucketAlgorithm(RateLimitAlgorithm):
 **Actions:**
 
 ```python
-# src/rate_limiting/storage/redis_storage.py
+# src/rate_limiter/storage/redis_storage.py
 
 import time
 import logging
 from typing import Optional
 from redis.asyncio import Redis
 
-from src.rate_limiting.storage.base import RateLimitStorage
+from src.rate_limiter.storage.base import RateLimitStorage
 
 logger = logging.getLogger(__name__)
 
@@ -1071,7 +1071,7 @@ class RedisRateLimitStorage(RateLimitStorage):
 
 **Verification:**
 
-- [ ] File created: `src/rate_limiting/storage/redis_storage.py`
+- [ ] File created: `src/rate_limiter/storage/redis_storage.py`
 - [ ] Implements `RateLimitStorage` interface
 - [ ] Lua script for atomic operations
 - [ ] Error handling (fail open)
@@ -1082,7 +1082,7 @@ class RedisRateLimitStorage(RateLimitStorage):
 
 **Deliverables:**
 
-- `src/rate_limiting/storage/redis_storage.py`
+- `src/rate_limiter/storage/redis_storage.py`
 
 #### Step 1.6: Create Rate Limiter Service (Dependency Inversion)
 
@@ -1099,14 +1099,14 @@ class RedisRateLimitStorage(RateLimitStorage):
 **Actions:**
 
 ```python
-# src/rate_limiting/service.py
+# src/rate_limiter/service.py
 
 import logging
 from typing import Optional
 
-from src.rate_limiting.algorithms.base import RateLimitAlgorithm
-from src.rate_limiting.storage.base import RateLimitStorage
-from src.rate_limiting.config import RateLimitConfig, RateLimitRule
+from src.rate_limiter.algorithms.base import RateLimitAlgorithm
+from src.rate_limiter.storage.base import RateLimitStorage
+from src.rate_limiter.config import RateLimitConfig, RateLimitRule
 
 logger = logging.getLogger(__name__)
 
@@ -1223,7 +1223,7 @@ class RateLimiterService:
 
 **Verification:**
 
-- [ ] File created: `src/rate_limiting/service.py`
+- [ ] File created: `src/rate_limiter/service.py`
 - [ ] Accepts injected dependencies (algorithm, storage)
 - [ ] Minimal interface (one public method)
 - [ ] Error handling (fail open)
@@ -1233,8 +1233,8 @@ class RateLimiterService:
 
 **Deliverables:**
 
-- `src/rate_limiting/service.py`
-- `src/rate_limiting/__init__.py` (exports)
+- `src/rate_limiter/service.py`
+- `src/rate_limiter/__init__.py` (exports)
 
 ### Phase 2: FastAPI Integration & Middleware
 
@@ -1257,7 +1257,7 @@ class RateLimiterService:
 **Actions:**
 
 ```python
-# src/rate_limiting/middleware.py
+# src/rate_limiter/middleware.py
 
 import logging
 from typing import Callable, Optional
@@ -1266,8 +1266,8 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-from src.rate_limiting.service import RateLimiterService
-from src.rate_limiting.config import RateLimitRule
+from src.rate_limiter.service import RateLimiterService
+from src.rate_limiter.config import RateLimitRule
 
 logger = logging.getLogger(__name__)
 
@@ -1462,7 +1462,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 **Verification:**
 
-- [ ] File created: `src/rate_limiting/middleware.py`
+- [ ] File created: `src/rate_limiter/middleware.py`
 - [ ] Extends `BaseHTTPMiddleware`
 - [ ] Accepts injected RateLimiterService
 - [ ] Returns HTTP 429 with Retry-After header
@@ -1472,7 +1472,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 **Deliverables:**
 
-- `src/rate_limiting/middleware.py`
+- `src/rate_limiter/middleware.py`
 - `src/middleware/__init__.py`
 
 #### Step 2.2: Create Factory Function (Dependency Injection)
@@ -1486,13 +1486,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 **Actions:**
 
 ```python
-# src/rate_limiting/factory.py
+# src/rate_limiter/factory.py
 
 from redis.asyncio import Redis
 from src.core.database import get_redis
-from src.rate_limiting.service import RateLimiterService
-from src.rate_limiting.algorithms.token_bucket import TokenBucketAlgorithm
-from src.rate_limiting.storage.redis_storage import RedisRateLimitStorage
+from src.rate_limiter.service import RateLimiterService
+from src.rate_limiter.algorithms.token_bucket import TokenBucketAlgorithm
+from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
 
 async def get_rate_limiter_service() -> RateLimiterService:
     """Factory function to create rate limiter service with dependencies.
@@ -1520,7 +1520,7 @@ async def get_rate_limiter_service() -> RateLimiterService:
 
 **Verification:**
 
-- [ ] File created: `src/rate_limiting/factory.py`
+- [ ] File created: `src/rate_limiter/factory.py`
 - [ ] Creates concrete implementations
 - [ ] Injects dependencies into service
 - [ ] Async function (Redis client is async)
@@ -1528,7 +1528,7 @@ async def get_rate_limiter_service() -> RateLimiterService:
 
 **Deliverables:**
 
-- `src/rate_limiting/factory.py`
+- `src/rate_limiter/factory.py`
 
 #### Step 2.3: Register Middleware in main.py
 
@@ -1539,8 +1539,8 @@ async def get_rate_limiter_service() -> RateLimiterService:
 ```python
 # src/main.py (additions)
 
-from src.rate_limiting.middleware import RateLimitMiddleware
-from src.rate_limiting.factory import get_rate_limiter_service
+from src.rate_limiter.middleware import RateLimitMiddleware
+from src.rate_limiter.factory import get_rate_limiter_service
 
 # ... existing code ...
 
@@ -1576,7 +1576,7 @@ async def startup_rate_limiter():
 
 **Implementation Summary:**
 
-- All tests co-located in `src/rate_limiting/tests/` (not in main test suite)
+- All tests co-located in `src/rate_limiter/tests/` (not in main test suite)
 - Rate limiting tests run manually in development only
 - Not part of CI/CD (316 main tests unchanged)
 - Future: Extractable as standalone package with own CI/CD
@@ -1595,7 +1595,7 @@ async def startup_rate_limiter():
 
 ```bash
 # Run all rate limiting tests
-docker compose exec app uv run pytest src/rate_limiting/tests/ -v
+docker compose exec app uv run pytest src/rate_limiter/tests/ -v
 ```
 
 #### Step 3.1: Unit Tests - Token Bucket Algorithm
@@ -1605,12 +1605,12 @@ docker compose exec app uv run pytest src/rate_limiting/tests/ -v
 **Actions:**
 
 ```python
-# tests/unit/services/rate_limiting/test_token_bucket_algorithm.py
+# tests/unit/services/rate_limiter/test_token_bucket_algorithm.py
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from src.rate_limiting.algorithms.token_bucket import TokenBucketAlgorithm
-from src.rate_limiting.config import RateLimitRule, RateLimitStrategy, RateLimitStorage as StorageEnum
+from src.rate_limiter.algorithms.token_bucket import TokenBucketAlgorithm
+from src.rate_limiter.config import RateLimitRule, RateLimitStrategy, RateLimitStorage as StorageEnum
 
 class TestTokenBucketAlgorithm:
     """Unit tests for TokenBucketAlgorithm.
@@ -1718,7 +1718,7 @@ class TestTokenBucketAlgorithm:
 
 **Deliverables:**
 
-- `tests/unit/services/rate_limiting/test_token_bucket_algorithm.py`
+- `tests/unit/services/rate_limiter/test_token_bucket_algorithm.py`
 
 #### Step 3.2: Unit Tests - Redis Storage
 
@@ -1728,7 +1728,7 @@ class TestTokenBucketAlgorithm:
 
 **Actual Implementation:** Used fakeredis[lua] instead of test container for faster, isolated unit tests.
 
-**Test File:** `src/rate_limiting/tests/test_redis_storage.py` (25 tests, 574 lines)
+**Test File:** `src/rate_limiter/tests/test_redis_storage.py` (25 tests, 574 lines)
 
 **Test Coverage:**
 
@@ -1753,11 +1753,11 @@ class TestTokenBucketAlgorithm:
 **Actions:**
 
 ```python
-# tests/unit/services/rate_limiting/test_redis_storage.py
+# tests/unit/services/rate_limiter/test_redis_storage.py
 
 import pytest
 import time
-from src.rate_limiting.storage.redis_storage import RedisRateLimitStorage
+from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
 
 class TestRedisRateLimitStorage:
     """Unit tests for RedisRateLimitStorage.
@@ -1909,7 +1909,7 @@ class TestRedisRateLimitStorage:
 
 **Deliverables:**
 
-- `tests/unit/services/rate_limiting/test_redis_storage.py`
+- `tests/unit/services/rate_limiter/test_redis_storage.py`
 
 #### Step 3.3: Integration Tests - Rate Limiter Service
 
@@ -1921,10 +1921,10 @@ class TestRedisRateLimitStorage:
 # tests/integration/test_rate_limiter_service.py
 
 import pytest
-from src.rate_limiting.service import RateLimiterService
-from src.rate_limiting.algorithms.token_bucket import TokenBucketAlgorithm
-from src.rate_limiting.storage.redis_storage import RedisRateLimitStorage
-from src.rate_limiting.config import RateLimitConfig
+from src.rate_limiter.service import RateLimiterService
+from src.rate_limiter.algorithms.token_bucket import TokenBucketAlgorithm
+from src.rate_limiter.storage.redis_storage import RedisRateLimitStorage
+from src.rate_limiter.config import RateLimitConfig
 
 class TestRateLimiterServiceIntegration:
     """Integration tests for RateLimiterService.
@@ -2032,7 +2032,7 @@ class TestRateLimiterServiceIntegration:
 **Actions:**
 
 ```python
-# tests/api/test_rate_limiting_api.py
+# tests/api/test_rate_limiter_api.py
 
 import pytest
 from fastapi.testclient import TestClient
@@ -2121,7 +2121,7 @@ class TestRateLimitingAPI:
 
 **Deliverables:**
 
-- `tests/api/test_rate_limiting_api.py`
+- `tests/api/test_rate_limiter_api.py`
 
 #### Step 3.5: Smoke Tests - End-to-End Scenarios
 
@@ -2130,7 +2130,7 @@ class TestRateLimitingAPI:
 **Actions:**
 
 ```python
-# tests/smoke/test_rate_limiting_smoke.py
+# tests/smoke/test_rate_limiter_smoke.py
 
 import pytest
 import time
@@ -2201,7 +2201,7 @@ class TestRateLimitingSmoke:
 
 **Deliverables:**
 
-- `tests/smoke/test_rate_limiting_smoke.py`
+- `tests/smoke/test_rate_limiter_smoke.py`
 
 ### Phase 4: Monitoring, Audit & Observability
 
@@ -2216,7 +2216,7 @@ class TestRateLimitingSmoke:
 **Actions:**
 
 ```python
-# src/rate_limiting/models.py
+# src/rate_limiter/models.py
 
 from datetime import datetime, UTC
 from typing import Optional
@@ -2266,7 +2266,7 @@ class RateLimitAuditLog(SQLModel, table=True):
 
 **Deliverables:**
 
-- `src/rate_limiting/models.py`
+- `src/rate_limiter/models.py`
 - Alembic migration for audit log table
 - Updated middleware to log violations
 
@@ -2777,24 +2777,24 @@ Legend:
 
 ### Code Deliverables
 
-- [ ] `src/rate_limiting/config.py` - Configuration SSOT
-- [ ] `src/rate_limiting/algorithms/base.py` - Algorithm abstraction
-- [ ] `src/rate_limiting/algorithms/token_bucket.py` - Token bucket implementation
-- [ ] `src/rate_limiting/storage/base.py` - Storage abstraction
-- [ ] `src/rate_limiting/storage/redis_storage.py` - Redis implementation
-- [ ] `src/rate_limiting/service.py` - Orchestrating service
-- [ ] `src/rate_limiting/factory.py` - Dependency injection factory
-- [ ] `src/rate_limiting/middleware.py` - FastAPI middleware
-- [ ] `src/rate_limiting/models.py` - Audit log model
+- [ ] `src/rate_limiter/config.py` - Configuration SSOT
+- [ ] `src/rate_limiter/algorithms/base.py` - Algorithm abstraction
+- [ ] `src/rate_limiter/algorithms/token_bucket.py` - Token bucket implementation
+- [ ] `src/rate_limiter/storage/base.py` - Storage abstraction
+- [ ] `src/rate_limiter/storage/redis_storage.py` - Redis implementation
+- [ ] `src/rate_limiter/service.py` - Orchestrating service
+- [ ] `src/rate_limiter/factory.py` - Dependency injection factory
+- [ ] `src/rate_limiter/middleware.py` - FastAPI middleware
+- [ ] `src/rate_limiter/models.py` - Audit log model
 - [ ] Updated `src/main.py` - Middleware registration
 
 ### Test Deliverables
 
-- [ ] `tests/unit/services/rate_limiting/test_token_bucket_algorithm.py` - Algorithm tests
-- [ ] `tests/unit/services/rate_limiting/test_redis_storage.py` - Storage tests
+- [ ] `tests/unit/services/rate_limiter/test_token_bucket_algorithm.py` - Algorithm tests
+- [ ] `tests/unit/services/rate_limiter/test_redis_storage.py` - Storage tests
 - [ ] `tests/integration/test_rate_limiter_service.py` - Service integration tests
-- [ ] `tests/api/test_rate_limiting_api.py` - API endpoint tests
-- [ ] `tests/smoke/test_rate_limiting_smoke.py` - End-to-end smoke tests
+- [ ] `tests/api/test_rate_limiter_api.py` - API endpoint tests
+- [ ] `tests/smoke/test_rate_limiter_smoke.py` - End-to-end smoke tests
 
 ### Documentation Deliverables
 

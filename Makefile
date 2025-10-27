@@ -286,12 +286,44 @@ setup: certs keys
 	@echo "  • API Docs: https://localhost:8000/docs"
 	@echo "  • Callback: https://127.0.0.1:8182"
 
-# Clean up everything (both dev and test)
+# Clean up everything (both dev and test) - DESTRUCTIVE!
 clean:
-	@echo "🧹 Cleaning up ALL environments..."
-	@echo "  → Stopping and removing dev containers..."
+	@echo "⚠️  ⚠️  ⚠️  DESTRUCTIVE OPERATION WARNING ⚠️  ⚠️  ⚠️"
+	@echo ""
+	@echo "This will PERMANENTLY DELETE all database data and volumes!"
+	@echo ""
+	@echo "📦 Affected Docker Volumes:"
+	@echo "   • dashtam-dev_postgres_dev_data (development database)"
+	@echo "   • dashtam-dev_redis_dev_data (development cache)"
+	@echo "   • dashtam-test_postgres_test_data (test database)"
+	@echo "   • dashtam-test_redis_test_data (test cache)"
+	@echo ""
+	@echo "🗄️  Data that will be LOST:"
+	@echo "   • All database tables (users, providers, tokens, etc.)"
+	@echo "   • All Alembic migration history (alembic_version table)"
+	@echo "   • All Redis cache data"
+	@echo ""
+	@echo "⚠️  Impact:"
+	@echo "   • Application will be BROKEN until you re-run migrations"
+	@echo "   • All test data will be deleted"
+	@echo "   • You must run 'make migrate' after 'make dev-up'"
+	@echo ""
+	@echo "💡 Alternative commands:"
+	@echo "   • 'make dev-rebuild'  - Rebuild images WITHOUT deleting data"
+	@echo "   • 'make test-rebuild' - Rebuild test images WITHOUT deleting data"
+	@echo "   • 'make dev-restart'  - Restart dev environment (keeps data)"
+	@echo ""
+	@read -p "⚠️  Type 'DELETE ALL DATA' to confirm (case-sensitive): " confirm; \
+	if [ "$$confirm" != "DELETE ALL DATA" ]; then \
+		echo ""; \
+		echo "❌ Cleanup cancelled - No data deleted"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "🧹 Proceeding with destructive cleanup..."
+	@echo "  → Stopping and removing dev containers with volumes..."
 	@docker compose -f compose/docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
-	@echo "  → Stopping and removing test containers..."
+	@echo "  → Stopping and removing test containers with volumes..."
 	@docker compose -f compose/docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
 	@echo "  → Removing Docker images..."
 	@docker rmi dashtam-dev-app dashtam-dev-callback 2>/dev/null || true
@@ -301,7 +333,13 @@ clean:
 	@if [ -d ".env" ]; then rm -rf .env && echo "    ✓ Removed .env directory"; fi
 	@echo "  → Pruning Docker build cache..."
 	@docker builder prune -f 2>/dev/null || true
-	@echo "✅ Cleanup complete!"
+	@echo ""
+	@echo "✅ Cleanup complete! All data and volumes deleted."
+	@echo ""
+	@echo "🔧 Next steps to restore functionality:"
+	@echo "   1. Start dev environment: make dev-up"
+	@echo "   2. Run migrations:       make migrate"
+	@echo "   3. Verify setup:         make dev-status"
 
 # ============================================================================
 # TESTING COMMANDS

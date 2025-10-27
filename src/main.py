@@ -14,7 +14,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from src.core.config import settings
 from src.core.database import close_db
 from src.api.v1 import api_router
-from src.rate_limiting.middleware import RateLimitMiddleware
+from src.rate_limiter.middleware import RateLimitMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -39,6 +39,11 @@ async def lifespan(app: FastAPI):
     #     await init_db()
     #     logger.info("Database tables initialized")
     logger.info("Database managed by Alembic (run 'make migrate' to apply migrations)")
+
+    # Initialize audit backend for rate limiting
+    # Note: Database session is created per-request in middleware via get_session()
+    # Audit backend is passed to middleware for dependency injection
+    logger.info("Rate limiting audit backend configured (database)")
 
     # Log available providers
     from src.providers import ProviderRegistry
@@ -81,7 +86,8 @@ app.add_middleware(
     else ["localhost", "127.0.0.1", "app", "backend", "0.0.0.0", "testserver"],
 )
 
-# Add rate limiting middleware (lazy initialization on first request)
+# Add rate limiting middleware
+# Audit backend creates fresh database session per violation automatically
 app.add_middleware(RateLimitMiddleware)
 
 # Include API routers

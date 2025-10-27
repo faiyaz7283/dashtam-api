@@ -57,7 +57,7 @@ class TestRateLimitMiddlewareBasicFunctionality:
         assert remaining >= 0
         assert reset > 0
 
-    def test_rate_limiting_enforced_on_configured_endpoint(self, client: TestClient):
+    def test_rate_limiter_enforced_on_configured_endpoint(self, client: TestClient):
         """Test that rate limiting is enforced on configured endpoints.
 
         Uses registration endpoint (max 10 tokens) to verify rate limiting works.
@@ -140,7 +140,7 @@ class TestRateLimitMiddlewareIPScoping:
     Verifies that unauthenticated requests are rate limited per IP address.
     """
 
-    def test_ip_based_rate_limiting_for_unauthenticated_requests(
+    def test_ip_based_rate_limiter_for_unauthenticated_requests(
         self, client: TestClient
     ):
         """Test that unauthenticated requests use IP-based rate limiting.
@@ -236,7 +236,7 @@ class TestRateLimitMiddlewareEndpointMatching:
         assert "/api/v1/auth/register" in endpoint_key
         assert endpoint_key == "POST /api/v1/auth/register"
 
-    def test_unconfigured_endpoint_no_rate_limiting(self, client: TestClient):
+    def test_unconfigured_endpoint_no_rate_limiter(self, client: TestClient):
         """Test that endpoints without rate limit config are not limited.
 
         Verifies:

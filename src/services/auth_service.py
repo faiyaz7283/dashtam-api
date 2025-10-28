@@ -32,6 +32,7 @@ from src.services.verification_service import VerificationService
 from src.services.password_reset_service import PasswordResetService
 from src.services.geolocation_service import get_geolocation_service
 from src.core.config import get_settings
+from src.core.cache import CacheBackend, get_cache
 
 logger = logging.getLogger(__name__)
 
@@ -57,15 +58,17 @@ class AuthService:
         password_reset_service: Service for password reset workflows
     """
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, cache: Optional[CacheBackend] = None):
         """Initialize auth service with dependencies.
 
         Args:
             session: Async database session
+            cache: Cache backend for token blacklist (SOLID: Dependency Injection)
 
         Note:
             Development mode is automatically determined from settings.DEBUG.
             When DEBUG=True, emails are logged instead of sent.
+            Cache is optional (defaults to singleton if not provided).
         """
         self.session = session
         self.settings = get_settings()
@@ -76,6 +79,8 @@ class AuthService:
         self.password_reset_service = PasswordResetService(session)
         # Session management: geolocation for IP → location
         self.geolocation_service = get_geolocation_service()
+        # Cache for token blacklist (immediate revocation)
+        self.cache = cache or get_cache()
 
     async def register_user(
         self, email: str, password: str, name: Optional[str] = None
@@ -314,6 +319,24 @@ class AuthService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or revoked refresh token",
             )
+
+        # Check if token is blacklisted in cache (immediate revocation)
+        # This provides instant revocation even if DB hasn't propagated yet
+        blacklist_key = f"revoked_token:{refresh_token_record.id}"
+        try:
+            is_blacklisted = await self.cache.exists(blacklist_key)
+            if is_blacklisted:
+                logger.warning(
+                    f"Blacklisted token used: {refresh_token_record.id} "
+                    f"(user: {refresh_token_record.user_id})"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been revoked",
+                )
+        except Exception as e:
+            # Log cache error but don't fail (DB check below is fallback)
+            logger.error(f"Cache blacklist check failed: {e}")
 
         # Check if token expired
         if datetime.now(timezone.utc) > refresh_token_record.expires_at:

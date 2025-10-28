@@ -11,6 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from src.api.dependencies import get_current_user
@@ -143,8 +144,6 @@ async def list_user_providers(
     Returns:
         Paginated list of provider instances with metadata.
     """
-    from sqlalchemy.orm import selectinload
-
     # Build base query
     query = (
         select(Provider)
@@ -234,9 +233,6 @@ async def get_provider(
     session: AsyncSession = Depends(get_session),
 ):
     """Get details of a specific provider instance."""
-    from sqlmodel import select
-    from sqlalchemy.orm import selectinload
-
     result = await session.execute(
         select(Provider)
         .options(selectinload(Provider.connection))
@@ -298,8 +294,6 @@ async def update_provider(
         HTTPException: 404 if provider not found, 403 if no access,
                       409 if alias conflicts with existing provider.
     """
-    from sqlalchemy.orm import selectinload
-
     # Get provider with connection
     result = await session.execute(
         select(Provider)
@@ -393,8 +387,6 @@ async def delete_provider(
     Raises:
         HTTPException: 404 if provider not found, 403 if forbidden, 500 on failure.
     """
-    from sqlmodel import select
-
     result = await session.execute(select(Provider).where(Provider.id == provider_id))
     provider = result.scalar_one_or_none()
 

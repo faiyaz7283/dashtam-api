@@ -198,6 +198,103 @@ flowchart LR
 
 Model relationships through URL structure:
 
+#### Sub-Resource Pattern: Provider Authorization
+
+Provider authorization is modeled as a sub-resource under providers, following RESTful sub-resource conventions where authorization represents a nested relationship with the provider instance.
+
+**Endpoints:**
+
+```bash
+# Initiate OAuth flow (get authorization URL)
+POST   /providers/{id}/authorization
+
+# Check authorization status  
+GET    /providers/{id}/authorization
+
+# OAuth callback (provider redirects here)
+GET    /providers/{id}/authorization/callback?code=...&state=...
+
+# Manual token refresh
+PATCH  /providers/{id}/authorization
+
+# Revoke authorization (disconnect)
+DELETE /providers/{id}/authorization
+```
+
+**Design Rationale:**
+
+- Authorization is treated as a **singular sub-resource** (not a collection)
+- Each provider has **one authorization state** (authorized or not)
+- Operations are **resource-oriented** (not action-oriented):
+  - `POST` creates authorization (initiates OAuth)
+  - `GET` retrieves authorization status
+  - `PATCH` updates authorization (refreshes tokens)
+  - `DELETE` removes authorization (disconnects)
+
+**Why Sub-Resource (Not Top-Level)?**
+
+✅ **Correct (Sub-Resource)**:
+
+```bash
+POST /providers/{id}/authorization  # Clear parent-child relationship
+```
+
+❌ **Wrong (Top-Level)**:
+
+```bash
+POST /authorizations?provider_id={id}  # Implies authorization exists independently
+```
+
+**Benefits:**
+
+- **Semantic clarity**: Authorization clearly belongs to a provider
+- **Simpler URLs**: No need for query parameters
+- **RESTful compliance**: Standard sub-resource pattern
+- **Type safety**: Provider ID validated before authorization logic
+
+**Example Flow:**
+
+```python
+# 1. Client creates provider instance
+POST /api/v1/providers
+{
+  "provider_key": "schwab",
+  "alias": "My Schwab Account"
+}
+# Response: {"id": "123...", ...}
+
+# 2. Client initiates OAuth authorization
+POST /api/v1/providers/123/authorization
+# Response: {"authorization_url": "https://schwab.com/oauth?..."}
+
+# 3. User authorizes in browser, redirects to callback
+GET /api/v1/providers/123/authorization/callback?code=abc&state=xyz
+# Server exchanges code for tokens, stores them encrypted
+
+# 4. Check authorization status anytime
+GET /api/v1/providers/123/authorization  
+# Response: {"is_authorized": true, "token_expires_at": "..."}
+
+# 5. Manually refresh if needed
+PATCH /api/v1/providers/123/authorization
+# Response: {"token_expires_at": "...", "refreshed_at": "..."}
+
+# 6. Disconnect provider
+DELETE /api/v1/providers/123/authorization
+# Response: 204 No Content
+```
+
+**Alternative Patterns Considered:**
+
+| Pattern | Example | Why Not Used |
+|---------|---------|-------------|
+| Action URLs | `POST /providers/{id}/authorize` | Violates resource-oriented design |
+| Top-level | `POST /authorizations?provider_id={id}` | Breaks parent-child relationship |
+| Query params | `POST /providers/{id}?action=authorize` | Non-RESTful, action-oriented |
+| Nested actions | `POST /providers/{id}/actions/authorize` | Overcomplicates URL structure |
+
+**Current Implementation:** `/providers/{id}/authorization` correctly models authorization as a managed sub-resource with standard HTTP methods.
+
 ```bash
 /users                                    # All users
 /users/{user_id}                          # Specific user

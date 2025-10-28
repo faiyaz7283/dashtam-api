@@ -51,6 +51,12 @@ ignore:
   - "alembic/versions/**/*"
   - "**/__init__.py"
   - "**/conftest.py"
+  # Initialization scripts (not typically tested)
+  - "src/core/init_db.py"
+  - "src/core/init_test_db.py"
+  # Rate limiter co-located tests (independent bounded context, tested separately)
+  - "src/rate_limiter/tests/**/*"
+  - "src/rate_limiter/models/base.py"
 
 # Component-based coverage (optional but useful)
 component_management:

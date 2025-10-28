@@ -17,7 +17,11 @@ from sqlmodel import select
 
 from src.core.database import get_session
 from src.models.user import User
+from src.services.auth_service import AuthService
 from src.services.jwt_service import JWTService, JWTError
+from src.services.password_reset_service import PasswordResetService
+from src.services.token_service import TokenService
+from src.services.verification_service import VerificationService
 
 logger = logging.getLogger(__name__)
 
@@ -257,3 +261,108 @@ def get_user_agent(request: Request) -> Optional[str]:
             pass
     """
     return request.headers.get("User-Agent")
+
+
+# ==================== Service Factory Dependencies ====================
+
+
+def get_auth_service(
+    session: AsyncSession = Depends(get_session),
+) -> AuthService:
+    """Get AuthService instance with injected session.
+
+    This provides a consistent dependency injection point for AuthService
+    across all routers, improving testability and maintainability.
+
+    Args:
+        session: Database session from dependency.
+
+    Returns:
+        AuthService instance.
+
+    Example:
+        @router.post("/register")
+        async def register(
+            request: RegisterRequest,
+            auth_service: AuthService = Depends(get_auth_service),
+        ):
+            user = await auth_service.register_user(...)
+    """
+    return AuthService(session)
+
+
+def get_token_service(
+    session: AsyncSession = Depends(get_session),
+) -> TokenService:
+    """Get TokenService instance with injected session.
+
+    This provides a consistent dependency injection point for TokenService
+    across all routers, improving testability and maintainability.
+
+    Args:
+        session: Database session from dependency.
+
+    Returns:
+        TokenService instance.
+
+    Example:
+        @router.get("/{provider_id}/authorization")
+        async def get_authorization_status(
+            provider_id: UUID,
+            token_service: TokenService = Depends(get_token_service),
+        ):
+            token_info = await token_service.get_token_info(provider_id)
+    """
+    return TokenService(session)
+
+
+def get_verification_service(
+    session: AsyncSession = Depends(get_session),
+) -> VerificationService:
+    """Get VerificationService instance with injected session.
+
+    This provides a consistent dependency injection point for VerificationService.
+    While currently not used directly in routers (AuthService delegates internally),
+    this enables future direct usage and testing.
+
+    Args:
+        session: Database session from dependency.
+
+    Returns:
+        VerificationService instance.
+
+    Example:
+        @router.post("/verify-email")
+        async def verify_email(
+            token: str,
+            verification_service: VerificationService = Depends(get_verification_service),
+        ):
+            user = await verification_service.verify_email(token)
+    """
+    return VerificationService(session)
+
+
+def get_password_reset_service(
+    session: AsyncSession = Depends(get_session),
+) -> PasswordResetService:
+    """Get PasswordResetService instance with injected session.
+
+    This provides a consistent dependency injection point for PasswordResetService.
+    While currently not used directly in routers (AuthService delegates internally),
+    this enables future direct usage and testing.
+
+    Args:
+        session: Database session from dependency.
+
+    Returns:
+        PasswordResetService instance.
+
+    Example:
+        @router.post("/password-resets")
+        async def request_reset(
+            email: str,
+            password_reset_service: PasswordResetService = Depends(get_password_reset_service),
+        ):
+            await password_reset_service.request_reset(email)
+    """
+    return PasswordResetService(session)

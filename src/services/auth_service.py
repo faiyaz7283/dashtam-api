@@ -24,34 +24,35 @@ from sqlmodel import select
 from fastapi import HTTPException, status
 
 from src.models.user import User
-from src.models.auth import RefreshToken, EmailVerificationToken, PasswordResetToken
+from src.models.auth import RefreshToken
 from src.services.password_service import PasswordService
 from src.services.jwt_service import JWTService
-from src.services.email_service import EmailService
+from src.services.verification_service import VerificationService
+from src.services.password_reset_service import PasswordResetService
 from src.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
 class AuthService:
-    """Service for user authentication and management.
+    """Service for user authentication and management (orchestrator).
 
-    This service orchestrates authentication workflows by coordinating
-    between database operations, password hashing, JWT generation, and
-    email sending. All methods are asynchronous due to database I/O.
+    This service orchestrates authentication workflows by delegating to
+    specialized services while maintaining a unified public API.
 
     Workflows:
-        - Registration: Create user → Send verification email
-        - Verification: Validate token → Activate user → Send welcome email
+        - Registration: Create user → Delegate verification to VerificationService
+        - Verification: Delegate to VerificationService
         - Login: Verify credentials → Generate tokens → Create refresh token
         - Refresh: Validate refresh token → Generate new access token
-        - Password Reset: Generate token → Send email → Validate → Update password
+        - Password Reset: Delegate to PasswordResetService
 
     Attributes:
         session: Database session for async operations
         password_service: Service for password operations (sync)
         jwt_service: Service for JWT operations (sync)
-        email_service: Service for email operations (async)
+        verification_service: Service for email verification workflows
+        password_reset_service: Service for password reset workflows
     """
 
     def __init__(self, session: AsyncSession):
@@ -68,8 +69,9 @@ class AuthService:
         self.settings = get_settings()
         self.password_service = PasswordService()
         self.jwt_service = JWTService()
-        # Auto-determine development mode from DEBUG setting
-        self.email_service = EmailService(development_mode=self.settings.DEBUG)
+        # Delegate to specialized services for verification and password reset
+        self.verification_service = VerificationService(session)
+        self.password_reset_service = PasswordResetService(session)
 
     async def register_user(
         self, email: str, password: str, name: Optional[str] = None
@@ -135,20 +137,10 @@ class AuthService:
         await self.session.flush()  # Get user ID
         await self.session.refresh(user)
 
-        # Generate verification token (returns plain token and hashed record)
-        plain_token, verification_token = await self._create_verification_token(user.id)
-
-        # Send verification email with plain token (non-blocking)
-        try:
-            await self.email_service.send_verification_email(
-                to_email=email,
-                verification_token=plain_token,
-                user_name=name,
-            )
-            logger.info(f"Verification email sent to {email}")
-        except Exception as e:
-            logger.error(f"Failed to send verification email to {email}: {e}")
-            # Don't fail registration if email fails - user can request resend
+        # Delegate to VerificationService to create token and send email
+        await self.verification_service.create_verification_token(
+            user_id=user.id, email=email, user_name=name
+        )
 
         await self.session.commit()
 
@@ -158,8 +150,7 @@ class AuthService:
     async def verify_email(self, token: str) -> User:
         """Verify user's email address using verification token.
 
-        Validates the token, activates the user account, and sends
-        a welcome email.
+        Delegates to VerificationService for token validation and user activation.
 
         Args:
             token: Email verification token string
@@ -176,65 +167,8 @@ class AuthService:
             >>> user.is_verified
             True
         """
-        # Get all unused verification tokens for potential match
-        result = await self.session.execute(
-            select(EmailVerificationToken).where(
-                EmailVerificationToken.used_at.is_(None),
-            )
-        )
-        verification_tokens = result.scalars().all()
-
-        # Find matching token by comparing hashes
-        verification_token = None
-        for token_record in verification_tokens:
-            if self.password_service.verify_password(token, token_record.token_hash):
-                verification_token = token_record
-                break
-
-        if not verification_token:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or already used verification token",
-            )
-
-        # Check if token expired
-        if datetime.now(timezone.utc) > verification_token.expires_at:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Verification token has expired",
-            )
-
-        # Get user
-        result = await self.session.execute(
-            select(User).where(User.id == verification_token.user_id)
-        )
-        user = result.scalar_one_or_none()
-
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
-
-        # Mark user as verified
-        user.email_verified = True
-        user.email_verified_at = datetime.now(timezone.utc)
-
-        # Mark token as used
-        verification_token.used_at = datetime.now(timezone.utc)
-
-        await self.session.commit()
-
-        # Send welcome email
-        try:
-            await self.email_service.send_welcome_email(
-                to_email=user.email, user_name=user.name
-            )
-            logger.info(f"Welcome email sent to {user.email}")
-        except Exception as e:
-            logger.error(f"Failed to send welcome email to {user.email}: {e}")
-
-        logger.info(f"Email verified for user: {user.email} (ID: {user.id})")
-        return user
+        # Delegate to VerificationService
+        return await self.verification_service.verify_email(token)
 
     async def login(self, email: str, password: str) -> Tuple[str, str, User]:
         """Authenticate user and generate JWT tokens.
@@ -425,7 +359,7 @@ class AuthService:
     async def request_password_reset(self, email: str) -> None:
         """Request password reset by sending reset email.
 
-        Generates a password reset token and sends email with reset link.
+        Delegates to PasswordResetService for token generation and email.
         Always succeeds to prevent email enumeration attacks.
 
         Args:
@@ -435,38 +369,14 @@ class AuthService:
             >>> service = AuthService(session)
             >>> await service.request_password_reset("user@example.com")
         """
-        # Get user by email
-        result = await self.session.execute(select(User).where(User.email == email))
-        user = result.scalar_one_or_none()
-
-        if not user:
-            # Don't reveal that email doesn't exist (prevent enumeration)
-            logger.info(f"Password reset requested for non-existent email: {email}")
-            return
-
-        if not user.is_active:
-            logger.info(f"Password reset requested for inactive user: {email}")
-            return
-
-        # Generate reset token (returns plain token and hashed record)
-        plain_token, reset_token = await self._create_password_reset_token(user.id)
-
-        # Send password reset email with plain token
-        try:
-            await self.email_service.send_password_reset_email(
-                to_email=email, reset_token=plain_token, user_name=user.name
-            )
-            logger.info(f"Password reset email sent to {email}")
-        except Exception as e:
-            logger.error(f"Failed to send password reset email to {email}: {e}")
-
-        await self.session.commit()
+        # Delegate to PasswordResetService
+        await self.password_reset_service.request_reset(email)
 
     async def reset_password(self, token: str, new_password: str) -> User:
         """Reset user password using reset token.
 
-        Validates the reset token, updates password, revokes all existing
-        sessions (for security), and sends confirmation email.
+        Delegates to PasswordResetService for token validation, password update,
+        session revocation, and confirmation email.
 
         Security: All active refresh tokens are revoked to ensure that any
         potentially compromised sessions are terminated. This forces users
@@ -489,90 +399,8 @@ class AuthService:
             ...     new_password="NewSecurePass123!"
             ... )
         """
-        # Get all unused reset tokens for potential match
-        result = await self.session.execute(
-            select(PasswordResetToken).where(PasswordResetToken.used_at.is_(None))
-        )
-        reset_tokens = result.scalars().all()
-
-        # Find matching token by comparing hashes
-        reset_token = None
-        for token_record in reset_tokens:
-            if self.password_service.verify_password(token, token_record.token_hash):
-                reset_token = token_record
-                break
-
-        if not reset_token:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or already used reset token",
-            )
-
-        # Check if token expired
-        if datetime.now(timezone.utc) > reset_token.expires_at:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Reset token has expired",
-            )
-
-        # Get user
-        result = await self.session.execute(
-            select(User).where(User.id == reset_token.user_id)
-        )
-        user = result.scalar_one_or_none()
-
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
-
-        # Validate new password
-        is_valid, error_message = self.password_service.validate_password_strength(
-            new_password
-        )
-        if not is_valid:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=error_message
-            )
-
-        # Update password
-        user.password_hash = self.password_service.hash_password(new_password)
-
-        # Mark token as used
-        reset_token.used_at = datetime.now(timezone.utc)
-
-        # 🔒 SECURITY: Revoke all existing refresh tokens (logout all devices)
-        # This prevents compromised sessions from remaining active after password change
-        result = await self.session.execute(
-            select(RefreshToken).where(
-                RefreshToken.user_id == user.id, ~RefreshToken.is_revoked
-            )
-        )
-        active_tokens = result.scalars().all()
-
-        revoked_count = 0
-        for token_record in active_tokens:
-            token_record.revoked_at = datetime.now(timezone.utc)
-            token_record.is_revoked = True
-            revoked_count += 1
-
-        logger.info(
-            f"Password reset for user {user.email}: Revoked {revoked_count} active session(s)"
-        )
-
-        await self.session.commit()
-
-        # Send confirmation email
-        try:
-            await self.email_service.send_password_changed_notification(
-                to_email=user.email, user_name=user.name
-            )
-            logger.info(f"Password changed notification sent to {user.email}")
-        except Exception as e:
-            logger.error(f"Failed to send password changed email to {user.email}: {e}")
-
-        logger.info(f"Password reset for user: {user.email} (ID: {user.id})")
-        return user
+        # Delegate to PasswordResetService
+        return await self.password_reset_service.reset_password(token, new_password)
 
     async def get_user_by_id(self, user_id: UUID) -> Optional[User]:
         """Get user by ID.
@@ -712,38 +540,6 @@ class AuthService:
 
     # Private helper methods
 
-    async def _create_verification_token(
-        self, user_id: UUID
-    ) -> tuple[str, EmailVerificationToken]:
-        """Create email verification token for user.
-
-        Args:
-            user_id: User's unique identifier
-
-        Returns:
-            Tuple of (plain_token, token_record)
-            - plain_token: Plain text token to send in email
-            - token_record: Database record with hashed token
-        """
-        # Generate plain token
-        plain_token = secrets.token_urlsafe(32)
-
-        # Hash token for storage (security best practice)
-        token_hash = self.password_service.hash_password(plain_token)
-
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            hours=self.settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS
-        )
-
-        verification_token = EmailVerificationToken(
-            user_id=user_id, token_hash=token_hash, expires_at=expires_at
-        )
-
-        self.session.add(verification_token)
-        await self.session.flush()
-
-        return plain_token, verification_token
-
     async def _create_refresh_token(self, user_id: UUID) -> tuple[str, RefreshToken]:
         """Create opaque refresh token for user (Industry Standard Pattern A).
 
@@ -779,35 +575,3 @@ class AuthService:
         await self.session.refresh(refresh_token)
 
         return plain_token, refresh_token
-
-    async def _create_password_reset_token(
-        self, user_id: UUID
-    ) -> tuple[str, PasswordResetToken]:
-        """Create password reset token for user.
-
-        Args:
-            user_id: User's unique identifier
-
-        Returns:
-            Tuple of (plain_token, token_record)
-            - plain_token: Plain text token to send in email
-            - token_record: Database record with hashed token
-        """
-        # Generate plain token
-        plain_token = secrets.token_urlsafe(32)
-
-        # Hash token for storage (security best practice)
-        token_hash = self.password_service.hash_password(plain_token)
-
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            hours=self.settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS
-        )
-
-        reset_token = PasswordResetToken(
-            user_id=user_id, token_hash=token_hash, expires_at=expires_at
-        )
-
-        self.session.add(reset_token)
-        await self.session.flush()
-
-        return plain_token, reset_token

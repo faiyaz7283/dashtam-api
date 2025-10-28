@@ -49,3 +49,29 @@ docs = [
     "mkdocs-mermaid2-plugin>=1.2.3",
     "mkdocstrings[python]>=0.30.1",
 ]
+
+# =============================================================================
+# Coverage Configuration
+# =============================================================================
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    # Initialization scripts (not typically tested)
+    "src/core/init_db.py",
+    "src/core/init_test_db.py",
+    # Rate limiter co-located tests (independent bounded context, tested separately)
+    "src/rate_limiter/tests/*",
+    # Rate limiter models base (used for type hints, not instantiated directly)
+    "src/rate_limiter/models/base.py",
+]
+
+[tool.coverage.report]
+precision = 0
+skip_covered = false
+skip_empty = true
+show_missing = true
+# Uncomment to fail CI if coverage is below threshold
+# fail_under = 76
+
+[tool.coverage.html]
+directory = "htmlcov"

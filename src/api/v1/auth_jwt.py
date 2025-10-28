@@ -14,14 +14,13 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.dependencies import (
+    get_auth_service,
     get_client_ip,
     get_current_user,
     get_user_agent,
 )
-from src.core.database import get_session
 from src.models.user import User
 from src.schemas.auth import (
     EmailVerificationRequest,
@@ -46,7 +45,7 @@ router = APIRouter()
 )
 async def register(
     request: RegisterRequest,
-    session: AsyncSession = Depends(get_session),
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """Register a new user account.
 
@@ -55,7 +54,7 @@ async def register(
 
     Args:
         request: Registration data (email, password, name).
-        session: Database session.
+        auth_service: Authentication service dependency.
 
     Returns:
         Success message indicating email sent.
@@ -64,7 +63,6 @@ async def register(
         HTTPException: 400 if email already exists or password invalid.
         HTTPException: 500 if registration fails.
     """
-    auth_service = AuthService(session)
 
     # Register user (verification email sent internally by AuthService)
     user = await auth_service.register_user(
@@ -81,7 +79,7 @@ async def register(
 @router.post("/verify-email", response_model=MessageResponse)
 async def verify_email(
     request: EmailVerificationRequest,
-    session: AsyncSession = Depends(get_session),
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """Verify user's email address.
 
@@ -89,7 +87,7 @@ async def verify_email(
 
     Args:
         request: Verification token from email.
-        session: Database session.
+        auth_service: Authentication service dependency.
 
     Returns:
         Success message indicating account verified.
@@ -97,7 +95,6 @@ async def verify_email(
     Raises:
         HTTPException: 400 if token invalid or expired.
     """
-    auth_service = AuthService(session)
 
     try:
         await auth_service.verify_email(request.token)
@@ -116,7 +113,7 @@ async def verify_email(
 async def login(
     request: LoginRequest,
     req: Request,
-    session: AsyncSession = Depends(get_session),
+    auth_service: AuthService = Depends(get_auth_service),
     ip_address: Optional[str] = Depends(get_client_ip),
     user_agent: Optional[str] = Depends(get_user_agent),
 ):
@@ -127,7 +124,7 @@ async def login(
     Args:
         request: Login credentials (email, password).
         req: FastAPI request object.
-        session: Database session.
+        auth_service: Authentication service dependency.
         ip_address: Client IP address.
         user_agent: Client user agent string.
 
@@ -138,7 +135,6 @@ async def login(
         HTTPException: 401 if credentials invalid.
         HTTPException: 403 if account locked or inactive.
     """
-    auth_service = AuthService(session)
 
     # Authenticate user and generate tokens
     # AuthService.login returns (access_token, refresh_token, user)
@@ -168,7 +164,7 @@ async def login(
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
     request: RefreshTokenRequest,
-    session: AsyncSession = Depends(get_session),
+    auth_service: AuthService = Depends(get_auth_service),
     ip_address: Optional[str] = Depends(get_client_ip),
     user_agent: Optional[str] = Depends(get_user_agent),
 ):
@@ -179,7 +175,7 @@ async def refresh_token(
 
     Args:
         request: Refresh token from previous login.
-        session: Database session.
+        auth_service: Authentication service dependency.
         ip_address: Client IP address.
         user_agent: Client user agent string.
 
@@ -189,7 +185,6 @@ async def refresh_token(
     Raises:
         HTTPException: 401 if refresh token invalid or expired.
     """
-    auth_service = AuthService(session)
 
     # Refresh access token using refresh token
     # AuthService.refresh_access_token validates the refresh token and returns new access token
@@ -212,7 +207,7 @@ async def refresh_token(
 async def logout(
     request: RefreshTokenRequest,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """Log out and revoke refresh token.
 
@@ -222,7 +217,7 @@ async def logout(
     Args:
         request: Refresh token to revoke.
         current_user: Currently authenticated user.
-        session: Database session.
+        auth_service: Authentication service dependency.
 
     Returns:
         Success message.
@@ -230,7 +225,6 @@ async def logout(
     Raises:
         HTTPException: 400 if token invalid.
     """
-    auth_service = AuthService(session)
 
     # Logout revokes the refresh token
     # AuthService.logout validates token and marks it as revoked
@@ -270,7 +264,7 @@ async def get_current_user_profile(
 async def update_current_user_profile(
     request: UpdateUserRequest,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """Update current user's profile.
 
@@ -280,7 +274,7 @@ async def update_current_user_profile(
     Args:
         request: Updated profile fields.
         current_user: Currently authenticated user.
-        session: Database session.
+        auth_service: Authentication service dependency.
 
     Returns:
         Updated user profile.
@@ -288,7 +282,6 @@ async def update_current_user_profile(
     Raises:
         HTTPException: 400 if email already exists.
     """
-    auth_service = AuthService(session)
 
     # Check if email change requested (not currently supported)
     if request.email and request.email != current_user.email:

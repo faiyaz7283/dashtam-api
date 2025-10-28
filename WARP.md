@@ -679,7 +679,10 @@ from src.core.database import get_session
 - Phase 2: Core Services
   - Implement PasswordService
   - Implement JWTService
-  - Implement AuthService
+  - Implement EmailService
+  - Implement AuthService (orchestrator)
+  - Implement VerificationService (email verification)
+  - Implement PasswordResetService (password reset)
 - Phase 3: API Endpoints
   - Build registration endpoint
   - Build login endpoint
@@ -710,7 +713,15 @@ src/
 ### Module Responsibilities
 
 - **api/**: Only HTTP endpoint definitions, no business logic
-- **services/**: All business logic, token management, provider operations
+- **services/**: All business logic, auth workflows, token management, provider operations
+  - AuthService: Core authentication orchestrator (delegates to specialized services)
+  - VerificationService: Email verification workflows
+  - PasswordResetService: Password reset workflows  
+  - EmailService: Email sending (AWS SES integration)
+  - JWTService: JWT token generation and validation
+  - PasswordService: Password hashing and validation
+  - TokenService: Provider OAuth token management
+  - EncryptionService: Symmetric encryption for tokens
 - **models/**: Database models with relationships and methods
 - **providers/**: Provider-specific OAuth and API implementations
 - **core/**: Shared utilities, configuration, database setup

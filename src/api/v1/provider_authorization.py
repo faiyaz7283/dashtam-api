@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, get_token_service
 from src.core.database import get_session
 from src.models.provider import Provider
 from src.models.user import User
@@ -92,6 +92,7 @@ async def initiate_authorization(
 async def get_authorization_status(
     provider_id: UUID,
     current_user: User = Depends(get_current_user),
+    token_service: TokenService = Depends(get_token_service),
     session: AsyncSession = Depends(get_session),
 ) -> AuthorizationStatusResponse:
     """Get current authorization/connection status for a provider.
@@ -102,6 +103,7 @@ async def get_authorization_status(
     Args:
         provider_id: UUID of the provider instance.
         current_user: Currently authenticated user.
+        token_service: Token service dependency.
         session: Database session.
 
     Returns:
@@ -124,9 +126,6 @@ async def get_authorization_status(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this provider",
         )
-
-    # Get token info
-    token_service = TokenService(session)
     token_info = await token_service.get_token_info(provider_id=provider.id)
 
     if not token_info:
@@ -158,6 +157,7 @@ async def handle_authorization_callback(
     state: Optional[str] = Query(None),
     request: Request = None,
     current_user: User = Depends(get_current_user),
+    token_service: TokenService = Depends(get_token_service),
     session: AsyncSession = Depends(get_session),
 ) -> AuthorizationCallbackResponse:
     """Handle OAuth callback from provider.
@@ -172,6 +172,7 @@ async def handle_authorization_callback(
         state: State parameter for CSRF protection.
         request: FastAPI request object for audit logging.
         current_user: Currently authenticated user.
+        token_service: Token service dependency.
         session: Database session.
 
     Returns:
@@ -233,8 +234,7 @@ async def handle_authorization_callback(
             detail=f"Failed to exchange authorization code: {str(e)}",
         )
 
-    # Store tokens
-    token_service = TokenService(session)
+    # Store tokens (service already injected via dependency)
 
     # Extract request info for audit log
     request_info = None
@@ -278,6 +278,7 @@ async def handle_authorization_callback(
 async def refresh_authorization(
     provider_id: UUID,
     current_user: User = Depends(get_current_user),
+    token_service: TokenService = Depends(get_token_service),
     session: AsyncSession = Depends(get_session),
 ):
     """Manually refresh tokens for a provider.
@@ -287,6 +288,7 @@ async def refresh_authorization(
     Args:
         provider_id: UUID of the provider instance.
         current_user: Currently authenticated user.
+        token_service: Token service dependency.
         session: Database session.
 
     Returns:
@@ -309,9 +311,6 @@ async def refresh_authorization(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this provider",
         )
-
-    # Refresh tokens
-    token_service = TokenService(session)
 
     try:
         await token_service.refresh_token(
@@ -339,6 +338,7 @@ async def revoke_authorization(
     provider_id: UUID,
     request: Request = None,
     current_user: User = Depends(get_current_user),
+    token_service: TokenService = Depends(get_token_service),
     session: AsyncSession = Depends(get_session),
 ):
     """Revoke authorization and disconnect provider.
@@ -350,6 +350,7 @@ async def revoke_authorization(
         provider_id: UUID of the provider instance.
         request: FastAPI request object for audit logging.
         current_user: Currently authenticated user.
+        token_service: Token service dependency.
         session: Database session.
 
     Returns:
@@ -372,9 +373,6 @@ async def revoke_authorization(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this provider",
         )
-
-    # Revoke tokens
-    token_service = TokenService(session)
 
     # Extract request info for audit log
     request_info = None

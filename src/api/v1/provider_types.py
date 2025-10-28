@@ -4,9 +4,11 @@ This module handles provider type information (catalog of available providers),
 separate from provider instances (user's connections).
 """
 
-from fastapi import APIRouter, HTTPException, Query, status
 from typing import List, Optional
 
+from fastapi import APIRouter, HTTPException, Query, status
+
+from src.providers import ProviderRegistry
 from src.schemas.provider import ProviderTypeInfo
 
 
@@ -32,8 +34,6 @@ async def list_provider_types(
     Returns:
         List of provider type information.
     """
-    from src.providers import ProviderRegistry
-
     if configured is True:
         providers = ProviderRegistry.get_configured_providers()
     elif configured is False:
@@ -74,8 +74,6 @@ async def get_provider_type(provider_key: str):
     Raises:
         HTTPException: 404 if provider type not found.
     """
-    from src.providers import ProviderRegistry
-
     providers = ProviderRegistry.get_available_providers()
 
     if provider_key not in providers:

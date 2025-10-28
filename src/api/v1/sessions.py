@@ -25,8 +25,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies.auth import get_current_user
-from src.core.database import get_async_session
+from src.api.dependencies import get_current_user
+from src.core.database import get_session
 from src.core.fingerprinting import format_device_info
 from src.models.user import User
 from src.schemas.session import (
@@ -69,7 +69,7 @@ logger = logging.getLogger(__name__)
 async def list_sessions(
     request: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_session),
 ):
     """List all active sessions for authenticated user.
 
@@ -143,7 +143,7 @@ async def revoke_session(
     session_id: UUID,
     request: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_session),
 ):
     """Revoke specific session (logout from device).
 
@@ -206,7 +206,7 @@ async def revoke_session(
 async def revoke_other_sessions(
     request: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_session),
 ):
     """Revoke all sessions except current.
 
@@ -260,7 +260,7 @@ async def revoke_other_sessions(
 )
 async def revoke_all_sessions(
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_session),
 ):
     """Revoke all sessions (nuclear option).
 

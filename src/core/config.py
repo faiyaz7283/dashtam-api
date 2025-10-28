@@ -73,6 +73,7 @@ class Settings(BaseSettings):
         SES_FROM_NAME: Display name for email sender.
         EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: Email verification token TTL.
         PASSWORD_RESET_TOKEN_EXPIRE_HOURS: Password reset token TTL.
+        GEOLITE2_DB_PATH: Path to MaxMind GeoLite2 City database file.
     """
 
     # Application
@@ -160,6 +161,12 @@ class Settings(BaseSettings):
     )
     HTTP_TIMEOUT_POOL: float = Field(
         default=5.0, description="Pool acquisition timeout for HTTP requests in seconds"
+    )
+
+    # Geolocation
+    GEOLITE2_DB_PATH: str = Field(
+        default="/app/data/geolite2/GeoLite2-City.mmdb",
+        description="Path to MaxMind GeoLite2 City database for IP geolocation",
     )
 
     model_config = SettingsConfigDict(case_sensitive=True, extra="ignore")

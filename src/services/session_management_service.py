@@ -28,7 +28,9 @@ from sqlmodel import select
 
 from src.models.auth import RefreshToken
 from src.services.geolocation_service import GeolocationService
-from src.core.redis_client import get_redis_client
+# TODO: Redis cache invalidation for immediate revocation (Phase 6)
+# Rate limiter has its own Redis - design decision needed for sharing vs. separate clients
+# from src.core.redis_client import get_redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +81,14 @@ class SessionManagementService:
         Args:
             session: Database session
             geo_service: Geolocation service for IP lookups
+
+        Note:
+            Redis cache invalidation will be added in Phase 6.
+            For now, revocations are DB-only (eventual consistency).
         """
         self.session = session
         self.geo_service = geo_service
-        self.redis = get_redis_client()
+        # TODO: self.redis = get_redis_client()  # Phase 6
 
     async def list_sessions(
         self, user_id: UUID, current_token_id: UUID | None = None
@@ -312,10 +318,12 @@ class SessionManagementService:
             token_id: Refresh token UUID
 
         Notes:
-            - Adds token to blacklist with 30-day TTL
-            - Checked on token refresh (immediate revocation)
+            - Phase 6 TODO: Redis blacklist for immediate revocation
+            - For now: DB-only revocation (eventual consistency)
+            - Access tokens remain valid until expiry (30min)
         """
-        if self.redis:
-            # Add to blacklist (30-day TTL matches token expiration)
-            key = f"revoked_token:{token_id}"
-            await self.redis.setex(key, 2592000, "1")  # 30 days in seconds
+        # TODO: Phase 6 - Redis cache invalidation
+        # if self.redis:
+        #     key = f"revoked_token:{token_id}"
+        #     await self.redis.setex(key, 2592000, "1")  # 30 days
+        pass

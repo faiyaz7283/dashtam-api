@@ -58,6 +58,7 @@ class JWTService:
         self,
         user_id: UUID,
         email: str,
+        refresh_token_id: Optional[UUID] = None,
         additional_claims: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Create a new access token for user authentication.
@@ -69,6 +70,7 @@ class JWTService:
         Args:
             user_id: Unique user identifier
             email: User's email address
+            refresh_token_id: Optional refresh token UUID (adds jti claim for session management)
             additional_claims: Optional additional claims to include
 
         Returns:
@@ -81,6 +83,11 @@ class JWTService:
             >>> token = service.create_access_token(user_id, "user@example.com")
             >>> len(token) > 0
             True
+
+        Notes:
+            - Adding refresh_token_id as jti enables current session detection
+            - Existing tokens without jti still work (graceful degradation)
+            - jti = JWT ID (RFC 7519 standard claim)
         """
         now = datetime.now(UTC)
         expire = now + timedelta(minutes=self.access_token_expire_minutes)
@@ -93,6 +100,10 @@ class JWTService:
             "exp": expire,
             "iat": now,
         }
+
+        # Add jti claim if refresh_token_id provided (links access token to session)
+        if refresh_token_id:
+            claims["jti"] = str(refresh_token_id)
 
         # Add any additional claims
         if additional_claims:

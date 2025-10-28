@@ -9,13 +9,14 @@ This service provides:
 Security:
 - Authorization: users can only manage their own sessions
 - Current session protection: cannot revoke current session individually
-- Immediate revocation: Redis cache invalidation
+- Immediate revocation: cache invalidation (token blacklist)
 - Audit logging: all session events logged
 - Rate limiting: prevents abuse (configured in RateLimitConfig)
 
-Dependencies:
+Dependencies (SOLID - Dependency Injection):
+- AsyncSession: Database operations
 - GeolocationService: IP → location conversion
-- Redis: token blacklist (immediate revocation)
+- CacheBackend: Token blacklist for immediate revocation (abstraction, not Redis directly)
 """
 
 import logging
@@ -28,8 +29,7 @@ from sqlmodel import select
 
 from src.models.auth import RefreshToken
 from src.services.geolocation_service import GeolocationService
-# TODO: Redis cache invalidation for immediate revocation (Phase 6)
-# Rate limiter has its own Redis - design decision needed for sharing vs. separate clients
+from src.core.cache import CacheBackend
 # from src.core.redis_client import get_redis_client
 
 logger = logging.getLogger(__name__)
@@ -75,20 +75,26 @@ class SessionInfo:
 class SessionManagementService:
     """Manage user sessions (refresh tokens) with visibility and control."""
 
-    def __init__(self, session: AsyncSession, geo_service: GeolocationService):
-        """Initialize session management service.
+    def __init__(
+        self,
+        session: AsyncSession,
+        geo_service: GeolocationService,
+        cache: CacheBackend,
+    ):
+        """Initialize session management service with dependencies.
 
         Args:
             session: Database session
             geo_service: Geolocation service for IP lookups
+            cache: Cache backend for token blacklist (SOLID: Dependency Injection)
 
         Note:
-            Redis cache invalidation will be added in Phase 6.
-            For now, revocations are DB-only (eventual consistency).
+            Cache dependency injected via constructor (not created internally).
+            This follows Dependency Inversion Principle - depends on abstraction.
         """
         self.session = session
         self.geo_service = geo_service
-        # TODO: self.redis = get_redis_client()  # Phase 6
+        self.cache = cache
 
     async def list_sessions(
         self, user_id: UUID, current_token_id: UUID | None = None
@@ -312,18 +318,22 @@ class SessionManagementService:
         return revoked_count
 
     async def _invalidate_token_cache(self, token_id: UUID) -> None:
-        """Invalidate token in Redis cache (immediate revocation).
+        """Invalidate token in cache for immediate revocation.
 
         Args:
             token_id: Refresh token UUID
 
         Notes:
-            - Phase 6 TODO: Redis blacklist for immediate revocation
-            - For now: DB-only revocation (eventual consistency)
-            - Access tokens remain valid until expiry (30min)
+            - Adds token to blacklist with 30-day TTL (matches token expiration)
+            - AuthService checks blacklist before validating refresh token
+            - Provides immediate revocation (access tokens still valid until expiry)
+            - Uses cache abstraction (implementation detail: Redis, but could be Memcached, etc.)
         """
-        # TODO: Phase 6 - Redis cache invalidation
-        # if self.redis:
-        #     key = f"revoked_token:{token_id}"
-        #     await self.redis.setex(key, 2592000, "1")  # 30 days
-        pass
+        try:
+            key = f"revoked_token:{token_id}"
+            # 30 days in seconds (matches refresh token expiration)
+            await self.cache.set(key, "1", ttl_seconds=2592000)
+            logger.debug(f"Token blacklisted in cache: {token_id}")
+        except Exception as e:
+            # Log error but don't fail (DB revocation already succeeded)
+            logger.error(f"Cache invalidation failed for token {token_id}: {e}")

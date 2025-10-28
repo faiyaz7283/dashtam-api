@@ -38,6 +38,7 @@ from src.schemas.session import (
 from src.services.session_management_service import SessionManagementService
 from src.services.geolocation_service import get_geolocation_service
 from src.services.jwt_service import JWTService
+from src.core.cache import get_cache
 
 router = APIRouter(prefix="/auth/sessions", tags=["sessions"])
 logger = logging.getLogger(__name__)
@@ -75,9 +76,10 @@ async def list_sessions(
 
     Rate limit: 10 requests per minute per user.
     """
-    # Initialize services
+    # Initialize services (SOLID: Dependency Injection)
     geo_service = get_geolocation_service()
-    mgmt_service = SessionManagementService(session, geo_service)
+    cache = get_cache()
+    mgmt_service = SessionManagementService(session, geo_service, cache)
     jwt_service = JWTService()
 
     # Extract current session ID from JWT (jti claim)
@@ -128,7 +130,7 @@ async def list_sessions(
     
     Security:
     - Creates audit log entry
-    - Invalidates token in Redis cache
+    - Invalidates token in cache (immediate blacklist)
     - Sends email alert if revoked from different device/IP
     """,
     responses={
@@ -149,9 +151,10 @@ async def revoke_session(
 
     Rate limit: 20 requests per minute per user.
     """
-    # Initialize services
+    # Initialize services (SOLID: Dependency Injection)
     geo_service = get_geolocation_service()
-    mgmt_service = SessionManagementService(session, geo_service)
+    cache = get_cache()
+    mgmt_service = SessionManagementService(session, geo_service, cache)
     jwt_service = JWTService()
 
     # Extract current session ID from JWT
@@ -212,9 +215,10 @@ async def revoke_other_sessions(
 
     Rate limit: 5 requests per hour per user.
     """
-    # Initialize services
+    # Initialize services (SOLID: Dependency Injection)
     geo_service = get_geolocation_service()
-    mgmt_service = SessionManagementService(session, geo_service)
+    cache = get_cache()
+    mgmt_service = SessionManagementService(session, geo_service, cache)
     jwt_service = JWTService()
 
     # Extract current session ID from JWT
@@ -266,9 +270,10 @@ async def revoke_all_sessions(
 
     Rate limit: 3 requests per hour per user.
     """
-    # Initialize services
+    # Initialize services (SOLID: Dependency Injection)
     geo_service = get_geolocation_service()
-    mgmt_service = SessionManagementService(session, geo_service)
+    cache = get_cache()
+    mgmt_service = SessionManagementService(session, geo_service, cache)
 
     # Revoke all sessions
     revoked_count = await mgmt_service.revoke_all_sessions(current_user.id)

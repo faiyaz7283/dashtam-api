@@ -10,6 +10,7 @@ from src.api.v1.provider_types import router as provider_types_router
 from src.api.v1.providers import router as providers_router
 from src.api.v1.auth_jwt import router as auth_jwt_router
 from src.api.v1.password_resets import router as password_resets_router
+from src.api.v1.sessions import router as sessions_router
 from src.schemas.common import HealthResponse
 
 # Create main API router
@@ -31,6 +32,9 @@ api_router.include_router(auth_jwt_router, prefix="/auth", tags=["authentication
 api_router.include_router(
     password_resets_router, prefix="/password-resets", tags=["password-resets"]
 )
+
+# Session management endpoints (auth required)
+api_router.include_router(sessions_router, tags=["sessions"])
 
 
 # Health check at API level

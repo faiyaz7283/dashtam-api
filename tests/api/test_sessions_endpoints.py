@@ -24,7 +24,7 @@ from src.models.auth import RefreshToken
 class TestListSessions:
     """Test suite for GET /api/v1/auth/sessions endpoint."""
 
-    def test_list_sessions_requires_auth(self, client: TestClient):
+    def test_list_sessions_requires_auth(self, client_no_auth: TestClient):
         """Test list sessions endpoint returns 401 without JWT.
 
         Verifies that:
@@ -33,13 +33,13 @@ class TestListSessions:
         - Error message indicates authentication is required
 
         Args:
-            client: FastAPI TestClient for making HTTP requests
+            client_no_auth: FastAPI TestClient without auth override
 
         Note:
             This follows security best practice of requiring auth for all
             sensitive operations.
         """
-        response = client.get("/api/v1/auth/sessions")
+        response = client_no_auth.get("/api/v1/auth/sessions")
 
         assert response.status_code == 401
         assert "not authenticated" in response.json()["detail"].lower()
@@ -120,7 +120,7 @@ class TestListSessions:
 class TestRevokeSession:
     """Test suite for DELETE /api/v1/auth/sessions/{session_id} endpoint."""
 
-    def test_revoke_session_requires_auth(self, client: TestClient):
+    def test_revoke_session_requires_auth(self, client_no_auth: TestClient):
         """Test revoke session endpoint returns 401 without JWT.
 
         Verifies that:
@@ -129,13 +129,13 @@ class TestRevokeSession:
         - Cannot revoke sessions without being authenticated
 
         Args:
-            client: FastAPI TestClient for making HTTP requests
+            client_no_auth: FastAPI TestClient without auth override
 
         Note:
             Session ID doesn't matter if not authenticated.
         """
         fake_session_id = uuid4()
-        response = client.delete(f"/api/v1/auth/sessions/{fake_session_id}")
+        response = client_no_auth.delete(f"/api/v1/auth/sessions/{fake_session_id}")
 
         assert response.status_code == 401
         assert "not authenticated" in response.json()["detail"].lower()
@@ -261,7 +261,7 @@ class TestRevokeSession:
 class TestRevokeOtherSessions:
     """Test suite for DELETE /api/v1/auth/sessions/others/revoke endpoint."""
 
-    def test_revoke_others_requires_auth(self, client: TestClient):
+    def test_revoke_others_requires_auth(self, client_no_auth: TestClient):
         """Test revoke others endpoint returns 401 without JWT.
 
         Verifies that:
@@ -270,12 +270,12 @@ class TestRevokeOtherSessions:
         - Cannot revoke other sessions without being authenticated
 
         Args:
-            client: FastAPI TestClient for making HTTP requests
+            client_no_auth: FastAPI TestClient without auth override
 
         Note:
             This is a bulk operation, so authentication is critical.
         """
-        response = client.delete("/api/v1/auth/sessions/others/revoke")
+        response = client_no_auth.delete("/api/v1/auth/sessions/others/revoke")
 
         assert response.status_code == 401
         assert "not authenticated" in response.json()["detail"].lower()
@@ -345,7 +345,7 @@ class TestRevokeOtherSessions:
 class TestRevokeAllSessions:
     """Test suite for DELETE /api/v1/auth/sessions/all/revoke endpoint."""
 
-    def test_revoke_all_requires_auth(self, client: TestClient):
+    def test_revoke_all_requires_auth(self, client_no_auth: TestClient):
         """Test revoke all endpoint returns 401 without JWT.
 
         Verifies that:
@@ -354,12 +354,12 @@ class TestRevokeAllSessions:
         - Cannot revoke all sessions without being authenticated
 
         Args:
-            client: FastAPI TestClient for making HTTP requests
+            client_no_auth: FastAPI TestClient without auth override
 
         Note:
             This is the nuclear option - requires authentication.
         """
-        response = client.delete("/api/v1/auth/sessions/all/revoke")
+        response = client_no_auth.delete("/api/v1/auth/sessions/all/revoke")
 
         assert response.status_code == 401
         assert "not authenticated" in response.json()["detail"].lower()

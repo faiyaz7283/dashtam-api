@@ -477,7 +477,7 @@ class TestLogout:
             "/api/v1/auth/logout", json={"refresh_token": "some_token"}
         )
 
-        assert response.status_code == 403  # No auth header
+        assert response.status_code == 401  # No auth header (401 Unauthorized)
 
     def test_logout_invalid_token(self, client: TestClient, auth_tokens: dict):
         """Test logout succeeds even with invalid refresh token (security best practice).
@@ -688,7 +688,7 @@ class TestUserProfile:
         """
         response = client.get("/api/v1/auth/me")
 
-        assert response.status_code == 403  # No auth header
+        assert response.status_code == 401  # No auth header (401 Unauthorized)
 
     def test_get_current_user_invalid_token(self, client: TestClient):
         """Test profile retrieval rejection with invalid JWT token.
@@ -813,7 +813,7 @@ class TestUserProfile:
         """
         response = client.patch("/api/v1/auth/me", json={"name": "New Name"})
 
-        assert response.status_code == 403
+        assert response.status_code == 401  # No auth header (401 Unauthorized)
 
 
 class TestJWTTokenValidation:
@@ -939,7 +939,7 @@ class TestJWTTokenValidation:
             "/api/v1/auth/me", headers={"Authorization": auth_tokens["access_token"]}
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401  # Invalid auth format (401 Unauthorized)
 
 
 class TestSecurityFeatures:

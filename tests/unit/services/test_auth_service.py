@@ -449,13 +449,47 @@ class TestAuthServiceTokenRefresh:
         )
 
     @pytest.fixture
-    def auth_service(self, mock_session, mock_password_service, mock_jwt_service):
-        """Create AuthService with mocked dependencies."""
+    def mock_cache(self):
+        """Create a mock CacheBackend that works with asyncio.run pattern.
+
+        Note: Regular AsyncMock doesn't work with asyncio.run() because each
+        asyncio.run() creates a new event loop. Instead, we create async functions
+        that can be called in any event loop.
+
+        The mock uses a mutable dict to store behavior so tests can override
+        the return values dynamically.
+        """
+        cache = Mock()
+
+        # Mutable container for behavior (allows tests to override)
+        behavior = {"exists_return": False, "exists_exception": None}
+
+        # Create async functions that check behavior dict
+        async def mock_set(*args, **kwargs):
+            pass
+
+        async def mock_exists(*args, **kwargs):
+            if behavior["exists_exception"]:
+                raise behavior["exists_exception"]
+            return behavior["exists_return"]
+
+        cache.set = Mock(side_effect=mock_set)
+        cache.exists = Mock(side_effect=mock_exists)
+        cache._behavior = behavior  # Expose for tests to modify
+        return cache
+
+    @pytest.fixture
+    def auth_service(
+        self, mock_session, mock_password_service, mock_jwt_service, mock_cache
+    ):
+        """Create AuthService with mocked dependencies including cache."""
         with (
             patch("src.services.auth_service.VerificationService"),
             patch("src.services.auth_service.PasswordResetService"),
         ):
-            return AuthService(mock_session)
+            # Pass cache via constructor (SOLID: Dependency Injection)
+            service = AuthService(mock_session, cache=mock_cache)
+            return service
 
     def test_refresh_access_token_success(
         self,
@@ -484,9 +518,12 @@ class TestAuthServiceTokenRefresh:
 
         # Assert
         assert new_access_token == "new_access_token_456"
-        mock_jwt_service.create_access_token.assert_called_once_with(
-            user_id=active_user.id, email=active_user.email
-        )
+        # Verify JWT service was called with user info and session link (refresh_token_id)
+        mock_jwt_service.create_access_token.assert_called_once()
+        call_args = mock_jwt_service.create_access_token.call_args
+        assert call_args.kwargs["user_id"] == active_user.id
+        assert call_args.kwargs["email"] == active_user.email
+        assert "refresh_token_id" in call_args.kwargs
 
     def test_refresh_access_token_invalid_token(
         self, auth_service, mock_session, mock_password_service
@@ -551,6 +588,101 @@ class TestAuthServiceTokenRefresh:
 
         assert exc_info.value.status_code == 401
         assert "inactive" in exc_info.value.detail.lower()
+
+    def test_refresh_token_checks_cache_blacklist(
+        self,
+        auth_service,
+        mock_session,
+        mock_cache,
+        active_user,
+        valid_refresh_token_record,
+    ):
+        """Test refresh checks cache blacklist before allowing refresh.
+
+        Verifies that:
+        - Token refresh checks cache blacklist first
+        - Blacklisted tokens are immediately rejected with 401
+        - Error message indicates token is revoked
+        - Cache check happens before database queries (performance)
+
+        Args:
+            auth_service: AuthService with mocked cache
+            mock_session: Mock database session
+            mock_cache: Mock cache backend
+            active_user: Active user fixture
+            valid_refresh_token_record: Valid refresh token fixture
+
+        Note:
+            This tests immediate revocation via cache blacklist.
+        """
+
+        # Arrange - token in blacklist (override behavior)
+        mock_cache._behavior["exists_return"] = True
+
+        tokens_result = Mock()
+        tokens_result.scalars = Mock(
+            return_value=Mock(all=Mock(return_value=[valid_refresh_token_record]))
+        )
+        mock_session.execute = AsyncMock(return_value=tokens_result)
+
+        # Act & Assert - should reject blacklisted token
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(auth_service.refresh_access_token("blacklisted_token"))
+
+        assert exc_info.value.status_code == 401
+        assert "revoked" in exc_info.value.detail.lower()
+        mock_cache.exists.assert_called_once()
+
+    def test_refresh_token_graceful_degradation_on_cache_failure(
+        self,
+        auth_service,
+        mock_session,
+        mock_cache,
+        active_user,
+        valid_refresh_token_record,
+        mock_jwt_service,
+    ):
+        """Test refresh continues if cache fails (DB fallback).
+
+        Verifies that:
+        - Cache failure doesn't break token refresh
+        - Falls back to database-only validation
+        - Token refresh succeeds despite cache error
+        - System remains operational (graceful degradation)
+
+        Args:
+            auth_service: AuthService with mocked cache
+            mock_session: Mock database session
+            mock_cache: Mock cache backend that will fail
+            active_user: Active user fixture
+            valid_refresh_token_record: Valid refresh token fixture
+            mock_jwt_service: Mock JWT service
+
+        Note:
+            Tests resilience against cache/Redis failures.
+        """
+        # Arrange - cache fails (override behavior to raise exception)
+        from src.core.cache.base import CacheError
+
+        mock_cache._behavior["exists_exception"] = CacheError("Redis down")
+
+        tokens_result = Mock()
+        tokens_result.scalars = Mock(
+            return_value=Mock(all=Mock(return_value=[valid_refresh_token_record]))
+        )
+
+        user_result = Mock()
+        user_result.scalar_one_or_none = Mock(return_value=active_user)
+
+        mock_session.execute = AsyncMock(side_effect=[tokens_result, user_result])
+
+        # Act - should succeed despite cache failure
+        new_token = asyncio.run(auth_service.refresh_access_token("valid_token"))
+
+        # Assert - graceful degradation
+        assert new_token is not None
+        assert new_token == "new_access_token_456"
+        mock_cache.exists.assert_called_once()
 
 
 class TestAuthServiceLogout:

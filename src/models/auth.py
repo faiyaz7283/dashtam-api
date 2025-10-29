@@ -20,10 +20,17 @@ if TYPE_CHECKING:
 
 
 class RefreshToken(DashtamBase, table=True):
-    """Refresh token for JWT authentication.
+    """Refresh token for JWT authentication with session management.
 
     Stores refresh tokens with rotation support. Each token is hashed
     before storage and can be revoked for logout or security events.
+    Each refresh token represents a user session on a specific device.
+
+    Session Management:
+    - Users can view all active sessions (devices)
+    - Users can revoke sessions individually or in bulk
+    - Email alerts sent for new sessions from new devices/locations
+    - Device fingerprinting for session hijacking detection
 
     Attributes:
         user_id: ID of user who owns this token.
@@ -35,6 +42,9 @@ class RefreshToken(DashtamBase, table=True):
         ip_address: IP address where token was issued.
         user_agent: User agent string of client.
         last_used_at: Timestamp of last token use (refresh).
+        location: User-friendly location from IP geolocation.
+        fingerprint: SHA256 hash of device fingerprint.
+        is_trusted_device: User-marked trusted device flag.
         user: User who owns this token.
     """
 
@@ -85,6 +95,23 @@ class RefreshToken(DashtamBase, table=True):
         default=None,
         sa_type=DateTime(timezone=True),
         description="Timestamp of last token use",
+    )
+
+    # Session management fields
+    location: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(255), nullable=True),
+        description="User-friendly location from IP geolocation (e.g., 'San Francisco, USA')",
+    )
+    fingerprint: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(64), nullable=True, index=True),
+        description="SHA256 hash of device fingerprint (browser + OS + screen + timezone)",
+    )
+    is_trusted_device: bool = Field(
+        default=False,
+        sa_column=Column(Boolean, nullable=False, server_default="false"),
+        description="User-marked trusted device (future: extended session TTL)",
     )
 
     # Relationships

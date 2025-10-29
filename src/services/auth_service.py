@@ -13,6 +13,7 @@ database I/O operations and calls other async services.
 See docs/development/architecture/async-vs-sync-patterns.md for details.
 """
 
+import hashlib
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -29,7 +30,10 @@ from src.services.password_service import PasswordService
 from src.services.jwt_service import JWTService
 from src.services.verification_service import VerificationService
 from src.services.password_reset_service import PasswordResetService
+from src.services.geolocation_service import get_geolocation_service
 from src.core.config import get_settings
+from src.core.cache import CacheBackend, CacheError, get_cache
+from redis.exceptions import RedisError
 
 logger = logging.getLogger(__name__)
 
@@ -55,15 +59,17 @@ class AuthService:
         password_reset_service: Service for password reset workflows
     """
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, cache: Optional[CacheBackend] = None):
         """Initialize auth service with dependencies.
 
         Args:
             session: Async database session
+            cache: Cache backend for token blacklist (SOLID: Dependency Injection)
 
         Note:
             Development mode is automatically determined from settings.DEBUG.
             When DEBUG=True, emails are logged instead of sent.
+            Cache is optional (defaults to singleton if not provided).
         """
         self.session = session
         self.settings = get_settings()
@@ -72,6 +78,10 @@ class AuthService:
         # Delegate to specialized services for verification and password reset
         self.verification_service = VerificationService(session)
         self.password_reset_service = PasswordResetService(session)
+        # Session management: geolocation for IP → location
+        self.geolocation_service = get_geolocation_service()
+        # Cache for token blacklist (immediate revocation)
+        self.cache = cache or get_cache()
 
     async def register_user(
         self, email: str, password: str, name: Optional[str] = None
@@ -170,15 +180,24 @@ class AuthService:
         # Delegate to VerificationService
         return await self.verification_service.verify_email(token)
 
-    async def login(self, email: str, password: str) -> Tuple[str, str, User]:
-        """Authenticate user and generate JWT tokens.
+    async def login(
+        self,
+        email: str,
+        password: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> Tuple[str, str, User]:
+        """Authenticate user and generate JWT tokens with session tracking.
 
         Verifies credentials and generates both access and refresh tokens.
-        Refresh token is stored in database for revocation capability.
+        Refresh token is stored in database with session metadata (location,
+        device info, fingerprint) for session management.
 
         Args:
             email: User's email address
             password: Plain text password
+            ip_address: Client IP address (for geolocation)
+            user_agent: Client User-Agent header (for device fingerprinting)
 
         Returns:
             Tuple of (access_token, refresh_token, user)
@@ -190,7 +209,9 @@ class AuthService:
             >>> service = AuthService(session)
             >>> access, refresh, user = await service.login(
             ...     email="user@example.com",
-            ...     password="SecurePass123!"
+            ...     password="SecurePass123!",
+            ...     ip_address="203.0.113.1",
+            ...     user_agent="Mozilla/5.0 ..."
             ... )
         """
         # Get user by email
@@ -231,28 +252,39 @@ class AuthService:
         # Update last login
         user.last_login_at = datetime.now(timezone.utc)
 
-        # Generate JWT access token (stateless)
-        access_token = self.jwt_service.create_access_token(
-            user_id=user.id, email=user.email
+        # Generate opaque refresh token (stateful, hashed in DB) with session metadata
+        # Pattern A: Opaque tokens, not JWT (industry standard)
+        refresh_token, refresh_token_record = await self._create_refresh_token(
+            user_id=user.id, ip_address=ip_address, user_agent=user_agent
         )
 
-        # Generate opaque refresh token (stateful, hashed in DB)
-        # Pattern A: Opaque tokens, not JWT (industry standard)
-        refresh_token, refresh_token_record = await self._create_refresh_token(user.id)
+        # Generate JWT access token (stateless) with session link (jti claim)
+        access_token = self.jwt_service.create_access_token(
+            user_id=user.id, email=user.email, refresh_token_id=refresh_token_record.id
+        )
 
         await self.session.commit()
 
         logger.info(f"User logged in: {user.email} (ID: {user.id})")
         return access_token, refresh_token, user
 
-    async def refresh_access_token(self, refresh_token: str) -> str:
-        """Generate new access token using opaque refresh token.
+    async def refresh_access_token(
+        self,
+        refresh_token: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> str:
+        """Generate new access token using opaque refresh token with session tracking.
 
         Validates the opaque refresh token by hashing and database lookup.
+        Updates last_used_at on the refresh token for session tracking.
+        Generates JWT with jti claim linking to refresh token (session ID).
         This is Pattern A (industry standard): JWT access + opaque refresh.
 
         Args:
             refresh_token: Opaque refresh token string (not JWT)
+            ip_address: Client IP address (for activity tracking)
+            user_agent: Client User-Agent header (for fingerprint validation)
 
         Returns:
             New JWT access token string
@@ -262,7 +294,11 @@ class AuthService:
 
         Example:
             >>> service = AuthService(session)
-            >>> new_access_token = await service.refresh_access_token(refresh_token)
+            >>> new_access_token = await service.refresh_access_token(
+            ...     refresh_token=refresh_token,
+            ...     ip_address="203.0.113.1",
+            ...     user_agent="Mozilla/5.0 ..."
+            ... )
         """
         # Get all active (non-revoked) refresh tokens
         result = await self.session.execute(
@@ -285,6 +321,25 @@ class AuthService:
                 detail="Invalid or revoked refresh token",
             )
 
+        # Check if token is blacklisted in cache (immediate revocation)
+        # This provides instant revocation even if DB hasn't propagated yet
+        blacklist_key = f"revoked_token:{refresh_token_record.id}"
+        try:
+            is_blacklisted = await self.cache.exists(blacklist_key)
+            if is_blacklisted:
+                logger.warning(
+                    f"Blacklisted token used: {refresh_token_record.id} "
+                    f"(user: {refresh_token_record.user_id})"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been revoked",
+                )
+        except (CacheError, RedisError) as e:
+            # Log cache error but don't fail (DB check below is fallback)
+            # Note: Don't catch HTTPException - let it propagate (security)
+            logger.error(f"Cache blacklist check failed: {e}")
+
         # Check if token expired
         if datetime.now(timezone.utc) > refresh_token_record.expires_at:
             raise HTTPException(
@@ -304,12 +359,22 @@ class AuthService:
                 detail="User not found or inactive",
             )
 
-        # Generate new JWT access token
+        # Update last_used_at for session tracking
+        refresh_token_record.last_used_at = datetime.now(timezone.utc)
+
+        # Generate new JWT access token with jti claim (links to session)
         access_token = self.jwt_service.create_access_token(
-            user_id=user.id, email=user.email
+            user_id=user.id,
+            email=user.email,
+            refresh_token_id=refresh_token_record.id,
         )
 
-        logger.info(f"Access token refreshed for user: {user.email} (ID: {user.id})")
+        await self.session.commit()
+
+        logger.info(
+            f"Access token refreshed for user: {user.email} (ID: {user.id}), "
+            f"session: {refresh_token_record.id}"
+        )
         return access_token
 
     async def logout(self, refresh_token: str) -> None:
@@ -540,20 +605,37 @@ class AuthService:
 
     # Private helper methods
 
-    async def _create_refresh_token(self, user_id: UUID) -> tuple[str, RefreshToken]:
-        """Create opaque refresh token for user (Industry Standard Pattern A).
+    async def _create_refresh_token(
+        self,
+        user_id: UUID,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> tuple[str, RefreshToken]:
+        """Create opaque refresh token with session metadata (Pattern A + Session Management).
 
         Generates a random opaque token (not JWT), hashes it for storage,
-        and returns both the plain token and the database record.
-        This is the industry standard pattern used by Auth0, GitHub, etc.
+        collects session metadata (location, device fingerprint), and returns
+        both the plain token and the database record.
+
+        Session Metadata:
+        - location: Geolocation from IP (e.g., "San Francisco, USA")
+        - fingerprint: SHA256 hash of device characteristics
+        - is_trusted_device: False by default (future: device trust learning)
 
         Args:
             user_id: User's unique identifier
+            ip_address: Client IP address (for geolocation)
+            user_agent: Client User-Agent header (for fingerprinting)
 
         Returns:
             Tuple of (plain_token, token_record)
             - plain_token: Opaque random token to return to client
-            - token_record: Database record with hashed token
+            - token_record: Database record with hashed token and session metadata
+
+        Note:
+            Graceful degradation: If IP/user_agent missing, uses default values:
+            - location: "Unknown Location"
+            - fingerprint: hash of empty string
         """
         # Generate random opaque token (like email verification)
         plain_token = secrets.token_urlsafe(32)
@@ -565,13 +647,34 @@ class AuthService:
             days=self.settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
 
-        # Create refresh token record with hash
+        # Session metadata: Get geolocation from IP address
+        location = "Unknown Location"
+        if ip_address:
+            location = self.geolocation_service.get_location(ip_address)
+
+        # Session metadata: Generate device fingerprint from user agent
+        # Simple fingerprint: SHA256 of user_agent string
+        # (Real fingerprinting uses more data, but requires Request object)
+        fingerprint_string = user_agent or ""
+        fingerprint = hashlib.sha256(fingerprint_string.encode("utf-8")).hexdigest()
+
+        # Create refresh token record with hash and session metadata
         refresh_token = RefreshToken(
-            user_id=user_id, token_hash=token_hash, expires_at=expires_at
+            user_id=user_id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+            location=location,
+            fingerprint=fingerprint,
+            is_trusted_device=False,  # Default: new sessions not trusted
         )
 
         self.session.add(refresh_token)
         await self.session.flush()
         await self.session.refresh(refresh_token)
+
+        logger.debug(
+            f"Refresh token created for user {user_id}: "
+            f"location={location}, fingerprint={fingerprint[:8]}..."
+        )
 
         return plain_token, refresh_token

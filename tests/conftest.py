@@ -143,6 +143,27 @@ def db_session(db: Session, request) -> Generator[Session, None, None]:
 
 
 @pytest.fixture(scope="function", autouse=True)
+def reset_cache_singleton():
+    """Reset cache singleton before each test to prevent state issues.
+
+    The cache factory uses a singleton pattern that persists across tests.
+    When function-scoped TestClient fixtures create/destroy app contexts,
+    the Redis connection can get into an inconsistent state.
+
+    This fixture ensures each test starts with a fresh cache instance.
+    """
+    from src.core.cache import factory
+
+    # Reset singleton before test
+    factory._cache_instance = None
+
+    yield  # Run test
+
+    # Reset singleton after test (cleanup)
+    factory._cache_instance = None
+
+
+@pytest.fixture(scope="function", autouse=True)
 def reset_rate_limits():
     """Reset Redis rate limit buckets before each test for isolation.
 
@@ -221,7 +242,7 @@ def reset_rate_limits():
     # No cleanup needed after test (cleanup happens before next test)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def client(db: Session) -> Generator[TestClient, None, None]:
     """FastAPI TestClient for making HTTP requests to the application.
 
@@ -231,7 +252,7 @@ def client(db: Session) -> Generator[TestClient, None, None]:
     This fixture overrides FastAPI's async dependencies with synchronous
     test-compatible versions to ensure consistent testing across all environments.
 
-    Module-scoped for efficiency (creating client is expensive).
+    Function-scoped for full test isolation (prevents state pollution).
     """
     from src.core.database import get_session
 
@@ -307,11 +328,11 @@ def client(db: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         yield c
 
-    # Clean up overrides after test module
+    # Clean up overrides after test
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def client_with_mock_auth(db: Session) -> Generator[TestClient, None, None]:
     """FastAPI TestClient with mocked authentication.
 
@@ -319,6 +340,8 @@ def client_with_mock_auth(db: Session) -> Generator[TestClient, None, None]:
     This client overrides both the database session and the authentication,
     allowing tests to bypass JWT authentication while still testing
     authorization logic.
+
+    Function-scoped for full test isolation (prevents auth override pollution).
     """
     from src.core.database import get_session
     from src.api.dependencies import get_current_user
@@ -419,19 +442,21 @@ def client_with_mock_auth(db: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         yield c
 
-    # Clean up overrides after test module
+    # Clean up overrides after test
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def client_no_auth(db: Session) -> Generator[TestClient, None, None]:
     """FastAPI TestClient without authentication override.
 
-    Used for testing public endpoints that don't require authentication,
-    such as provider type catalog endpoints.
+    Used for testing endpoints that require authentication enforcement.
+    Auth tests use this fixture to verify 401 responses are returned.
 
     This client has the database override but NOT the authentication override,
-    allowing tests to verify that endpoints are truly public.
+    allowing tests to verify that authentication is properly enforced.
+
+    Function-scoped for full test isolation (prevents auth override pollution).
     """
     from src.core.database import get_session
 
@@ -489,7 +514,7 @@ def client_no_auth(db: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         yield c
 
-    # Clean up overrides after test module
+    # Clean up overrides after test
     app.dependency_overrides.clear()
 
 
@@ -659,6 +684,77 @@ def auth_tokens(db_session: Session, verified_user: User) -> dict:
     return {
         "access_token": access_token,
         "refresh_token": plain_refresh_token,
+        "user": verified_user,
+    }
+
+
+@pytest.fixture
+def authenticated_user(db_session: Session, verified_user: User) -> dict:
+    """Create authenticated user with JWT tokens for API tests.
+
+    This fixture creates a complete authentication session including:
+    - Access token (JWT with jti claim linking to refresh token)
+    - Refresh token (opaque, stored in database)
+    - Refresh token ID (UUID for session management)
+    - User object
+
+    Returns:
+        Dictionary with:
+        - access_token: JWT access token for Authorization header
+        - refresh_token: Opaque refresh token (plain, not hashed)
+        - refresh_token_id: UUID of refresh token record in database
+        - user: User object
+
+    Example:
+        >>> def test_protected_endpoint(client, authenticated_user):
+        ...     response = client.get(
+        ...         "/api/v1/auth/me",
+        ...         headers={"Authorization": f"Bearer {authenticated_user['access_token']}"}
+        ...     )
+        ...     assert response.status_code == 200
+
+    Note:
+        This fixture is for session management API tests that need jti claim.
+        For simpler auth tests, use auth_tokens fixture instead.
+    """
+    from src.services.jwt_service import JWTService
+    from src.services.password_service import PasswordService
+    from src.models.auth import RefreshToken
+    from datetime import datetime, timedelta, timezone
+    import secrets
+
+    jwt_service = JWTService()
+    password_service = PasswordService()
+
+    # Create refresh token (plain)
+    plain_refresh_token = secrets.token_urlsafe(32)
+    token_hash = password_service.hash_password(plain_refresh_token)
+
+    # Store refresh token in database with session metadata
+    refresh_token = RefreshToken(
+        user_id=verified_user.id,
+        token_hash=token_hash,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        device_info="Test Device",
+        location="Test Location",
+        ip_address="127.0.0.1",
+        last_used_at=datetime.now(timezone.utc),
+    )
+    db_session.add(refresh_token)
+    db_session.commit()
+    db_session.refresh(refresh_token)
+
+    # Create access token with jti claim (links to refresh token for session management)
+    access_token = jwt_service.create_access_token(
+        user_id=verified_user.id,
+        email=verified_user.email,
+        refresh_token_id=refresh_token.id,  # This adds jti claim
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": plain_refresh_token,
+        "refresh_token_id": refresh_token.id,
         "user": verified_user,
     }
 

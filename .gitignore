@@ -76,3 +76,6 @@ tmp/site/
 
 # MkDocs build output
 site/
+
+# GeoLite2 database (license prohibits redistribution)
+data/geolite2/

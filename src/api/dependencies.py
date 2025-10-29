@@ -26,11 +26,12 @@ from src.services.verification_service import VerificationService
 logger = logging.getLogger(__name__)
 
 # HTTP Bearer token scheme for JWT authentication
-security = HTTPBearer()
+# auto_error=False allows us to handle authentication errors manually with proper 401 status
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     session: AsyncSession = Depends(get_session),
 ) -> User:
     """Get the currently authenticated user from JWT token.
@@ -55,6 +56,14 @@ async def get_current_user(
         ):
             return {"user_id": current_user.id}
     """
+    # Check if credentials are provided
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # Extract token from credentials
     token = credentials.credentials
 

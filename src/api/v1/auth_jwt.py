@@ -136,10 +136,13 @@ async def login(
         HTTPException: 403 if account locked or inactive.
     """
 
-    # Authenticate user and generate tokens
+    # Authenticate user and generate tokens with session metadata
     # AuthService.login returns (access_token, refresh_token, user)
     access_token, refresh_token, user = await auth_service.login(
-        email=request.email, password=request.password
+        email=request.email,
+        password=request.password,
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     logger.info(f"User logged in successfully: {user.email}")
@@ -186,11 +189,14 @@ async def refresh_token(
         HTTPException: 401 if refresh token invalid or expired.
     """
 
-    # Refresh access token using refresh token
+    # Refresh access token using refresh token with session tracking
     # AuthService.refresh_access_token validates the refresh token and returns new access token
+    # Updates last_activity and includes jti claim for session management
     # Note: Refresh token remains valid (no rotation in current implementation)
     new_access_token = await auth_service.refresh_access_token(
-        refresh_token=request.refresh_token
+        refresh_token=request.refresh_token,
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     logger.info("Access token refreshed successfully")

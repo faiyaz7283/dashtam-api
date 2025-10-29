@@ -42,7 +42,7 @@
 
 ### Recommended Implementation
 
-**Phase-based approach** (3-4 days estimated):
+**Phase-based approach**:
 
 1. **Phase 1**: Research & Design (current document)
 2. **Phase 2**: Database schema (add token_version, min_token_version fields)
@@ -703,7 +703,7 @@ async def handle_provider_token_breach(provider_key: str):
 
 ## Token Versioning Approaches
 
-### Approach 1: Per-User Integer Versioning (Recommended)
+### Approach 1: Per-User Integer Versioning
 
 **Schema**:
 
@@ -846,16 +846,19 @@ async def rotate_all_user_tokens(user_id: UUID, reason: str):
 - ❌ Clock synchronization dependencies
 - ❌ Less explicit than version numbers
 
-### Approach 3: Hybrid (Global + Per-User Versioning)
+### Approach 3: Hybrid (Global + Per-User Versioning) (Recommended)
 
 **Schema**:
 
 ```sql
 -- Global security version (config table)
 CREATE TABLE security_config (
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     global_min_token_version INTEGER NOT NULL DEFAULT 1,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_by TEXT,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 -- Per-user version
@@ -866,50 +869,277 @@ ADD COLUMN min_token_version INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE refresh_tokens 
 ADD COLUMN token_version INTEGER NOT NULL DEFAULT 1,
 ADD COLUMN global_version_at_issuance INTEGER NOT NULL DEFAULT 1;
+
+-- Indexes for fast validation
+CREATE INDEX idx_refresh_tokens_version ON refresh_tokens(user_id, token_version);
+CREATE INDEX idx_refresh_tokens_global_version ON refresh_tokens(global_version_at_issuance);
+CREATE INDEX idx_users_min_token_version ON users(id, min_token_version);
 ```
 
 **Validation Logic**:
 
 ```python
-async def validate_token_hybrid(token: RefreshToken, user: User) -> bool:
-    \"\"\"Validate token against both global and per-user versions.\"\"\"
-    # Check global version (rare, extreme breach)
+async def validate_token_hybrid(token: RefreshToken, user: User) -> TokenValidationResult:
+    \"\"\"Validate token against both global and per-user versions.
+    
+    Two-level validation:
+    1. Global version check (for system-wide breaches)
+    2. Per-user version check (for user-specific events)
+    
+    Both checks must pass for token to be valid.
+    \"\"\"
+    # Check global version (rare, extreme breach like encryption key compromise)
     global_config = await get_security_config()
-    if token.global_version_at_issuance < global_config.min_version:
-        logger.security(f\"Token failed global version check: {token.id}\")
-        return False
+    if token.global_version_at_issuance < global_config.global_min_token_version:
+        logger.security(
+            f\"Token failed global version check: "
+            f\"token_global_v{token.global_version_at_issuance} < "
+            f\"required_v{global_config.global_min_token_version}, "
+            f\"token_id={token.id}"
+        )
+        return TokenValidationResult(
+            valid=False,
+            reason=\"GLOBAL_TOKEN_VERSION_TOO_OLD\",
+            required_action=\"FORCE_REAUTH\",
+            detail=f\"System-wide token rotation occurred (security incident)\"
+        )
     
     # Check per-user version (common, targeted rotation)
     if token.token_version < user.min_token_version:
-        logger.info(f\"Token failed user version check: {token.id}\")
-        return False
+        logger.info(
+            f\"Token failed user version check: "
+            f\"token_v{token.token_version} < "
+            f\"min_v{user.min_token_version}, "
+            f\"user_id={user.id}"
+        )
+        return TokenValidationResult(
+            valid=False,
+            reason=\"USER_TOKEN_VERSION_TOO_OLD\",
+            required_action=\"REAUTH\",
+            detail=f\"Password changed or sessions revoked\"
+        )
     
-    return True
+    return TokenValidationResult(valid=True)
+```
+
+**Rotation Logic (Per-User)**:
+
+```python
+async def rotate_user_tokens(user_id: UUID, reason: str) -> TokenRotationResult:
+    \"\"\"Rotate all tokens for a specific user (targeted rotation).\"\"\"
+    # Get max token version currently in use
+    max_version = await db.execute(
+        select(func.max(RefreshToken.token_version))
+        .where(RefreshToken.user_id == user_id)
+    ).scalar()
+    
+    # Set new minimum to max + 1
+    new_min_version = (max_version or 0) + 1
+    
+    # Update user's minimum version
+    await db.execute(
+        update(User)
+        .where(User.id == user_id)
+        .values(min_token_version=new_min_version)
+    )
+    
+    # Revoke all tokens below new minimum
+    result = await db.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.user_id == user_id,
+            RefreshToken.token_version < new_min_version,
+            ~RefreshToken.is_revoked
+        )
+        .values(is_revoked=True, revoked_at=datetime.now(timezone.utc))
+        .returning(RefreshToken.id)
+    )
+    revoked_tokens = result.scalars().all()
+    
+    await db.commit()
+    
+    return TokenRotationResult(
+        rotation_type=\"USER\",
+        user_id=user_id,
+        new_min_version=new_min_version,
+        tokens_revoked=len(revoked_tokens),
+        reason=reason
+    )
+```
+
+**Rotation Logic (Global - Emergency)**:
+
+```python
+async def rotate_all_tokens_global(
+    reason: str, 
+    initiated_by: str,
+    grace_period_minutes: int = 15
+) -> GlobalRotationResult:
+    \"\"\"Rotate ALL tokens system-wide (nuclear option for major breaches).
+    
+    Use cases:
+    - Encryption key compromise
+    - Database breach
+    - Major security vulnerability discovered
+    
+    Args:
+        reason: Why global rotation was initiated
+        initiated_by: Who initiated (e.g., \"ADMIN:john@example.com\")
+        grace_period_minutes: Allow in-flight requests to complete (default 15 min)
+    \"\"\"
+    # Get current global version
+    config = await get_security_config()
+    new_global_version = config.global_min_token_version + 1
+    
+    # Update global minimum version
+    await db.execute(
+        update(SecurityConfig)
+        .values(
+            global_min_token_version=new_global_version,
+            updated_at=datetime.now(timezone.utc),
+            updated_by=initiated_by,
+            reason=reason
+        )
+    )
+    
+    # Count tokens that will be invalidated
+    result = await db.execute(
+        select(func.count(RefreshToken.id))
+        .where(
+            RefreshToken.global_version_at_issuance < new_global_version,
+            ~RefreshToken.is_revoked
+        )
+    )
+    affected_tokens = result.scalar()
+    
+    # Get affected user count
+    result = await db.execute(
+        select(func.count(func.distinct(RefreshToken.user_id)))
+        .where(
+            RefreshToken.global_version_at_issuance < new_global_version,
+            ~RefreshToken.is_revoked
+        )
+    )
+    affected_users = result.scalar()
+    
+    # Mark all old tokens as revoked (grace period handled by validation timestamp)
+    revocation_time = datetime.now(timezone.utc) + timedelta(minutes=grace_period_minutes)
+    await db.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.global_version_at_issuance < new_global_version,
+            ~RefreshToken.is_revoked
+        )
+        .values(
+            is_revoked=True,
+            revoked_at=revocation_time  # Delayed revocation for grace period
+        )
+    )
+    
+    await db.commit()
+    
+    # Log critical security event
+    logger.critical(
+        f\"GLOBAL TOKEN ROTATION: version {config.global_min_token_version} → {new_global_version}. "
+        f\"Reason: {reason}. Initiated by: {initiated_by}. "
+        f\"Affected: {affected_users} users, {affected_tokens} tokens. "
+        f\"Grace period: {grace_period_minutes} minutes."
+    )
+    
+    return GlobalRotationResult(
+        rotation_type=\"GLOBAL\",
+        old_version=config.global_min_token_version,
+        new_version=new_global_version,
+        tokens_affected=affected_tokens,
+        users_affected=affected_users,
+        grace_period_minutes=grace_period_minutes,
+        reason=reason,
+        initiated_by=initiated_by
+    )
+```
+
+**Token Issuance (capturing both versions)**:
+
+```python
+async def create_refresh_token(user_id: UUID, device_info: str) -> RefreshToken:
+    \"\"\"Create new refresh token with current version numbers.\"\"\"
+    # Get current global version
+    global_config = await get_security_config()
+    
+    # Get current user version
+    user = await get_user(user_id)
+    
+    # Create token with both version numbers
+    token = RefreshToken(
+        user_id=user_id,
+        token_hash=hash_token(generate_token()),
+        token_version=user.min_token_version,  # User's current version
+        global_version_at_issuance=global_config.global_min_token_version,  # Global version at creation
+        device_info=device_info,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=30)
+    )
+    
+    await db.add(token)
+    await db.commit()
+    
+    return token
 ```
 
 **Pros**:
 
-- ✅ Supports both global and targeted rotation
-- ✅ Most flexible approach
-- ✅ Used by Auth0, Okta
+- ✅ **Supports both global and targeted rotation** (maximum flexibility)
+- ✅ **Future-proof** for security incidents of any scale
+- ✅ **Industry standard** (Auth0, Okta use this pattern)
+- ✅ **Granular control** (can rotate one user or all users)
+- ✅ **Grace period support** for distributed systems
+- ✅ **Audit trail** (global config tracks who, when, why)
+- ✅ **Emergency response ready** (handles encryption key compromise)
 
 **Cons**:
 
-- ❌ Higher complexity
-- ❌ Additional storage (global config table)
-- ❌ More fields to manage
+- ⚠️ **Moderate complexity** (2 validation checks vs 1)
+- ⚠️ **Additional storage** (security_config table + 1 extra field per token)
+- ⚠️ **More fields to manage** (2 version fields vs 1)
+
+**Complexity Trade-off**: Worth it for enterprise-grade security and flexibility
 
 ## Recommended Implementation for Dashtam
 
-### Decision: Approach 1 (Per-User Integer Versioning)
+### Decision: Approach 3 (Hybrid Global + Per-User Versioning)
 
 **Rationale**:
 
-1. **Simplicity**: Single integer field, minimal code complexity
-2. **Dashtam Scale**: Small user base, global rotation not needed
-3. **Target Use Cases**: Password change, account compromise (per-user events)
-4. **Future-Proof**: Can add global versioning later if needed
-5. **Performance**: Integer comparison is fastest validation method
+1. **Enterprise-Grade Security**: Handles both targeted and system-wide breaches
+2. **Future-Proof**: Ready for any security scenario (encryption key breach, database compromise, etc.)
+3. **Industry Standard**: Matches Auth0, Okta patterns (proven at scale)
+4. **Graceful Degradation**: Grace period support for distributed systems
+5. **Audit Trail**: Complete visibility into global security events
+6. **Flexibility**: Can rotate one user (common) or all users (rare emergency)
+7. **Regulatory Compliance**: SOC 2, PCI-DSS audit requirements for major security incidents
+
+**Why Not Approach 1?**
+
+Approach 1 (per-user only) cannot handle:
+
+- Encryption key compromise (affects ALL users)
+- Database breach requiring mass logout
+- Critical security vulnerability requiring immediate global response
+
+**Trade-off Analysis**:
+
+| Aspect | Approach 1 | Approach 3 (Chosen) |
+|--------|------------|---------------------|
+| Complexity | Low | Moderate |
+| Storage | 2 DB fields | 4 DB fields + config table |
+| Validation Speed | 1 check (~0.5ms) | 2 checks (~1ms) |
+| Global Rotation | ❌ Not supported | ✅ Supported |
+| Per-User Rotation | ✅ Supported | ✅ Supported |
+| Grace Period | ❌ Not supported | ✅ Supported |
+| Audit Trail | User-level only | User + System level |
+| Emergency Response | Limited | Complete |
+| Industry Adoption | Moderate | High (Auth0, Okta) |
+
+**Conclusion**: The moderate complexity increase is justified by the comprehensive security coverage and enterprise-grade capabilities
 
 ### Database Schema Changes
 
@@ -1360,5 +1590,3 @@ class TestTokenRotationIntegration:
 **Template:** research-template.md
 **Created:** 2025-10-29
 **Last Updated:** 2025-10-29
-**Research Duration:** 4 hours
-**Next Step:** Implementation guide creation

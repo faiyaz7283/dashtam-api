@@ -145,7 +145,6 @@ class TestRevokeSession:
         client: TestClient,
         authenticated_user: dict,
         db_session: AsyncSession,
-        test_user: User,
     ):
         """Test revoke session successfully revokes non-current session.
 
@@ -159,16 +158,16 @@ class TestRevokeSession:
             client: FastAPI TestClient for making HTTP requests
             authenticated_user: User with valid JWT token from fixture
             db_session: Database session for data manipulation
-            test_user: User fixture for creating additional sessions
 
         Note:
             Creates a second session to revoke (cannot revoke current).
+            Session must belong to authenticated_user for security.
         """
-        # Create a second refresh token (different from current)
+        # Create a second refresh token for SAME user (different from current session)
         now = datetime.now(timezone.utc)
         second_token = RefreshToken(
             id=uuid4(),
-            user_id=test_user.id,
+            user_id=authenticated_user["user"].id,  # Use authenticated user's ID
             token_hash="different_hash",
             expires_at=now + timedelta(days=30),
             is_revoked=False,
@@ -285,7 +284,6 @@ class TestRevokeOtherSessions:
         client: TestClient,
         authenticated_user: dict,
         db_session: AsyncSession,
-        test_user: User,
     ):
         """Test revoke others successfully revokes all non-current sessions.
 
@@ -299,17 +297,16 @@ class TestRevokeOtherSessions:
             client: FastAPI TestClient for making HTTP requests
             authenticated_user: User with valid JWT token from fixture
             db_session: Database session for creating additional sessions
-            test_user: User fixture for session ownership
 
         Note:
-            Creates multiple sessions and verifies only non-current are revoked.
+            Creates multiple sessions for same user and verifies only non-current are revoked.
         """
-        # Create additional sessions
+        # Create additional sessions for SAME user
         now = datetime.now(timezone.utc)
         for i in range(2):
             token = RefreshToken(
                 id=uuid4(),
-                user_id=test_user.id,
+                user_id=authenticated_user["user"].id,  # Use authenticated user's ID
                 token_hash=f"hash_{i}",
                 expires_at=now + timedelta(days=30),
                 is_revoked=False,
@@ -369,7 +366,6 @@ class TestRevokeAllSessions:
         client: TestClient,
         authenticated_user: dict,
         db_session: AsyncSession,
-        test_user: User,
     ):
         """Test revoke all successfully revokes all sessions.
 
@@ -383,17 +379,16 @@ class TestRevokeAllSessions:
             client: TestClient for making HTTP requests
             authenticated_user: User with valid JWT token from fixture
             db_session: Database session for creating additional sessions
-            test_user: User fixture for session ownership
 
         Note:
             This is the nuclear option - user will be logged out.
         """
-        # Create additional sessions
+        # Create additional sessions for SAME user
         now = datetime.now(timezone.utc)
         for i in range(2):
             token = RefreshToken(
                 id=uuid4(),
-                user_id=test_user.id,
+                user_id=authenticated_user["user"].id,  # Use authenticated user's ID
                 token_hash=f"hash_all_{i}",
                 expires_at=now + timedelta(days=30),
                 is_revoked=False,

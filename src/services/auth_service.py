@@ -32,7 +32,8 @@ from src.services.verification_service import VerificationService
 from src.services.password_reset_service import PasswordResetService
 from src.services.geolocation_service import get_geolocation_service
 from src.core.config import get_settings
-from src.core.cache import CacheBackend, get_cache
+from src.core.cache import CacheBackend, CacheError, get_cache
+from redis.exceptions import RedisError
 
 logger = logging.getLogger(__name__)
 
@@ -334,8 +335,9 @@ class AuthService:
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Token has been revoked",
                 )
-        except Exception as e:
+        except (CacheError, RedisError) as e:
             # Log cache error but don't fail (DB check below is fallback)
+            # Note: Don't catch HTTPException - let it propagate (security)
             logger.error(f"Cache blacklist check failed: {e}")
 
         # Check if token expired

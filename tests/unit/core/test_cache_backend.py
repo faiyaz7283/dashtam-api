@@ -18,7 +18,7 @@ from src.core.cache import CacheBackend, CacheError, RedisCache, get_cache
 
 def _get_test_cache():
     """Helper to create Redis client and cache for testing.
-    
+
     Returns a tuple of (redis_client, cache) that can be used within
     an async context. Caller is responsible for cleanup.
     """
@@ -245,7 +245,7 @@ class TestRedisCacheErrorHandling:
 
     def test_cache_operations_after_close(self):
         """Test cache close operation completes without error.
-        
+
         Note: Redis client may allow operations after close() without raising
         immediately. This test verifies close() itself doesn't raise errors.
         Actual connection cleanup happens in client.aclose().
@@ -289,15 +289,15 @@ class TestCacheIntegrationWithServices:
             client, cache = _get_test_cache()
             try:
                 token_id = "session-token-123"
-                
+
                 # 1. Revoke session (SessionManagementService)
                 blacklist_key = f"revoked_token:{token_id}"
                 await cache.set(blacklist_key, "1", ttl_seconds=2592000)
-                
+
                 # 2. Check blacklist (AuthService)
                 is_revoked = await cache.exists(blacklist_key)
                 assert is_revoked is True
-                
+
                 # 3. Simulate token refresh attempt (should be blocked)
                 if is_revoked:
                     # This is what AuthService does
@@ -347,24 +347,24 @@ class TestRedisCachePerformance:
                 start = time.time()
                 await cache.set("perf_test", "value", ttl_seconds=60)
                 set_duration = (time.time() - start) * 1000  # ms
-                
+
                 # Measure get operation
                 start = time.time()
                 await cache.get("perf_test")
                 get_duration = (time.time() - start) * 1000  # ms
-                
+
                 # Measure exists operation
                 start = time.time()
                 await cache.exists("perf_test")
                 exists_duration = (time.time() - start) * 1000  # ms
-                
+
                 return set_duration, get_duration, exists_duration
             finally:
                 await client.flushdb()
                 await client.aclose()
 
         set_duration, get_duration, exists_duration = asyncio.run(_test())
-        
+
         # All operations should be fast (<50ms even in test environment)
         assert set_duration < 50
         assert get_duration < 50
@@ -382,13 +382,13 @@ class TestRedisCachePerformance:
                     for i in range(10)
                 ]
                 await asyncio.gather(*tasks)
-                
+
                 # Verify all keys set correctly
                 results = []
                 for i in range(10):
                     value = await cache.get(f"concurrent_{i}")
                     results.append(value == f"value_{i}")
-                
+
                 return all(results)
             finally:
                 await client.flushdb()

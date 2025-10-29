@@ -455,12 +455,12 @@ class TestAuthServiceTokenRefresh:
         Note: Regular AsyncMock doesn't work with asyncio.run() because each
         asyncio.run() creates a new event loop. Instead, we create async functions
         that can be called in any event loop.
-        
+
         The mock uses a mutable dict to store behavior so tests can override
         the return values dynamically.
         """
         cache = Mock()
-        
+
         # Mutable container for behavior (allows tests to override)
         behavior = {"exists_return": False, "exists_exception": None}
 

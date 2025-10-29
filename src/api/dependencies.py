@@ -63,7 +63,7 @@ async def get_current_user(
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Extract token from credentials
     token = credentials.credentials
 

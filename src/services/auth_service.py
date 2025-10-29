@@ -359,6 +359,16 @@ class AuthService:
                 detail="User not found or inactive",
             )
 
+        # Validate token versions (hybrid rotation check)
+        is_valid, failure_reason = await self._validate_token_versions(
+            refresh_token_record, user
+        )
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Token has been rotated: {failure_reason}",
+            )
+
         # Update last_used_at for session tracking
         refresh_token_record.last_used_at = datetime.now(timezone.utc)
 
@@ -658,7 +668,18 @@ class AuthService:
         fingerprint_string = user_agent or ""
         fingerprint = hashlib.sha256(fingerprint_string.encode("utf-8")).hexdigest()
 
-        # Create refresh token record with hash and session metadata
+        # Token versioning: Get current versions for hybrid rotation
+        from src.models.security_config import SecurityConfig
+
+        # Get global version
+        result = await self.session.execute(select(SecurityConfig))
+        global_config = result.scalar_one()
+
+        # Get user's current version
+        result = await self.session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one()
+
+        # Create refresh token record with hash, session metadata, and versions
         refresh_token = RefreshToken(
             user_id=user_id,
             token_hash=token_hash,
@@ -666,6 +687,8 @@ class AuthService:
             location=location,
             fingerprint=fingerprint,
             is_trusted_device=False,  # Default: new sessions not trusted
+            token_version=user.min_token_version,  # User's current version
+            global_version_at_issuance=global_config.global_min_token_version,  # Global version at creation
         )
 
         self.session.add(refresh_token)
@@ -678,3 +701,54 @@ class AuthService:
         )
 
         return plain_token, refresh_token
+
+    async def _validate_token_versions(
+        self, token: RefreshToken, user: User
+    ) -> tuple[bool, Optional[str]]:
+        """Validate token against both global and per-user versions.
+
+        Two-level validation:
+        1. Global version check (for system-wide breaches)
+        2. Per-user version check (for user-specific events)
+
+        Both checks must pass for token to be valid.
+
+        Args:
+            token: RefreshToken to validate.
+            user: User who owns the token.
+
+        Returns:
+            Tuple of (is_valid, failure_reason).
+
+        Example:
+            >>> is_valid, reason = await service._validate_token_versions(token, user)
+            >>> if not is_valid:
+            ...     raise HTTPException(status_code=401, detail=reason)
+        """
+        # Get current global version
+        from src.models.security_config import SecurityConfig
+
+        result = await self.session.execute(select(SecurityConfig))
+        config = result.scalar_one()
+
+        # Check global version (rare, extreme breach)
+        if token.global_version_at_issuance < config.global_min_token_version:
+            logger.warning(
+                f"Token failed global version check: "
+                f"token_global_v{token.global_version_at_issuance} < "
+                f"required_v{config.global_min_token_version}, "
+                f"token_id={token.id}"
+            )
+            return False, "GLOBAL_TOKEN_VERSION_TOO_OLD"
+
+        # Check per-user version (common, targeted rotation)
+        if token.token_version < user.min_token_version:
+            logger.info(
+                f"Token failed user version check: "
+                f"token_v{token.token_version} < "
+                f"min_v{user.min_token_version}, "
+                f"user_id={user.id}"
+            )
+            return False, "USER_TOKEN_VERSION_TOO_OLD"
+
+        return True, None

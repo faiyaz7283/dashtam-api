@@ -455,18 +455,27 @@ class TestAuthServiceTokenRefresh:
         Note: Regular AsyncMock doesn't work with asyncio.run() because each
         asyncio.run() creates a new event loop. Instead, we create async functions
         that can be called in any event loop.
+        
+        The mock uses a mutable dict to store behavior so tests can override
+        the return values dynamically.
         """
         cache = Mock()
+        
+        # Mutable container for behavior (allows tests to override)
+        behavior = {"exists_return": False, "exists_exception": None}
 
-        # Create async functions that work in any event loop
+        # Create async functions that check behavior dict
         async def mock_set(*args, **kwargs):
             pass
 
         async def mock_exists(*args, **kwargs):
-            return False
+            if behavior["exists_exception"]:
+                raise behavior["exists_exception"]
+            return behavior["exists_return"]
 
         cache.set = Mock(side_effect=mock_set)
         cache.exists = Mock(side_effect=mock_exists)
+        cache._behavior = behavior  # Expose for tests to modify
         return cache
 
     @pytest.fixture
@@ -478,9 +487,8 @@ class TestAuthServiceTokenRefresh:
             patch("src.services.auth_service.VerificationService"),
             patch("src.services.auth_service.PasswordResetService"),
         ):
-            service = AuthService(mock_session)
-            # Inject cache dependency (monkeypatch)
-            service._cache = mock_cache
+            # Pass cache via constructor (SOLID: Dependency Injection)
+            service = AuthService(mock_session, cache=mock_cache)
             return service
 
     def test_refresh_access_token_success(
@@ -608,11 +616,8 @@ class TestAuthServiceTokenRefresh:
             This tests immediate revocation via cache blacklist.
         """
 
-        # Arrange - token in blacklist
-        async def mock_exists_blacklisted(*args, **kwargs):
-            return True
-
-        mock_cache.exists = Mock(side_effect=mock_exists_blacklisted)
+        # Arrange - token in blacklist (override behavior)
+        mock_cache._behavior["exists_return"] = True
 
         tokens_result = Mock()
         tokens_result.scalars = Mock(
@@ -656,13 +661,10 @@ class TestAuthServiceTokenRefresh:
         Note:
             Tests resilience against cache/Redis failures.
         """
-        # Arrange - cache fails
+        # Arrange - cache fails (override behavior to raise exception)
         from src.core.cache.base import CacheError
 
-        async def mock_exists_failure(*args, **kwargs):
-            raise CacheError("Redis down")
-
-        mock_cache.exists = Mock(side_effect=mock_exists_failure)
+        mock_cache._behavior["exists_exception"] = CacheError("Redis down")
 
         tokens_result = Mock()
         tokens_result.scalars = Mock(

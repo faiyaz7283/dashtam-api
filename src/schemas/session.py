@@ -10,7 +10,7 @@ All schemas follow project REST API standards:
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SessionInfoResponse(BaseModel):
@@ -43,8 +43,8 @@ class SessionInfoResponse(BaseModel):
 
     is_trusted: bool = Field(description="Whether user marked this device as trusted")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "device_info": "Chrome on macOS",
@@ -56,6 +56,7 @@ class SessionInfoResponse(BaseModel):
                 "is_trusted": False,
             }
         }
+    )
 
 
 class SessionListResponse(BaseModel):
@@ -67,8 +68,8 @@ class SessionListResponse(BaseModel):
 
     total_count: int = Field(description="Total number of active sessions")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sessions": [
                     {
@@ -95,6 +96,7 @@ class SessionListResponse(BaseModel):
                 "total_count": 2,
             }
         }
+    )
 
 
 class RevokeSessionResponse(BaseModel):
@@ -104,13 +106,14 @@ class RevokeSessionResponse(BaseModel):
 
     revoked_session_id: UUID = Field(description="ID of revoked session")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "message": "Session revoked successfully",
                 "revoked_session_id": "123e4567-e89b-12d3-a456-426614174000",
             }
         }
+    )
 
 
 class BulkRevokeResponse(BaseModel):
@@ -120,10 +123,11 @@ class BulkRevokeResponse(BaseModel):
 
     revoked_count: int = Field(description="Number of sessions revoked")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "message": "All other sessions revoked successfully",
                 "revoked_count": 3,
             }
         }
+    )

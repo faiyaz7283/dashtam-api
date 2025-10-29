@@ -298,7 +298,7 @@ class TestRateLimitMiddlewareFailOpen:
         assert response.status_code in [
             status.HTTP_200_OK,
             status.HTTP_201_CREATED,
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             status.HTTP_429_TOO_MANY_REQUESTS,
         ]
 

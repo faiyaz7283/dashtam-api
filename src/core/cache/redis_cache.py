@@ -118,7 +118,7 @@ class RedisCache(CacheBackend):
         Should be called during application shutdown.
         """
         try:
-            await self.client.close()
+            await self.client.aclose()
             logger.info("Redis cache connection closed")
         except RedisError as e:
             logger.warning(f"Error closing Redis connection: {e}")

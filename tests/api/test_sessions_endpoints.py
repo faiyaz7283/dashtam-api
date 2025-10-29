@@ -17,7 +17,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.user import User
 from src.models.auth import RefreshToken
 
 

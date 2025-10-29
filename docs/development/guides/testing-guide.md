@@ -76,6 +76,75 @@ graph TD
 - **AAA Pattern**: Arrange-Act-Assert structure for clear, maintainable tests
 - **Test Isolation**: Each test is independent with automatic fixture cleanup
 
+### Fixture Scope Best Practices
+
+Choosing the correct pytest fixture scope is critical for test isolation and performance. **Incorrect fixture scopes can cause state pollution**, where tests pass individually but fail in the full suite.
+
+#### Scope Guidelines
+
+| Fixture Type | Recommended Scope | Reason |
+|--------------|-------------------|--------|
+| Database engine | `session` | Expensive to create, stateless |
+| Database session | `function` | Requires isolation per test |
+| TestClient | `function` | Prevents state pollution (dependency overrides) |
+| Test data (users, etc.) | `function` | Each test needs fresh data |
+| Singletons (cache, etc.) | N/A - Reset with `autouse` fixture | Persistent state requires cleanup |
+
+#### Common Pitfall: State Pollution
+
+**Symptom:** Tests pass individually but fail when running full suite (`pytest tests/`)
+
+**Cause:** Session-scoped fixtures persist mutable state (like `app.dependency_overrides`) across test modules
+
+**Solution:** Use function scope for stateful fixtures
+
+```python path=null start=null
+# ❌ WRONG: Session scope causes state pollution
+@pytest.fixture(scope="session")
+def client(db: Session):
+    app.dependency_overrides[get_session] = override
+    yield TestClient(app)
+    app.dependency_overrides.clear()  # Only clears at END of session!
+
+# ✅ CORRECT: Function scope ensures isolation
+@pytest.fixture(scope="function")
+def client(db: Session):
+    app.dependency_overrides[get_session] = override
+    yield TestClient(app)
+    app.dependency_overrides.clear()  # Clears after EVERY test
+```
+
+#### Singleton Reset Pattern
+
+For application singletons (cache factory, connection pools), use an `autouse` fixture to reset state:
+
+```python path=null start=null
+# ✅ CORRECT: Autouse fixture resets singleton before/after each test
+@pytest.fixture(scope="function", autouse=True)
+def reset_cache_singleton():
+    """Reset cache singleton to prevent state pollution.
+    
+    Autouse=True: Runs automatically for ALL tests.
+    """
+    from src.core.cache import factory
+    factory._cache_instance = None  # Reset before test
+    yield
+    factory._cache_instance = None  # Reset after test
+```
+
+**Key Points:**
+
+- **Infrastructure fixtures:** Use `session` scope (DB engine, Redis connection)
+- **Stateful fixtures:** Use `function` scope (TestClient, database sessions, test data)
+- **Singletons:** Always reset with `autouse` fixtures
+- **Always test full suite:** `make test` before submitting PR
+
+#### Detailed Case Study
+
+For a comprehensive investigation of fixture scope issues (9 tests failing in full suite, passing individually), see:
+
+- [Test Fixture Scopes Troubleshooting](../troubleshooting/test-fixture-scopes.md) - Complete root cause analysis and solution
+
 ## Prerequisites
 
 Before starting, ensure you have:

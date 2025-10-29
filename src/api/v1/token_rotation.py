@@ -24,7 +24,7 @@ from src.models.user import User
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/token-rotation", tags=["Token Rotation"])
+router = APIRouter(prefix="/token-rotation", tags=["Token Rotation"])
 
 
 @router.post(

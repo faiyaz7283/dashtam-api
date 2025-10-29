@@ -105,25 +105,25 @@ def parse_user_agent(user_agent: str) -> dict[str, str]:
     else:
         browser = "Unknown Browser"
 
-    # Detect OS
-    if "mac os x" in ua_lower or "macintosh" in ua_lower:
+    # Detect OS (check mobile OSes first since they may contain generic patterns)
+    if "iphone" in ua_lower or "ipad" in ua_lower:
+        os_name = "iOS"
+    elif "android" in ua_lower:
+        os_name = "Android"
+    elif "mac os x" in ua_lower or "macintosh" in ua_lower:
         os_name = "macOS"
     elif "windows" in ua_lower or "win64" in ua_lower or "win32" in ua_lower:
         os_name = "Windows"
     elif "linux" in ua_lower:
         os_name = "Linux"
-    elif "iphone" in ua_lower or "ipad" in ua_lower:
-        os_name = "iOS"
-    elif "android" in ua_lower:
-        os_name = "Android"
     else:
         os_name = "Unknown OS"
 
-    # Detect device type
-    if "mobile" in ua_lower or "iphone" in ua_lower or "android" in ua_lower:
-        device_type = "mobile"
-    elif "tablet" in ua_lower or "ipad" in ua_lower:
+    # Detect device type (check tablet first since iPad UAs may contain "mobile")
+    if "tablet" in ua_lower or "ipad" in ua_lower:
         device_type = "tablet"
+    elif "mobile" in ua_lower or "iphone" in ua_lower or "android" in ua_lower:
+        device_type = "mobile"
     else:
         device_type = "desktop"
 

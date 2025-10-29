@@ -664,6 +664,77 @@ def auth_tokens(db_session: Session, verified_user: User) -> dict:
 
 
 @pytest.fixture
+def authenticated_user(db_session: Session, verified_user: User) -> dict:
+    """Create authenticated user with JWT tokens for API tests.
+
+    This fixture creates a complete authentication session including:
+    - Access token (JWT with jti claim linking to refresh token)
+    - Refresh token (opaque, stored in database)
+    - Refresh token ID (UUID for session management)
+    - User object
+
+    Returns:
+        Dictionary with:
+        - access_token: JWT access token for Authorization header
+        - refresh_token: Opaque refresh token (plain, not hashed)
+        - refresh_token_id: UUID of refresh token record in database
+        - user: User object
+
+    Example:
+        >>> def test_protected_endpoint(client, authenticated_user):
+        ...     response = client.get(
+        ...         "/api/v1/auth/me",
+        ...         headers={"Authorization": f"Bearer {authenticated_user['access_token']}"}
+        ...     )
+        ...     assert response.status_code == 200
+
+    Note:
+        This fixture is for session management API tests that need jti claim.
+        For simpler auth tests, use auth_tokens fixture instead.
+    """
+    from src.services.jwt_service import JWTService
+    from src.services.password_service import PasswordService
+    from src.models.auth import RefreshToken
+    from datetime import datetime, timedelta, timezone
+    import secrets
+
+    jwt_service = JWTService()
+    password_service = PasswordService()
+
+    # Create refresh token (plain)
+    plain_refresh_token = secrets.token_urlsafe(32)
+    token_hash = password_service.hash_password(plain_refresh_token)
+
+    # Store refresh token in database with session metadata
+    refresh_token = RefreshToken(
+        user_id=verified_user.id,
+        token_hash=token_hash,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        device_info="Test Device",
+        location="Test Location",
+        ip_address="127.0.0.1",
+        last_used_at=datetime.now(timezone.utc),
+    )
+    db_session.add(refresh_token)
+    db_session.commit()
+    db_session.refresh(refresh_token)
+
+    # Create access token with jti claim (links to refresh token for session management)
+    access_token = jwt_service.create_access_token(
+        user_id=verified_user.id,
+        email=verified_user.email,
+        refresh_token_id=refresh_token.id,  # This adds jti claim
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": plain_refresh_token,
+        "refresh_token_id": refresh_token.id,
+        "user": verified_user,
+    }
+
+
+@pytest.fixture
 def superuser_token_headers(client: TestClient) -> dict[str, str]:
     """Get authentication headers for superuser.
 

@@ -5,7 +5,6 @@ Uses real service (not mocked) to test actual behavior.
 """
 
 import pytest
-from pathlib import Path
 
 from src.services.geolocation_service import GeolocationService, get_geolocation_service
 
@@ -110,7 +109,7 @@ class TestGeolocationServicePerformance:
         import time
 
         ips = ["8.8.8.8", "1.1.1.1", "208.67.222.222"]
-        
+
         start = time.time()
         for ip in ips:
             geo_service.get_location(ip)

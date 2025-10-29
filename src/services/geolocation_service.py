@@ -106,15 +106,23 @@ class GeolocationService:
 
         Returns:
             Anonymized IP (e.g., '192.168.1.0')
+            Returns original string unchanged if not a valid IP
 
         Examples:
             >>> geo.anonymize_ip('192.168.1.100')
             '192.168.1.0'
             >>> geo.anonymize_ip('2001:4860:4860::8888')
             '2001:4860:4860::'
+            >>> geo.anonymize_ip('not-an-ip')
+            'not-an-ip'
         """
         try:
-            if ":" in ip_address:
+            # Validate IP address first
+            import ipaddress
+
+            ip_obj = ipaddress.ip_address(ip_address)
+
+            if isinstance(ip_obj, ipaddress.IPv6Address):
                 # IPv6: mask last 16 bits
                 parts = ip_address.split(":")
                 return ":".join(parts[:-1]) + ":"
@@ -122,6 +130,12 @@ class GeolocationService:
                 # IPv4: mask last octet
                 parts = ip_address.split(".")
                 return ".".join(parts[:3]) + ".0"
+        except (ValueError, TypeError) as e:
+            # Invalid IP - return as-is without modification
+            logger.debug(
+                f"IP validation failed for {ip_address}, returning unchanged: {e}"
+            )
+            return ip_address
         except Exception as e:
             logger.warning(f"IP anonymization failed for {ip_address}: {e}")
             return ip_address

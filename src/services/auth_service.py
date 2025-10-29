@@ -276,7 +276,7 @@ class AuthService:
         """Generate new access token using opaque refresh token with session tracking.
 
         Validates the opaque refresh token by hashing and database lookup.
-        Updates last_activity on the refresh token for session tracking.
+        Updates last_used_at on the refresh token for session tracking.
         Generates JWT with jti claim linking to refresh token (session ID).
         This is Pattern A (industry standard): JWT access + opaque refresh.
 
@@ -357,8 +357,8 @@ class AuthService:
                 detail="User not found or inactive",
             )
 
-        # Update last_activity for session tracking
-        refresh_token_record.last_activity = datetime.now(timezone.utc)
+        # Update last_used_at for session tracking
+        refresh_token_record.last_used_at = datetime.now(timezone.utc)
 
         # Generate new JWT access token with jti claim (links to session)
         access_token = self.jwt_service.create_access_token(

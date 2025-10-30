@@ -119,17 +119,18 @@ class TestUserTokenRotationEndpoint:
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_rotate_user_tokens_idempotent(
+    def test_rotate_user_tokens_invalidates_access_token(
         self, client: TestClient, verified_user: User, auth_tokens: dict
     ):
-        """Test that rotating twice is safe (idempotent).
+        """Test that rotation invalidates current access token.
 
         Verifies that:
-        - First rotation revokes tokens
-        - Second rotation succeeds with 0 tokens revoked
-        - Version continues to increment
+        - First rotation succeeds and revokes tokens
+        - Token version is incremented
+        - Old access token becomes invalid (401 Unauthorized)
+        - This is expected security behavior (all sessions invalidated)
         """
-        # First rotation
+        # First rotation succeeds
         response1 = client.post(
             f"/api/v1/token-rotation/users/{verified_user.id}",
             json={"reason": "First rotation"},
@@ -140,16 +141,14 @@ class TestUserTokenRotationEndpoint:
         assert data1["tokens_revoked"] >= 1
         assert data1["new_version"] == 2
 
-        # Second rotation (no tokens to revoke)
+        # Second rotation fails with 401 (old access token invalid)
         response2 = client.post(
             f"/api/v1/token-rotation/users/{verified_user.id}",
             json={"reason": "Second rotation"},
             headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
         )
-        assert response2.status_code == status.HTTP_200_OK
-        data2 = response2.json()
-        assert data2["tokens_revoked"] == 0  # No new tokens to revoke
-        assert data2["new_version"] == 3  # Version still increments
+        assert response2.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "rotated" in response2.json()["detail"].lower()
 
 
 class TestGlobalTokenRotationEndpoint:

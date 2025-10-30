@@ -666,9 +666,11 @@ def auth_tokens(db_session: Session, verified_user: User) -> dict:
     jwt_service = JWTService()
     password_service = PasswordService()
 
-    # Create access token
+    # Create access token with version
     access_token = jwt_service.create_access_token(
-        user_id=verified_user.id, email=verified_user.email
+        user_id=verified_user.id,
+        email=verified_user.email,
+        token_version=verified_user.min_token_version,
     )
 
     # Create refresh token (plain)
@@ -768,11 +770,12 @@ def authenticated_user(db_session: Session, verified_user: User) -> dict:
     db_session.commit()
     db_session.refresh(refresh_token)
 
-    # Create access token with jti claim (links to refresh token for session management)
+    # Create access token with jti claim (links to refresh token for session management) and version
     access_token = jwt_service.create_access_token(
         user_id=verified_user.id,
         email=verified_user.email,
         refresh_token_id=refresh_token.id,  # This adds jti claim
+        token_version=verified_user.min_token_version,
     )
 
     return {

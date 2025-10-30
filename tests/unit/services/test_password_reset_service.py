@@ -123,10 +123,14 @@ class TestPasswordResetService:
 
         # Mock database queries for TokenRotationService
         user_version_result = Mock()
-        user_version_result.scalar_one = Mock(return_value=1)  # Current min_token_version
+        user_version_result.scalar_one = Mock(
+            return_value=1
+        )  # Current min_token_version
 
         max_token_version_result = Mock()
-        max_token_version_result.scalar = Mock(return_value=1)  # Max token version in use
+        max_token_version_result.scalar = Mock(
+            return_value=1
+        )  # Max token version in use
 
         update_user_result = Mock()  # UPDATE users SET min_token_version=2
 
@@ -287,7 +291,9 @@ class TestPasswordResetService:
         update_user_result = Mock()
 
         revoke_tokens_result = Mock()
-        revoke_tokens_result.scalars = Mock(return_value=Mock(all=Mock(return_value=[])))
+        revoke_tokens_result.scalars = Mock(
+            return_value=Mock(all=Mock(return_value=[]))
+        )
 
         mock_session.execute = AsyncMock(
             side_effect=[

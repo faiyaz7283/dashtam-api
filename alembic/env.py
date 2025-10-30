@@ -83,7 +83,7 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     """Run migrations with the given connection.
-    
+
     Args:
         connection: SQLAlchemy connection to use for migrations.
     """
@@ -100,7 +100,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Run migrations in async mode.
-    
+
     This is the main entry point for online migrations with async SQLAlchemy.
     """
     connectable = async_engine_from_config(

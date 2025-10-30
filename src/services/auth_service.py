@@ -262,9 +262,12 @@ class AuthService:
             user_id=user.id, ip_address=ip_address, user_agent=user_agent
         )
 
-        # Generate JWT access token (stateless) with session link (jti claim)
+        # Generate JWT access token (stateless) with session link (jti claim) and version
         access_token = self.jwt_service.create_access_token(
-            user_id=user.id, email=user.email, refresh_token_id=refresh_token_record.id
+            user_id=user.id,
+            email=user.email,
+            refresh_token_id=refresh_token_record.id,
+            token_version=user.min_token_version,
         )
 
         await self.session.commit()
@@ -376,11 +379,12 @@ class AuthService:
         # Update last_used_at for session tracking
         refresh_token_record.last_used_at = datetime.now(timezone.utc)
 
-        # Generate new JWT access token with jti claim (links to session)
+        # Generate new JWT access token with jti claim (links to session) and version
         access_token = self.jwt_service.create_access_token(
             user_id=user.id,
             email=user.email,
             refresh_token_id=refresh_token_record.id,
+            token_version=user.min_token_version,
         )
 
         await self.session.commit()
@@ -591,7 +595,14 @@ class AuthService:
                 detail="Current password is incorrect",
             )
 
-        # Validate new password
+        # Validate new password is not the same as current
+        if self.password_service.verify_password(new_password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password cannot be the same as current password",
+            )
+
+        # Validate new password strength
         is_valid, error_message = self.password_service.validate_password_strength(
             new_password
         )
@@ -603,8 +614,6 @@ class AuthService:
         # Update password
         user.password_hash = self.password_service.hash_password(new_password)
 
-        await self.session.commit()
-
         # 🔒 SECURITY: Rotate all tokens (logout all other devices)
         # Uses TokenRotationService to increment min_token_version and invalidate all existing tokens
         # This prevents compromised sessions from remaining active after password change
@@ -612,6 +621,9 @@ class AuthService:
         rotation_result = await rotation_service.rotate_user_tokens(
             user_id=user.id, reason="Password changed by user"
         )
+
+        # Commit password change and token rotation together (atomic)
+        await self.session.commit()
 
         logger.info(
             f"Password changed for user {user.email}: Rotated tokens (version {rotation_result.old_version} → {rotation_result.new_version}, revoked {rotation_result.tokens_revoked} tokens)"

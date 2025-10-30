@@ -72,7 +72,7 @@ async def get_current_user(
 
     try:
         # Verify it's an access token (not refresh token) and decode
-        jwt_service.verify_token_type(token, "access")
+        claims = jwt_service.verify_token_type(token, "access")
 
         # Extract user ID from token
         user_id = jwt_service.get_user_id_from_token(token)
@@ -103,6 +103,20 @@ async def get_current_user(
             detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Validate token version (graceful degradation for old tokens without version)
+    token_version = claims.get("version")
+    if token_version is not None:
+        if token_version < user.min_token_version:
+            logger.warning(
+                f"Token version {token_version} < user min version {user.min_token_version} "
+                f"for user {user.id} (token rotated)"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been rotated, please login again",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     # Check if user account is active
     if not user.is_active:

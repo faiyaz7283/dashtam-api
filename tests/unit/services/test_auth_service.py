@@ -259,6 +259,7 @@ class TestAuthServiceLogin:
             name="Active User",
             email_verified=True,
             is_active=True,
+            min_token_version=1,  # Initial token version
             created_at=datetime.now(timezone.utc),
         )
 
@@ -282,10 +283,28 @@ class TestAuthServiceLogin:
         mock_jwt_service,
     ):
         """Test successful login."""
+        from src.models.security_config import SecurityConfig
+
         # Arrange
-        result = Mock()
-        result.scalar_one_or_none = Mock(return_value=verified_user)
-        mock_session.execute = AsyncMock(return_value=result)
+        # Mock initial user query (login)
+        user_result_1 = Mock()
+        user_result_1.scalar_one_or_none = Mock(return_value=verified_user)
+
+        # Mock SecurityConfig query (for token versioning in _create_refresh_token)
+        security_config = SecurityConfig(
+            global_min_token_version=1, updated_at=datetime.now(timezone.utc)
+        )
+        security_result = Mock()
+        security_result.scalar_one = Mock(return_value=security_config)
+
+        # Mock second user query (get min_token_version in _create_refresh_token)
+        user_result_2 = Mock()
+        user_result_2.scalar_one = Mock(return_value=verified_user)
+
+        # Setup execute to return all 3 queries in order
+        mock_session.execute = AsyncMock(
+            side_effect=[user_result_1, security_result, user_result_2]
+        )
 
         # Act
         access_token, refresh_token, user = asyncio.run(
@@ -382,10 +401,28 @@ class TestAuthServiceLogin:
         mock_password_service,
     ):
         """Test login rehashes password if bcrypt rounds changed."""
+        from src.models.security_config import SecurityConfig
+
         # Arrange
-        result = Mock()
-        result.scalar_one_or_none = Mock(return_value=verified_user)
-        mock_session.execute = AsyncMock(return_value=result)
+        # Mock initial user query (login)
+        user_result_1 = Mock()
+        user_result_1.scalar_one_or_none = Mock(return_value=verified_user)
+
+        # Mock SecurityConfig query (for token versioning in _create_refresh_token)
+        security_config = SecurityConfig(
+            global_min_token_version=1, updated_at=datetime.now(timezone.utc)
+        )
+        security_result = Mock()
+        security_result.scalar_one = Mock(return_value=security_config)
+
+        # Mock second user query (get min_token_version in _create_refresh_token)
+        user_result_2 = Mock()
+        user_result_2.scalar_one = Mock(return_value=verified_user)
+
+        # Setup execute to return all 3 queries in order
+        mock_session.execute = AsyncMock(
+            side_effect=[user_result_1, security_result, user_result_2]
+        )
 
         mock_password_service.needs_rehash = Mock(return_value=True)
         original_hash = verified_user.password_hash
@@ -434,6 +471,7 @@ class TestAuthServiceTokenRefresh:
             password_hash="hash",
             email_verified=True,
             is_active=True,
+            min_token_version=1,  # Initial token version
         )
 
     @pytest.fixture
@@ -443,6 +481,8 @@ class TestAuthServiceTokenRefresh:
             id=uuid4(),
             user_id=active_user.id,
             token_hash="hashed_refresh_token",
+            token_version=1,  # Token version
+            global_version_at_issuance=1,  # Global version at issuance
             expires_at=datetime.now(timezone.utc) + timedelta(days=30),
             is_revoked=False,
             created_at=datetime.now(timezone.utc),
@@ -500,21 +540,44 @@ class TestAuthServiceTokenRefresh:
         mock_jwt_service,
     ):
         """Test successful token refresh."""
+
         # Arrange
         tokens_result = Mock()
         tokens_result.scalars = Mock(
             return_value=Mock(all=Mock(return_value=[valid_refresh_token_record]))
         )
 
+        # Mock SecurityConfig query - use SimpleNamespace for clean attribute access
+        # (Mock with spec creates Mock attributes automatically)
+        from types import SimpleNamespace
+
+        security_config = SimpleNamespace(
+            id=uuid4(),
+            global_min_token_version=1,  # Real integer for comparison
+            updated_at=datetime.now(timezone.utc),
+            updated_by=None,
+            reason=None,
+        )
+
+        security_result = Mock()
+        security_result.scalar_one = Mock(return_value=security_config)
+
         user_result = Mock()
         user_result.scalar_one_or_none = Mock(return_value=active_user)
 
+        # Since we're bypassing _validate_token_versions, only 2 queries run:
+        # 1. Get refresh tokens, 2. Get user (no SecurityConfig query)
         mock_session.execute = AsyncMock(side_effect=[tokens_result, user_result])
 
-        # Act
-        new_access_token = asyncio.run(
-            auth_service.refresh_access_token("plain_refresh_token")
-        )
+        # Act - bypass version validation (tested elsewhere)
+        with patch.object(
+            AuthService,
+            "_validate_token_versions",
+            new=AsyncMock(return_value=(True, None)),
+        ):
+            new_access_token = asyncio.run(
+                auth_service.refresh_access_token("plain_refresh_token")
+            )
 
         # Assert
         assert new_access_token == "new_access_token_456"
@@ -671,13 +734,35 @@ class TestAuthServiceTokenRefresh:
             return_value=Mock(all=Mock(return_value=[valid_refresh_token_record]))
         )
 
+        # Mock SecurityConfig query - use SimpleNamespace for clean attribute access
+        # (Mock with spec creates Mock attributes automatically)
+        from types import SimpleNamespace
+
+        security_config = SimpleNamespace(
+            id=uuid4(),
+            global_min_token_version=1,  # Real integer for comparison
+            updated_at=datetime.now(timezone.utc),
+            updated_by=None,
+            reason=None,
+        )
+
+        security_result = Mock()
+        security_result.scalar_one = Mock(return_value=security_config)
+
         user_result = Mock()
         user_result.scalar_one_or_none = Mock(return_value=active_user)
 
+        # Since we're bypassing _validate_token_versions, only 2 queries run:
+        # 1. Get refresh tokens, 2. Get user (no SecurityConfig query)
         mock_session.execute = AsyncMock(side_effect=[tokens_result, user_result])
 
-        # Act - should succeed despite cache failure
-        new_token = asyncio.run(auth_service.refresh_access_token("valid_token"))
+        # Act - bypass version validation (tested elsewhere); should succeed despite cache failure
+        with patch.object(
+            AuthService,
+            "_validate_token_versions",
+            new=AsyncMock(return_value=(True, None)),
+        ):
+            new_token = asyncio.run(auth_service.refresh_access_token("valid_token"))
 
         # Assert - graceful degradation
         assert new_token is not None
@@ -711,6 +796,8 @@ class TestAuthServiceLogout:
             id=uuid4(),
             user_id=uuid4(),
             token_hash="hashed_token",
+            token_version=1,  # Token version
+            global_version_at_issuance=1,  # Global version at issuance
             expires_at=datetime.now(timezone.utc) + timedelta(days=30),
             is_revoked=False,
             created_at=datetime.now(timezone.utc),
@@ -782,6 +869,7 @@ class TestAuthServiceProfileManagement:
             name="Original Name",
             email_verified=True,
             is_active=True,
+            min_token_version=1,  # Initial token version
         )
 
     @pytest.fixture

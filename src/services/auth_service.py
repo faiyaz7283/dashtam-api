@@ -30,6 +30,8 @@ from src.services.password_service import PasswordService
 from src.services.jwt_service import JWTService
 from src.services.verification_service import VerificationService
 from src.services.password_reset_service import PasswordResetService
+from src.services.token_rotation_service import TokenRotationService
+from src.services.email_service import EmailService
 from src.services.geolocation_service import get_geolocation_service
 from src.core.config import get_settings
 from src.core.cache import CacheBackend, CacheError, get_cache
@@ -78,6 +80,8 @@ class AuthService:
         # Delegate to specialized services for verification and password reset
         self.verification_service = VerificationService(session)
         self.password_reset_service = PasswordResetService(session)
+        # Email service for notifications
+        self.email_service = EmailService(development_mode=self.settings.DEBUG)
         # Session management: geolocation for IP → location
         self.geolocation_service = get_geolocation_service()
         # Cache for token blacklist (immediate revocation)
@@ -601,6 +605,18 @@ class AuthService:
 
         await self.session.commit()
 
+        # 🔒 SECURITY: Rotate all tokens (logout all other devices)
+        # Uses TokenRotationService to increment min_token_version and invalidate all existing tokens
+        # This prevents compromised sessions from remaining active after password change
+        rotation_service = TokenRotationService(self.session)
+        rotation_result = await rotation_service.rotate_user_tokens(
+            user_id=user.id, reason="Password changed by user"
+        )
+
+        logger.info(
+            f"Password changed for user {user.email}: Rotated tokens (version {rotation_result.old_version} → {rotation_result.new_version}, revoked {rotation_result.tokens_revoked} tokens)"
+        )
+
         # Send notification email
         try:
             await self.email_service.send_password_changed_notification(
@@ -610,7 +626,6 @@ class AuthService:
         except Exception as e:
             logger.error(f"Failed to send password changed email to {user.email}: {e}")
 
-        logger.info(f"Password changed for user: {user.email} (ID: {user.id})")
         return user
 
     # Private helper methods

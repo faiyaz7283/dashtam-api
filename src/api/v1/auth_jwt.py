@@ -23,15 +23,16 @@ from src.api.dependencies import (
 )
 from src.models.user import User
 from src.schemas.auth import (
-    EmailVerificationRequest,
-    LoginRequest,
-    LoginResponse,
-    MessageResponse,
-    RefreshTokenRequest,
     RegisterRequest,
+    LoginRequest,
     TokenResponse,
-    UpdateUserRequest,
+    LoginResponse,
     UserResponse,
+    UpdateUserRequest,
+    ChangePasswordRequest,
+    EmailVerificationRequest,
+    RefreshTokenRequest,
+    MessageResponse,
 )
 from src.services.auth_service import AuthService
 
@@ -314,4 +315,42 @@ async def update_current_user_profile(
         is_active=updated_user.is_active,
         created_at=updated_user.created_at,
         last_login_at=updated_user.last_login_at,
+    )
+
+
+@router.patch("/me/password", response_model=MessageResponse)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Change current user's password.
+
+    Requires current password for verification. After successful password change,
+    ALL active tokens for this user are automatically rotated (invalidated),
+    forcing re-login on all devices for security.
+
+    Args:
+        request: Current and new passwords.
+        current_user: Currently authenticated user.
+        auth_service: Authentication service dependency.
+
+    Returns:
+        Success message with security notice.
+
+    Raises:
+        HTTPException: 400 if current password wrong or new password weak.
+    """
+
+    # Change password (includes automatic token rotation)
+    await auth_service.change_password(
+        user_id=current_user.id,
+        current_password=request.current_password,
+        new_password=request.new_password,
+    )
+
+    logger.info(f"Password changed for user: {current_user.email}")
+
+    return MessageResponse(
+        message="Password changed successfully. All active sessions have been logged out for security. Please log in again."
     )

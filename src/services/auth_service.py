@@ -30,6 +30,8 @@ from src.services.password_service import PasswordService
 from src.services.jwt_service import JWTService
 from src.services.verification_service import VerificationService
 from src.services.password_reset_service import PasswordResetService
+from src.services.token_rotation_service import TokenRotationService
+from src.services.email_service import EmailService
 from src.services.geolocation_service import get_geolocation_service
 from src.core.config import get_settings
 from src.core.cache import CacheBackend, CacheError, get_cache
@@ -78,6 +80,8 @@ class AuthService:
         # Delegate to specialized services for verification and password reset
         self.verification_service = VerificationService(session)
         self.password_reset_service = PasswordResetService(session)
+        # Email service for notifications
+        self.email_service = EmailService(development_mode=self.settings.DEBUG)
         # Session management: geolocation for IP → location
         self.geolocation_service = get_geolocation_service()
         # Cache for token blacklist (immediate revocation)
@@ -258,9 +262,12 @@ class AuthService:
             user_id=user.id, ip_address=ip_address, user_agent=user_agent
         )
 
-        # Generate JWT access token (stateless) with session link (jti claim)
+        # Generate JWT access token (stateless) with session link (jti claim) and version
         access_token = self.jwt_service.create_access_token(
-            user_id=user.id, email=user.email, refresh_token_id=refresh_token_record.id
+            user_id=user.id,
+            email=user.email,
+            refresh_token_id=refresh_token_record.id,
+            token_version=user.min_token_version,
         )
 
         await self.session.commit()
@@ -359,14 +366,25 @@ class AuthService:
                 detail="User not found or inactive",
             )
 
+        # Validate token versions (hybrid rotation check)
+        is_valid, failure_reason = await self._validate_token_versions(
+            refresh_token_record, user
+        )
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Token has been rotated: {failure_reason}",
+            )
+
         # Update last_used_at for session tracking
         refresh_token_record.last_used_at = datetime.now(timezone.utc)
 
-        # Generate new JWT access token with jti claim (links to session)
+        # Generate new JWT access token with jti claim (links to session) and version
         access_token = self.jwt_service.create_access_token(
             user_id=user.id,
             email=user.email,
             refresh_token_id=refresh_token_record.id,
+            token_version=user.min_token_version,
         )
 
         await self.session.commit()
@@ -577,7 +595,14 @@ class AuthService:
                 detail="Current password is incorrect",
             )
 
-        # Validate new password
+        # Validate new password is not the same as current
+        if self.password_service.verify_password(new_password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password cannot be the same as current password",
+            )
+
+        # Validate new password strength
         is_valid, error_message = self.password_service.validate_password_strength(
             new_password
         )
@@ -589,7 +614,20 @@ class AuthService:
         # Update password
         user.password_hash = self.password_service.hash_password(new_password)
 
+        # 🔒 SECURITY: Rotate all tokens (logout all other devices)
+        # Uses TokenRotationService to increment min_token_version and invalidate all existing tokens
+        # This prevents compromised sessions from remaining active after password change
+        rotation_service = TokenRotationService(self.session)
+        rotation_result = await rotation_service.rotate_user_tokens(
+            user_id=user.id, reason="Password changed by user"
+        )
+
+        # Commit password change and token rotation together (atomic)
         await self.session.commit()
+
+        logger.info(
+            f"Password changed for user {user.email}: Rotated tokens (version {rotation_result.old_version} → {rotation_result.new_version}, revoked {rotation_result.tokens_revoked} tokens)"
+        )
 
         # Send notification email
         try:
@@ -600,7 +638,6 @@ class AuthService:
         except Exception as e:
             logger.error(f"Failed to send password changed email to {user.email}: {e}")
 
-        logger.info(f"Password changed for user: {user.email} (ID: {user.id})")
         return user
 
     # Private helper methods
@@ -658,7 +695,18 @@ class AuthService:
         fingerprint_string = user_agent or ""
         fingerprint = hashlib.sha256(fingerprint_string.encode("utf-8")).hexdigest()
 
-        # Create refresh token record with hash and session metadata
+        # Token versioning: Get current versions for hybrid rotation
+        from src.models.security_config import SecurityConfig
+
+        # Get global version
+        result = await self.session.execute(select(SecurityConfig))
+        global_config = result.scalar_one()
+
+        # Get user's current version
+        result = await self.session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one()
+
+        # Create refresh token record with hash, session metadata, and versions
         refresh_token = RefreshToken(
             user_id=user_id,
             token_hash=token_hash,
@@ -666,6 +714,8 @@ class AuthService:
             location=location,
             fingerprint=fingerprint,
             is_trusted_device=False,  # Default: new sessions not trusted
+            token_version=user.min_token_version,  # User's current version
+            global_version_at_issuance=global_config.global_min_token_version,  # Global version at creation
         )
 
         self.session.add(refresh_token)
@@ -678,3 +728,54 @@ class AuthService:
         )
 
         return plain_token, refresh_token
+
+    async def _validate_token_versions(
+        self, token: RefreshToken, user: User
+    ) -> tuple[bool, Optional[str]]:
+        """Validate token against both global and per-user versions.
+
+        Two-level validation:
+        1. Global version check (for system-wide breaches)
+        2. Per-user version check (for user-specific events)
+
+        Both checks must pass for token to be valid.
+
+        Args:
+            token: RefreshToken to validate.
+            user: User who owns the token.
+
+        Returns:
+            Tuple of (is_valid, failure_reason).
+
+        Example:
+            >>> is_valid, reason = await service._validate_token_versions(token, user)
+            >>> if not is_valid:
+            ...     raise HTTPException(status_code=401, detail=reason)
+        """
+        # Get current global version
+        from src.models.security_config import SecurityConfig
+
+        result = await self.session.execute(select(SecurityConfig))
+        config = result.scalar_one()
+
+        # Check global version (rare, extreme breach)
+        if token.global_version_at_issuance < config.global_min_token_version:
+            logger.warning(
+                f"Token failed global version check: "
+                f"token_global_v{token.global_version_at_issuance} < "
+                f"required_v{config.global_min_token_version}, "
+                f"token_id={token.id}"
+            )
+            return False, "GLOBAL_TOKEN_VERSION_TOO_OLD"
+
+        # Check per-user version (common, targeted rotation)
+        if token.token_version < user.min_token_version:
+            logger.info(
+                f"Token failed user version check: "
+                f"token_v{token.token_version} < "
+                f"min_v{user.min_token_version}, "
+                f"user_id={user.id}"
+            )
+            return False, "USER_TOKEN_VERSION_TOO_OLD"
+
+        return True, None

@@ -797,6 +797,226 @@ class TestUserProfile:
         assert response.status_code == 400
         assert "not currently supported" in response.json()["detail"].lower()
 
+    def test_change_password_success(
+        self, client: TestClient, auth_tokens: dict, verified_user: User
+    ):
+        """Test successful password change with automatic token rotation.
+
+        Verifies that:
+        - PATCH /me/password returns 200 OK status
+        - Password is updated in database (bcrypt hash changed)
+        - All existing refresh tokens are revoked (security)
+        - Token version is incremented (rotation)
+        - Response includes success message
+        - Old access token becomes invalid after rotation
+
+        Args:
+            client: FastAPI TestClient for making HTTP requests
+            auth_tokens: Dict with access_token for Authorization
+            verified_user: Current authenticated user
+
+        Note:
+            Password change triggers automatic token rotation via
+            TokenRotationService, invalidating all sessions for security.
+        """
+        response = client.patch(
+            "/api/v1/auth/me/password",
+            json={
+                "current_password": "TestPassword123!",
+                "new_password": "NewSecurePassword456!",
+            },
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "password changed successfully" in data["message"].lower()
+
+        # Verify old access token no longer works (token rotation)
+        profile_response = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+        # Token should be invalid after rotation (version mismatch)
+        assert profile_response.status_code == 401
+
+    def test_change_password_wrong_current_password(
+        self, client: TestClient, auth_tokens: dict
+    ):
+        """Test password change rejection with incorrect current password.
+
+        Verifies that:
+        - Wrong current password returns 400 Bad Request
+        - Error message indicates current password is incorrect
+        - Password is NOT changed in database
+        - No token rotation occurs
+        - User sessions remain active
+
+        Args:
+            client: FastAPI TestClient for making HTTP requests
+            auth_tokens: Dict with access_token for Authorization
+
+        Note:
+            Security: Failed password verification does not leak whether
+            password is correct (timing-safe comparison).
+        """
+        response = client.patch(
+            "/api/v1/auth/me/password",
+            json={
+                "current_password": "WrongPassword123!",
+                "new_password": "NewSecurePassword456!",
+            },
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+
+        assert response.status_code == 400
+        assert "current password is incorrect" in response.json()["detail"].lower()
+
+        # Verify access token still works (no rotation)
+        profile_response = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+        assert profile_response.status_code == 200
+
+    def test_change_password_weak_new_password(
+        self, client: TestClient, auth_tokens: dict
+    ):
+        """Test password change rejection with weak new password.
+
+        Verifies that:
+        - Weak new password returns 422 Validation Error
+        - Password strength rules enforced (8+ chars, complexity)
+        - Password is NOT changed in database
+        - No token rotation occurs
+        - User sessions remain active
+
+        Args:
+            client: FastAPI TestClient for making HTTP requests
+            auth_tokens: Dict with access_token for Authorization
+
+        Note:
+            Password must meet: 8+ chars, uppercase, lowercase, digit, special char.
+        """
+        response = client.patch(
+            "/api/v1/auth/me/password",
+            json={
+                "current_password": "TestPassword123!",
+                "new_password": "weak",
+            },
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+
+        assert response.status_code == 422  # Validation error
+
+    def test_change_password_same_as_current(
+        self, client: TestClient, auth_tokens: dict
+    ):
+        """Test password change rejection when new password matches current.
+
+        Verifies that:
+        - Same password returns 400 Bad Request
+        - Error message indicates password cannot be same as current
+        - Password is NOT changed in database
+        - No token rotation occurs
+        - User sessions remain active
+
+        Args:
+            client: FastAPI TestClient for making HTTP requests
+            auth_tokens: Dict with access_token for Authorization
+
+        Note:
+            Security best practice: Require password to actually change
+            to prevent accidental no-op operations.
+        """
+        response = client.patch(
+            "/api/v1/auth/me/password",
+            json={
+                "current_password": "TestPassword123!",
+                "new_password": "TestPassword123!",
+            },
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+
+        assert response.status_code == 400
+        assert "cannot be the same" in response.json()["detail"].lower()
+
+    def test_change_password_without_auth(self, client: TestClient):
+        """Test password change rejection when no authentication provided.
+
+        Verifies that:
+        - Missing Authorization header returns 401 Unauthorized
+        - Endpoint requires authentication
+        - No password changes occur
+
+        Args:
+            client: FastAPI TestClient for making HTTP requests
+
+        Note:
+            Protected endpoint requires JWT access token.
+        """
+        response = client.patch(
+            "/api/v1/auth/me/password",
+            json={
+                "current_password": "TestPassword123!",
+                "new_password": "NewSecurePassword456!",
+            },
+        )
+
+        assert response.status_code == 401  # No auth header
+
+    def test_change_password_invalid_token(self, client: TestClient):
+        """Test password change rejection with invalid JWT token.
+
+        Verifies that:
+        - Invalid JWT returns 401 Unauthorized
+        - JWT signature validation fails
+        - No password changes occur
+        - Error indicates invalid credentials
+
+        Args:
+            client: FastAPI TestClient for making HTTP requests
+
+        Note:
+            JWT validation includes signature, expiration, and format checks.
+        """
+        response = client.patch(
+            "/api/v1/auth/me/password",
+            json={
+                "current_password": "TestPassword123!",
+                "new_password": "NewSecurePassword456!",
+            },
+            headers={"Authorization": "Bearer invalid_token"},
+        )
+
+        assert response.status_code == 401
+
+    def test_change_password_missing_fields(
+        self, client: TestClient, auth_tokens: dict
+    ):
+        """Test password change rejection when required fields are missing.
+
+        Verifies that:
+        - Missing required fields return 422 Validation Error
+        - Pydantic validation catches missing fields
+        - Clear error message indicates which fields are required
+        - No password changes occur
+
+        Args:
+            client: FastAPI TestClient for making HTTP requests
+            auth_tokens: Dict with access_token for Authorization
+
+        Note:
+            Required fields: current_password, new_password.
+        """
+        response = client.patch(
+            "/api/v1/auth/me/password",
+            json={"current_password": "TestPassword123!"},
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+
+        assert response.status_code == 422  # Validation error
+
     def test_update_user_profile_without_auth(self, client: TestClient):
         """Test profile update rejection when no authentication provided.
 

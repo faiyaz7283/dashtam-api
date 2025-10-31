@@ -102,6 +102,13 @@ class User(DashtamBase, table=True):
         description="Whether account is active (for soft deletion/suspension)",
     )
 
+    # Token rotation (per-user version)
+    min_token_version: int = Field(
+        default=1,
+        sa_column=Column(Integer, nullable=False, server_default="1"),
+        description="Minimum token version for this user (rotation)",
+    )
+
     # Relationships
     providers: List["Provider"] = Relationship(
         back_populates="user", cascade_delete=True

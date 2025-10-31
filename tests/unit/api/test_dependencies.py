@@ -57,6 +57,7 @@ class TestGetCurrentUser:
             email_verified=True,
             is_active=True,
             is_locked=False,
+            min_token_version=1,
             created_at=datetime.now(timezone.utc),
         )
 
@@ -67,7 +68,7 @@ class TestGetCurrentUser:
         """Test successful authentication and user retrieval."""
         # Arrange
         mock_jwt_service = Mock()
-        mock_jwt_service.verify_token_type = Mock()
+        mock_jwt_service.verify_token_type = Mock(return_value={"version": 1})
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
         monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
@@ -156,7 +157,7 @@ class TestGetCurrentUser:
         active_user.is_active = False
 
         mock_jwt_service = Mock()
-        mock_jwt_service.verify_token_type = Mock()
+        mock_jwt_service.verify_token_type = Mock(return_value={"version": 1})
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
         monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)
@@ -183,7 +184,7 @@ class TestGetCurrentUser:
         )
 
         mock_jwt_service = Mock()
-        mock_jwt_service.verify_token_type = Mock()
+        mock_jwt_service.verify_token_type = Mock(return_value={"version": 1})
         mock_jwt_service.get_user_id_from_token = Mock(return_value=active_user.id)
 
         monkeypatch.setattr("src.api.dependencies.JWTService", lambda: mock_jwt_service)

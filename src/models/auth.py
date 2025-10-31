@@ -9,7 +9,7 @@ from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
 from sqlmodel import Field, Relationship, Column
-from sqlalchemy import String, DateTime, Boolean, Text
+from sqlalchemy import String, DateTime, Boolean, Text, Integer
 from sqlalchemy.dialects.postgresql import INET
 from pydantic import field_validator
 
@@ -112,6 +112,18 @@ class RefreshToken(DashtamBase, table=True):
         default=False,
         sa_column=Column(Boolean, nullable=False, server_default="false"),
         description="User-marked trusted device (future: extended session TTL)",
+    )
+
+    # Token versioning (hybrid approach)
+    token_version: int = Field(
+        default=1,
+        sa_column=Column(Integer, nullable=False, server_default="1", index=True),
+        description="User's token version at issuance time",
+    )
+    global_version_at_issuance: int = Field(
+        default=1,
+        sa_column=Column(Integer, nullable=False, server_default="1", index=True),
+        description="Global token version at issuance time",
     )
 
     # Relationships

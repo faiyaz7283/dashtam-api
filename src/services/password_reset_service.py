@@ -19,9 +19,10 @@ from sqlmodel import select
 from fastapi import HTTPException, status
 
 from src.models.user import User
-from src.models.auth import PasswordResetToken, RefreshToken
+from src.models.auth import PasswordResetToken
 from src.services.password_service import PasswordService
 from src.services.email_service import EmailService
+from src.services.token_rotation_service import TokenRotationService
 from src.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -170,23 +171,16 @@ class PasswordResetService:
         # Mark token as used
         reset_token.used_at = datetime.now(timezone.utc)
 
-        # 🔒 SECURITY: Revoke all existing refresh tokens (logout all devices)
+        # 🔒 SECURITY: Rotate all tokens (logout all devices)
+        # Uses TokenRotationService to increment min_token_version and invalidate all existing tokens
         # This prevents compromised sessions from remaining active after password change
-        result = await self.session.execute(
-            select(RefreshToken).where(
-                RefreshToken.user_id == user.id, ~RefreshToken.is_revoked
-            )
+        rotation_service = TokenRotationService(self.session)
+        rotation_result = await rotation_service.rotate_user_tokens(
+            user_id=user.id, reason="Password reset completed"
         )
-        active_tokens = result.scalars().all()
-
-        revoked_count = 0
-        for token_record in active_tokens:
-            token_record.revoked_at = datetime.now(timezone.utc)
-            token_record.is_revoked = True
-            revoked_count += 1
 
         logger.info(
-            f"Password reset for user {user.email}: Revoked {revoked_count} active session(s)"
+            f"Password reset for user {user.email}: Rotated tokens (version {rotation_result.old_version} → {rotation_result.new_version}, revoked {rotation_result.tokens_revoked} tokens)"
         )
 
         await self.session.commit()

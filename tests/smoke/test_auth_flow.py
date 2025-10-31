@@ -538,32 +538,33 @@ class TestSmokeCompleteAuthFlow:
         # Should fail - token revoked
         assert response.status_code in [401, 403]
 
-    def test_14_old_access_token_still_works_until_expiry(
+    def test_14_old_access_token_invalidated_after_password_reset(
         self, client, smoke_test_user
     ):
-        """Step 14: Old access tokens work until expiry (stateless JWT behavior).
+        """Step 14: Old access tokens invalidated after password reset (token version).
 
         Verifies that:
-        - Old access tokens still work after password reset
-        - JWTs are stateless (cannot be revoked server-side)
-        - Only refresh tokens (database-stored) are revoked
-        - Access tokens expire naturally (TTL)
+        - Old access tokens are invalidated after password reset
+        - Token version validation detects rotated tokens
+        - Returns 401 Unauthorized (security improvement)
+        - All sessions terminated on password change
 
         Args:
             client: FastAPI TestClient fixture
             smoke_test_user: Smoke test user with old_access_token
 
         Note:
-            This is EXPECTED behavior - stateless JWTs can't be instantly revoked.
-            They expire after 30 min TTL.
+            This is IMPROVED security behavior - token version validation
+            enables instant invalidation of all access tokens after password reset.
+            User's min_token_version is incremented, making old tokens invalid.
         """
-        # Access tokens are stateless and work until they expire
+        # Access tokens with old version are invalid after rotation
         response = client.get(
             "/api/v1/auth/me",
             headers={"Authorization": f"Bearer {smoke_test_user['old_access_token']}"},
         )
-        # Should still work (JWT not revoked, only refresh tokens are)
-        assert response.status_code == 200
+        # Should fail - token version too old (rotated)
+        assert response.status_code == 401
 
     def test_15_login_with_new_password(self, client, smoke_test_user):
         """Step 15: User logs in with new password after reset.
@@ -642,11 +643,11 @@ class TestSmokeCompleteAuthFlow:
         assert response.status_code in [401, 403]
 
     def test_18_access_token_still_works_after_logout(self, client, smoke_test_user):
-        """Step 18: Access token works after logout until expiry (stateless JWT).
+        """Step 18: Access token works after logout until expiry (no rotation).
 
         Verifies that:
         - Access tokens still work after logout
-        - JWTs are stateless (cannot be server-side revoked)
+        - Logout does NOT rotate token version (only password changes do)
         - Only refresh tokens (database-stored) are revoked
         - Access tokens expire naturally (TTL)
 
@@ -655,13 +656,14 @@ class TestSmokeCompleteAuthFlow:
             smoke_test_user: Smoke test user with access_token
 
         Note:
-            This is EXPECTED behavior - stateless JWTs can't be instantly revoked.
-            They expire after 30 min TTL. Logout only revokes refresh tokens.
+            This is EXPECTED behavior - logout only revokes refresh tokens.
+            Token version is only incremented on password change/reset for security.
+            Access tokens remain valid until TTL expiry after logout.
         """
-        # JWTs are stateless - they work until expiry even after logout
+        # Access tokens work after logout (version unchanged)
         response = client.get(
             "/api/v1/auth/me",
             headers={"Authorization": f"Bearer {smoke_test_user['access_token']}"},
         )
-        # Should still work (JWT not revoked, only refresh token is)
+        # Should still work (token version matches, logout doesn't rotate)
         assert response.status_code == 200

@@ -11,6 +11,7 @@ from src.api.v1.providers import router as providers_router
 from src.api.v1.auth_jwt import router as auth_jwt_router
 from src.api.v1.password_resets import router as password_resets_router
 from src.api.v1.sessions import router as sessions_router
+from src.api.v1.token_rotation import router as token_rotation_router
 from src.schemas.common import HealthResponse
 
 # Create main API router
@@ -35,6 +36,9 @@ api_router.include_router(
 
 # Session management endpoints (auth required)
 api_router.include_router(sessions_router, tags=["sessions"])
+
+# Token rotation endpoints (auth required, future: admin only)
+api_router.include_router(token_rotation_router, tags=["token-rotation"])
 
 
 # Health check at API level

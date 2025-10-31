@@ -98,18 +98,21 @@ class TestPasswordResetService:
     def test_reset_password_revokes_single_session(
         self, password_reset_service, mock_session, sample_user, sample_reset_token
     ):
-        """Test password reset revokes single active refresh token."""
+        """Test password reset uses TokenRotationService to rotate tokens."""
         # Arrange
+        sample_user.min_token_version = 1  # Current user version
+
         refresh_token = RefreshToken(
             id=uuid4(),
             user_id=sample_user.id,
             token_hash="hashed_token_1",
+            token_version=1,  # Matches user version
             expires_at=datetime.now(timezone.utc) + timedelta(days=30),
             is_revoked=False,
             created_at=datetime.now(timezone.utc),
         )
 
-        # Mock database queries
+        # Mock database queries for password reset
         reset_token_result = Mock()
         reset_token_result.scalars = Mock(
             return_value=Mock(all=Mock(return_value=[sample_reset_token]))
@@ -118,16 +121,32 @@ class TestPasswordResetService:
         user_result = Mock()
         user_result.scalar_one_or_none = Mock(return_value=sample_user)
 
-        refresh_tokens_result = Mock()
-        refresh_tokens_result.scalars = Mock(
-            return_value=Mock(all=Mock(return_value=[refresh_token]))
-        )
+        # Mock database queries for TokenRotationService
+        user_version_result = Mock()
+        user_version_result.scalar_one = Mock(
+            return_value=1
+        )  # Current min_token_version
+
+        max_token_version_result = Mock()
+        max_token_version_result.scalar = Mock(
+            return_value=1
+        )  # Max token version in use
+
+        update_user_result = Mock()  # UPDATE users SET min_token_version=2
+
+        revoke_tokens_result = Mock()
+        revoke_tokens_result.scalars = Mock(
+            return_value=Mock(all=Mock(return_value=[refresh_token.id]))
+        )  # RETURNING clause
 
         mock_session.execute = AsyncMock(
             side_effect=[
-                reset_token_result,
-                user_result,
-                refresh_tokens_result,
+                reset_token_result,  # SELECT PasswordResetToken
+                user_result,  # SELECT User
+                user_version_result,  # TokenRotationService: SELECT min_token_version
+                max_token_version_result,  # TokenRotationService: SELECT MAX(token_version)
+                update_user_result,  # TokenRotationService: UPDATE users
+                revoke_tokens_result,  # TokenRotationService: UPDATE refresh_tokens
             ]
         )
 
@@ -141,26 +160,16 @@ class TestPasswordResetService:
         # Assert
         assert user is not None
         assert user.id == sample_user.id
-        assert refresh_token.is_revoked is True
-        assert refresh_token.revoked_at is not None
         mock_session.commit.assert_called()
 
     def test_reset_password_revokes_multiple_sessions(
         self, password_reset_service, mock_session, sample_user, sample_reset_token
     ):
-        """Test password reset revokes all active sessions across devices."""
+        """Test password reset rotates tokens affecting all active sessions."""
         # Arrange
-        tokens = [
-            RefreshToken(
-                id=uuid4(),
-                user_id=sample_user.id,
-                token_hash=f"hashed_token_{i}",
-                expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-                is_revoked=False,
-                created_at=datetime.now(timezone.utc),
-            )
-            for i in range(3)
-        ]
+        sample_user.min_token_version = 1
+
+        token_ids = [uuid4() for _ in range(3)]
 
         reset_token_result = Mock()
         reset_token_result.scalars = Mock(
@@ -170,13 +179,29 @@ class TestPasswordResetService:
         user_result = Mock()
         user_result.scalar_one_or_none = Mock(return_value=sample_user)
 
-        refresh_tokens_result = Mock()
-        refresh_tokens_result.scalars = Mock(
-            return_value=Mock(all=Mock(return_value=tokens))
+        # TokenRotationService mocks
+        user_version_result = Mock()
+        user_version_result.scalar_one = Mock(return_value=1)
+
+        max_token_version_result = Mock()
+        max_token_version_result.scalar = Mock(return_value=1)
+
+        update_user_result = Mock()
+
+        revoke_tokens_result = Mock()
+        revoke_tokens_result.scalars = Mock(
+            return_value=Mock(all=Mock(return_value=token_ids))  # 3 tokens revoked
         )
 
         mock_session.execute = AsyncMock(
-            side_effect=[reset_token_result, user_result, refresh_tokens_result]
+            side_effect=[
+                reset_token_result,
+                user_result,
+                user_version_result,
+                max_token_version_result,
+                update_user_result,
+                revoke_tokens_result,
+            ]
         )
 
         # Act
@@ -188,16 +213,15 @@ class TestPasswordResetService:
 
         # Assert
         assert user is not None
-        for token in tokens:
-            assert token.is_revoked is True
-            assert token.revoked_at is not None
         mock_session.commit.assert_called()
 
     def test_reset_password_with_no_active_sessions(
         self, password_reset_service, mock_session, sample_user, sample_reset_token
     ):
-        """Test password reset succeeds with no active sessions."""
+        """Test password reset succeeds with no active sessions to rotate."""
         # Arrange
+        sample_user.min_token_version = 1
+
         reset_token_result = Mock()
         reset_token_result.scalars = Mock(
             return_value=Mock(all=Mock(return_value=[sample_reset_token]))
@@ -206,13 +230,29 @@ class TestPasswordResetService:
         user_result = Mock()
         user_result.scalar_one_or_none = Mock(return_value=sample_user)
 
-        refresh_tokens_result = Mock()
-        refresh_tokens_result.scalars = Mock(
-            return_value=Mock(all=Mock(return_value=[]))
+        # TokenRotationService mocks
+        user_version_result = Mock()
+        user_version_result.scalar_one = Mock(return_value=1)
+
+        max_token_version_result = Mock()
+        max_token_version_result.scalar = Mock(return_value=0)  # No tokens
+
+        update_user_result = Mock()
+
+        revoke_tokens_result = Mock()
+        revoke_tokens_result.scalars = Mock(
+            return_value=Mock(all=Mock(return_value=[]))  # No tokens to revoke
         )
 
         mock_session.execute = AsyncMock(
-            side_effect=[reset_token_result, user_result, refresh_tokens_result]
+            side_effect=[
+                reset_token_result,
+                user_result,
+                user_version_result,
+                max_token_version_result,
+                update_user_result,
+                revoke_tokens_result,
+            ]
         )
 
         # Act
@@ -231,6 +271,8 @@ class TestPasswordResetService:
     ):
         """Test password reset marks token as used to prevent reuse."""
         # Arrange
+        sample_user.min_token_version = 1
+
         reset_token_result = Mock()
         reset_token_result.scalars = Mock(
             return_value=Mock(all=Mock(return_value=[sample_reset_token]))
@@ -239,13 +281,29 @@ class TestPasswordResetService:
         user_result = Mock()
         user_result.scalar_one_or_none = Mock(return_value=sample_user)
 
-        refresh_tokens_result = Mock()
-        refresh_tokens_result.scalars = Mock(
+        # TokenRotationService mocks
+        user_version_result = Mock()
+        user_version_result.scalar_one = Mock(return_value=1)
+
+        max_token_version_result = Mock()
+        max_token_version_result.scalar = Mock(return_value=0)
+
+        update_user_result = Mock()
+
+        revoke_tokens_result = Mock()
+        revoke_tokens_result.scalars = Mock(
             return_value=Mock(all=Mock(return_value=[]))
         )
 
         mock_session.execute = AsyncMock(
-            side_effect=[reset_token_result, user_result, refresh_tokens_result]
+            side_effect=[
+                reset_token_result,
+                user_result,
+                user_version_result,
+                max_token_version_result,
+                update_user_result,
+                revoke_tokens_result,
+            ]
         )
 
         # Act

@@ -59,6 +59,7 @@ class JWTService:
         user_id: UUID,
         email: str,
         refresh_token_id: Optional[UUID] = None,
+        token_version: Optional[int] = None,
         additional_claims: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Create a new access token for user authentication.
@@ -71,6 +72,7 @@ class JWTService:
             user_id: Unique user identifier
             email: User's email address
             refresh_token_id: Optional refresh token UUID (adds jti claim for session management)
+            token_version: Optional user token version (for rotation validation)
             additional_claims: Optional additional claims to include
 
         Returns:
@@ -80,13 +82,14 @@ class JWTService:
             >>> service = JWTService()
             >>> from uuid import uuid4
             >>> user_id = uuid4()
-            >>> token = service.create_access_token(user_id, "user@example.com")
+            >>> token = service.create_access_token(user_id, "user@example.com", token_version=1)
             >>> len(token) > 0
             True
 
         Notes:
             - Adding refresh_token_id as jti enables current session detection
-            - Existing tokens without jti still work (graceful degradation)
+            - Adding token_version enables rotation-based invalidation
+            - Existing tokens without jti/version still work (graceful degradation)
             - jti = JWT ID (RFC 7519 standard claim)
         """
         now = datetime.now(UTC)
@@ -100,6 +103,10 @@ class JWTService:
             "exp": expire,
             "iat": now,
         }
+
+        # Add token version if provided (for rotation validation)
+        if token_version is not None:
+            claims["version"] = token_version
 
         # Add jti claim if refresh_token_id provided (links access token to session)
         if refresh_token_id:

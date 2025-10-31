@@ -542,6 +542,7 @@ def test_user(db_session: Session) -> User:
             name="Test User",
             email_verified=True,
             is_active=True,
+            min_token_version=1,  # Initial token version
         )
         db_session.add(user)
         db_session.commit()
@@ -558,6 +559,7 @@ def test_user_2(db_session: Session) -> User:
         name="Test User 2",
         email_verified=True,
         is_active=True,
+        min_token_version=1,  # Initial token version
     )
     db_session.add(user)
     db_session.commit()
@@ -621,6 +623,7 @@ def verified_user(db_session: Session) -> User:
         password_hash=password_service.hash_password("TestPassword123!"),
         email_verified=True,
         is_active=True,
+        min_token_version=1,  # Initial token version
     )
     db_session.add(user)
     db_session.commit()
@@ -640,6 +643,7 @@ def inactive_user(db_session: Session) -> User:
         password_hash=password_service.hash_password("TestPassword123!"),
         email_verified=True,
         is_active=False,  # Inactive
+        min_token_version=1,  # Initial token version
     )
     db_session.add(user)
     db_session.commit()
@@ -662,19 +666,31 @@ def auth_tokens(db_session: Session, verified_user: User) -> dict:
     jwt_service = JWTService()
     password_service = PasswordService()
 
-    # Create access token
+    # Create access token with version
     access_token = jwt_service.create_access_token(
-        user_id=verified_user.id, email=verified_user.email
+        user_id=verified_user.id,
+        email=verified_user.email,
+        token_version=verified_user.min_token_version,
     )
 
     # Create refresh token (plain)
     plain_refresh_token = secrets.token_urlsafe(32)
     token_hash = password_service.hash_password(plain_refresh_token)
 
-    # Store refresh token in database
+    # Get current global version from database
+    from sqlmodel import select
+    from src.models.security_config import SecurityConfig
+
+    result = db_session.execute(select(SecurityConfig))
+    security_config = result.scalar_one()
+    current_global_version = security_config.global_min_token_version
+
+    # Store refresh token in database with current versions
     refresh_token = RefreshToken(
         user_id=verified_user.id,
         token_hash=token_hash,
+        token_version=verified_user.min_token_version,  # User's current version
+        global_version_at_issuance=current_global_version,  # Current global version
         expires_at=datetime.now(timezone.utc) + timedelta(days=30),
     )
     db_session.add(refresh_token)
@@ -730,10 +746,20 @@ def authenticated_user(db_session: Session, verified_user: User) -> dict:
     plain_refresh_token = secrets.token_urlsafe(32)
     token_hash = password_service.hash_password(plain_refresh_token)
 
-    # Store refresh token in database with session metadata
+    # Get current global version from database
+    from sqlmodel import select
+    from src.models.security_config import SecurityConfig
+
+    result = db_session.execute(select(SecurityConfig))
+    security_config = result.scalar_one()
+    current_global_version = security_config.global_min_token_version
+
+    # Store refresh token in database with session metadata and versioning
     refresh_token = RefreshToken(
         user_id=verified_user.id,
         token_hash=token_hash,
+        token_version=verified_user.min_token_version,  # User's current version
+        global_version_at_issuance=current_global_version,  # Current global version
         expires_at=datetime.now(timezone.utc) + timedelta(days=30),
         device_info="Test Device",
         location="Test Location",
@@ -744,11 +770,12 @@ def authenticated_user(db_session: Session, verified_user: User) -> dict:
     db_session.commit()
     db_session.refresh(refresh_token)
 
-    # Create access token with jti claim (links to refresh token for session management)
+    # Create access token with jti claim (links to refresh token for session management) and version
     access_token = jwt_service.create_access_token(
         user_id=verified_user.id,
         email=verified_user.email,
         refresh_token_id=refresh_token.id,  # This adds jti claim
+        token_version=verified_user.min_token_version,
     )
 
     return {

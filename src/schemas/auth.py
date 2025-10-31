@@ -195,6 +195,38 @@ class EmailVerificationRequest(BaseModel):
     model_config = {"json_schema_extra": {"example": {"token": "abc123def456ghi789"}}}
 
 
+class ChangePasswordRequest(BaseModel):
+    """Request to change password while authenticated.
+
+    User must provide current password for verification before
+    setting new password. This triggers automatic token rotation
+    to log out all other devices for security.
+
+    Attributes:
+        current_password: Current password for verification.
+        new_password: New password (must meet strength requirements).
+    """
+
+    current_password: str = Field(
+        ..., description="Current password for verification", min_length=1
+    )
+    new_password: str = Field(
+        ...,
+        description="New password (min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special)",
+        min_length=8,
+        max_length=128,
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "current_password": "OldSecurePass123!",
+                "new_password": "NewSecurePass456!",
+            }
+        }
+    }
+
+
 class PasswordResetRequest(BaseModel):
     """Request to initiate password reset flow.
 

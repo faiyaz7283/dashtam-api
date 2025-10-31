@@ -173,6 +173,29 @@ Dashtam is a secure, modern financial data aggregation platform that connects to
 - 🚧 Additional provider integrations pending
 - 📋 Overall coverage target: 85% (currently 76%)
 
+### Integration Status Tracker
+
+**Living Document**: Track overall integration completeness across all features and endpoints
+
+📊 **[Integration Status Tracker](docs/reviews/integration-status.md)** - Comprehensive audit and maintenance guide
+
+**Quick Stats** (as of 2025-10-31):
+
+- **Overall Integration**: 65% complete (Target: 95%)
+- **Rate Limiting**: 83% coverage (25/30 endpoints) - 3 critical gaps
+- **Session Metadata**: 43% coverage (13/30 endpoints) - major gaps
+- **Token Version Validation**: 100% coverage ✅
+- **Authorization Controls**: 97% coverage (1 P0 security gap)
+
+**Critical P0 Issues Identified**:
+
+1. ❌ Global token rotation lacks admin enforcement (30 min fix)
+2. ❌ Token rotation endpoints not rate limited (15 min fix)
+3. ❌ Password operations missing session metadata (2 hour fix)
+4. ❌ Token rotation missing session metadata (3 hour fix)
+
+**See tracker for**: Complete endpoint catalog, prioritized action items, compliance assessment, and maintenance instructions.
+
 ## Architecture Rules
 
 ### Technology Stack Requirements
@@ -1750,6 +1773,405 @@ docs/
 - Redis: 8.2.1
 - Python: 3.13
 - UV: 0.8.22
+
+---
+
+## Feature Integration Checklist
+
+**CRITICAL REQUIREMENT**: This checklist is **MANDATORY** for all new features. Use it to ensure features are fully integrated across the application, not just functionally complete in isolation.
+
+### Purpose
+
+**Problem**: Features developed in isolation often work correctly but are not integrated with existing endpoints and cross-cutting concerns.
+
+**Example**: Session management works for login/refresh but password reset doesn't collect session metadata.
+
+**Solution**: This checklist ensures new features are systematically integrated everywhere they're needed.
+
+### When to Use This Checklist
+
+- ✅ Adding a new cross-cutting concern (authentication, rate limiting, logging, etc.)
+- ✅ Adding a new middleware or dependency
+- ✅ Adding a new security feature
+- ✅ Adding a new audit/tracking feature
+- ✅ Any feature that should apply to multiple endpoints
+
+### Checklist
+
+#### 1. Endpoint Coverage ✅
+
+**Before marking feature complete, verify:**
+
+- [ ] **List ALL endpoints** in the application
+  - Command: `grep -r "@router\." src/api/v1/*.py`
+  - Create a spreadsheet/table tracking which endpoints need the feature
+
+- [ ] **Identify which endpoints need this feature**
+  - Consider: Does this endpoint handle sensitive data?
+  - Consider: Does this endpoint modify system state?
+  - Consider: Should this endpoint have the new protection/tracking?
+
+- [ ] **Verify feature applied to ALL relevant endpoints**
+  - Check: Middleware registered (if applicable)
+  - Check: Dependencies added to endpoint signatures
+  - Check: Configuration includes all endpoints
+  - Check: No endpoints accidentally excluded
+
+**Example (Rate Limiting)**:
+
+```python
+# ✅ CORRECT: Configuration includes endpoint
+"PATCH /api/v1/auth/me/password": RateLimitRule(
+    max_tokens=5,
+    refill_rate=0.33,  # 5 per 15 minutes
+    scope="user",
+)
+
+# ❌ WRONG: Endpoint exists but not in config
+# PATCH /api/v1/auth/me/password - NOT IN CONFIG!
+```
+
+#### 2. Dependency Injection ✅
+
+**For features requiring request context (IP, user agent, etc.):**
+
+- [ ] **Add dependencies to ALL relevant endpoints**
+
+  ```python
+  async def endpoint(
+      ...,
+      ip_address: Optional[str] = Depends(get_client_ip),
+      user_agent: Optional[str] = Depends(get_user_agent),
+  ):
+  ```
+
+- [ ] **Pass context to service layer**
+
+  ```python
+  await service.method(
+      ...,
+      ip_address=ip_address,
+      user_agent=user_agent,
+  )
+  ```
+
+- [ ] **Service layer accepts and uses context**
+
+  ```python
+  async def method(
+      self,
+      ...,
+      ip_address: Optional[str] = None,
+      user_agent: Optional[str] = None,
+  ):
+      # Use for logging, audit trails, etc.
+  ```
+
+#### 3. Configuration Completeness ✅
+
+**If feature uses configuration:**
+
+- [ ] **All endpoints included in config**
+  - Check: No missing endpoints
+  - Check: Endpoint keys match actual routes (exact string match!)
+  - Verification: Test that config key resolves correctly
+
+- [ ] **Configuration values appropriate for each endpoint**
+  - Public endpoints: More restrictive
+  - Authenticated endpoints: Less restrictive
+  - Admin endpoints: Very restrictive
+  - Write operations: More restrictive than reads
+
+- [ ] **Environment-specific configuration considered**
+  - Development: Relaxed limits
+  - Testing: Disabled or very high limits
+  - Production: Strict limits
+
+#### 4. Service Layer Integration ✅
+
+**Verify services properly integrated:**
+
+- [ ] **All service methods that need feature have it**
+  - AuthService: password reset, password change, registration, etc.
+  - TokenService: token operations
+  - Custom services: domain-specific operations
+
+- [ ] **Service methods accept required context**
+  - IP address, user agent (for session tracking)
+  - User ID (for authorization)
+  - Request metadata (for audit logs)
+
+- [ ] **Service methods use context appropriately**
+  - Logging: Include context in log messages
+  - Audit trails: Store context in database
+  - Notifications: Include context in emails
+
+#### 5. Database & Models ✅
+
+**If feature requires data persistence:**
+
+- [ ] **Database models include required fields**
+  - Audit fields: ip_address, user_agent, location
+  - Timestamps: created_at, updated_at
+  - Foreign keys: Proper relationships
+
+- [ ] **Migrations created and tested**
+  - Migration adds new fields/tables
+  - Migration tested in dev, test, CI
+  - Rollback migration tested
+
+- [ ] **Models updated with relationships**
+  - SQLModel relationships defined
+  - Cascade behavior configured
+  - Indexes added for performance
+
+#### 6. Testing Integration ✅
+
+**Comprehensive testing required:**
+
+- [ ] **Unit tests for feature**
+  - Test feature in isolation
+  - Test edge cases
+  - Test error handling
+
+- [ ] **Integration tests for feature + other features**
+  - Test: New feature + existing features
+  - Test: Feature interactions
+  - Example: Rate limiting + session management
+  - Example: Session tracking + token rotation
+
+- [ ] **API tests verify feature applied to endpoints**
+  - Test: Feature works on each relevant endpoint
+  - Test: Feature behavior correct per endpoint
+  - Example: Verify rate limit actually enforced
+
+- [ ] **Smoke tests include feature**
+  - Test: Feature works in complete user flows
+  - Test: Registration → Login → Operation → Logout
+  - Verify: Feature doesn't break existing flows
+
+#### 7. Documentation Updates ✅
+
+**Keep documentation in sync:**
+
+- [ ] **Architecture docs updated**
+  - Document: How feature works
+  - Document: Integration points
+  - Document: Configuration options
+  - Include: Mermaid diagrams for flows
+
+- [ ] **API documentation updated**
+  - Document: Which endpoints have feature
+  - Document: How feature affects endpoint behavior
+  - Document: Headers/responses related to feature
+  - Example: Rate limit headers in responses
+
+- [ ] **WARP.md updated**
+  - Update: Current Status section
+  - Update: Feature completion status
+  - Document: Any new rules or patterns
+
+- [ ] **README.md updated (if user-facing)**
+  - Document: How users interact with feature
+  - Document: What users should expect
+  - Example: "You may receive 429 if rate limited"
+
+#### 8. Code Quality ✅
+
+**Standard quality checks:**
+
+- [ ] **Lint passes**: `make lint`
+- [ ] **Format applied**: `make format`
+- [ ] **Markdown linted** (if docs changed): `make lint-md`
+- [ ] **All tests pass**: `make test`
+- [ ] **Coverage maintained**: Feature code at >85%
+
+#### 9. Security Review ✅
+
+**For security-related features:**
+
+- [ ] **Threat model updated**
+  - Document: What threats does feature mitigate?
+  - Document: What attacks does it prevent?
+  - Document: What's the failure mode?
+
+- [ ] **Security testing performed**
+  - Test: Feature can't be bypassed
+  - Test: Feature fails securely (closed)
+  - Test: Feature doesn't leak sensitive data
+
+- [ ] **Audit logging implemented**
+  - Log: When feature is triggered
+  - Log: Who triggered it (user ID, IP)
+  - Log: What happened (action, result)
+
+#### 10. Performance Impact ✅
+
+**Verify feature doesn't degrade performance:**
+
+- [ ] **Performance impact measured**
+  - Benchmark: Before/after feature
+  - Measure: Latency impact (should be <10ms)
+  - Measure: Throughput impact (should be <5%)
+
+- [ ] **Scalability considered**
+  - Consider: Impact at 10x load
+  - Consider: Impact at 100x load
+  - Consider: Database query performance
+  - Consider: Cache effectiveness
+
+### Verification Script
+
+After implementing a feature, run this verification:
+
+```bash
+# 1. List all endpoints
+grep -r "@router\." src/api/v1/*.py > /tmp/endpoints.txt
+
+# 2. Check your feature config/implementation
+# Manually verify each endpoint in /tmp/endpoints.txt is either:
+# a) Included in your feature configuration, OR
+# b) Documented as intentionally excluded with reason
+
+# 3. Test feature on sample endpoints
+make test  # Should include integration tests
+
+# 4. Check documentation
+make docs-build  # Should pass with zero warnings
+```
+
+### Example: Adding Rate Limiting
+
+**Checklist application:**
+
+1. **Endpoint Coverage** ✅
+   - Listed all 30 endpoints
+   - Identified 25 needing rate limiting (5 excluded with justification)
+   - Added all 25 to `rate_limiter/config.py`
+
+2. **Dependency Injection** ❌
+   - Rate limiting uses middleware (no endpoint changes needed)
+   - (This step N/A for middleware-based features)
+
+3. **Configuration Completeness** ✅
+   - All 25 endpoints in config with appropriate limits
+   - Verified keys match exact endpoint paths
+   - Tested config key resolution
+
+4. **Service Layer Integration** ⚠️
+   - Audit backend integrated
+   - But: Missing IP tracking in audit logs (TODO)
+
+5. **Database & Models** ✅
+   - RateLimitAudit model created
+   - Migration applied
+   - Relationships defined
+
+6. **Testing Integration** ⚠️
+   - Unit tests: ✅ 46 tests
+   - Integration tests: ✅ 20 tests
+   - API tests: ⚠️ Missing (need to verify limits applied)
+   - Smoke tests: ⚠️ Need to add rate limit testing
+
+7. **Documentation Updates** ✅
+   - Architecture doc created
+   - API docs updated
+   - WARP.md updated
+
+8. **Code Quality** ✅
+   - All checks pass
+
+9. **Security Review** ✅
+   - Threat model documented
+   - Fail-open behavior verified
+   - Audit logging implemented
+
+10. **Performance Impact** ✅
+    - Redis Lua: 2-3ms p95
+    - Negligible throughput impact
+
+**Result**: 70% complete → Need to address testing gaps
+
+### Common Mistakes to Avoid
+
+❌ **"I'll add it to other endpoints later"**
+
+- This never happens. Do it now while feature is fresh.
+
+❌ **"Only the new endpoint needs this feature"**
+
+- Wrong. If one endpoint needs rate limiting, likely others do too.
+
+❌ **"I'll update docs after merging"**
+
+- Wrong. Docs must be part of the same PR.
+
+❌ **"Integration tests can wait"**
+
+- Wrong. Integration issues will surface in production.
+
+❌ **"The config key is close enough"**
+
+- Wrong. Must match exactly or feature won't work.
+
+### When to Skip Steps
+
+You may skip checklist items ONLY if:
+
+1. **Item genuinely doesn't apply** to your feature type
+   - Example: Middleware feature doesn't need dependency injection
+   - Must document why skipped
+
+2. **Feature is explicitly scoped to specific endpoints**
+   - Must document which endpoints and why
+   - Must create follow-up task for remaining endpoints
+
+3. **Item will be addressed in follow-up PR**
+   - Must create GitHub issue tracking the work
+   - Must link issue in PR description
+   - Must complete within same sprint
+
+### Enforcement
+
+**This checklist is MANDATORY**:
+
+- ✅ Use checklist during feature development
+- ✅ Attach completed checklist to PR
+- ✅ Reviewer verifies checklist completeness
+- ✅ No PR merge without checklist
+
+**AI Agents**:
+
+- Must work through checklist systematically
+- Must document any skipped items
+- Must verify all applicable items before declaring feature complete
+
+### Checklist Template
+
+Copy this to your PR or working notes:
+
+```markdown
+## Feature Integration Checklist
+
+**Feature**: [Feature Name]
+**PR**: #[PR Number]
+
+- [ ] 1. Endpoint Coverage - All relevant endpoints identified and covered
+- [ ] 2. Dependency Injection - Context passed to all relevant endpoints
+- [ ] 3. Configuration Completeness - All config entries verified
+- [ ] 4. Service Layer Integration - Services properly integrated
+- [ ] 5. Database & Models - Schema updated, migrations applied
+- [ ] 6. Testing Integration - Unit + Integration + API + Smoke tests
+- [ ] 7. Documentation Updates - Architecture + API + WARP.md + README
+- [ ] 8. Code Quality - Lint + Format + All tests pass
+- [ ] 9. Security Review - Threats documented, secure failure
+- [ ] 10. Performance Impact - Measured and acceptable
+
+**Skipped Items**: [List with justification]
+**Follow-up Issues**: [GitHub issue links]
+```
+
+**Remember**: A feature is only 50% done when its core functionality works. Integration is the other 50%.
 
 ---
 

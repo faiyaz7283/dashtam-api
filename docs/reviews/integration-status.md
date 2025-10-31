@@ -73,7 +73,7 @@
 
 ## Features Audited
 
-- ✅ **Token Version Validation**: 100% coverage (all protected endpoints)
+- ✅ **Token Version Validation**: 100% coverage (all authenticated endpoints)
 
 - ✅ **Rate Limiting**: 83% coverage (25/30 endpoints) - 3 critical gaps
 
@@ -93,7 +93,7 @@ This comprehensive audit systematically verifies integration completeness across
 
 - **Session Metadata**: 43% coverage (13/30 endpoints) ⚠️
 
-- **Token Version Validation**: 100% coverage (all protected endpoints) ✅
+- **Token Version Validation**: 100% coverage (all authenticated endpoints) ✅
 
 - **Authorization Controls**: 97% coverage (29/30 endpoints, 1 critical gap) ❌
 
@@ -105,16 +105,16 @@ This comprehensive audit systematically verifies integration completeness across
 
 ### 1.1 Authentication & User Management (8 endpoints)
 
-| # | Method | Endpoint | Protected | Rate Limited | Session Metadata | Token Version |
+| # | Method | Endpoint | Auth Required | Rate Limited | Session Metadata | Token Version |
 |---|--------|----------|-----------|--------------|------------------|---------------|
-| 1 | POST | `/api/v1/auth/register` | ❌ | ✅ | ❌ | N/A |
-| 2 | POST | `/api/v1/auth/verify-email` | ❌ | ✅ | ❌ | N/A |
-| 3 | POST | `/api/v1/auth/login` | ❌ | ✅ | ✅ | N/A |
-| 4 | POST | `/api/v1/auth/refresh` | ❌ | ✅ | ✅ | N/A |
-| 5 | POST | `/api/v1/auth/logout` | ✅ | ✅ | ❌ | ✅ |
-| 6 | GET | `/api/v1/auth/me` | ✅ | ✅ | ❌ | ✅ |
-| 7 | PATCH | `/api/v1/auth/me` | ✅ | ✅ | ❌ | ✅ |
-| 8 | PATCH | `/api/v1/auth/me/password` | ✅ | ✅ | ❌ | ✅ |
+| 1 | POST | `/api/v1/auth/register` | No | ✅ | ❌ | N/A |
+| 2 | POST | `/api/v1/auth/verify-email` | No | ✅ | ❌ | N/A |
+| 3 | POST | `/api/v1/auth/login` | No | ✅ | ✅ | N/A |
+| 4 | POST | `/api/v1/auth/refresh` | No | ✅ | ✅ | N/A |
+| 5 | POST | `/api/v1/auth/logout` | Yes | ✅ | ❌ | ✅ |
+| 6 | GET | `/api/v1/auth/me` | Yes | ✅ | ❌ | ✅ |
+| 7 | PATCH | `/api/v1/auth/me` | Yes | ✅ | ❌ | ✅ |
+| 8 | PATCH | `/api/v1/auth/me/password` | Yes | ✅ | ❌ | ✅ |
 
 **Findings**:
 
@@ -126,15 +126,15 @@ This comprehensive audit systematically verifies integration completeness across
 
 - ⚠️ Logout endpoint missing session metadata (should track revocation source)
 
-- ✅ All 4 protected endpoints validate token version
+- ✅ All 4 authenticated endpoints validate token version
 
 ### 1.2 Password Reset (3 endpoints)
 
-| # | Method | Endpoint | Protected | Rate Limited | Session Metadata | Token Version |
+| # | Method | Endpoint | Auth Required | Rate Limited | Session Metadata | Token Version |
 |---|--------|----------|-----------|--------------|------------------|---------------|
-| 9 | POST | `/api/v1/password-resets/` | ❌ | ✅ | ❌ | N/A |
-| 10 | GET | `/api/v1/password-resets/{token}` | ❌ | ✅ | ❌ | N/A |
-| 11 | PATCH | `/api/v1/password-resets/{token}` | ❌ | ✅ | ❌ | N/A |
+| 9 | POST | `/api/v1/password-resets/` | No | ✅ | ❌ | N/A |
+| 10 | GET | `/api/v1/password-resets/{token}` | No | ✅ | ❌ | N/A |
+| 11 | PATCH | `/api/v1/password-resets/{token}` | No | ✅ | ❌ | N/A |
 
 **Findings**:
 
@@ -149,12 +149,12 @@ This comprehensive audit systematically verifies integration completeness across
 
 ### 1.3 Session Management (4 endpoints)
 
-| # | Method | Endpoint | Protected | Rate Limited | Session Metadata | Token Version |
+| # | Method | Endpoint | Auth Required | Rate Limited | Session Metadata | Token Version |
 |---|--------|----------|-----------|--------------|------------------|---------------|
-| 12 | GET | `/api/v1/auth/sessions` | ✅ | ✅ | ✅ | ✅ |
-| 13 | DELETE | `/api/v1/auth/sessions/{session_id}` | ✅ | ✅ | ✅ | ✅ |
-| 14 | DELETE | `/api/v1/auth/sessions/others/revoke` | ✅ | ✅ | ✅ | ✅ |
-| 15 | DELETE | `/api/v1/auth/sessions/all/revoke` | ✅ | ✅ | ❌ | ✅ |
+| 12 | GET | `/api/v1/auth/sessions` | Yes | ✅ | ✅ | ✅ |
+| 13 | DELETE | `/api/v1/auth/sessions/{session_id}` | Yes | ✅ | ✅ | ✅ |
+| 14 | DELETE | `/api/v1/auth/sessions/others/revoke` | Yes | ✅ | ✅ | ✅ |
+| 15 | DELETE | `/api/v1/auth/sessions/all/revoke` | Yes | ✅ | ❌ | ✅ |
 
 **Findings**:
 
@@ -170,11 +170,11 @@ This comprehensive audit systematically verifies integration completeness across
 
 ### 1.4 Token Rotation (3 endpoints)
 
-| # | Method | Endpoint | Protected | Rate Limited | Session Metadata | Token Version |
+| # | Method | Endpoint | Auth Required | Rate Limited | Session Metadata | Token Version |
 |---|--------|----------|-----------|--------------|------------------|---------------|
-| 16 | POST | `/api/v1/token-rotation/users/{user_id}` | ✅ | ❌ | ❌ | ✅ |
-| 17 | POST | `/api/v1/token-rotation/global` | ✅ | ❌ | ❌ | ✅ |
-| 18 | GET | `/api/v1/token-rotation/security-config` | ✅ | ❌ | ❌ | ✅ |
+| 16 | POST | `/api/v1/token-rotation/users/{user_id}` | Yes | ❌ | ❌ | ✅ |
+| 17 | POST | `/api/v1/token-rotation/global` | Yes | ❌ | ❌ | ✅ |
+| 18 | GET | `/api/v1/token-rotation/security-config` | Yes | ❌ | ❌ | ✅ |
 
 **Findings**:
 
@@ -199,13 +199,13 @@ This comprehensive audit systematically verifies integration completeness across
 
 ### 1.5 Provider Management (5 endpoints)
 
-| # | Method | Endpoint | Protected | Rate Limited | Session Metadata | Token Version |
+| # | Method | Endpoint | Auth Required | Rate Limited | Session Metadata | Token Version |
 |---|--------|----------|-----------|--------------|------------------|---------------|
-| 19 | POST | `/api/v1/providers/` | ✅ | ✅ | ❌ | ✅ |
-| 20 | GET | `/api/v1/providers/` | ✅ | ✅ | ❌ | ✅ |
-| 21 | GET | `/api/v1/providers/{provider_id}` | ✅ | ✅ | ❌ | ✅ |
-| 22 | PATCH | `/api/v1/providers/{provider_id}` | ✅ | ✅ | ❌ | ✅ |
-| 23 | DELETE | `/api/v1/providers/{provider_id}` | ✅ | ✅ | ❌ | ✅ |
+| 19 | POST | `/api/v1/providers/` | Yes | ✅ | ❌ | ✅ |
+| 20 | GET | `/api/v1/providers/` | Yes | ✅ | ❌ | ✅ |
+| 21 | GET | `/api/v1/providers/{provider_id}` | Yes | ✅ | ❌ | ✅ |
+| 22 | PATCH | `/api/v1/providers/{provider_id}` | Yes | ✅ | ❌ | ✅ |
+| 23 | DELETE | `/api/v1/providers/{provider_id}` | Yes | ✅ | ❌ | ✅ |
 
 **Findings**:
 
@@ -219,13 +219,13 @@ This comprehensive audit systematically verifies integration completeness across
 
 ### 1.6 Provider Authorization (4 endpoints)
 
-| # | Method | Endpoint | Protected | Rate Limited | Session Metadata | Token Version |
+| # | Method | Endpoint | Auth Required | Rate Limited | Session Metadata | Token Version |
 |---|--------|----------|-----------|--------------|------------------|---------------|
-| 24 | POST | `/api/v1/providers/{id}/authorization` | ✅ | ✅ | ❌ | ✅ |
-| 25 | GET | `/api/v1/providers/{id}/authorization` | ✅ | ✅ | ❌ | ✅ |
-| 26 | GET | `/api/v1/providers/{id}/authorization/callback` | ✅ | ✅ | ❌ | ✅ |
-| 27 | PATCH | `/api/v1/providers/{id}/authorization` | ✅ | ✅ | ❌ | ✅ |
-| 28 | DELETE | `/api/v1/providers/{id}/authorization` | ✅ | ✅ | ❌ | ✅ |
+| 24 | POST | `/api/v1/providers/{id}/authorization` | Yes | ✅ | ❌ | ✅ |
+| 25 | GET | `/api/v1/providers/{id}/authorization` | Yes | ✅ | ❌ | ✅ |
+| 26 | GET | `/api/v1/providers/{id}/authorization/callback` | Yes | ✅ | ❌ | ✅ |
+| 27 | PATCH | `/api/v1/providers/{id}/authorization` | Yes | ✅ | ❌ | ✅ |
+| 28 | DELETE | `/api/v1/providers/{id}/authorization` | Yes | ✅ | ❌ | ✅ |
 
 **Findings**:
 
@@ -238,10 +238,10 @@ This comprehensive audit systematically verifies integration completeness across
 
 ### 1.7 Provider Types (Catalog) (2 endpoints)
 
-| # | Method | Endpoint | Protected | Rate Limited | Session Metadata | Token Version |
+| # | Method | Endpoint | Auth Required | Rate Limited | Session Metadata | Token Version |
 |---|--------|----------|-----------|--------------|------------------|---------------|
-| 29 | GET | `/api/v1/provider-types/` | ❌ | ✅ | ❌ | N/A |
-| 30 | GET | `/api/v1/provider-types/{key}` | ❌ | ✅ | ❌ | N/A |
+| 29 | GET | `/api/v1/provider-types/` | No | ✅ | ❌ | N/A |
+| 30 | GET | `/api/v1/provider-types/{key}` | No | ✅ | ❌ | N/A |
 
 **Findings**:
 
@@ -325,9 +325,9 @@ This comprehensive audit systematically verifies integration completeness across
 
 ### 2.3 Token Version Validation Coverage
 
-**Coverage**: 21/21 protected endpoints (100%) ✅
+**Coverage**: 21/21 authenticated endpoints (100%) ✅
 
-**Validation Method**: All protected endpoints use `get_current_user` or `get_current_user_with_token_version` dependency, which validates token version.
+**Validation Method**: All authenticated endpoints use `get_current_user` or `get_current_user_with_token_version` dependency, which validates token version.
 
 **Audit Status**: ✅ **Complete Coverage**
 
@@ -337,7 +337,7 @@ This comprehensive audit systematically verifies integration completeness across
 
 **Coverage**: 29/30 endpoints (97%) ✅ (with 1 critical exception)
 
-**Protected Endpoints** (21): All use `get_current_user` dependency ✅
+**Authenticated Endpoints** (21): All use `get_current_user` dependency ✅
 
 **Public Endpoints** (8): Intentionally public ✅
 
@@ -600,7 +600,7 @@ All new features have environment variables documented in `.env.*.example` files
 | Rate Limiting + Token Rotation | ❌ **Missing Config** | ❌ Missing (0%) | **P0** |
 | Session Metadata + Token Rotation | ❌ **Missing Service** | ❌ Missing (0%) | **P0** |
 | Session Metadata + Password Operations | ❌ **Missing Service** | ❌ Missing (0%) | **P0** |
-| Token Version + All Protected Endpoints | ✅ Complete | ✅ Good (80%) | P2 |
+| Token Version + All Authenticated Endpoints | ✅ Complete | ✅ Good (80%) | P2 |
 | Authorization + Token Rotation (Admin) | ❌ **Missing Role Check** | ❌ Missing (0%) | **P0** |
 
 **Legend**:

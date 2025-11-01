@@ -9,7 +9,6 @@ Tests:
 - Security requirements (stricter limits for sensitive endpoints)
 """
 
-
 from src.config.rate_limits import (
     RATE_LIMIT_RULES,
     get_rate_limit_rule,

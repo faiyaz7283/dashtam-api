@@ -65,7 +65,7 @@ async def revoke_user_tokens(
 
     Use cases:
     - Password changed
-    - User requests logout from all devices  
+    - User requests logout from all devices
     - Suspicious activity detected
 
     Authorization:
@@ -148,7 +148,7 @@ async def revoke_all_tokens(
 
     Use cases:
     - Encryption key compromise
-    - Database breach  
+    - Database breach
     - Critical security vulnerability
 
     WARNING: All users will be logged out. Use only for emergencies.

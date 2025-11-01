@@ -2012,6 +2012,7 @@ docs/
   - No action-oriented endpoints (except justified exceptions)
 
 **If REST violation found:**
+
 - ❌ **STOP**: Do not proceed with implementation
 - ⚠️ **REDESIGN**: Refactor to resource-oriented design
 - ✅ **DOCUMENT**: If exception needed, justify in architecture doc

@@ -546,6 +546,15 @@ class TokenRotationAudit(SQLModel, table=True):
 
 ### 5.3 Smoke Tests
 
+**Completed Tests**:
+
+1. ✅ **Rate limiting smoke test** (2025-11-01)
+
+   - File: `tests/smoke/test_rate_limiting.py`
+   - Test: Brute force protection (25 login attempts → 429 response)
+   - Test: Rate limit headers present on all responses
+   - Coverage: 2 tests passing, validates critical rate limiting functionality
+
 **Missing Tests**:
 
 1. ❌ Complete user journey with token rotation
@@ -557,11 +566,7 @@ class TokenRotationAudit(SQLModel, table=True):
 
    - Login from device A → Login from device B → Revoke device A → Verify device A logged out
 
-3. ❌ Rate limiting smoke test
-
-   - Make 25 requests rapidly → Verify 26th request gets 429
-
-**Status**: Smoke tests needed for end-to-end validation
+**Status**: Rate limiting smoke tests complete ✅, additional end-to-end validation needed
 
 ---
 

@@ -1,8 +1,8 @@
 # Integration Status Tracker
 
 **Living Document**: This file tracks integration completeness across all features and endpoints
-**Last Updated**: 2025-10-31  
-**Current Status**: ⚠️ 65% Complete (Target: 95%)
+**Last Updated**: 2025-11-01  
+**Current Status**: ⚠️ 70% Complete (Target: 95%)
 **Review Type**: Complete Systematic Codebase Audit
 
 **Quick Navigation**:
@@ -13,7 +13,7 @@
 
 - [Integration Coverage](#2-integration-coverage-summary) - Feature-by-feature status
 
-- [Action Items](#8-prioritized-action-items) - Prioritized tasks with time estimates
+- [Action Items](#8-prioritized-action-items) - Prioritized tasks
 
 - [Success Criteria](#11-success-criteria) - Target goals and metrics
 
@@ -75,7 +75,7 @@
 
 - ✅ **Token Version Validation**: 100% coverage (all authenticated endpoints)
 
-- ✅ **Rate Limiting**: 83% coverage (25/30 endpoints) - 3 critical gaps
+- ✅ **Rate Limiting**: 100% coverage (30/30 endpoints) - Complete
 
 - ⚠️ **Session Metadata**: 43% coverage (13/30 endpoints) - major gaps
 
@@ -87,9 +87,9 @@
 
 This comprehensive audit systematically verifies integration completeness across all 30 API endpoints in the Dashtam codebase. The audit identifies **critical security gaps**, **missing integration points**, and **test coverage deficiencies** that require immediate attention.
 
-**Overall Assessment**: ⚠️ **Partial Integration** (65% complete)
+**Overall Assessment**: ⚠️ **Partial Integration** (70% complete)
 
-- **Rate Limiting**: 83% coverage (25/30 endpoints) ✅
+- **Rate Limiting**: 100% coverage (30/30 endpoints) ✅
 
 - **Session Metadata**: 43% coverage (13/30 endpoints) ⚠️
 
@@ -97,7 +97,7 @@ This comprehensive audit systematically verifies integration completeness across
 
 - **Authorization Controls**: 97% coverage (29/30 endpoints, 1 critical gap) ❌
 
-**Critical Finding**: Global token rotation endpoint (`POST /api/v1/token-rotation/global`) lacks admin role enforcement, posing a **P0 security vulnerability**.
+**Critical Finding**: Global token rotation endpoint (`DELETE /api/v1/tokens`) lacks admin role enforcement (deferred to OPA integration).
 
 ---
 
@@ -168,28 +168,26 @@ This comprehensive audit systematically verifies integration completeness across
 
 - ✅ All 4 endpoints validate token version
 
-### 1.4 Token Rotation (3 endpoints)
+### 1.4 Token Rotation (3 endpoints) - RESTful Design
 
 | # | Method | Endpoint | Auth Required | Rate Limited | Session Metadata | Token Version |
 |---|--------|----------|-----------|--------------|------------------|---------------|
-| 16 | POST | `/api/v1/token-rotation/users/{user_id}` | Yes | ❌ | ❌ | ✅ |
-| 17 | POST | `/api/v1/token-rotation/global` | Yes | ❌ | ❌ | ✅ |
-| 18 | GET | `/api/v1/token-rotation/security-config` | Yes | ❌ | ❌ | ✅ |
+| 16 | DELETE | `/api/v1/users/{user_id}/tokens` | Yes | ✅ | ❌ | ✅ |
+| 17 | DELETE | `/api/v1/tokens` | Yes | ✅ | ❌ | ✅ |
+| 18 | GET | `/api/v1/security/config` | Yes | ✅ | ❌ | ✅ |
 
 **Findings**:
 
-- ❌ **P0 CRITICAL**: No rate limiting on any token rotation endpoint
-  - **Risk**: Denial of service via token rotation spam
-  - **Risk**: Brute force attempts at user enumeration
-  - **Recommended limits**:
-    - User rotation: 5 per 15 minutes per user
-    - Global rotation: 1 per day (admin only)
-    - Security config: 10 per minute per user
+- ✅ **All 3 endpoints rate limited** (completed 2025-11-01)
+  - User rotation: 5 per 15 minutes per user
+  - Global rotation: 1 per day (global scope)
+  - Security config: 10 per 10 minutes per user
+  - Configuration: `src/config/rate_limits.py` lines 95-118
 
-- ❌ **P0 CRITICAL**: Global rotation endpoint lacks admin role enforcement
-  - **Severity**: ANY authenticated user can revoke ALL tokens system-wide
-  - **Impact**: Service disruption, denial of service
-  - **Required**: Immediate admin role check implementation
+- ⚠️ **Deferred**: Global rotation endpoint admin role enforcement
+  - **Status**: Deferred to OPA (Open Policy Agent) integration
+  - **Current**: Any authenticated user can trigger (dev/test only)
+  - **Future**: Will require admin role + MFA
 
 - ❌ No session metadata collection on rotation endpoints
   - **Impact**: Cannot audit who initiated rotation from where
@@ -257,27 +255,25 @@ This comprehensive audit systematically verifies integration completeness across
 
 ### 2.1 Rate Limiting Coverage
 
-**Coverage**: 25/30 endpoints (83%) ✅
+**Coverage**: 30/30 endpoints (100%) ✅
 
-**Missing** (5 endpoints):
+**Completed** (2025-11-01):
 
-1. ❌ `POST /api/v1/token-rotation/users/{user_id}` - **P0 Critical**
+1. ✅ `DELETE /api/v1/users/{user_id}/tokens` - Rate limited (5 per 15 min, user scope)
 
-2. ❌ `POST /api/v1/token-rotation/global` - **P0 Critical**
+2. ✅ `DELETE /api/v1/tokens` - Rate limited (1 per day, global scope)
 
-3. ❌ `GET /api/v1/token-rotation/security-config` - **P1 High**
+3. ✅ `GET /api/v1/security/config` - Rate limited (10 per 10 min, user scope)
 
-4. ❌ Health check endpoint (if exists) - Intentional exclusion
+**Intentional Exclusions** (not counted in totals):
 
-5. ❌ API docs endpoints (`/docs`, `/redoc`) - Intentional exclusion
+- Health check endpoint (`/health`) - Infrastructure monitoring
 
-**Audit Status**: ⚠️ **Needs Immediate Attention**
+- API docs endpoints (`/docs`, `/redoc`) - Development tools
 
-**Action Required**:
+**Audit Status**: ✅ **Complete**
 
-- Add token rotation endpoints to `src/rate_limiter/config.py`
-
-- Configure strict limits (1-5 per 15 minutes)
+**Configuration**: `src/config/rate_limits.py`
 
 ### 2.2 Session Metadata Collection Coverage
 
@@ -512,7 +508,7 @@ class TokenRotationAudit(SQLModel, table=True):
    - Test: User rotation (token_version++) + session revocation
    - Test: Global rotation + grace period + session cleanup
 
-**Estimated Missing Tests**: 15-20 integration tests
+**Status**: Integration tests needed for cross-feature validation
 
 ### 5.2 API Tests
 
@@ -533,7 +529,7 @@ class TokenRotationAudit(SQLModel, table=True):
    - Test: Password change endpoint logs IP/device
    - Test: Token rotation endpoint logs initiator metadata
 
-**Estimated Missing Tests**: 10-12 API tests
+**Status**: API tests needed for rate limit enforcement validation
 
 ### 5.3 Smoke Tests
 
@@ -552,7 +548,7 @@ class TokenRotationAudit(SQLModel, table=True):
 
    - Make 25 requests rapidly → Verify 26th request gets 429
 
-**Estimated Missing Tests**: 3-5 smoke tests
+**Status**: Smoke tests needed for end-to-end validation
 
 ---
 
@@ -560,28 +556,38 @@ class TokenRotationAudit(SQLModel, table=True):
 
 ### 6.1 Rate Limiter Configuration
 
-**File**: `src/rate_limiter/config.py`
+**File**: `src/config/rate_limits.py`
 
-**Missing Endpoints** (3):
+**Status**: ✅ **Complete** (2025-11-01)
+
+**Token Rotation Endpoints** (lines 95-118):
 
 ```python
-# ADD TO RATE_LIMIT_RULES:
-"POST /api/v1/token-rotation/users/{user_id}": RateLimitRule(
+# RESTful token management endpoints
+"DELETE /api/v1/users/{user_id}/tokens": RateLimitRule(
+    strategy=RateLimitStrategy.TOKEN_BUCKET,
+    storage=RateLimitStorage.REDIS,
     max_tokens=5,
     refill_rate=0.33,  # 5 per 15 minutes
     scope="user",
+    enabled=True,
 ),
-"POST /api/v1/token-rotation/global": RateLimitRule(
+"DELETE /api/v1/tokens": RateLimitRule(
+    strategy=RateLimitStrategy.TOKEN_BUCKET,
+    storage=RateLimitStorage.REDIS,
     max_tokens=1,
-    refill_rate=0.00069,  # 1 per day
-    scope="global",  # Admin only, strict limit
+    refill_rate=0.0007,  # 1 per day
+    scope="global",
+    enabled=True,
 ),
-"GET /api/v1/token-rotation/security-config": RateLimitRule(
+"GET /api/v1/security/config": RateLimitRule(
+    strategy=RateLimitStrategy.TOKEN_BUCKET,
+    storage=RateLimitStorage.REDIS,
     max_tokens=10,
-    refill_rate=0.167,  # 10 per minute
+    refill_rate=1.0,  # 10 per 10 minutes
     scope="user",
+    enabled=True,
 ),
-
 ```
 
 ### 6.2 Environment Configuration

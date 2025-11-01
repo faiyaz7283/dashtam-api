@@ -67,7 +67,7 @@ RATE_LIMIT_RULES: dict[str, RateLimitRule] = {
         scope="ip",
         enabled=True,
     ),
-    "POST /api/v1/auth/password-resets": RateLimitRule(
+    "POST /api/v1/password-resets/": RateLimitRule(
         strategy=RateLimitStrategy.TOKEN_BUCKET,
         storage=RateLimitStorage.REDIS,
         max_tokens=5,  # Very restrictive (sensitive operation)

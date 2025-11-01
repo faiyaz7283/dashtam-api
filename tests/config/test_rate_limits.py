@@ -35,7 +35,7 @@ class TestRateLimitConfiguration:
         """Test that authentication endpoints are configured."""
         assert "POST /api/v1/auth/login" in RATE_LIMIT_RULES
         assert "POST /api/v1/auth/register" in RATE_LIMIT_RULES
-        assert "POST /api/v1/auth/password-resets" in RATE_LIMIT_RULES
+        assert "POST /api/v1/password-resets/" in RATE_LIMIT_RULES
         assert "POST /api/v1/auth/verification/resend" in RATE_LIMIT_RULES
 
     def test_config_token_rotation_endpoints_exist(self):
@@ -110,7 +110,7 @@ class TestRateLimitConfiguration:
 
     def test_password_reset_rule_configuration(self):
         """Test password reset endpoint has correct configuration."""
-        rule = get_rate_limit_rule("POST /api/v1/auth/password-resets")
+        rule = get_rate_limit_rule("POST /api/v1/password-resets/")
         assert rule.max_tokens == 5
         assert rule.refill_rate == 0.2  # 1 token every 5 minutes
         assert rule.scope == "ip"

@@ -911,6 +911,5 @@ CREATE INDEX idx_refresh_tokens_global_version ON refresh_tokens(global_version_
 
 ## Document Information
 
-**Template:** [architecture-template.md](../../templates/architecture-template.md)
 **Created:** 2025-10-30
 **Last Updated:** 2025-10-30

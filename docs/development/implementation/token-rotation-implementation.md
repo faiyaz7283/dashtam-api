@@ -1799,6 +1799,5 @@ After completing this implementation, consider:
 
 ## Document Information
 
-**Template:** [guide-template.md](../../templates/guide-template.md)
 **Created:** 2025-10-29
 **Last Updated:** 2025-10-29

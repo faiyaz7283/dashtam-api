@@ -185,7 +185,8 @@ class TestTokenManagementEndpointRateLimiter:
 
             if response.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
                 data = response.json()
-                assert data["endpoint"] == f"DELETE /api/v1/users/{user_id}/tokens"
+                # Endpoint is normalized to use {user_id} placeholder
+                assert data["endpoint"] == "DELETE /api/v1/users/{user_id}/tokens"
                 assert response.headers["x-ratelimit-limit"] == "5"
                 break
 

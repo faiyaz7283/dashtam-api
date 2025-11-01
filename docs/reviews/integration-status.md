@@ -481,6 +481,18 @@ class TokenRotationAudit(SQLModel, table=True):
 
 ### 5.1 Integration Tests
 
+**Completed Tests**:
+
+1. ✅ **Token rotation + Rate limiting integration** (2025-11-01)
+
+   - File: `tests/integration/test_rate_limiting_token_rotation.py`
+   - Test: Rate limit enforced on user rotation endpoint (5 per 15 min)
+   - Test: Rate limit enforced on global rotation endpoint (1 per day)
+   - Test: Rate limit enforced on security config endpoint (10 per 10 min)
+   - Test: Rate limit headers present on successful responses
+   - Test: User-scoped vs global-scoped rate limit behavior
+   - Coverage: 8 tests passing, 100% token rotation rate limit validation
+
 **Missing Tests**:
 
 1. ❌ Token rotation + Session management integration
@@ -488,43 +500,44 @@ class TokenRotationAudit(SQLModel, table=True):
    - Test: User rotation invalidates specific sessions
    - Test: Global rotation invalidates ALL sessions
 
-2. ❌ Token rotation + Rate limiting integration
-
-   - Test: Rate limit enforced on rotation endpoints
-   - Test: Exceeding limit returns 429
-
-3. ❌ Session metadata + Password change integration
+2. ❌ Session metadata + Password change integration
 
    - Test: Password change tracked with IP/device
    - Test: Metadata included in audit log
 
-4. ❌ Session metadata + Password reset integration
+3. ❌ Session metadata + Password reset integration
 
    - Test: Password reset tracked with IP/device
    - Test: Metadata included in confirmation email
 
-5. ❌ Hybrid rotation scenarios
+4. ❌ Hybrid rotation scenarios
 
    - Test: User rotation (token_version++) + session revocation
    - Test: Global rotation + grace period + session cleanup
 
-**Status**: Integration tests needed for cross-feature validation
+**Status**: Rate limiting integration complete ✅, session management integration tests needed
 
 ### 5.2 API Tests
 
+**Completed Tests**:
+
+1. ✅ **Token rotation endpoint rate limiting** (2025-11-01)
+
+   - File: `tests/api/test_rate_limiter_endpoints.py`
+   - Test: User rotation rate limited at 5 per 15 minutes
+   - Test: Global rotation rate limited at 1 per day
+   - Test: Security config rate limited at 10 per 10 minutes
+   - Coverage: All 3 token rotation endpoints tested
+
 **Missing Tests**:
 
-1. ❌ Token rotation endpoint rate limiting
-
-   - Test: Can call user rotation 5 times, 6th fails with 429
-   - Test: Can call global rotation once, 2nd fails with 429
-
-2. ❌ Admin role enforcement on global rotation
+1. ❌ Admin role enforcement on global rotation
 
    - Test: Non-admin user gets 403 Forbidden
    - Test: Admin user succeeds with 200
+   - Note: Deferred to OPA integration
 
-3. ❌ Session metadata presence in responses/logs
+2. ❌ Session metadata presence in responses/logs
 
    - Test: Password change endpoint logs IP/device
    - Test: Token rotation endpoint logs initiator metadata

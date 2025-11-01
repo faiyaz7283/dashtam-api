@@ -231,7 +231,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         if re.search(uuid_pattern, path):
             # Detect which parameter by path structure
-            if "/providers/" in path and "/authorization" not in path:
+            if "/users/" in path and "/tokens" in path:
+                # /api/v1/users/{user_id}/tokens
+                path = re.sub(
+                    r"/users/" + uuid_pattern,
+                    "/users/{user_id}",
+                    path,
+                )
+            elif "/providers/" in path and "/authorization" not in path:
                 # /api/v1/providers/{provider_id}
                 path = re.sub(
                     r"/providers/" + uuid_pattern,

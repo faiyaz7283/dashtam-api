@@ -1,14 +1,17 @@
-"""Rate Limiter package for Dashtam financial API.
+"""Generic Rate Limiter package.
 
 This package provides a comprehensive, SOLID-compliant Rate Limiter solution
 following the Strategy Pattern and Dependency Injection principles.
 
+**IMPORTANT**: This is a GENERIC component with NO application-specific configuration.
+Applications must provide their own rate limit rules via dependency injection.
+
 Architecture:
-    - config.py: Single source of truth for all rate limit rules
+    - config.py: Generic models (RateLimitRule, strategies, storage enums)
     - algorithms/: Pluggable Rate Limiter algorithms (token bucket, sliding window, etc.)
     - storage/: Pluggable storage backends (Redis, PostgreSQL, memory)
-    - service.py: Orchestrator service (combines config + algorithm + storage)
-    - middleware.py: FastAPI middleware integration (Phase 2)
+    - service.py: Orchestrator service (accepts rules via DI)
+    - middleware.py: FastAPI middleware integration
 
 SOLID Compliance:
     - S: Each component has single responsibility
@@ -24,13 +27,28 @@ Quick Start:
         RateLimiterService,
         TokenBucketAlgorithm,
         RedisRateLimitStorage,
+        RateLimitRule,
+        RateLimitStrategy,
+        RateLimitStorageEnum,
     )
+
+    # Define application-specific rules
+    rules = {
+        "POST /api/v1/auth/login": RateLimitRule(
+            strategy=RateLimitStrategy.TOKEN_BUCKET,
+            storage=RateLimitStorageEnum.REDIS,
+            max_tokens=20,
+            refill_rate=5.0,
+            scope="ip",
+            enabled=True,
+        ),
+    }
 
     # Setup (typically in FastAPI startup)
     redis_client = Redis(host="localhost", port=6379, decode_responses=True)
     algorithm = TokenBucketAlgorithm()
     storage = RedisRateLimitStorage(redis_client)
-    rate_limiter = RateLimiterService(algorithm, storage)
+    rate_limiter = RateLimiterService(algorithm, storage, rules)
 
     # Usage (in endpoint or middleware)
     allowed, retry_after, rule = await rate_limiter.is_allowed(
@@ -53,7 +71,6 @@ For more information, see:
 
 # Configuration
 from src.rate_limiter.config import (
-    RateLimitConfig,
     RateLimitRule,
     RateLimitStorage as RateLimitStorageEnum,
     RateLimitStrategy,
@@ -76,7 +93,6 @@ from src.rate_limiter.service import RateLimiterService
 
 __all__ = [
     # Configuration
-    "RateLimitConfig",
     "RateLimitRule",
     "RateLimitStrategy",
     "RateLimitStorageEnum",

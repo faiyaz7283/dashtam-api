@@ -33,10 +33,23 @@ Usage:
     from src.rate_limiter.service import RateLimiterService
     from src.rate_limiter.algorithms import TokenBucketAlgorithm
     from src.rate_limiter.storage import RedisRateLimitStorage
+    from src.rate_limiter.config import RateLimitRule, RateLimitStrategy, RateLimitStorage
+
+    # Define application-specific rules
+    rules = {
+        "POST /api/v1/auth/login": RateLimitRule(
+            strategy=RateLimitStrategy.TOKEN_BUCKET,
+            storage=RateLimitStorage.REDIS,
+            max_tokens=20,
+            refill_rate=5.0,
+            scope="ip",
+            enabled=True,
+        ),
+    }
 
     algorithm = TokenBucketAlgorithm()
     storage = RedisRateLimitStorage(redis_client)
-    rate_limiter = RateLimiterService(algorithm, storage)
+    rate_limiter = RateLimiterService(algorithm, storage, rules)
 
     allowed, retry_after = await rate_limiter.is_allowed(
         endpoint="POST /api/v1/auth/login",
@@ -51,7 +64,7 @@ import time
 from typing import Optional
 
 from src.rate_limiter.algorithms.base import RateLimitAlgorithm
-from src.rate_limiter.config import RateLimitConfig, RateLimitRule
+from src.rate_limiter.config import RateLimitRule
 from src.rate_limiter.storage.base import RateLimitStorage
 
 logger = logging.getLogger(__name__)
@@ -82,11 +95,23 @@ class RateLimiterService:
         - Safe for concurrent use across multiple requests
 
     Examples:
-        Basic usage:
+        Basic usage with injected rules:
         ```python
+        rules = {
+            "POST /api/v1/auth/login": RateLimitRule(
+                strategy=RateLimitStrategy.TOKEN_BUCKET,
+                storage=RateLimitStorage.REDIS,
+                max_tokens=20,
+                refill_rate=5.0,
+                scope="ip",
+                enabled=True,
+            ),
+        }
+
         rate_limiter = RateLimiterService(
             algorithm=TokenBucketAlgorithm(),
-            storage=RedisRateLimitStorage(redis_client)
+            storage=RedisRateLimitStorage(redis_client),
+            rules=rules
         )
 
         allowed, retry_after = await rate_limiter.is_allowed(
@@ -115,21 +140,26 @@ class RateLimiterService:
         self,
         algorithm: RateLimitAlgorithm,
         storage: RateLimitStorage,
+        rules: dict[str, RateLimitRule],
     ):
         """Initialize Rate Limiter service.
 
         Args:
             algorithm: Rate Limiter algorithm implementation (e.g., TokenBucketAlgorithm).
             storage: Storage backend for rate limit state (e.g., RedisRateLimitStorage).
+            rules: Mapping of endpoint identifiers to rate limit rules.
+                   Application-specific rules injected from application layer.
 
         Note:
             These dependencies are injected to enable:
             - Testing with mocks
             - Swapping implementations at runtime
             - Following Dependency Inversion Principle
+            - Generic component (no application-specific configuration)
         """
         self.algorithm = algorithm
         self.storage = storage
+        self.rules = rules
 
     async def is_allowed(
         self,
@@ -202,8 +232,8 @@ class RateLimiterService:
         start_time = time.perf_counter()
 
         try:
-            # Step 1: Look up rate limit rule
-            rule = RateLimitConfig.get_rule(endpoint)
+            # Step 1: Look up rate limit rule from injected rules
+            rule = self.rules.get(endpoint)
             if rule is None or not rule.enabled:
                 # No Rate Limiter configured for this endpoint
                 logger.debug(

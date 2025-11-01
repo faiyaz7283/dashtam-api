@@ -37,8 +37,9 @@ api_router.include_router(
 # Session management endpoints (auth required)
 api_router.include_router(sessions_router, tags=["sessions"])
 
-# Token rotation endpoints (auth required, future: admin only)
-api_router.include_router(token_rotation_router, tags=["token-rotation"])
+# Token management endpoints (RESTful: DELETE /users/{id}/tokens, DELETE /tokens, GET /security/config)
+# Auth required, no prefix (endpoints have full paths)
+api_router.include_router(token_rotation_router)
 
 
 # Health check at API level

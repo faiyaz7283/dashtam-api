@@ -1,7 +1,15 @@
-"""Token rotation API endpoints.
+"""Token management API endpoints (RESTful design).
 
-REST API endpoints for managing token rotation for security incidents.
-Requires admin authentication (future: implement admin role check).
+Resource-oriented endpoints for managing user tokens and security configuration.
+Follows REST principles: tokens are resources that can be deleted (revoked).
+
+Design rationale:
+- DELETE /users/{id}/tokens: Revoke all tokens for a user (resource deletion)
+- DELETE /tokens: Revoke all tokens system-wide (admin only, nuclear option)
+- GET /security/config: View security configuration (read-only)
+
+Previous design (/token-rotation/) was action-oriented (non-RESTful).
+This refactoring maintains 100% REST compliance.
 """
 
 import logging
@@ -24,42 +32,57 @@ from src.models.user import User
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/token-rotation", tags=["Token Rotation"])
+router = APIRouter(tags=["Token Management"])
 
 
-@router.post(
-    "/users/{user_id}",
+@router.delete(
+    "/users/{user_id}/tokens",
     response_model=TokenRotationResponse,
     status_code=status.HTTP_200_OK,
-    summary="Rotate tokens for specific user",
-    description="Revokes all refresh tokens for a user (password change, suspicious activity)",
+    summary="Revoke all tokens for a user",
+    description="""Revoke all refresh tokens for a user (logout from all devices).
+    
+    Use cases:
+    - Password changed (automatic)
+    - User requests logout from all devices
+    - Suspicious activity detected
+    - Security incident response
+    
+    Authorization: Users can only revoke their own tokens (or use /auth/me/tokens).
+    Future: Admin role can revoke any user's tokens.
+    """,
 )
-async def rotate_user_tokens(
+async def revoke_user_tokens(
     user_id: str,
     request: RotateUserTokensRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> TokenRotationResponse:
-    """Rotate all tokens for specific user.
+    """Revoke all tokens for a specific user.
+
+    RESTful design: DELETE operation on tokens resource.
+    Implementation: Increments user's token version (invalidates all existing tokens).
 
     Use cases:
     - Password changed
     - User requests logout from all devices
     - Suspicious activity detected
 
-    Only the user themselves or an admin can rotate their tokens.
+    Authorization:
+    - Users can only revoke their own tokens
+    - Future: Admin role can revoke any user's tokens
 
     Args:
-        user_id: UUID of user whose tokens to rotate.
-        request: Rotation request with reason.
+        user_id: UUID of user whose tokens to revoke.
+        request: Revocation request with reason.
         current_user: Currently authenticated user.
         session: Database session.
 
     Returns:
-        TokenRotationResponse with rotation details.
+        TokenRotationResponse with revocation details.
 
     Raises:
-        HTTPException: If user_id invalid, unauthorized, or rotation fails.
+        HTTPException: If user_id invalid, unauthorized, or revocation fails.
     """
     from uuid import UUID
 
@@ -95,19 +118,33 @@ async def rotate_user_tokens(
     )
 
 
-@router.post(
-    "/global",
+@router.delete(
+    "/tokens",
     response_model=TokenRotationResponse,
     status_code=status.HTTP_200_OK,
-    summary="Rotate ALL tokens system-wide (emergency)",
-    description="Nuclear option: Revokes all refresh tokens (encryption key breach, database breach)",
+    summary="Revoke ALL tokens system-wide (nuclear option)",
+    description="""Emergency: Revoke all refresh tokens for all users.
+    
+    Use cases:
+    - Encryption key compromise
+    - Database breach
+    - Critical security vulnerability discovered
+    
+    WARNING: ALL users will be logged out immediately. Use only for emergencies.
+    
+    Authorization: Requires admin role (future implementation).
+    Current: Any authenticated user (dev/testing only).
+    """,
 )
-async def rotate_global_tokens(
+async def revoke_all_tokens(
     request: RotateGlobalTokensRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> TokenRotationResponse:
-    """Rotate ALL tokens system-wide (emergency only).
+    """Revoke ALL tokens system-wide (nuclear option).
+
+    RESTful design: DELETE operation on global tokens resource.
+    Implementation: Increments global token version (invalidates all tokens).
 
     Use cases:
     - Encryption key compromise
@@ -116,18 +153,20 @@ async def rotate_global_tokens(
 
     WARNING: All users will be logged out. Use only for emergencies.
 
-    Future: Require admin role with elevated privileges.
+    Authorization:
+    - Future: Requires admin role with MFA
+    - Current: Any authenticated user (dev/testing only)
 
     Args:
-        request: Global rotation request with reason and grace period.
+        request: Global revocation request with reason and grace period.
         current_user: Currently authenticated user.
         session: Database session.
 
     Returns:
-        TokenRotationResponse with global rotation details.
+        TokenRotationResponse with global revocation details.
 
     Raises:
-        HTTPException: If rotation fails.
+        HTTPException: If revocation fails.
     """
     # Future: Add admin role check
     # For now, any authenticated user can trigger (dev/testing only)
@@ -164,19 +203,34 @@ async def rotate_global_tokens(
 
 
 @router.get(
-    "/security-config",
+    "/security/config",
     response_model=SecurityConfigResponse,
     status_code=status.HTTP_200_OK,
-    summary="Get current global security configuration",
-    description="View current global token version and rotation history",
+    summary="Get security configuration",
+    description="""View current token security configuration and version.
+    
+    Returns:
+    - Current global token version
+    - Last rotation timestamp
+    - Who initiated last rotation
+    - Rotation reason
+    
+    Useful for:
+    - Security auditing
+    - Monitoring token rotation history
+    - Debugging token validation issues
+    """,
 )
 async def get_security_config(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> SecurityConfigResponse:
-    """Get current global security configuration.
+    """Get current security configuration.
 
-    Shows current global minimum token version and last rotation details.
+    RESTful design: GET operation on security config resource (read-only).
+
+    Returns current global token version and rotation history.
+    Useful for security auditing and monitoring.
 
     Args:
         current_user: Currently authenticated user.

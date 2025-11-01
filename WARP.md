@@ -1976,7 +1976,48 @@ docs/
   - Document: What users should expect
   - Example: "You may receive 429 if rate limited"
 
-#### 8. Code Quality ✅
+#### 8. REST API Compliance ✅ **MANDATORY FOR ALL API CHANGES**
+
+**100% RESTful compliance is NON-NEGOTIABLE:**
+
+- [ ] **Resource-oriented URLs** (nouns, NOT verbs)
+  - ✅ Correct: `/tokens`, `/users/{id}`, `/providers`
+  - ❌ Wrong: `/token-rotation`, `/getUsers`, `/createProvider`
+  - ❌ Wrong: `/login-user`, `/rotate-tokens`, `/send-email`
+
+- [ ] **Proper HTTP methods**
+  - GET: Retrieve (safe, idempotent)
+  - POST: Create new resources
+  - PATCH: Partial update
+  - PUT: Complete replacement
+  - DELETE: Remove resources
+
+- [ ] **Standard HTTP status codes**
+  - 200/201/204 for success
+  - 400/401/403/404 for client errors
+  - 500 for server errors
+
+- [ ] **No inline Pydantic schemas** in router files
+  - All schemas in `src/schemas/`
+  - Schemas organized by domain
+
+- [ ] **Reviewed RESTful API Design Architecture**
+  - Read: `docs/development/architecture/restful-api-design.md`
+  - Verified: Endpoints follow all REST principles
+  - Justified: Any exceptions (e.g., `/auth/login` controller action)
+
+- [ ] **REST compliance score: 10/10**
+  - Run manual audit of new endpoints
+  - No verb-based URLs
+  - No action-oriented endpoints (except justified exceptions)
+
+**If REST violation found:**
+
+- ❌ **STOP**: Do not proceed with implementation
+- ⚠️ **REDESIGN**: Refactor to resource-oriented design
+- ✅ **DOCUMENT**: If exception needed, justify in architecture doc
+
+#### 9. Code Quality ✅
 
 **Standard quality checks:**
 
@@ -1986,7 +2027,7 @@ docs/
 - [ ] **All tests pass**: `make test`
 - [ ] **Coverage maintained**: Feature code at >85%
 
-#### 9. Security Review ✅
+#### 10. Security Review ✅
 
 **For security-related features:**
 
@@ -2005,7 +2046,7 @@ docs/
   - Log: Who triggered it (user ID, IP)
   - Log: What happened (action, result)
 
-#### 10. Performance Impact ✅
+#### 11. Performance Impact ✅
 
 **Verify feature doesn't degrade performance:**
 

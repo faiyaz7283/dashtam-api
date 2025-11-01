@@ -543,6 +543,5 @@ def reset_cache_singleton():
 
 ## Document Information
 
-**Template:** [architecture-template.md](../../templates/architecture-template.md)  
 **Created:** 2025-10-29  
 **Last Updated:** 2025-10-29

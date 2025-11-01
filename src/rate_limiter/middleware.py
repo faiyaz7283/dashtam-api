@@ -121,11 +121,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         Note:
             Creates Rate Limiter on first call, then caches for subsequent requests.
             Thread-safe as middleware dispatch is called sequentially per request.
+            Injects application-specific rate limit rules from src.config.rate_limits.
         """
         if self._rate_limiter is None:
+            from src.config.rate_limits import RATE_LIMIT_RULES
             from src.rate_limiter.factory import get_rate_limiter_service
 
-            self._rate_limiter = await get_rate_limiter_service()
+            self._rate_limiter = await get_rate_limiter_service(rules=RATE_LIMIT_RULES)
             self._logger.info("Rate Limiter middleware initialized (lazy)")
 
         return self._rate_limiter
@@ -229,7 +231,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         if re.search(uuid_pattern, path):
             # Detect which parameter by path structure
-            if "/providers/" in path and "/authorization" not in path:
+            if "/users/" in path and "/tokens" in path:
+                # /api/v1/users/{user_id}/tokens
+                path = re.sub(
+                    r"/users/" + uuid_pattern,
+                    "/users/{user_id}",
+                    path,
+                )
+            elif "/providers/" in path and "/authorization" not in path:
                 # /api/v1/providers/{provider_id}
                 path = re.sub(
                     r"/providers/" + uuid_pattern,

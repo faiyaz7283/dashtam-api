@@ -144,98 +144,102 @@ class TestAuthenticationEndpointRateLimiter:
         assert status.HTTP_429_TOO_MANY_REQUESTS in responses
 
 
-class TestTokenRotationEndpointRateLimiter:
-    """Test Rate Limiter on token rotation endpoints.
+class TestTokenManagementEndpointRateLimiter:
+    """Test Rate Limiter on token management endpoints (RESTful design).
     
     Endpoints tested:
-    - POST /api/v1/auth/tokens/rotate/user (5 per 15 min, user-based)
-    - POST /api/v1/auth/tokens/rotate/global (1 per day, global)
-    - POST /api/v1/auth/tokens/rotate/provider (5 per 5 min, user_provider)
+    - DELETE /api/v1/users/{id}/tokens (5 per 15 min, user-based)
+    - DELETE /api/v1/tokens (1 per day, global)
+    - GET /api/v1/security/config (10 per 10 min, user-based)
     
-    NOTE: These are CRITICAL security endpoints with strict limits.
+    NOTE: Token revocation endpoints are CRITICAL security endpoints with strict limits.
+    RESTful design: Uses DELETE for revocation, GET for config (resource-oriented).
     """
 
-    def test_user_token_rotation_rate_limiter(
-        self, client: TestClient, auth_headers: dict
+    def test_user_token_revocation_rate_limiter(
+        self, client: TestClient, auth_headers: dict, authenticated_user: dict
     ):
-        """Test user token rotation Rate Limiter (5 per 15 min, user-based).
+        """Test user token revocation Rate Limiter (5 per 15 min, user-based) - RESTful.
         
         Verifies:
         - Strict limit (5 requests)
         - User-scoped (not IP-based)
-        - Prevents DoS via token rotation spam
+        - Prevents DoS via token revocation spam
+        - RESTful design: DELETE /users/{id}/tokens
         """
+        user_id = authenticated_user["user"].id
         responses = []
         for i in range(8):  # Exceed limit of 5
-            response = client.post(
-                "/api/v1/auth/tokens/rotate/user",
+            response = client.delete(
+                f"/api/v1/users/{user_id}/tokens",
                 headers=auth_headers,
+                json={"reason": f"Test revocation {i}"},
             )
             responses.append(response.status_code)
             
             if response.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
                 data = response.json()
-                assert data["endpoint"] == "POST /api/v1/auth/tokens/rotate/user"
+                assert data["endpoint"] == f"DELETE /api/v1/users/{user_id}/tokens"
                 assert response.headers["x-ratelimit-limit"] == "5"
                 break
         
         assert status.HTTP_429_TOO_MANY_REQUESTS in responses
 
-    def test_global_token_rotation_rate_limiter(
+    def test_global_token_revocation_rate_limiter(
         self, client: TestClient, admin_auth_headers: dict
     ):
-        """Test global token rotation Rate Limiter (1 per day, global).
+        """Test global token revocation Rate Limiter (1 per day, global) - RESTful.
         
         Verifies:
         - Extremely restrictive (1 request)
         - Global scope (system-wide limit)
         - Prevents accidental system-wide token revocation
+        - RESTful design: DELETE /tokens (nuclear option)
         
         NOTE: Requires admin authentication
         """
         # First request should succeed (or fail with business logic, not 429)
-        first_response = client.post(
-            "/api/v1/auth/tokens/rotate/global",
+        first_response = client.delete(
+            "/api/v1/tokens",
             headers=admin_auth_headers,
+            json={"reason": "Test global revocation", "grace_period_minutes": 0},
         )
         
         # Second request should hit Rate Limiter
-        second_response = client.post(
-            "/api/v1/auth/tokens/rotate/global",
+        second_response = client.delete(
+            "/api/v1/tokens",
             headers=admin_auth_headers,
+            json={"reason": "Second attempt", "grace_period_minutes": 0},
         )
         
         # Should get 429 on second request
         assert second_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         data = second_response.json()
-        assert data["endpoint"] == "POST /api/v1/auth/tokens/rotate/global"
+        assert data["endpoint"] == "DELETE /api/v1/tokens"
         assert second_response.headers["x-ratelimit-limit"] == "1"
 
-    def test_provider_token_rotation_rate_limiter(
-        self, client: TestClient, auth_headers: dict, provider_id: str
+    def test_security_config_rate_limiter(
+        self, client: TestClient, auth_headers: dict
     ):
-        """Test provider token rotation Rate Limiter (5 per 5 min, user_provider).
+        """Test security config Rate Limiter (10 per 10 min, user-based) - RESTful.
         
         Verifies:
-        - Strict limit (5 requests)
-        - User-per-provider scope
-        - Prevents abuse of provider token rotation
+        - Read-only endpoint limit (10 requests)
+        - User-scoped
+        - RESTful design: GET /security/config
         """
         responses = []
-        for i in range(8):  # Exceed limit of 5
-            response = client.post(
-                f"/api/v1/auth/tokens/rotate/provider/{provider_id}",
+        for i in range(15):  # Exceed limit of 10
+            response = client.get(
+                "/api/v1/security/config",
                 headers=auth_headers,
             )
             responses.append(response.status_code)
             
             if response.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
                 data = response.json()
-                assert (
-                    data["endpoint"]
-                    == f"POST /api/v1/auth/tokens/rotate/provider/{provider_id}"
-                )
-                assert response.headers["x-ratelimit-limit"] == "5"
+                assert data["endpoint"] == "GET /api/v1/security/config"
+                assert response.headers["x-ratelimit-limit"] == "10"
                 break
         
         assert status.HTTP_429_TOO_MANY_REQUESTS in responses

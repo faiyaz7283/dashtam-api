@@ -38,11 +38,11 @@ class TestRateLimitConfiguration:
         assert "POST /api/v1/password-resets/" in RATE_LIMIT_RULES
         assert "POST /api/v1/auth/verification/resend" in RATE_LIMIT_RULES
 
-    def test_config_token_rotation_endpoints_exist(self):
-        """Test that token rotation endpoints are configured."""
-        assert "POST /api/v1/auth/tokens/rotate/user" in RATE_LIMIT_RULES
-        assert "POST /api/v1/auth/tokens/rotate/global" in RATE_LIMIT_RULES
-        assert "POST /api/v1/auth/tokens/rotate/provider" in RATE_LIMIT_RULES
+    def test_config_token_management_endpoints_exist(self):
+        """Test that token management endpoints are configured (RESTful)."""
+        assert "DELETE /api/v1/users/{user_id}/tokens" in RATE_LIMIT_RULES
+        assert "DELETE /api/v1/tokens" in RATE_LIMIT_RULES
+        assert "GET /api/v1/security/config" in RATE_LIMIT_RULES
 
     def test_config_provider_endpoints_exist(self):
         """Test that provider endpoints are configured."""
@@ -116,28 +116,28 @@ class TestRateLimitConfiguration:
         assert rule.scope == "ip"
         assert rule.enabled is True
 
-    def test_token_rotation_user_rule_configuration(self):
-        """Test user token rotation endpoint has correct configuration."""
-        rule = get_rate_limit_rule("POST /api/v1/auth/tokens/rotate/user")
+    def test_token_revocation_user_rule_configuration(self):
+        """Test user token revocation endpoint has correct configuration (RESTful)."""
+        rule = get_rate_limit_rule("DELETE /api/v1/users/{user_id}/tokens")
         assert rule.max_tokens == 5
         assert rule.refill_rate == 0.33  # 5 per 15 minutes
         assert rule.scope == "user"
         assert rule.enabled is True
 
-    def test_token_rotation_global_rule_configuration(self):
-        """Test global token rotation endpoint has correct configuration."""
-        rule = get_rate_limit_rule("POST /api/v1/auth/tokens/rotate/global")
+    def test_token_revocation_global_rule_configuration(self):
+        """Test global token revocation endpoint has correct configuration (RESTful)."""
+        rule = get_rate_limit_rule("DELETE /api/v1/tokens")
         assert rule.max_tokens == 1
         assert rule.refill_rate == 0.0007  # 1 per day
         assert rule.scope == "global"
         assert rule.enabled is True
 
-    def test_token_rotation_provider_rule_configuration(self):
-        """Test provider token rotation endpoint has correct configuration."""
-        rule = get_rate_limit_rule("POST /api/v1/auth/tokens/rotate/provider")
-        assert rule.max_tokens == 5
-        assert rule.refill_rate == 1.0  # 1 per minute
-        assert rule.scope == "user_provider"
+    def test_security_config_rule_configuration(self):
+        """Test security config endpoint has correct configuration (RESTful)."""
+        rule = get_rate_limit_rule("GET /api/v1/security/config")
+        assert rule.max_tokens == 10
+        assert rule.refill_rate == 1.0  # 10 per 10 minutes
+        assert rule.scope == "user"
         assert rule.enabled is True
 
     def test_schwab_api_rule_configuration(self):

@@ -84,32 +84,36 @@ RATE_LIMIT_RULES: dict[str, RateLimitRule] = {
         enabled=True,
     ),
     # =========================================================================
-    # Token Rotation Endpoints (User-based Rate Limiting - SECURITY CRITICAL)
+    # Token Management Endpoints (RESTful - SECURITY CRITICAL)
     # =========================================================================
-    # Token rotation is a security-sensitive operation. Aggressive rate limiting
-    # prevents DoS attacks via token rotation spam and brute force enumeration.
-    "POST /api/v1/auth/tokens/rotate/user": RateLimitRule(
+    # Token revocation is security-sensitive. Aggressive rate limiting prevents
+    # DoS attacks via revocation spam and brute force enumeration.
+    #
+    # RESTful design: DELETE /users/{id}/tokens (revoke all user tokens)
+    #                 DELETE /tokens (revoke all tokens - nuclear option)
+    #                 GET /security/config (view security configuration)
+    "DELETE /api/v1/users/{user_id}/tokens": RateLimitRule(
         strategy=RateLimitStrategy.TOKEN_BUCKET,
         storage=RateLimitStorage.REDIS,
-        max_tokens=5,  # Allow 5 immediate rotations
+        max_tokens=5,  # Allow 5 immediate revocations
         refill_rate=0.33,  # 1 token every 3 minutes (5 per 15 minutes)
         scope="user",
         enabled=True,
     ),
-    "POST /api/v1/auth/tokens/rotate/global": RateLimitRule(
+    "DELETE /api/v1/tokens": RateLimitRule(
         strategy=RateLimitStrategy.TOKEN_BUCKET,
         storage=RateLimitStorage.REDIS,
-        max_tokens=1,  # Single token (one rotation per window)
+        max_tokens=1,  # Single token (one revocation per window)
         refill_rate=0.0007,  # 1 token per day (1/1440 minutes)
         scope="global",
         enabled=True,
     ),
-    "POST /api/v1/auth/tokens/rotate/provider": RateLimitRule(
+    "GET /api/v1/security/config": RateLimitRule(
         strategy=RateLimitStrategy.TOKEN_BUCKET,
         storage=RateLimitStorage.REDIS,
-        max_tokens=5,  # Allow 5 immediate rotations
-        refill_rate=1.0,  # 1 token per minute (5 per 5 minutes)
-        scope="user_provider",
+        max_tokens=10,  # Read-only, less restrictive
+        refill_rate=1.0,  # 10 per 10 minutes
+        scope="user",
         enabled=True,
     ),
     # =========================================================================

@@ -1,21 +1,24 @@
-"""Rate Limiter configuration module.
+"""Rate Limiter configuration models.
 
-This module provides the single source of truth (SSOT) for all Rate Limiter
-configuration in the Dashtam application. It defines strategies, storage backends,
-and per-endpoint rate limit rules.
+This module provides generic configuration models for the rate limiter component.
+It defines strategies, storage backends, and the rate limit rule structure.
+
+This is a GENERIC component with NO application-specific configuration.
+Applications using this rate limiter should define their own rules and
+inject them via dependency injection.
 
 SOLID Principles:
-    - S: Single responsibility (configuration only, no logic)
+    - S: Single responsibility (model definitions only)
     - O: Open for extension (add new strategies/storage types via enums)
     - L: N/A (no inheritance relationships)
     - I: N/A (no interfaces)
-    - D: Depended upon by service/middleware (not vice versa)
+    - D: No dependencies on application code (pure generic models)
 
 Key Design Decisions:
-    1. All configuration in code (not environment variables)
+    1. Generic, reusable models
+       - No application-specific endpoint rules
+       - Applications inject their own rules via RateLimiterService constructor
        - Type-safe with Pydantic validation
-       - Version controlled with code changes
-       - Compile-time checking (no runtime config errors)
 
     2. Per-endpoint flexibility
        - Each endpoint can specify its own strategy (token bucket, sliding window, etc.)
@@ -28,20 +31,26 @@ Key Design Decisions:
 
 Usage:
     ```python
-    from src.rate_limiter.config import RateLimitConfig, RateLimitStrategy
+    from src.rate_limiter.config import RateLimitRule, RateLimitStrategy, RateLimitStorage
 
-    # Get rule for specific endpoint
-    rule = RateLimitConfig.get_rule("POST /api/v1/auth/login")
+    # Define application-specific rules
+    rules = {
+        "POST /api/v1/auth/login": RateLimitRule(
+            strategy=RateLimitStrategy.TOKEN_BUCKET,
+            storage=RateLimitStorage.REDIS,
+            max_tokens=20,
+            refill_rate=5.0,
+            scope="ip",
+            enabled=True,
+        ),
+    }
 
-    # Check if endpoint has Rate Limiter
-    if rule.enabled:
-        # Apply Rate Limiter
-        ...
+    # Inject rules into RateLimiterService
+    rate_limiter = RateLimiterService(algorithm, storage, rules)
     ```
 """
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -130,246 +139,3 @@ class RateLimitRule(BaseModel):
     )
     enabled: bool = Field(True, description="Whether Rate Limiter is active")
     cost: int = Field(1, gt=0, description="Number of tokens consumed per request")
-
-
-class RateLimitConfig:
-    """Central configuration for all Rate Limiter rules.
-
-    This class provides a registry of rate limit rules for all API endpoints.
-    Each endpoint can have its own strategy, storage backend, and limits.
-
-    SOLID Principles:
-        - S: Single responsibility (configuration storage only)
-        - O: Open for extension (add new rules to RULES dict)
-        - D: Other components depend on this (not vice versa)
-
-    Design Notes:
-        - Class methods (not instance methods) since this is a configuration registry
-        - No state mutation after initial definition
-        - Type-safe lookups with Optional return type
-
-    Usage:
-        ```python
-        # Get rule for specific endpoint
-        rule = RateLimitConfig.get_rule("POST /api/v1/auth/login")
-        if rule and rule.enabled:
-            # Apply Rate Limiter
-            ...
-
-        # Check if endpoint has Rate Limiter
-        if RateLimitConfig.has_rule("GET /api/v1/providers"):
-            # Endpoint is rate limited
-            ...
-        ```
-    """
-
-    # =========================================================================
-    # Rate Limit Rules Registry
-    # =========================================================================
-
-    RULES: dict[str, RateLimitRule] = {
-        # =====================================================================
-        # Authentication Endpoints (IP-based Rate Limiter)
-        # =====================================================================
-        # These endpoints are vulnerable to brute force attacks and must be
-        # aggressively rate limited. IP-based scoping prevents attackers from
-        # cycling through multiple accounts.
-        "POST /api/v1/auth/login": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=20,  # Allow 20 immediate attempts (account for typos)
-            refill_rate=5.0,  # 5 tokens/min = 12 seconds per token
-            scope="ip",
-            enabled=True,
-        ),
-        "POST /api/v1/auth/register": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=10,  # Prevent mass account creation
-            refill_rate=2.0,  # 2 tokens/min = 30 seconds per token
-            scope="ip",
-            enabled=True,
-        ),
-        "POST /api/v1/auth/password-resets": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=5,  # Very restrictive (sensitive operation)
-            refill_rate=0.2,  # 1 token every 5 minutes
-            scope="ip",
-            enabled=True,
-        ),
-        "POST /api/v1/auth/verification/resend": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=3,  # Prevent email spam
-            refill_rate=0.1,  # 1 token every 10 minutes
-            scope="ip",
-            enabled=True,
-        ),
-        # =====================================================================
-        # Provider Management Endpoints (User-based Rate Limiter)
-        # =====================================================================
-        # Authenticated users managing their own provider connections.
-        # More generous limits since authenticated users are less likely to abuse.
-        "POST /api/v1/providers": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=100,  # Burst capacity for normal usage
-            refill_rate=100.0,  # 100 tokens/min = 1 per second
-            scope="user",
-            enabled=True,
-        ),
-        "GET /api/v1/providers": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=100,
-            refill_rate=100.0,
-            scope="user",
-            enabled=True,
-        ),
-        "GET /api/v1/providers/{provider_id}": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=100,
-            refill_rate=100.0,
-            scope="user",
-            enabled=True,
-        ),
-        "PATCH /api/v1/providers/{provider_id}": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=50,  # Lower limit for write operations
-            refill_rate=50.0,
-            scope="user",
-            enabled=True,
-        ),
-        "DELETE /api/v1/providers/{provider_id}": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=20,  # Very restrictive (destructive operation)
-            refill_rate=20.0,
-            scope="user",
-            enabled=True,
-        ),
-        # =====================================================================
-        # Provider OAuth Flow Endpoints (IP-based during OAuth, user after)
-        # =====================================================================
-        "POST /api/v1/providers/{provider_id}/authorization": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=50,
-            refill_rate=50.0,
-            scope="user",  # User-based (authenticated)
-            enabled=True,
-        ),
-        "GET /api/v1/providers/{provider_id}/authorization/callback": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=20,
-            refill_rate=10.0,
-            scope="ip",  # IP-based (callback before full auth)
-            enabled=True,
-        ),
-        # =====================================================================
-        # Provider API Calls (User-per-provider Rate Limiter)
-        # =====================================================================
-        # These limits MUST match the actual provider's API limits to prevent
-        # quota violations. Scope is "user_provider" to track per user per provider.
-        #
-        # Charles Schwab: 100 requests/min per user per app
-        # https://developer.schwab.com/products/trader-api--individual/details/specifications/Retail%20Trader%20API%20Production
-        "schwab_api": RateLimitRule(
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            storage=RateLimitStorage.REDIS,
-            max_tokens=100,  # Match Schwab's limit exactly
-            refill_rate=100.0,  # 100 tokens/min = 1 per second
-            scope="user_provider",
-            enabled=True,
-        ),
-        # Future providers (examples, not yet implemented):
-        # "plaid_api": RateLimitRule(
-        #     strategy=RateLimitStrategy.TOKEN_BUCKET,
-        #     storage=RateLimitStorage.REDIS,
-        #     max_tokens=500,  # Plaid: 500 requests/min
-        #     refill_rate=500.0,
-        #     scope="user_provider",
-        #     enabled=True,
-        # ),
-        # "chase_api": RateLimitRule(
-        #     strategy=RateLimitStrategy.TOKEN_BUCKET,
-        #     storage=RateLimitStorage.REDIS,
-        #     max_tokens=60,  # Chase: 60 requests/min
-        #     refill_rate=60.0,
-        #     scope="user_provider",
-        #     enabled=True,
-        # ),
-    }
-
-    @classmethod
-    def get_rule(cls, endpoint: str) -> Optional[RateLimitRule]:
-        """Get rate limit rule for a specific endpoint.
-
-        Args:
-            endpoint: Endpoint identifier (e.g., "POST /api/v1/auth/login" or "schwab_api").
-
-        Returns:
-            RateLimitRule if configured, None otherwise.
-
-        Examples:
-            ```python
-            rule = RateLimitConfig.get_rule("POST /api/v1/auth/login")
-            if rule and rule.enabled:
-                # Apply Rate Limiter
-                is_allowed, retry_after = rate_limiter.check(endpoint, ip_address)
-            ```
-        """
-        return cls.RULES.get(endpoint)
-
-    @classmethod
-    def has_rule(cls, endpoint: str) -> bool:
-        """Check if endpoint has a rate limit rule configured.
-
-        Args:
-            endpoint: Endpoint identifier.
-
-        Returns:
-            True if rule exists and is enabled, False otherwise.
-
-        Examples:
-            ```python
-            if RateLimitConfig.has_rule("POST /api/v1/auth/login"):
-                # This endpoint is rate limited
-                ...
-            ```
-        """
-        rule = cls.get_rule(endpoint)
-        return rule is not None and rule.enabled
-
-    @classmethod
-    def get_all_rules(cls) -> dict[str, RateLimitRule]:
-        """Get all configured rate limit rules.
-
-        Returns:
-            Dictionary mapping endpoint identifiers to their rules.
-
-        Note:
-            This includes both enabled and disabled rules.
-            Use `has_rule()` to check if a rule is enabled.
-        """
-        return cls.RULES.copy()
-
-    @classmethod
-    def get_enabled_rules(cls) -> dict[str, RateLimitRule]:
-        """Get only enabled rate limit rules.
-
-        Returns:
-            Dictionary mapping endpoint identifiers to enabled rules only.
-
-        Examples:
-            ```python
-            # List all rate-limited endpoints
-            for endpoint, rule in RateLimitConfig.get_enabled_rules().items():
-                print(f"{endpoint}: {rule.max_tokens} tokens @ {rule.refill_rate}/min")
-            ```
-        """
-        return {endpoint: rule for endpoint, rule in cls.RULES.items() if rule.enabled}

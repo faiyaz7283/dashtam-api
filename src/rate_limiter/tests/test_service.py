@@ -9,7 +9,7 @@ SOLID Principles Tested:
 """
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 from src.rate_limiter.service import RateLimiterService
 
@@ -29,11 +29,49 @@ def mock_storage():
 
 
 @pytest.fixture
-def rate_limiter_service(mock_algorithm, mock_storage):
+def test_rate_limit_rules():
+    """Fixture providing test rate limit rules."""
+    from src.rate_limiter.config import (
+        RateLimitRule,
+        RateLimitStrategy,
+        RateLimitStorage,
+    )
+
+    return {
+        "POST /api/v1/auth/login": RateLimitRule(
+            strategy=RateLimitStrategy.TOKEN_BUCKET,
+            storage=RateLimitStorage.REDIS,
+            max_tokens=20,
+            refill_rate=5.0,
+            scope="ip",
+            enabled=True,
+        ),
+        "POST /api/v1/auth/register": RateLimitRule(
+            strategy=RateLimitStrategy.TOKEN_BUCKET,
+            storage=RateLimitStorage.REDIS,
+            max_tokens=10,
+            refill_rate=2.0,
+            scope="ip",
+            enabled=True,
+        ),
+        "schwab_api": RateLimitRule(
+            strategy=RateLimitStrategy.TOKEN_BUCKET,
+            storage=RateLimitStorage.REDIS,
+            max_tokens=100,
+            refill_rate=100.0,
+            scope="user_provider",
+            enabled=True,
+        ),
+    }
+
+
+@pytest.fixture
+def rate_limiter_service(mock_algorithm, mock_storage, test_rate_limit_rules):
     """Fixture providing RateLimiterService with mocked dependencies."""
     return RateLimiterService(
         algorithm=mock_algorithm,
         storage=mock_storage,
+        rules=test_rate_limit_rules,
     )
 
 
@@ -166,26 +204,33 @@ class TestRateLimiterService:
         assert rule is None
 
     @pytest.mark.asyncio
-    async def test_fail_open_on_config_error(
-        self, rate_limiter_service, mock_algorithm
+    async def test_fail_open_on_rules_dict_access_error(
+        self, mock_algorithm, mock_storage
     ):
-        """Test fail-open behavior when config lookup fails."""
-        with patch(
-            "src.rate_limiter.service.RateLimitConfig.get_rule"
-        ) as mock_get_rule:
-            # Mock config raises exception
-            mock_get_rule.side_effect = Exception("Config error")
+        """Test fail-open behavior when rules dict access fails."""
 
-            allowed, retry_after, rule = await rate_limiter_service.is_allowed(
-                endpoint="POST /api/v1/auth/login",
-                identifier="192.168.1.1",
-                cost=1,
-            )
+        # Create service with broken rules dict that raises on access
+        class BrokenDict(dict):
+            def get(self, key, default=None):
+                raise Exception("Rules dict access error")
 
-            # Should fail-open
-            assert allowed is True
-            assert retry_after == 0.0
-            assert rule is None
+        broken_rules = BrokenDict()
+        service = RateLimiterService(
+            algorithm=mock_algorithm,
+            storage=mock_storage,
+            rules=broken_rules,
+        )
+
+        allowed, retry_after, rule = await service.is_allowed(
+            endpoint="POST /api/v1/auth/login",
+            identifier="192.168.1.1",
+            cost=1,
+        )
+
+        # Should fail-open
+        assert allowed is True
+        assert retry_after == 0.0
+        assert rule is None
 
     @pytest.mark.asyncio
     async def test_multiple_endpoints_independent(

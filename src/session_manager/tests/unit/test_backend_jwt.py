@@ -17,21 +17,21 @@ class TestJWTSessionBackend:
 
     async def test_init_default_ttl(self):
         """Test initialization with default TTL."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
         assert backend.session_ttl_days == 30
 
     async def test_init_custom_ttl(self):
         """Test initialization with custom TTL."""
-        backend = JWTSessionBackend(session_ttl_days=60)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=60)
 
         assert backend.session_ttl_days == 60
 
     async def test_create_session_basic(self):
         """Test creating a session with basic information."""
-        backend = JWTSessionBackend(session_ttl_days=30)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=30)
 
-        session_data = await backend.create_session(
+        session = await backend.create_session(
             user_id="user-123",
             device_info="Chrome on macOS",
             ip_address="192.168.1.100",
@@ -39,25 +39,22 @@ class TestJWTSessionBackend:
         )
 
         # Verify all required fields are present
-        assert session_data["id"] is not None
-        assert session_data["user_id"] == "user-123"
-        assert session_data["device_info"] == "Chrome on macOS"
-        assert session_data["ip_address"] == "192.168.1.100"
-        assert (
-            session_data["user_agent"]
-            == "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-        )
-        assert session_data["is_revoked"] is False
-        assert session_data["is_trusted"] is False
-        assert session_data["revoked_at"] is None
-        assert session_data["revoked_reason"] is None
+        assert session.id is not None
+        assert session.user_id == "user-123"
+        assert session.device_info == "Chrome on macOS"
+        assert session.ip_address == "192.168.1.100"
+        assert session.user_agent == "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+        assert session.is_revoked is False
+        assert session.is_trusted is False
+        assert session.revoked_at is None
+        assert session.revoked_reason is None
 
     async def test_create_session_timestamps(self):
         """Test that created_at, last_activity, and expires_at are set correctly."""
-        backend = JWTSessionBackend(session_ttl_days=30)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=30)
 
         before = datetime.now(timezone.utc)
-        session_data = await backend.create_session(
+        session = await backend.create_session(
             user_id="user-123",
             device_info="Test Device",
             ip_address="192.168.1.1",
@@ -65,18 +62,18 @@ class TestJWTSessionBackend:
         after = datetime.now(timezone.utc)
 
         # created_at and last_activity should be within test window
-        assert before <= session_data["created_at"] <= after
-        assert before <= session_data["last_activity"] <= after
+        assert before <= session.created_at <= after
+        assert before <= session.last_activity <= after
 
         # expires_at should be 30 days from created_at
-        expected_expiry = session_data["created_at"] + timedelta(days=30)
-        assert session_data["expires_at"] == expected_expiry
+        expected_expiry = session.created_at + timedelta(days=30)
+        assert session.expires_at == expected_expiry
 
     async def test_create_session_with_metadata(self):
         """Test creating session with additional metadata."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
-        session_data = await backend.create_session(
+        session = await backend.create_session(
             user_id="user-123",
             device_info="Test Device",
             ip_address="192.168.1.1",
@@ -84,24 +81,24 @@ class TestJWTSessionBackend:
             is_trusted=True,
         )
 
-        assert session_data["location"] == "San Francisco, USA"
-        assert session_data["is_trusted"] is True
+        assert session.location == "San Francisco, USA"
+        assert session.is_trusted is True
 
     async def test_create_session_without_user_agent(self):
         """Test creating session without user_agent (optional)."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
-        session_data = await backend.create_session(
+        session = await backend.create_session(
             user_id="user-123",
             device_info="Test Device",
             ip_address="192.168.1.1",
         )
 
-        assert session_data["user_agent"] is None
+        assert session.user_agent is None
 
     async def test_validate_session_active(self):
         """Test validating an active session."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
         # Create active session
         active_session = MockSession(user_id="user-123", is_revoked=False)
@@ -112,7 +109,7 @@ class TestJWTSessionBackend:
 
     async def test_validate_session_revoked(self):
         """Test validating a revoked session."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
         # Create revoked session
         revoked_session = MockSession(user_id="user-123", is_revoked=True)
@@ -123,7 +120,7 @@ class TestJWTSessionBackend:
 
     async def test_validate_session_expired(self):
         """Test validating an expired session."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
         # Create expired session
         expired_session = MockSession(
@@ -137,7 +134,7 @@ class TestJWTSessionBackend:
 
     async def test_revoke_session(self):
         """Test revoking a session (simplified implementation)."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
         # Current implementation always returns True
         # (actual revocation handled by storage layer)
@@ -147,7 +144,7 @@ class TestJWTSessionBackend:
 
     async def test_list_sessions(self):
         """Test listing sessions (simplified implementation)."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
         # Current implementation returns empty list
         # (actual listing handled by storage layer)
@@ -157,21 +154,21 @@ class TestJWTSessionBackend:
 
     async def test_create_session_custom_ttl(self):
         """Test session creation with custom TTL."""
-        backend = JWTSessionBackend(session_ttl_days=7)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=7)
 
-        session_data = await backend.create_session(
+        session = await backend.create_session(
             user_id="user-123",
             device_info="Test Device",
             ip_address="192.168.1.1",
         )
 
         # Verify expires_at is 7 days from created_at
-        expected_expiry = session_data["created_at"] + timedelta(days=7)
-        assert session_data["expires_at"] == expected_expiry
+        expected_expiry = session.created_at + timedelta(days=7)
+        assert session.expires_at == expected_expiry
 
     async def test_create_session_unique_ids(self):
         """Test that each created session has a unique ID."""
-        backend = JWTSessionBackend()
+        backend = JWTSessionBackend(session_model=MockSession)
 
         session1 = await backend.create_session(
             user_id="user-123",
@@ -186,4 +183,4 @@ class TestJWTSessionBackend:
         )
 
         # IDs should be different
-        assert session1["id"] != session2["id"]
+        assert session1.id != session2.id

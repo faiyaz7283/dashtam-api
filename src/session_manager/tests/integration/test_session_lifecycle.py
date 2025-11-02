@@ -30,7 +30,7 @@ class TestCompleteSessionLifecycleMemoryStorage:
     async def test_create_validate_revoke_delete_flow(self):
         """Test complete session lifecycle: create → validate → revoke → delete."""
         # Arrange: Wire up real components
-        backend = JWTSessionBackend(session_ttl_days=30)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=30)
         storage = MemorySessionStorage()
         audit = NoOpAuditBackend()
         service = SessionManagerService(backend, storage, audit)
@@ -70,25 +70,25 @@ class TestCompleteSessionLifecycleMemoryStorage:
     @pytest.mark.asyncio
     async def test_list_sessions_for_user(self):
         """Test listing all sessions for a user."""
-        backend = JWTSessionBackend(session_ttl_days=30)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=30)
         storage = MemorySessionStorage()
         audit = NoOpAuditBackend()
         service = SessionManagerService(backend, storage, audit)
 
         # Create multiple sessions for same user
-        session1 = await service.create_session(
+        await service.create_session(
             user_id="user-123",
             device_info="Chrome",
             ip_address="192.168.1.1",
         )
-        session2 = await service.create_session(
+        await service.create_session(
             user_id="user-123",
             device_info="Firefox",
             ip_address="192.168.1.2",
         )
 
         # Create session for different user
-        session3 = await service.create_session(
+        await service.create_session(
             user_id="user-456",
             device_info="Safari",
             ip_address="192.168.1.3",
@@ -102,7 +102,7 @@ class TestCompleteSessionLifecycleMemoryStorage:
     @pytest.mark.asyncio
     async def test_revoke_all_user_sessions_except_current(self):
         """Test revoking all sessions except the current one."""
-        backend = JWTSessionBackend(session_ttl_days=30)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=30)
         storage = MemorySessionStorage()
         audit = NoOpAuditBackend()
         service = SessionManagerService(backend, storage, audit)
@@ -144,7 +144,7 @@ class TestCompleteSessionLifecycleCacheStorage:
     @pytest.mark.asyncio
     async def test_create_and_retrieve_with_cache(self, fakeredis_client):
         """Test session lifecycle with cache storage."""
-        backend = JWTSessionBackend(session_ttl_days=30)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=30)
         storage = CacheSessionStorage(
             session_model=MockSession,
             cache_client=fakeredis_client,
@@ -176,7 +176,7 @@ class TestSessionLifecycleWithEnrichers:
     @pytest.mark.asyncio
     async def test_create_session_with_enrichers(self):
         """Test that enrichers are called during session creation."""
-        backend = JWTSessionBackend(session_ttl_days=30)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=30)
         storage = MemorySessionStorage()
         audit = NoOpAuditBackend()
 
@@ -205,7 +205,7 @@ class TestSessionLifecycleWithAudit:
         """Test that audit backend logs session events."""
         import logging
 
-        backend = JWTSessionBackend(session_ttl_days=30)
+        backend = JWTSessionBackend(session_model=MockSession, session_ttl_days=30)
         storage = MemorySessionStorage()
         audit = LoggerAuditBackend(logger_name="test.session.audit")
 

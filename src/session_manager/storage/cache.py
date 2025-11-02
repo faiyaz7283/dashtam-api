@@ -200,9 +200,6 @@ class CacheSessionStorage(SessionStorage):
 
         Returns:
             Session or None if not found
-
-        Note:
-            Returns dict representation. App should reconstruct Session model.
         """
         key = self._session_key(session_id)
         value = await self.cache.get(key)
@@ -211,8 +208,6 @@ class CacheSessionStorage(SessionStorage):
             return None
 
         # Deserialize JSON to dict
-        # Note: Cache storage returns dict, not concrete Session model
-        # App layer should reconstruct Session from dict
         session_dict = json.loads(value)
 
         # Convert ISO strings back to datetime
@@ -220,7 +215,14 @@ class CacheSessionStorage(SessionStorage):
             if session_dict.get(field):
                 session_dict[field] = datetime.fromisoformat(session_dict[field])
 
-        return session_dict  # type: ignore
+        # Convert id string back to UUID
+        if session_dict.get("id"):
+            from uuid import UUID
+
+            session_dict["id"] = UUID(session_dict["id"])
+
+        # Instantiate concrete session model
+        return self.session_model(**session_dict)
 
     async def list_sessions(
         self, user_id: str, filters: Optional[SessionFilters] = None
@@ -257,16 +259,13 @@ class CacheSessionStorage(SessionStorage):
         if not session:
             return False
 
-        # Update session
-        session["is_revoked"] = True  # type: ignore
-        session["revoked_at"] = datetime.now(timezone.utc)  # type: ignore
-        session["revoked_reason"] = reason  # type: ignore
+        # Update session instance
+        session.is_revoked = True
+        session.revoked_at = datetime.now(timezone.utc)
+        session.revoked_reason = reason
 
-        # Re-serialize and save
-        # Note: This is simplified. Real implementation needs proper Session object
-        key = self._session_key(session_id)
-        value = json.dumps(session)
-        await self.cache.set(key, value, 3600)  # 1 hour TTL for revoked sessions
+        # Re-serialize and save updated session
+        await self.save_session(session)
 
         return True
 

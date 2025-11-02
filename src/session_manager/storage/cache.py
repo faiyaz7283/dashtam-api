@@ -234,15 +234,22 @@ class CacheSessionStorage(SessionStorage):
             filters: Optional filters
 
         Returns:
-            List of sessions
+            Empty list (not implemented)
 
         Note:
-            Cache storage has limited filtering capability compared to database.
-            This is a simplified implementation.
+            **NOT IMPLEMENTED**: This method always returns an empty list.
+
+            Cache storage requires Redis indexing (SADD/SMEMBERS) to efficiently
+            list sessions by user_id. Without maintaining a separate index like
+            `user:{user_id}:sessions`, we would need to use Redis SCAN to iterate
+            all keys, which is inefficient.
+
+            For production use:
+            - Use DatabaseSessionStorage for session listing
+            - Or implement Redis indexing in save_session() and delete_session()
         """
-        # Note: Cache-based listing is complex without proper indexing
-        # This is a simplified implementation
-        # Real implementation might use Redis SCAN or maintain session lists
+        # NOT IMPLEMENTED: Returns empty list
+        # TODO: Implement Redis indexing to support listing sessions by user_id
         return []
 
     async def revoke_session(self, session_id: str, reason: str) -> bool:

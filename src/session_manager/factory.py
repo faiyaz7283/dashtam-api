@@ -177,8 +177,7 @@ def _create_backend(
     """
     if config.backend_type == "jwt":
         return JWTSessionBackend(
-            session_model=session_model,
-            session_ttl=config.session_ttl,
+            session_ttl_days=config.session_ttl.days,
         )
     elif config.backend_type == "database":
         if db_session is None:
@@ -186,7 +185,7 @@ def _create_backend(
         return DatabaseSessionBackend(
             session_model=session_model,
             db_session=db_session,
-            session_ttl=config.session_ttl,
+            session_ttl_days=config.session_ttl.days,
         )
     else:
         raise ValueError(
@@ -230,10 +229,7 @@ def _create_storage(
             ttl=int(config.session_ttl.total_seconds()),
         )
     elif config.storage_type == "memory":
-        return MemorySessionStorage(
-            session_model=session_model,
-            ttl=int(config.session_ttl.total_seconds()),
-        )
+        return MemorySessionStorage()
     else:
         raise ValueError(
             f"Invalid storage_type: {config.storage_type}. "
@@ -271,9 +267,9 @@ def _create_audit_backend(
             db_session=db_session,
         )
     elif config.audit_type == "logger":
-        if logger is None:
-            logger = logging.getLogger("session_manager")
-        return LoggerAuditBackend(logger=logger)
+        # LoggerAuditBackend takes logger_name, not logger instance
+        logger_name = "session_manager.audit"
+        return LoggerAuditBackend(logger_name=logger_name)
     elif config.audit_type == "noop":
         return NoOpAuditBackend()
     elif config.audit_type == "metrics":

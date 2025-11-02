@@ -347,7 +347,7 @@ class TestListSessions:
     async def test_list_sessions_with_filters(self, service, mock_storage):
         """Test listing sessions with filters."""
         # Arrange
-        filters = SessionFilters(active_only=True, device_type="mobile")
+        filters = SessionFilters(active_only=True, device_type="mobile", limit=10)
         sessions = [MagicMock()]
         mock_storage.list_sessions.return_value = sessions
 

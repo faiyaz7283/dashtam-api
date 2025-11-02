@@ -40,6 +40,8 @@ class SessionFilters:
         created_after: Filter by creation date (inclusive)
         created_before: Filter by creation date (inclusive)
         is_trusted: Filter by trusted device status
+        limit: Maximum number of results to return (None = no limit)
+        offset: Number of results to skip (for pagination)
     """
 
     active_only: bool = True
@@ -49,3 +51,5 @@ class SessionFilters:
     created_after: Optional[datetime] = None
     created_before: Optional[datetime] = None
     is_trusted: Optional[bool] = None
+    limit: Optional[int] = None
+    offset: Optional[int] = None

@@ -141,6 +141,19 @@ class MemorySessionStorage(SessionStorage):
         # Sort by most recent first
         sessions.sort(key=lambda s: s.created_at, reverse=True)
 
+        # Apply pagination (offset + limit)
+        if filters:
+            offset = filters.offset or 0
+            limit = filters.limit
+
+            # Apply offset
+            if offset > 0:
+                sessions = sessions[offset:]
+
+            # Apply limit
+            if limit and limit > 0:
+                sessions = sessions[:limit]
+
         return sessions
 
     async def revoke_session(self, session_id: str, reason: str) -> bool:

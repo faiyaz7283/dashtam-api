@@ -348,3 +348,80 @@ class TestMemorySessionStorage:
         assert sessions[0].device_info == "Newest"
         assert sessions[1].device_info == "Middle"
         assert sessions[2].device_info == "Oldest"
+
+    async def test_list_sessions_pagination_limit(self):
+        """Test pagination with limit."""
+        storage = MemorySessionStorage()
+
+        # Create 5 sessions
+        for i in range(5):
+            session = MockSession(user_id="user-123", device_info=f"Device {i}")
+            await storage.save_session(session)
+
+        # Request only 3
+        filters = SessionFilters(limit=3)
+        sessions = await storage.list_sessions("user-123", filters)
+
+        assert len(sessions) == 3
+
+    async def test_list_sessions_pagination_offset(self):
+        """Test pagination with offset."""
+        from datetime import datetime, timedelta, timezone
+
+        storage = MemorySessionStorage()
+        now = datetime.now(timezone.utc)
+
+        # Create 5 sessions with known order
+        for i in range(5):
+            session = MockSession(
+                user_id="user-123",
+                created_at=now - timedelta(hours=i),
+                device_info=f"Device {i}",
+            )
+            await storage.save_session(session)
+
+        # Skip first 2 sessions
+        filters = SessionFilters(offset=2)
+        sessions = await storage.list_sessions("user-123", filters)
+
+        assert len(sessions) == 3
+        assert sessions[0].device_info == "Device 2"
+
+    async def test_list_sessions_pagination_offset_and_limit(self):
+        """Test pagination with both offset and limit."""
+        from datetime import datetime, timedelta, timezone
+
+        storage = MemorySessionStorage()
+        now = datetime.now(timezone.utc)
+
+        # Create 10 sessions
+        for i in range(10):
+            session = MockSession(
+                user_id="user-123",
+                created_at=now - timedelta(hours=i),
+                device_info=f"Device {i}",
+            )
+            await storage.save_session(session)
+
+        # Skip first 3, get next 2 (devices 3 and 4)
+        filters = SessionFilters(offset=3, limit=2)
+        sessions = await storage.list_sessions("user-123", filters)
+
+        assert len(sessions) == 2
+        assert sessions[0].device_info == "Device 3"
+        assert sessions[1].device_info == "Device 4"
+
+    async def test_list_sessions_pagination_offset_beyond_results(self):
+        """Test pagination when offset is beyond available results."""
+        storage = MemorySessionStorage()
+
+        # Create 3 sessions
+        for i in range(3):
+            session = MockSession(user_id="user-123")
+            await storage.save_session(session)
+
+        # Offset beyond results
+        filters = SessionFilters(offset=10)
+        sessions = await storage.list_sessions("user-123", filters)
+
+        assert len(sessions) == 0

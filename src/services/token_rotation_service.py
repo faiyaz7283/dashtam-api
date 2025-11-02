@@ -102,7 +102,11 @@ class TokenRotationService:
         return config
 
     async def rotate_user_tokens(
-        self, user_id: UUID, reason: str
+        self,
+        user_id: UUID,
+        reason: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
     ) -> TokenRotationResult:
         """Rotate all tokens for a specific user (targeted rotation).
 
@@ -120,6 +124,8 @@ class TokenRotationService:
         Args:
             user_id: UUID of user whose tokens to rotate.
             reason: Human-readable reason for rotation (audit trail).
+            ip_address: Client IP address for audit trail.
+            user_agent: Client User-Agent for audit trail.
 
         Returns:
             TokenRotationResult with rotation details.
@@ -187,7 +193,12 @@ class TokenRotationService:
         )
 
     async def rotate_all_tokens_global(
-        self, reason: str, initiated_by: str, grace_period_minutes: int = 15
+        self,
+        reason: str,
+        initiated_by: str,
+        grace_period_minutes: int = 15,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
     ) -> TokenRotationResult:
         """Rotate ALL tokens system-wide (nuclear option for major breaches).
 
@@ -207,6 +218,8 @@ class TokenRotationService:
             reason: Why global rotation was initiated (audit trail).
             initiated_by: Who initiated (e.g., "ADMIN:john@example.com").
             grace_period_minutes: Minutes before full revocation (default 15).
+            ip_address: Client IP address for audit trail.
+            user_agent: Client User-Agent for audit trail.
 
         Returns:
             TokenRotationResult with global rotation details.

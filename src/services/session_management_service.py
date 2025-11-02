@@ -274,25 +274,36 @@ class SessionManagementService:
 
         return revoked_count
 
-    async def revoke_all_sessions(self, user_id: UUID) -> int:
+    async def revoke_all_sessions(
+        self,
+        user_id: UUID,
+        revoked_by_ip: str | None = None,
+        revoked_by_device: str | None = None,
+    ) -> int:
         """Revoke ALL sessions (nuclear option).
 
         Args:
             user_id: User UUID
+            revoked_by_ip: IP address initiating revocation
+            revoked_by_device: Device info initiating revocation
 
         Returns:
             Count of revoked sessions
 
         Example:
             ```python
-            count = await service.revoke_all_sessions(user_id=user.id)
+            count = await service.revoke_all_sessions(
+                user_id=user.id,
+                revoked_by_ip="192.168.1.1",
+                revoked_by_device="Chrome/MacOS"
+            )
             print(f"Revoked all {count} sessions")
             ```
 
         Notes:
             - User will be logged out immediately
             - Use for account compromise response
-            - Creates audit log entry
+            - Creates audit log entry with metadata
         """
         # Query all non-revoked tokens
         result = await self.session.execute(
@@ -312,7 +323,8 @@ class SessionManagementService:
         await self.session.commit()
 
         logger.info(
-            f"Full session revocation: user={user_id}, revoked_count={revoked_count}"
+            f"Full session revocation: user={user_id}, revoked_count={revoked_count}, "
+            f"revoked_by_ip={revoked_by_ip or 'unknown'}, revoked_by_device={revoked_by_device or 'unknown'}"
         )
 
         return revoked_count

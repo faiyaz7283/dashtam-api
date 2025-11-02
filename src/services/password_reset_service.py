@@ -12,6 +12,7 @@ Extracted from AuthService to follow Single Responsibility Principle.
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,7 +93,13 @@ class PasswordResetService:
 
         await self.session.commit()
 
-    async def reset_password(self, token: str, new_password: str) -> User:
+    async def reset_password(
+        self,
+        token: str,
+        new_password: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> User:
         """Reset user password using reset token.
 
         Validates the reset token, updates password, revokes all existing
@@ -105,6 +112,8 @@ class PasswordResetService:
         Args:
             token: Password reset token string.
             new_password: New plain text password.
+            ip_address: Client IP address for audit trail.
+            user_agent: Client User-Agent for audit trail.
 
         Returns:
             User instance with updated password.
@@ -176,7 +185,10 @@ class PasswordResetService:
         # This prevents compromised sessions from remaining active after password change
         rotation_service = TokenRotationService(self.session)
         rotation_result = await rotation_service.rotate_user_tokens(
-            user_id=user.id, reason="Password reset completed"
+            user_id=user.id,
+            reason="Password reset completed",
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         logger.info(

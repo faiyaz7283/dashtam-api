@@ -84,7 +84,7 @@ class TestAuthServicePasswordResetDelegation:
 
         Verifies that:
         - AuthService calls PasswordResetService.reset_password()
-        - Passes token and new_password correctly
+        - Passes token, new_password, and session metadata correctly
         - Returns the user object from PasswordResetService
 
         Note:
@@ -94,7 +94,10 @@ class TestAuthServicePasswordResetDelegation:
         # Act
         user = asyncio.run(
             auth_service.reset_password(
-                token="test_token", new_password="NewSecurePass123!"
+                token="test_token",
+                new_password="NewSecurePass123!",
+                ip_address="192.168.1.1",
+                user_agent="Mozilla/5.0",
             )
         )
 
@@ -102,7 +105,10 @@ class TestAuthServicePasswordResetDelegation:
         assert user is not None
         assert user.id == sample_user.id
         mock_password_reset_service.reset_password.assert_called_once_with(
-            "test_token", "NewSecurePass123!"
+            "test_token",
+            "NewSecurePass123!",
+            ip_address="192.168.1.1",
+            user_agent="Mozilla/5.0",
         )
 
     def test_request_password_reset_delegates_to_service(

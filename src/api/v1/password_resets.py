@@ -10,10 +10,12 @@ This design is more REST-compliant than action-oriented URLs like
 """
 
 import logging
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.dependencies import get_client_ip, get_user_agent
 from src.core.database import get_session
 from src.schemas.auth import (
     CompletePasswordResetRequest,
@@ -130,6 +132,8 @@ async def complete_password_reset(
     token: str,
     request: CompletePasswordResetRequest,
     session: AsyncSession = Depends(get_session),
+    ip_address: Optional[str] = Depends(get_client_ip),
+    user_agent: Optional[str] = Depends(get_user_agent),
 ) -> MessageResponse:
     """Complete password reset with new password.
 
@@ -139,6 +143,8 @@ async def complete_password_reset(
         token: Password reset token from email.
         request: New password.
         session: Database session.
+        ip_address: Client IP address for audit trail.
+        user_agent: Client User-Agent for audit trail.
 
     Returns:
         Success message.
@@ -151,7 +157,10 @@ async def complete_password_reset(
     try:
         # Reset password (confirmation email sent internally by AuthService)
         user = await auth_service.reset_password(
-            token=token, new_password=request.new_password
+            token=token,
+            new_password=request.new_password,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         logger.info(f"Password reset successfully for user: {user.email}")

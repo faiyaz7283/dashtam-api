@@ -20,12 +20,13 @@ REST Compliance:
 """
 
 import logging
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, get_client_ip, get_user_agent
 from src.core.database import get_session
 from src.core.fingerprinting import format_device_info
 from src.models.user import User
@@ -265,6 +266,8 @@ async def revoke_other_sessions(
 async def revoke_all_sessions(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    ip_address: Optional[str] = Depends(get_client_ip),
+    user_agent: Optional[str] = Depends(get_user_agent),
 ):
     """Revoke all sessions (nuclear option).
 
@@ -275,8 +278,12 @@ async def revoke_all_sessions(
     cache = get_cache()
     mgmt_service = SessionManagementService(session, geo_service, cache)
 
-    # Revoke all sessions
-    revoked_count = await mgmt_service.revoke_all_sessions(current_user.id)
+    # Revoke all sessions with audit trail
+    revoked_count = await mgmt_service.revoke_all_sessions(
+        user_id=current_user.id,
+        revoked_by_ip=ip_address,
+        revoked_by_device=format_device_info(user_agent) if user_agent else "Unknown",
+    )
 
     return BulkRevokeResponse(
         message="All sessions revoked successfully. You have been logged out.",

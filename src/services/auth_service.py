@@ -455,7 +455,13 @@ class AuthService:
         # Delegate to PasswordResetService
         await self.password_reset_service.request_reset(email)
 
-    async def reset_password(self, token: str, new_password: str) -> User:
+    async def reset_password(
+        self,
+        token: str,
+        new_password: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> User:
         """Reset user password using reset token.
 
         Delegates to PasswordResetService for token validation, password update,
@@ -468,6 +474,8 @@ class AuthService:
         Args:
             token: Password reset token string
             new_password: New plain text password
+            ip_address: Client IP address for audit trail
+            user_agent: Client User-Agent for audit trail
 
         Returns:
             User instance with updated password
@@ -483,7 +491,9 @@ class AuthService:
             ... )
         """
         # Delegate to PasswordResetService
-        return await self.password_reset_service.reset_password(token, new_password)
+        return await self.password_reset_service.reset_password(
+            token, new_password, ip_address=ip_address, user_agent=user_agent
+        )
 
     async def get_user_by_id(self, user_id: UUID) -> Optional[User]:
         """Get user by ID.
@@ -556,7 +566,12 @@ class AuthService:
         return user
 
     async def change_password(
-        self, user_id: UUID, current_password: str, new_password: str
+        self,
+        user_id: UUID,
+        current_password: str,
+        new_password: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
     ) -> User:
         """Change user password (requires current password).
 
@@ -564,6 +579,8 @@ class AuthService:
             user_id: User's unique identifier
             current_password: Current password for verification
             new_password: New password to set
+            ip_address: Client IP address for audit trail
+            user_agent: Client User-Agent for audit trail
 
         Returns:
             User instance with updated password
@@ -619,7 +636,10 @@ class AuthService:
         # This prevents compromised sessions from remaining active after password change
         rotation_service = TokenRotationService(self.session)
         rotation_result = await rotation_service.rotate_user_tokens(
-            user_id=user.id, reason="Password changed by user"
+            user_id=user.id,
+            reason="Password changed by user",
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         # Commit password change and token rotation together (atomic)

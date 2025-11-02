@@ -215,6 +215,8 @@ async def logout(
     request: RefreshTokenRequest,
     current_user: User = Depends(get_current_user),
     auth_service: AuthService = Depends(get_auth_service),
+    ip_address: Optional[str] = Depends(get_client_ip),
+    user_agent: Optional[str] = Depends(get_user_agent),
 ):
     """Log out and revoke refresh token.
 
@@ -225,6 +227,8 @@ async def logout(
         request: Refresh token to revoke.
         current_user: Currently authenticated user.
         auth_service: Authentication service dependency.
+        ip_address: Client IP address for audit trail.
+        user_agent: Client User-Agent for audit trail.
 
     Returns:
         Success message.
@@ -245,6 +249,8 @@ async def logout(
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_profile(
     current_user: User = Depends(get_current_user),
+    ip_address: Optional[str] = Depends(get_client_ip),
+    user_agent: Optional[str] = Depends(get_user_agent),
 ):
     """Get current authenticated user's profile.
 
@@ -252,6 +258,8 @@ async def get_current_user_profile(
 
     Args:
         current_user: Currently authenticated user.
+        ip_address: Client IP address for audit trail.
+        user_agent: Client User-Agent for audit trail.
 
     Returns:
         User profile information.
@@ -272,6 +280,8 @@ async def update_current_user_profile(
     request: UpdateUserRequest,
     current_user: User = Depends(get_current_user),
     auth_service: AuthService = Depends(get_auth_service),
+    ip_address: Optional[str] = Depends(get_client_ip),
+    user_agent: Optional[str] = Depends(get_user_agent),
 ):
     """Update current user's profile.
 
@@ -282,6 +292,8 @@ async def update_current_user_profile(
         request: Updated profile fields.
         current_user: Currently authenticated user.
         auth_service: Authentication service dependency.
+        ip_address: Client IP address for audit trail.
+        user_agent: Client User-Agent for audit trail.
 
     Returns:
         Updated user profile.
@@ -323,6 +335,8 @@ async def change_password(
     request: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
     auth_service: AuthService = Depends(get_auth_service),
+    ip_address: Optional[str] = Depends(get_client_ip),
+    user_agent: Optional[str] = Depends(get_user_agent),
 ):
     """Change current user's password.
 
@@ -334,6 +348,8 @@ async def change_password(
         request: Current and new passwords.
         current_user: Currently authenticated user.
         auth_service: Authentication service dependency.
+        ip_address: Client IP address for audit trail.
+        user_agent: Client User-Agent for audit trail.
 
     Returns:
         Success message with security notice.
@@ -347,6 +363,8 @@ async def change_password(
         user_id=current_user.id,
         current_password=request.current_password,
         new_password=request.new_password,
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     logger.info(f"Password changed for user: {current_user.email}")

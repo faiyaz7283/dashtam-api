@@ -14,7 +14,7 @@ This refactoring maintains 100% REST compliance.
 
 import logging
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +27,7 @@ from src.schemas.token_rotation import (
     TokenRotationResponse,
     SecurityConfigResponse,
 )
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, get_client_ip, get_user_agent
 from src.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -57,6 +57,8 @@ async def revoke_user_tokens(
     request: RotateUserTokensRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
+    ip_address: Annotated[Optional[str], Depends(get_client_ip)] = None,
+    user_agent: Annotated[Optional[str], Depends(get_user_agent)] = None,
 ) -> TokenRotationResponse:
     """Revoke all tokens for a specific user.
 
@@ -77,6 +79,8 @@ async def revoke_user_tokens(
         request: Revocation request with reason.
         current_user: Currently authenticated user.
         session: Database session.
+        ip_address: Client IP address for audit trail.
+        user_agent: Client User-Agent for audit trail.
 
     Returns:
         TokenRotationResponse with revocation details.
@@ -104,7 +108,10 @@ async def revoke_user_tokens(
     # Rotate tokens
     service = TokenRotationService(session)
     result = await service.rotate_user_tokens(
-        user_id=target_user_id, reason=request.reason
+        user_id=target_user_id,
+        reason=request.reason,
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return TokenRotationResponse(
@@ -140,6 +147,8 @@ async def revoke_all_tokens(
     request: RotateGlobalTokensRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
+    ip_address: Annotated[Optional[str], Depends(get_client_ip)] = None,
+    user_agent: Annotated[Optional[str], Depends(get_user_agent)] = None,
 ) -> TokenRotationResponse:
     """Revoke ALL tokens system-wide (nuclear option).
 
@@ -161,6 +170,8 @@ async def revoke_all_tokens(
         request: Global revocation request with reason and grace period.
         current_user: Currently authenticated user.
         session: Database session.
+        ip_address: Client IP address for audit trail.
+        user_agent: Client User-Agent for audit trail.
 
     Returns:
         TokenRotationResponse with global revocation details.
@@ -187,6 +198,8 @@ async def revoke_all_tokens(
         reason=request.reason,
         initiated_by=f"USER:{current_user.email}",
         grace_period_minutes=request.grace_period_minutes,
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return TokenRotationResponse(

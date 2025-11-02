@@ -32,7 +32,12 @@ class JWTSessionBackend(SessionBackend):
 
     Example:
         ```python
-        backend = JWTSessionBackend(session_ttl_days=30)
+        from src.models.session import Session
+
+        backend = JWTSessionBackend(
+            session_model=Session,
+            session_ttl_days=30
+        )
         session = await backend.create_session(
             user_id="user123",
             device_info="Mozilla/5.0...",
@@ -45,15 +50,17 @@ class JWTSessionBackend(SessionBackend):
 
     Note:
         Backend works with SessionBase interface.
-        App provides concrete Session implementation via storage.
+        App provides concrete Session implementation.
     """
 
-    def __init__(self, session_ttl_days: int = 30):
+    def __init__(self, session_model: type, session_ttl_days: int = 30):
         """Initialize JWT session backend.
 
         Args:
+            session_model: Application's concrete Session model class
             session_ttl_days: Session TTL in days (default 30)
         """
+        self.session_model = session_model
         self.session_ttl_days = session_ttl_days
 
     async def create_session(
@@ -84,25 +91,24 @@ class JWTSessionBackend(SessionBackend):
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(days=self.session_ttl_days)
 
-        # Return dict representation (app converts to concrete model)
-        # Storage layer handles actual model instantiation
-        session_data = {
-            "id": uuid4(),
-            "user_id": user_id,
-            "device_info": device_info,
-            "ip_address": ip_address,
-            "user_agent": user_agent,
-            "location": metadata.get("location"),
-            "created_at": now,
-            "last_activity": now,
-            "expires_at": expires_at,
-            "is_revoked": False,
-            "is_trusted": metadata.get("is_trusted", False),
-            "revoked_at": None,
-            "revoked_reason": None,
-        }
+        # Create concrete Session instance using provided model
+        session = self.session_model(
+            id=uuid4(),
+            user_id=user_id,
+            device_info=device_info,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            location=metadata.get("location"),
+            created_at=now,
+            last_activity=now,
+            expires_at=expires_at,
+            is_revoked=False,
+            is_trusted=metadata.get("is_trusted", False),
+            revoked_at=None,
+            revoked_reason=None,
+        )
 
-        return session_data  # type: ignore
+        return session
 
     async def validate_session(self, session: SessionBase) -> bool:
         """Validate session is active and valid.

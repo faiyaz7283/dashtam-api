@@ -96,13 +96,22 @@ class CacheSessionStorage(SessionStorage):
         across cache restarts, use DatabaseSessionStorage.
     """
 
-    def __init__(self, cache: CacheClient):
+    def __init__(
+        self,
+        session_model: type,
+        cache_client: CacheClient,
+        ttl: int = 3600,
+    ):
         """Initialize with app's cache client.
 
         Args:
-            cache: Any client implementing CacheClient protocol
+            session_model: Application's concrete Session model class
+            cache_client: Any client implementing CacheClient protocol
+            ttl: Default TTL in seconds (default 3600 = 1 hour)
         """
-        self.cache = cache
+        self.session_model = session_model
+        self.cache = cache_client
+        self.default_ttl = ttl
 
     def _session_key(self, session_id: str) -> str:
         """Generate cache key for session.

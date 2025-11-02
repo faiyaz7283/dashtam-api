@@ -177,6 +177,7 @@ def _create_backend(
     """
     if config.backend_type == "jwt":
         return JWTSessionBackend(
+            session_model=session_model,
             session_ttl_days=config.session_ttl.days,
         )
     elif config.backend_type == "database":

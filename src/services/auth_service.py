@@ -381,8 +381,14 @@ class AuthService:
                 detail=f"Token has been rotated: {failure_reason}",
             )
 
-        # Update last_used_at for session tracking
-        refresh_token_record.last_used_at = datetime.now(timezone.utc)
+        # Update session last_activity (session tracking)
+        if refresh_token_record.session_id:
+            result = await self.session.execute(
+                select(Session).where(Session.id == refresh_token_record.session_id)
+            )
+            session_record = result.scalar_one_or_none()
+            if session_record:
+                session_record.last_activity = datetime.now(timezone.utc)
 
         # Generate new JWT access token with jti claim (links to session) and version
         access_token = self.jwt_service.create_access_token(

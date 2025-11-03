@@ -710,7 +710,7 @@ class AuthService:
             user_agent=user_agent,
             location=location,
             fingerprint=fingerprint,
-            is_trusted_device=False,
+            is_trusted=False,
             last_activity=datetime.now(timezone.utc),
             expires_at=expires_at,
         )

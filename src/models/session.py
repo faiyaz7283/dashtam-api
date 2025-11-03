@@ -46,7 +46,7 @@ class Session(DashtamBase, SessionBase, table=True):
         user_agent: Full user agent string
         location: Geographic location from IP
         fingerprint: SHA256 hash of device fingerprint
-        is_trusted_device: User-marked trusted device
+        is_trusted: User-marked trusted device
         last_activity: Last activity timestamp
         expires_at: Session expiration timestamp
         is_revoked: Whether session is revoked
@@ -100,7 +100,7 @@ class Session(DashtamBase, SessionBase, table=True):
         description="SHA256 hash of device fingerprint",
     )
 
-    is_trusted_device: bool = Field(
+    is_trusted: bool = Field(
         default=False,
         sa_column=Column(Boolean, nullable=False, server_default="false"),
         description="User-marked trusted device",
@@ -156,15 +156,6 @@ class Session(DashtamBase, SessionBase, table=True):
         return v.astimezone(timezone.utc)
 
     # SessionBase interface implementation
-    @property
-    def is_trusted(self) -> bool:
-        """Alias for SessionBase compatibility.
-
-        SessionBase expects is_trusted, but our model uses is_trusted_device.
-        This property provides compatibility.
-        """
-        return self.is_trusted_device
-
     def is_active(self) -> bool:
         """Check if session is active (SessionBase interface).
 

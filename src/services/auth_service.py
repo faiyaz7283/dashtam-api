@@ -382,12 +382,24 @@ class AuthService:
             )
 
         # Update session last_activity (session tracking)
+        # Also check if session is revoked - if so, reject the refresh token
         if refresh_token_record.session_id:
             result = await self.session.execute(
                 select(Session).where(Session.id == refresh_token_record.session_id)
             )
             session_record = result.scalar_one_or_none()
             if session_record:
+                # Check if session is revoked
+                if session_record.is_revoked:
+                    logger.warning(
+                        f"Refresh token rejected - session revoked: {session_record.id} "
+                        f"(user: {user.id})"
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Session has been revoked",
+                    )
+                # Update last activity if session is active
                 session_record.last_activity = datetime.now(timezone.utc)
 
         # Generate new JWT access token with jti claim (links to session) and version

@@ -162,20 +162,32 @@ class TestRevokeSession:
             Creates a second session to revoke (cannot revoke current).
             Session must belong to authenticated_user for security.
         """
-        # Create a second refresh token for SAME user (different from current session)
+        from src.models.session import Session
+
+        # Create a second session for SAME user (different from current session)
         now = datetime.now(timezone.utc)
-        second_token = RefreshToken(
-            id=uuid4(),
-            user_id=authenticated_user["user"].id,  # Use authenticated user's ID
-            token_hash="different_hash",
-            expires_at=now + timedelta(days=30),
-            is_revoked=False,
+        second_session = Session(
+            user_id=authenticated_user["user"].id,
             device_info="Firefox on Windows",
             location="New York, USA",
             ip_address="192.168.1.2",
-            last_used_at=now,
-            created_at=now,
-            is_trusted_device=False,
+            user_agent="Mozilla/5.0",
+            is_trusted=False,
+            last_activity=now,
+            expires_at=now + timedelta(days=30),
+            is_revoked=False,
+        )
+        db_session.add(second_session)
+        db_session.commit()
+        db_session.refresh(second_session)
+
+        # Create refresh token linked to second session
+        second_token = RefreshToken(
+            user_id=authenticated_user["user"].id,
+            session_id=second_session.id,
+            token_hash="different_hash",
+            expires_at=now + timedelta(days=30),
+            is_revoked=False,
         )
         db_session.add(second_token)
         db_session.commit()
@@ -183,7 +195,7 @@ class TestRevokeSession:
 
         # Revoke the second session
         response = client.delete(
-            f"/api/v1/auth/sessions/{second_token.id}",
+            f"/api/v1/auth/sessions/{second_session.id}",
             headers={"Authorization": f"Bearer {authenticated_user['access_token']}"},
         )
 
@@ -192,7 +204,7 @@ class TestRevokeSession:
         assert "message" in data
         assert "revoked" in data["message"].lower()
         assert "revoked_session_id" in data
-        assert data["revoked_session_id"] == str(second_token.id)
+        assert data["revoked_session_id"] == str(second_session.id)
 
     def test_revoke_session_not_found(
         self, client: TestClient, authenticated_user: dict
@@ -235,17 +247,17 @@ class TestRevokeSession:
 
         Args:
             client: FastAPI TestClient for making HTTP requests
-            authenticated_user: User with valid JWT token and refresh_token_id
+            authenticated_user: User with valid JWT token and session_id
             db_session: Database session for querying current session
 
         Note:
-            Current session ID extracted from JWT jti claim.
+            Current session ID extracted from authenticated_user fixture.
         """
         # Get current session ID from authenticated_user fixture
-        current_session_id = authenticated_user.get("refresh_token_id")
+        current_session_id = authenticated_user.get("session_id")
 
         if not current_session_id:
-            pytest.skip("authenticated_user fixture doesn't provide refresh_token_id")
+            pytest.skip("authenticated_user fixture doesn't provide session_id")
 
         response = client.delete(
             f"/api/v1/auth/sessions/{current_session_id}",
@@ -300,21 +312,34 @@ class TestRevokeOtherSessions:
         Note:
             Creates multiple sessions for same user and verifies only non-current are revoked.
         """
+        from src.models.session import Session
+
         # Create additional sessions for SAME user
         now = datetime.now(timezone.utc)
         for i in range(2):
-            token = RefreshToken(
-                id=uuid4(),
-                user_id=authenticated_user["user"].id,  # Use authenticated user's ID
-                token_hash=f"hash_{i}",
-                expires_at=now + timedelta(days=30),
-                is_revoked=False,
+            # Create session
+            session = Session(
+                user_id=authenticated_user["user"].id,
                 device_info=f"Device {i}",
                 location="Location",
                 ip_address=f"192.168.1.{i + 10}",
-                last_used_at=now,
-                created_at=now,
-                is_trusted_device=False,
+                user_agent="Test Agent",
+                is_trusted=False,
+                last_activity=now,
+                expires_at=now + timedelta(days=30),
+                is_revoked=False,
+            )
+            db_session.add(session)
+            db_session.commit()
+            db_session.refresh(session)
+
+            # Create refresh token linked to session
+            token = RefreshToken(
+                user_id=authenticated_user["user"].id,
+                session_id=session.id,
+                token_hash=f"hash_{i}",
+                expires_at=now + timedelta(days=30),
+                is_revoked=False,
             )
             db_session.add(token)
         db_session.commit()
@@ -328,7 +353,7 @@ class TestRevokeOtherSessions:
         data = response.json()
         assert "message" in data
         assert "revoked_count" in data
-        assert data["revoked_count"] >= 0  # May be 0 if only current session exists
+        assert data["revoked_count"] >= 2  # Should revoke the 2 additional sessions
 
         # Verify current session still works
         verify_response = client.get(
@@ -382,21 +407,34 @@ class TestRevokeAllSessions:
         Note:
             This is the nuclear option - user will be logged out.
         """
+        from src.models.session import Session
+
         # Create additional sessions for SAME user
         now = datetime.now(timezone.utc)
         for i in range(2):
-            token = RefreshToken(
-                id=uuid4(),
-                user_id=authenticated_user["user"].id,  # Use authenticated user's ID
-                token_hash=f"hash_all_{i}",
-                expires_at=now + timedelta(days=30),
-                is_revoked=False,
+            # Create session
+            session = Session(
+                user_id=authenticated_user["user"].id,
                 device_info=f"Device {i}",
                 location="Location",
                 ip_address=f"192.168.1.{i + 20}",
-                last_used_at=now,
-                created_at=now,
-                is_trusted_device=False,
+                user_agent="Test Agent",
+                is_trusted=False,
+                last_activity=now,
+                expires_at=now + timedelta(days=30),
+                is_revoked=False,
+            )
+            db_session.add(session)
+            db_session.commit()
+            db_session.refresh(session)
+
+            # Create refresh token linked to session
+            token = RefreshToken(
+                user_id=authenticated_user["user"].id,
+                session_id=session.id,
+                token_hash=f"hash_all_{i}",
+                expires_at=now + timedelta(days=30),
+                is_revoked=False,
             )
             db_session.add(token)
         db_session.commit()
@@ -411,7 +449,7 @@ class TestRevokeAllSessions:
         assert "message" in data
         assert "logged out" in data["message"].lower()
         assert "revoked_count" in data
-        assert data["revoked_count"] >= 1  # At least current session
+        assert data["revoked_count"] >= 3  # Current session + 2 additional sessions
 
     def test_revoke_all_logs_out_user(
         self, client: TestClient, authenticated_user: dict, db_session: AsyncSession

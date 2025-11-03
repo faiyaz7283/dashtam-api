@@ -709,6 +709,7 @@ def authenticated_user(db_session: Session, verified_user: User) -> dict:
     """Create authenticated user with JWT tokens for API tests.
 
     This fixture creates a complete authentication session including:
+    - Session record (device/browser connection)
     - Access token (JWT with jti claim linking to refresh token)
     - Refresh token (opaque, stored in database)
     - Refresh token ID (UUID for session management)
@@ -719,6 +720,7 @@ def authenticated_user(db_session: Session, verified_user: User) -> dict:
         - access_token: JWT access token for Authorization header
         - refresh_token: Opaque refresh token (plain, not hashed)
         - refresh_token_id: UUID of refresh token record in database
+        - session_id: UUID of session record in database
         - user: User object
 
     Example:
@@ -732,17 +734,40 @@ def authenticated_user(db_session: Session, verified_user: User) -> dict:
     Note:
         This fixture is for session management API tests that need jti claim.
         For simpler auth tests, use auth_tokens fixture instead.
+
+        This fixture now creates a proper Session record to support session
+        management endpoint tests (list/revoke sessions).
     """
     from src.services.jwt_service import JWTService
     from src.services.password_service import PasswordService
     from src.models.auth import RefreshToken
+    from src.models.session import Session as SessionModel
     from datetime import datetime, timedelta, timezone
     import secrets
 
     jwt_service = JWTService()
     password_service = PasswordService()
 
-    # Create refresh token (plain)
+    # Get current time
+    now = datetime.now(timezone.utc)
+
+    # Step 1: Create Session record first
+    session = SessionModel(
+        user_id=verified_user.id,
+        device_info="Test Device",
+        ip_address="127.0.0.1",
+        user_agent="Test Client",
+        location="Test Location",
+        is_trusted=False,
+        last_activity=now,
+        expires_at=now + timedelta(days=30),
+        is_revoked=False,
+    )
+    db_session.add(session)
+    db_session.commit()
+    db_session.refresh(session)
+
+    # Step 2: Create refresh token (plain)
     plain_refresh_token = secrets.token_urlsafe(32)
     token_hash = password_service.hash_password(plain_refresh_token)
 
@@ -754,23 +779,20 @@ def authenticated_user(db_session: Session, verified_user: User) -> dict:
     security_config = result.scalar_one()
     current_global_version = security_config.global_min_token_version
 
-    # Store refresh token in database with session metadata and versioning
+    # Step 3: Store refresh token in database linked to session
     refresh_token = RefreshToken(
         user_id=verified_user.id,
+        session_id=session.id,  # Link to session
         token_hash=token_hash,
         token_version=verified_user.min_token_version,  # User's current version
         global_version_at_issuance=current_global_version,  # Current global version
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-        device_info="Test Device",
-        location="Test Location",
-        ip_address="127.0.0.1",
-        last_used_at=datetime.now(timezone.utc),
+        expires_at=now + timedelta(days=30),
     )
     db_session.add(refresh_token)
     db_session.commit()
     db_session.refresh(refresh_token)
 
-    # Create access token with jti claim (links to refresh token for session management) and version
+    # Step 4: Create access token with jti claim (links to refresh token for session management) and version
     access_token = jwt_service.create_access_token(
         user_id=verified_user.id,
         email=verified_user.email,
@@ -782,6 +804,7 @@ def authenticated_user(db_session: Session, verified_user: User) -> dict:
         "access_token": access_token,
         "refresh_token": plain_refresh_token,
         "refresh_token_id": refresh_token.id,
+        "session_id": session.id,  # Include session_id for tests
         "user": verified_user,
     }
 

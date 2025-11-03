@@ -26,32 +26,36 @@ class TestRefreshToken:
 
         Verifies that:
         - Model created with user_id, token_hash, expires_at
-        - Tracking fields captured: ip_address, user_agent
+        - session_id links to Session (device/browser metadata stored there)
         - is_revoked defaults to False
         - revoked_at defaults to None
-        - Secure device/session tracking enabled
+        - Token versioning fields included
 
         Note:
-            Refresh tokens are opaque (hashed) and device-specific (30-day TTL).
+            Refresh tokens are opaque (hashed) and linked to sessions (30-day TTL).
+            Device/IP metadata moved to Session model for proper separation of concerns.
         """
         user_id = uuid4()
+        session_id = uuid4()
         expires_at = datetime.now(timezone.utc) + timedelta(days=30)
 
         token = RefreshToken(
             user_id=user_id,
+            session_id=session_id,
             token_hash="hashed_token_here",
             expires_at=expires_at,
-            ip_address="192.168.1.1",
-            user_agent="Mozilla/5.0",
+            token_version=1,
+            global_version_at_issuance=1,
         )
 
         assert token.user_id == user_id
+        assert token.session_id == session_id
         assert token.token_hash == "hashed_token_here"
         assert token.expires_at == expires_at
         assert token.is_revoked is False
         assert token.revoked_at is None
-        assert token.ip_address == "192.168.1.1"
-        assert token.user_agent == "Mozilla/5.0"
+        assert token.token_version == 1
+        assert token.global_version_at_issuance == 1
 
     def test_is_expired_property_when_not_expired(self):
         """Test is_expired property returns False for valid token.
@@ -171,8 +175,10 @@ class TestRefreshToken:
         Verifies that:
         - expires_at has tzinfo
         - revoked_at has tzinfo
-        - last_used_at has tzinfo
         - PCI-DSS compliance requirement met
+
+        Note:
+            last_used_at moved to Session model (session tracking).
         """
         now = datetime.now(timezone.utc)
         token = RefreshToken(
@@ -180,12 +186,10 @@ class TestRefreshToken:
             token_hash="hashed_token",
             expires_at=now,
             revoked_at=now,
-            last_used_at=now,
         )
 
         assert token.expires_at.tzinfo is not None
         assert token.revoked_at.tzinfo is not None
-        assert token.last_used_at.tzinfo is not None
 
 
 class TestEmailVerificationToken:

@@ -24,6 +24,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
+from sqlmodel import select
 
 from src.api.dependencies import (
     get_current_user,
@@ -94,7 +95,7 @@ async def list_sessions(
             id=session.id,
             device_info=session.device_info or "Unknown Device",
             location=session.location or "Unknown Location",
-            ip_address=session.ip_address,
+            ip_address=str(session.ip_address) if session.ip_address else None,
             last_activity=session.last_activity,
             created_at=session.created_at,
             is_current=(str(session.id) == current_session_id),
@@ -147,13 +148,26 @@ async def revoke_session(
     Uses pluggable session_manager package (SOLID + Strategy Pattern).
     """
     from fastapi import HTTPException
+    from src.models.auth import RefreshToken
+    from src.core.database import get_session as get_db_session
 
     # Prevent revoking current session (use logout endpoint instead)
-    if str(session_id) == current_session_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot revoke current session. Use /api/v1/auth/logout endpoint instead.",
-        )
+    # Note: current_session_id is the refresh_token_id (jti claim from JWT)
+    # We need to find the session_id that this refresh_token belongs to
+    if current_session_id:
+        async for db_session in get_db_session():
+            result = await db_session.execute(
+                select(RefreshToken).where(RefreshToken.id == UUID(current_session_id))
+            )
+            current_refresh_token = result.scalar_one_or_none()
+
+            if current_refresh_token and current_refresh_token.session_id:
+                if str(current_refresh_token.session_id) == str(session_id):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Cannot revoke current session. Use /api/v1/auth/logout endpoint instead.",
+                    )
+            break  # Exit the async generator after one iteration
 
     # Verify session exists and belongs to current user
     session = await session_manager.get_session(str(session_id))

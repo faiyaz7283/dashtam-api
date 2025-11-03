@@ -318,7 +318,8 @@ class TestAuthServiceLogin:
         assert user.last_login_at is not None
         mock_password_service.verify_password.assert_called_once()
         mock_jwt_service.create_access_token.assert_called_once()
-        mock_session.add.assert_called_once()  # refresh token
+        # Note: add() called twice (once for Session, once for RefreshToken)
+        assert mock_session.add.call_count == 2
         mock_session.commit.assert_called_once()
 
     def test_login_invalid_email(self, auth_service, mock_session):

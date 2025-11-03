@@ -26,6 +26,7 @@ from fastapi import HTTPException, status
 
 from src.models.user import User
 from src.models.auth import RefreshToken
+from src.models.session import Session
 from src.services.password_service import PasswordService
 from src.services.jwt_service import JWTService
 from src.services.verification_service import VerificationService
@@ -256,10 +257,14 @@ class AuthService:
         # Update last login
         user.last_login_at = datetime.now(timezone.utc)
 
-        # Generate opaque refresh token (stateful, hashed in DB) with session metadata
-        # Pattern A: Opaque tokens, not JWT (industry standard)
-        refresh_token, refresh_token_record = await self._create_refresh_token(
+        # 1. Create session with device/browser metadata
+        session_record = await self._create_session(
             user_id=user.id, ip_address=ip_address, user_agent=user_agent
+        )
+
+        # 2. Create opaque refresh token linked to session (Pattern A)
+        refresh_token, refresh_token_record = await self._create_refresh_token(
+            user_id=user.id, session_id=session_record.id
         )
 
         # Generate JWT access token (stateless) with session link (jti claim) and version
@@ -662,22 +667,13 @@ class AuthService:
 
     # Private helper methods
 
-    async def _create_refresh_token(
+    async def _create_session(
         self,
         user_id: UUID,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-    ) -> tuple[str, RefreshToken]:
-        """Create opaque refresh token with session metadata (Pattern A + Session Management).
-
-        Generates a random opaque token (not JWT), hashes it for storage,
-        collects session metadata (location, device fingerprint), and returns
-        both the plain token and the database record.
-
-        Session Metadata:
-        - location: Geolocation from IP (e.g., "San Francisco, USA")
-        - fingerprint: SHA256 hash of device characteristics
-        - is_trusted_device: False by default (future: device trust learning)
+    ) -> Session:
+        """Create a new session with device/browser metadata.
 
         Args:
             user_id: User's unique identifier
@@ -685,67 +681,95 @@ class AuthService:
             user_agent: Client User-Agent header (for fingerprinting)
 
         Returns:
-            Tuple of (plain_token, token_record)
-            - plain_token: Opaque random token to return to client
-            - token_record: Database record with hashed token and session metadata
-
-        Note:
-            Graceful degradation: If IP/user_agent missing, uses default values:
-            - location: "Unknown Location"
-            - fingerprint: hash of empty string
+            Created Session record
         """
-        # Generate random opaque token (like email verification)
-        plain_token = secrets.token_urlsafe(32)
-
-        # Hash token for storage (security best practice)
-        token_hash = self.password_service.hash_password(plain_token)
-
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            days=self.settings.REFRESH_TOKEN_EXPIRE_DAYS
-        )
-
         # Session metadata: Get geolocation from IP address
         location = "Unknown Location"
         if ip_address:
             location = self.geolocation_service.get_location(ip_address)
 
         # Session metadata: Generate device fingerprint from user agent
-        # Simple fingerprint: SHA256 of user_agent string
-        # (Real fingerprinting uses more data, but requires Request object)
         fingerprint_string = user_agent or ""
         fingerprint = hashlib.sha256(fingerprint_string.encode("utf-8")).hexdigest()
 
-        # Token versioning: Get current versions for hybrid rotation
+        # Calculate session expiration
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            days=self.settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )
+
+        # Create Session record
+        session_record = Session(
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            location=location,
+            fingerprint=fingerprint,
+            is_trusted_device=False,
+            last_activity=datetime.now(timezone.utc),
+            expires_at=expires_at,
+        )
+        self.session.add(session_record)
+        await self.session.flush()
+        await self.session.refresh(session_record)
+
+        logger.debug(
+            f"Session created for user {user_id}: "
+            f"session_id={session_record.id}, location={location}"
+        )
+
+        return session_record
+
+    async def _create_refresh_token(
+        self,
+        user_id: UUID,
+        session_id: UUID,
+    ) -> tuple[str, RefreshToken]:
+        """Create opaque refresh token linked to existing session.
+
+        Args:
+            user_id: User's unique identifier
+            session_id: Session to link this token to
+
+        Returns:
+            Tuple of (plain_token, token_record)
+            - plain_token: Opaque random token to return to client
+            - token_record: Database record with hashed token
+        """
+        # Generate random opaque token
+        plain_token = secrets.token_urlsafe(32)
+
+        # Hash token for storage
+        token_hash = self.password_service.hash_password(plain_token)
+
+        # Calculate expiration
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            days=self.settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )
+
+        # Get token versioning info
         from src.models.security_config import SecurityConfig
 
-        # Get global version
         result = await self.session.execute(select(SecurityConfig))
         global_config = result.scalar_one()
 
-        # Get user's current version
         result = await self.session.execute(select(User).where(User.id == user_id))
         user = result.scalar_one()
 
-        # Create refresh token record with hash, session metadata, and versions
+        # Create RefreshToken linked to session
         refresh_token = RefreshToken(
             user_id=user_id,
+            session_id=session_id,
             token_hash=token_hash,
             expires_at=expires_at,
-            location=location,
-            fingerprint=fingerprint,
-            is_trusted_device=False,  # Default: new sessions not trusted
-            token_version=user.min_token_version,  # User's current version
-            global_version_at_issuance=global_config.global_min_token_version,  # Global version at creation
+            token_version=user.min_token_version,
+            global_version_at_issuance=global_config.global_min_token_version,
         )
 
         self.session.add(refresh_token)
         await self.session.flush()
         await self.session.refresh(refresh_token)
 
-        logger.debug(
-            f"Refresh token created for user {user_id}: "
-            f"location={location}, fingerprint={fingerprint[:8]}..."
-        )
+        logger.debug(f"Refresh token created for session {session_id}")
 
         return plain_token, refresh_token
 

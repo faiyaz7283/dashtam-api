@@ -36,7 +36,7 @@ class RefreshToken(DashtamBase, table=True):
         This preserves session metadata while rotating credentials.
 
     Attributes:
-        session_id: Session this token belongs to (after migration).
+        session_id: Session this token belongs to.
         user_id: ID of user who owns this token.
         token_hash: Bcrypt hash of the refresh token.
         expires_at: Token expiration timestamp (30 days).
@@ -44,12 +44,12 @@ class RefreshToken(DashtamBase, table=True):
         is_revoked: Whether token has been revoked.
         token_version: User's token version at issuance time.
         global_version_at_issuance: Global token version at issuance time.
-        session: Session this token belongs to.
+        session: Session this token belongs to (contains device/IP metadata).
         user: User who owns this token.
 
     Note:
-        Session metadata fields (device_info, ip_address, etc.) will be
-        removed by migration and moved to the Session table.
+        All session metadata (device_info, ip_address, user_agent, location,
+        fingerprint, etc.) is stored in the related Session model, not here.
     """
 
     __tablename__ = "refresh_tokens"
@@ -92,43 +92,6 @@ class RefreshToken(DashtamBase, table=True):
         sa_column=Column(Boolean, nullable=False, server_default="false", index=True),
         description="Whether token has been revoked",
     )
-    device_info: Optional[str] = Field(
-        default=None,
-        sa_column=Column(Text, nullable=True),
-        description="Information about device/browser",
-    )
-    ip_address: Optional[str] = Field(
-        default=None,
-        sa_column=Column(INET, nullable=True),
-        description="IP address where token was issued",
-    )
-    user_agent: Optional[str] = Field(
-        default=None,
-        sa_column=Column(Text, nullable=True),
-        description="User agent string of client",
-    )
-    last_used_at: Optional[datetime] = Field(
-        default=None,
-        sa_type=DateTime(timezone=True),
-        description="Timestamp of last token use",
-    )
-
-    # Session management fields
-    location: Optional[str] = Field(
-        default=None,
-        sa_column=Column(String(255), nullable=True),
-        description="User-friendly location from IP geolocation (e.g., 'San Francisco, USA')",
-    )
-    fingerprint: Optional[str] = Field(
-        default=None,
-        sa_column=Column(String(64), nullable=True, index=True),
-        description="SHA256 hash of device fingerprint (browser + OS + screen + timezone)",
-    )
-    is_trusted_device: bool = Field(
-        default=False,
-        sa_column=Column(Boolean, nullable=False, server_default="false"),
-        description="User-marked trusted device (future: extended session TTL)",
-    )
 
     # Token versioning (hybrid approach)
     token_version: int = Field(
@@ -146,7 +109,7 @@ class RefreshToken(DashtamBase, table=True):
     session: Optional["Session"] = Relationship(back_populates="refresh_tokens")
     user: "User" = Relationship(back_populates="refresh_tokens")
 
-    @field_validator("expires_at", "revoked_at", "last_used_at", mode="before")
+    @field_validator("expires_at", "revoked_at", mode="before")
     @classmethod
     def ensure_timezone_aware(cls, v: Optional[datetime]) -> Optional[datetime]:
         """Ensure datetime fields are timezone-aware (UTC)."""

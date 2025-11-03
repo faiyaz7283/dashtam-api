@@ -24,6 +24,8 @@ from src.models.auth import (  # noqa: F401
     EmailVerificationToken,
     PasswordResetToken,
 )
+from src.models.session import Session  # noqa: F401
+from src.models.session_audit import SessionAuditLog  # noqa: F401
 from src.models.provider import (  # noqa: F401
     Provider,
     ProviderConnection,

@@ -689,10 +689,18 @@ class AuthService:
         Returns:
             Created Session record
         """
+        # Validate IP address (PostgreSQL INET type requires valid IP)
+        # TestClient provides 'testclient' which isn't valid - set to None
+        valid_ip = None
+        if ip_address and ip_address not in ("testclient", "test"):
+            # Basic validation: check if it looks like an IP address
+            if "." in ip_address or ":" in ip_address:  # IPv4 or IPv6
+                valid_ip = ip_address
+
         # Session metadata: Get geolocation from IP address
         location = "Unknown Location"
-        if ip_address:
-            location = self.geolocation_service.get_location(ip_address)
+        if valid_ip:
+            location = self.geolocation_service.get_location(valid_ip)
 
         # Session metadata: Generate device fingerprint from user agent
         fingerprint_string = user_agent or ""
@@ -706,7 +714,7 @@ class AuthService:
         # Create Session record
         session_record = Session(
             user_id=user_id,
-            ip_address=ip_address,
+            ip_address=valid_ip,  # Use validated IP or None
             user_agent=user_agent,
             location=location,
             fingerprint=fingerprint,

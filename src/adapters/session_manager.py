@@ -37,10 +37,10 @@ async def get_session_manager_service(
 
         db_session = await anext(get_session())
         session_manager = await get_session_manager_service(db_session)
-        
+
         # Now use session_manager for all session operations
         sessions = await session_manager.list_sessions(user_id="...")
-    
+
     Note:
         This function is async because it may need to initialize enrichers
         or other async components in the future. Currently, it's a simple

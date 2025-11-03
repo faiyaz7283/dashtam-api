@@ -18,6 +18,7 @@ from src.models.base import DashtamBase
 if TYPE_CHECKING:
     from src.models.provider import Provider
     from src.models.auth import RefreshToken, EmailVerificationToken, PasswordResetToken
+    from src.models.session import Session
 
 
 class User(DashtamBase, table=True):
@@ -39,6 +40,7 @@ class User(DashtamBase, table=True):
         last_login_ip: IP address of last successful login.
         is_active: Whether account is active (for soft deletion/suspension).
         providers: List of provider instances owned by user.
+        sessions: List of active sessions (devices) for this user.
         refresh_tokens: List of active refresh tokens for user sessions.
         email_verification_tokens: List of email verification tokens.
         password_reset_tokens: List of password reset tokens.
@@ -113,6 +115,7 @@ class User(DashtamBase, table=True):
     providers: List["Provider"] = Relationship(
         back_populates="user", cascade_delete=True
     )
+    sessions: List["Session"] = Relationship(back_populates="user", cascade_delete=True)
     refresh_tokens: List["RefreshToken"] = Relationship(
         back_populates="user", cascade_delete=True
     )

@@ -183,10 +183,10 @@ def _create_backend(
     elif config.backend_type == "database":
         if db_session is None:
             raise ValueError("db_session is required for 'database' backend")
+        # DatabaseSessionBackend doesn't need session_model or db_session
+        # It creates session dictionaries, storage handles persistence
         return DatabaseSessionBackend(
-            session_model=session_model,
-            db_session=db_session,
-            session_ttl_days=config.session_ttl.days,
+            session_ttl_hours=config.session_ttl.days * 24,  # Convert days to hours
         )
     else:
         raise ValueError(

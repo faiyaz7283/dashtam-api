@@ -55,6 +55,9 @@ class DatabaseSessionStorage(SessionStorage):
         """
         self.db = db_session
         self.session_model = session_model
+        # If session_model is an adapter with table_model attribute, use that for queries
+        # Otherwise use session_model directly
+        self.table_model = getattr(session_model, "table_model", session_model)
 
     async def save_session(self, session: SessionBase) -> None:
         """Persist app's Session model to database.
@@ -79,9 +82,15 @@ class DatabaseSessionStorage(SessionStorage):
             App's concrete Session model or None if not found
         """
         result = await self.db.execute(
-            select(self.session_model).where(self.session_model.id == session_id)
+            select(self.table_model).where(self.table_model.id == session_id)
         )
-        return result.scalar_one_or_none()
+        db_model = result.scalar_one_or_none()
+        if db_model is None:
+            return None
+        # If session_model is an adapter, wrap the result
+        if hasattr(self.session_model, "from_refresh_token"):
+            return self.session_model.from_refresh_token(db_model)
+        return db_model
 
     async def list_sessions(
         self, user_id: str, filters: Optional[SessionFilters] = None
@@ -95,50 +104,49 @@ class DatabaseSessionStorage(SessionStorage):
         Returns:
             List of app's concrete Session models
         """
-        stmt = select(self.session_model).where(self.session_model.user_id == user_id)
+        stmt = select(self.table_model).where(self.table_model.user_id == user_id)
 
         # Apply filters if provided
         if filters:
             if filters.active_only:
                 now = datetime.now(timezone.utc)
                 stmt = stmt.where(
-                    self.session_model.is_revoked == False,  # noqa: E712
-                    (self.session_model.expires_at == None)  # noqa: E711
-                    | (self.session_model.expires_at > now),
+                    self.table_model.is_revoked == False,  # noqa: E712
+                    (self.table_model.expires_at == None)  # noqa: E711
+                    | (self.table_model.expires_at > now),
                 )
 
             if filters.device_type:
                 # Partial match on device_info field
                 stmt = stmt.where(
-                    self.session_model.device_info.contains(filters.device_type)
+                    self.table_model.device_info.contains(filters.device_type)
                 )
 
             if filters.ip_address:
-                stmt = stmt.where(self.session_model.ip_address == filters.ip_address)
+                stmt = stmt.where(self.table_model.ip_address == filters.ip_address)
 
             if filters.location:
-                stmt = stmt.where(
-                    self.session_model.location.contains(filters.location)
-                )
+                stmt = stmt.where(self.table_model.location.contains(filters.location))
 
             if filters.created_after:
-                stmt = stmt.where(
-                    self.session_model.created_at >= filters.created_after
-                )
+                stmt = stmt.where(self.table_model.created_at >= filters.created_after)
 
             if filters.created_before:
-                stmt = stmt.where(
-                    self.session_model.created_at <= filters.created_before
-                )
+                stmt = stmt.where(self.table_model.created_at <= filters.created_before)
 
             if filters.is_trusted is not None:
-                stmt = stmt.where(self.session_model.is_trusted == filters.is_trusted)
+                stmt = stmt.where(self.table_model.is_trusted == filters.is_trusted)
 
         # Order by most recent first
-        stmt = stmt.order_by(self.session_model.created_at.desc())
+        stmt = stmt.order_by(self.table_model.created_at.desc())
 
         result = await self.db.execute(stmt)
-        return list(result.scalars().all())
+        db_models = list(result.scalars().all())
+
+        # If session_model is an adapter, wrap the results
+        if hasattr(self.session_model, "from_refresh_token"):
+            return [self.session_model.from_refresh_token(model) for model in db_models]
+        return db_models
 
     async def revoke_session(self, session_id: str, reason: str) -> bool:
         """Mark session as revoked.

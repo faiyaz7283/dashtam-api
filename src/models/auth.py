@@ -17,38 +17,54 @@ from src.models.base import DashtamBase
 
 if TYPE_CHECKING:
     from src.models.user import User
+    from src.models.session import Session
 
 
 class RefreshToken(DashtamBase, table=True):
-    """Refresh token for JWT authentication with session management.
+    """Refresh token for JWT authentication.
 
     Stores refresh tokens with rotation support. Each token is hashed
     before storage and can be revoked for logout or security events.
-    Each refresh token represents a user session on a specific device.
 
-    Session Management:
-    - Users can view all active sessions (devices)
-    - Users can revoke sessions individually or in bulk
-    - Email alerts sent for new sessions from new devices/locations
-    - Device fingerprinting for session hijacking detection
+    Separation of Concerns:
+        - RefreshToken: Credential for JWT refresh
+        - Session: Device/browser connection with metadata
+        - Relationship: RefreshToken (many) → Session (1)
+
+    Token Rotation:
+        When a token is refreshed, a new token is created for the SAME session.
+        This preserves session metadata while rotating credentials.
 
     Attributes:
+        session_id: Session this token belongs to (after migration).
         user_id: ID of user who owns this token.
         token_hash: Bcrypt hash of the refresh token.
         expires_at: Token expiration timestamp (30 days).
         revoked_at: Timestamp when token was revoked (logout).
         is_revoked: Whether token has been revoked.
-        device_info: Information about device/browser.
-        ip_address: IP address where token was issued.
-        user_agent: User agent string of client.
-        last_used_at: Timestamp of last token use (refresh).
-        location: User-friendly location from IP geolocation.
-        fingerprint: SHA256 hash of device fingerprint.
-        is_trusted_device: User-marked trusted device flag.
+        token_version: User's token version at issuance time.
+        global_version_at_issuance: Global token version at issuance time.
+        session: Session this token belongs to.
         user: User who owns this token.
+
+    Note:
+        Session metadata fields (device_info, ip_address, etc.) will be
+        removed by migration and moved to the Session table.
     """
 
     __tablename__ = "refresh_tokens"
+
+    # NOTE: session_id will be added via migration
+    # After migration, this will be the primary relationship
+    # The session fields below will be removed by migration
+    session_id: Optional[UUID] = Field(
+        default=None,
+        foreign_key="sessions.id",
+        nullable=True,  # Nullable during migration, will become NOT NULL
+        index=True,
+        ondelete="CASCADE",
+        description="Session this token belongs to",
+    )
 
     user_id: UUID = Field(
         foreign_key="users.id",
@@ -127,6 +143,7 @@ class RefreshToken(DashtamBase, table=True):
     )
 
     # Relationships
+    session: Optional["Session"] = Relationship(back_populates="refresh_tokens")
     user: "User" = Relationship(back_populates="refresh_tokens")
 
     @field_validator("expires_at", "revoked_at", "last_used_at", mode="before")

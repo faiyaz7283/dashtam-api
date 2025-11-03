@@ -1,7 +1,7 @@
 """Unit tests for SessionBase model.
 
 Tests the business logic methods defined in SessionBase,
-particularly is_active() which determines session validity.
+particularly is_session_active() which determines session validity.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -10,7 +10,7 @@ from src.session_manager.tests.fixtures.mock_models import MockSession
 
 
 class TestIsActiveMethod:
-    """Test SessionBase.is_active() business logic."""
+    """Test SessionBase.is_session_active() business logic."""
 
     def test_is_active_when_valid(self):
         """Test that active, non-expired session returns True."""
@@ -20,7 +20,7 @@ class TestIsActiveMethod:
             expires_at=future,
         )
 
-        assert session.is_active() is True
+        assert session.is_session_active() is True
 
     def test_is_active_when_revoked(self):
         """Test that revoked session returns False."""
@@ -30,7 +30,7 @@ class TestIsActiveMethod:
             expires_at=future,
         )
 
-        assert session.is_active() is False
+        assert session.is_session_active() is False
 
     def test_is_active_when_expired(self):
         """Test that expired session returns False."""
@@ -40,7 +40,7 @@ class TestIsActiveMethod:
             expires_at=past,
         )
 
-        assert session.is_active() is False
+        assert session.is_session_active() is False
 
     def test_is_active_when_revoked_and_expired(self):
         """Test that revoked AND expired session returns False."""
@@ -50,7 +50,7 @@ class TestIsActiveMethod:
             expires_at=past,
         )
 
-        assert session.is_active() is False
+        assert session.is_session_active() is False
 
     def test_is_active_when_no_expiration(self):
         """Test that session with no expiration is active if not revoked."""
@@ -59,7 +59,7 @@ class TestIsActiveMethod:
             expires_at=None,  # Never expires
         )
 
-        assert session.is_active() is True
+        assert session.is_session_active() is True
 
     def test_is_active_when_expires_at_exactly_now(self):
         """Test edge case when expires_at is exactly current time."""
@@ -71,7 +71,7 @@ class TestIsActiveMethod:
 
         # Should be False (expired) since now > expires_at would be True
         # after any tiny time passing
-        assert session.is_active() is False
+        assert session.is_session_active() is False
 
     def test_is_active_when_expires_in_one_second(self):
         """Test that session expiring in 1 second is still active."""
@@ -81,7 +81,7 @@ class TestIsActiveMethod:
             expires_at=one_second_future,
         )
 
-        assert session.is_active() is True
+        assert session.is_session_active() is True
 
 
 class TestSessionBaseFields:
@@ -107,12 +107,12 @@ class TestSessionBaseFields:
         assert hasattr(session, "revoked_reason")
 
     def test_is_active_method_exists(self):
-        """Test that is_active() method exists."""
+        """Test that is_session_active() method exists."""
         session = MockSession()
 
         # Should have is_active method
-        assert hasattr(session, "is_active")
-        assert callable(session.is_active)
+        assert hasattr(session, "is_session_active")
+        assert callable(session.is_session_active)
 
     def test_created_at_is_timezone_aware(self):
         """Test that created_at is timezone-aware (UTC)."""

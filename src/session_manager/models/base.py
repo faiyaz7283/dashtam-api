@@ -7,32 +7,28 @@ Package defines REQUIRED fields and business logic interface.
 Apps implement concrete models with their chosen database types.
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Optional
-from uuid import UUID
 
 
 class SessionBase(ABC):
-    """Abstract base model for sessions.
+    """Abstract interface for session models.
 
-    Package defines REQUIRED fields and business logic interface.
-    Apps implement concrete models with their chosen ORM and database types.
+    This is a proper ABC that defines the INTERFACE contract for sessions,
+    not the data structure. Apps implement concrete models with their chosen
+    ORM and database types.
 
     Design Principles:
-        - Database Agnostic: No PostgreSQL, MySQL, or SQLite assumptions
+        - Interface Definition: Defines required methods and properties
+        - Database Agnostic: No assumptions about storage
         - ORM Freedom: Apps choose SQLModel, Django ORM, SQLAlchemy, etc.
-        - Interface Definition: Defines structure, apps implement storage
-        - Business Logic: Core session logic (is_active) defined here
+        - Business Logic: Core validation logic provided as default implementation
 
-    Required Fields:
+    Required Properties/Attributes (implement in concrete class):
         id: Session identifier (UUID recommended)
         user_id: User identifier (format determined by app)
         device_info: Device/browser information
         ip_address: Client IP (storage format determined by app)
-            - PostgreSQL: INET type
-            - MySQL: VARCHAR(45)
-            - SQLite: TEXT
         user_agent: Full user agent string
         location: Geographic location (from IP enrichment)
         created_at: Session creation timestamp (timezone-aware UTC)
@@ -43,8 +39,8 @@ class SessionBase(ABC):
         revoked_at: When session was revoked
         revoked_reason: Why session was revoked
 
-    Business Logic:
-        is_active(): Check if session is valid (not revoked, not expired)
+    Required Methods:
+        is_session_active(): Check if session is valid (not revoked, not expired)
 
     Example Implementation (Dashtam with SQLModel + PostgreSQL):
         ```python
@@ -55,40 +51,41 @@ class SessionBase(ABC):
             __tablename__ = "sessions"
 
             id: UUID = Field(default_factory=uuid4, primary_key=True)
-            user_id: str = Field(sa_column=Column(String(255)))
-            ip_address: Optional[str] = Field(sa_column=Column(INET))  # PostgreSQL native
+            user_id: UUID = Field(foreign_key="users.id")
+            ip_address: Optional[str] = Field(sa_column=Column(INET))
+            is_revoked: bool = Field(default=False)
+            is_trusted: bool = Field(default=False)
             # ... other fields ...
 
-            def is_active(self) -> bool:
-                return super().is_active()
+            def is_session_active(self) -> bool:
+                # Use base implementation or override
+                return super().is_session_active()
         ```
+
+    Note:
+        Concrete implementations MUST provide all required fields as
+        database columns/attributes. This ABC only defines the interface.
     """
 
-    # Required fields (apps implement with database-specific types)
-    id: UUID
-    user_id: str
-    device_info: Optional[str]
-    ip_address: Optional[str]  # Format depends on database (INET, VARCHAR, TEXT)
-    user_agent: Optional[str]
-    location: Optional[str]
-    created_at: datetime  # Must be timezone-aware (UTC)
-    last_activity: Optional[datetime]
-    expires_at: Optional[datetime]
-    is_revoked: bool
-    is_trusted: bool
-    revoked_at: Optional[datetime]
-    revoked_reason: Optional[str]
-
-    def is_active(self) -> bool:
+    # Abstract method that concrete classes must implement
+    @abstractmethod
+    def is_session_active(self) -> bool:
         """Check if session is active (not revoked, not expired).
 
-        Apps can override this method to add custom logic.
+        Default implementation checks:
+        - Session is not revoked
+        - Session has not expired
+
+        Concrete classes can override to add custom logic.
 
         Returns:
             True if session is active, False otherwise
         """
-        if self.is_revoked:
+        # Note: This is a default implementation that can be used by calling super().is_session_active()
+        # Concrete classes can access self.is_revoked and self.expires_at
+        # because they must implement these as fields
+        if self.is_revoked:  # type: ignore
             return False
-        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
+        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:  # type: ignore
             return False
         return True

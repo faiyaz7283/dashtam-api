@@ -156,7 +156,7 @@ class Session(DashtamBase, SessionBase, table=True):
         return v.astimezone(timezone.utc)
 
     # SessionBase interface implementation
-    def is_active(self) -> bool:
+    def is_session_active(self) -> bool:
         """Check if session is active (SessionBase interface).
 
         A session is active if:
@@ -165,6 +165,10 @@ class Session(DashtamBase, SessionBase, table=True):
 
         Returns:
             True if session is active, False otherwise
+
+        Note:
+            Separate from is_active field (inherited from DashtamBase)
+            which is used for soft delete. This method validates session state.
         """
         if self.is_revoked:
             return False
@@ -179,6 +183,6 @@ class Session(DashtamBase, SessionBase, table=True):
             f"id={self.id}, "
             f"user_id={self.user_id}, "
             f"device={self.device_info}, "
-            f"active={self.is_active()}"
+            f"session_active={self.is_session_active()}"
             f")>"
         )

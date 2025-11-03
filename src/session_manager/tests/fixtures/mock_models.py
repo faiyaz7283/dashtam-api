@@ -49,6 +49,10 @@ class MockSession(SessionBase):
         self.revoked_at = revoked_at
         self.revoked_reason = revoked_reason
 
+    def is_session_active(self) -> bool:
+        """Check if session is active (delegates to SessionBase)."""
+        return super().is_session_active()
+
 
 class MockAuditLog:
     """Mock audit log model for testing.

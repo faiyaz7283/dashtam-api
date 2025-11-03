@@ -23,11 +23,15 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, status
 
-from src.api.dependencies import get_current_user, get_client_ip, get_user_agent
-from src.core.database import get_session
+from src.api.dependencies import (
+    get_current_user,
+    get_client_ip,
+    get_current_session_id,
+    get_session_manager,
+    get_user_agent,
+)
 from src.core.fingerprinting import format_device_info
 from src.models.user import User
 from src.schemas.session import (
@@ -36,10 +40,8 @@ from src.schemas.session import (
     RevokeSessionResponse,
     BulkRevokeResponse,
 )
-from src.services.session_management_service import SessionManagementService
-from src.services.geolocation_service import get_geolocation_service
-from src.services.jwt_service import JWTService
-from src.core.cache import get_cache
+from src.session_manager.models.filters import SessionFilters
+from src.session_manager.service import SessionManagerService
 
 router = APIRouter(prefix="/auth/sessions", tags=["sessions"])
 logger = logging.getLogger(__name__)
@@ -69,48 +71,36 @@ logger = logging.getLogger(__name__)
     },
 )
 async def list_sessions(
-    request: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_session_id: Optional[str] = Depends(get_current_session_id),
+    session_manager: SessionManagerService = Depends(get_session_manager),
 ):
     """List all active sessions for authenticated user.
 
     Rate limit: 10 requests per minute per user.
+
+    Uses pluggable session_manager package (SOLID + Strategy Pattern).
     """
-    # Initialize services (SOLID: Dependency Injection)
-    geo_service = get_geolocation_service()
-    cache = get_cache()
-    mgmt_service = SessionManagementService(session, geo_service, cache)
-    jwt_service = JWTService()
-
-    # Extract current session ID from JWT (jti claim)
-    auth_header = request.headers.get("Authorization", "")
-    token = auth_header.replace("Bearer ", "")
-
-    try:
-        payload = jwt_service.decode_token(token)
-        current_token_id = UUID(payload.get("jti")) if payload.get("jti") else None
-    except Exception:
-        current_token_id = None
-
-    # List sessions
-    sessions = await mgmt_service.list_sessions(
-        user_id=current_user.id, current_token_id=current_token_id
+    # List active sessions using session_manager
+    # SessionFilters(active_only=True) returns only non-revoked, non-expired sessions
+    sessions = await session_manager.list_sessions(
+        user_id=str(current_user.id),
+        filters=SessionFilters(active_only=True),
     )
 
     # Convert to response schema
     session_responses = [
         SessionInfoResponse(
-            id=s.id,
-            device_info=s.device_info,
-            location=s.location,
-            ip_address=s.ip_address,  # Optional: hide for privacy
-            last_activity=s.last_activity,
-            created_at=s.created_at,
-            is_current=s.is_current,
-            is_trusted=s.is_trusted,
+            id=session.id,
+            device_info=session.device_info or "Unknown Device",
+            location=session.location or "Unknown Location",
+            ip_address=session.ip_address,
+            last_activity=session.last_activity,
+            created_at=session.created_at,
+            is_current=(str(session.id) == current_session_id),
+            is_trusted=session.is_trusted,
         )
-        for s in sessions
+        for session in sessions
     ]
 
     return SessionListResponse(
@@ -144,42 +134,53 @@ async def list_sessions(
 )
 async def revoke_session(
     session_id: UUID,
-    request: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_session_id: Optional[str] = Depends(get_current_session_id),
+    session_manager: SessionManagerService = Depends(get_session_manager),
+    ip_address: Optional[str] = Depends(get_client_ip),
+    user_agent: Optional[str] = Depends(get_user_agent),
 ):
     """Revoke specific session (logout from device).
 
     Rate limit: 20 requests per minute per user.
+
+    Uses pluggable session_manager package (SOLID + Strategy Pattern).
     """
-    # Initialize services (SOLID: Dependency Injection)
-    geo_service = get_geolocation_service()
-    cache = get_cache()
-    mgmt_service = SessionManagementService(session, geo_service, cache)
-    jwt_service = JWTService()
+    from fastapi import HTTPException
 
-    # Extract current session ID from JWT
-    auth_header = request.headers.get("Authorization", "")
-    token = auth_header.replace("Bearer ", "")
+    # Prevent revoking current session (use logout endpoint instead)
+    if str(session_id) == current_session_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot revoke current session. Use /api/v1/auth/logout endpoint instead.",
+        )
 
-    try:
-        payload = jwt_service.decode_token(token)
-        current_token_id = UUID(payload.get("jti")) if payload.get("jti") else None
-    except Exception:
-        current_token_id = None
+    # Verify session exists and belongs to current user
+    session = await session_manager.get_session(str(session_id))
+    if not session or str(session.user_id) != str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found or not owned by user",
+        )
 
-    # Get revocation context
-    revoked_by_ip = request.client.host if request.client else "unknown"
-    revoked_by_device = format_device_info(request.headers.get("user-agent", ""))
-
-    # Revoke session
-    await mgmt_service.revoke_session(
-        user_id=current_user.id,
-        session_id=session_id,
-        current_session_id=current_token_id,
-        revoked_by_ip=revoked_by_ip,
-        revoked_by_device=revoked_by_device,
+    # Revoke session with audit context
+    revoked = await session_manager.revoke_session(
+        session_id=str(session_id),
+        reason="User revoked via API",
+        context={
+            "revoked_by_user_id": str(current_user.id),
+            "revoked_by_ip": ip_address,
+            "revoked_by_device": format_device_info(user_agent)
+            if user_agent
+            else "Unknown",
+        },
     )
+
+    if not revoked:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to revoke session",
+        )
 
     return RevokeSessionResponse(
         message="Session revoked successfully", revoked_session_id=session_id
@@ -208,33 +209,22 @@ async def revoke_session(
     },
 )
 async def revoke_other_sessions(
-    request: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_session_id: Optional[str] = Depends(get_current_session_id),
+    session_manager: SessionManagerService = Depends(get_session_manager),
 ):
     """Revoke all sessions except current.
 
     Rate limit: 5 requests per hour per user.
+
+    Uses pluggable session_manager package (SOLID + Strategy Pattern).
     """
-    # Initialize services (SOLID: Dependency Injection)
-    geo_service = get_geolocation_service()
-    cache = get_cache()
-    mgmt_service = SessionManagementService(session, geo_service, cache)
-    jwt_service = JWTService()
-
-    # Extract current session ID from JWT
-    auth_header = request.headers.get("Authorization", "")
-    token = auth_header.replace("Bearer ", "")
-
-    try:
-        payload = jwt_service.decode_token(token)
-        current_token_id = UUID(payload.get("jti")) if payload.get("jti") else None
-    except Exception:
-        current_token_id = None
-
-    # Revoke other sessions
-    revoked_count = await mgmt_service.revoke_other_sessions(
-        user_id=current_user.id, current_session_id=current_token_id
+    # Revoke all sessions except current using session_manager
+    # except_session_id keeps current session active
+    revoked_count = await session_manager.revoke_all_user_sessions(
+        user_id=str(current_user.id),
+        reason="User revoked all other sessions via API",
+        except_session_id=current_session_id,
     )
 
     return BulkRevokeResponse(
@@ -265,24 +255,22 @@ async def revoke_other_sessions(
 )
 async def revoke_all_sessions(
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    session_manager: SessionManagerService = Depends(get_session_manager),
     ip_address: Optional[str] = Depends(get_client_ip),
     user_agent: Optional[str] = Depends(get_user_agent),
 ):
     """Revoke all sessions (nuclear option).
 
     Rate limit: 3 requests per hour per user.
-    """
-    # Initialize services (SOLID: Dependency Injection)
-    geo_service = get_geolocation_service()
-    cache = get_cache()
-    mgmt_service = SessionManagementService(session, geo_service, cache)
 
-    # Revoke all sessions with audit trail
-    revoked_count = await mgmt_service.revoke_all_sessions(
-        user_id=current_user.id,
-        revoked_by_ip=ip_address,
-        revoked_by_device=format_device_info(user_agent) if user_agent else "Unknown",
+    Uses pluggable session_manager package (SOLID + Strategy Pattern).
+    """
+    # Revoke ALL sessions (including current) using session_manager
+    # No except_session_id parameter = revoke everything
+    revoked_count = await session_manager.revoke_all_user_sessions(
+        user_id=str(current_user.id),
+        reason="User revoked all sessions (nuclear option) via API",
+        except_session_id=None,  # Explicit: revoke ALL sessions
     )
 
     return BulkRevokeResponse(

@@ -2,7 +2,7 @@
 
 SOLID Principles:
 - Interface Segregation: Minimal interface for session token blacklist operations
-- Dependency Inversion: High-level SessionManagementService depends on abstraction, not Redis
+- Dependency Inversion: High-level session management services depend on abstraction, not Redis
 - Single Responsibility: Cache operations only (no business logic)
 
 Design Decision:

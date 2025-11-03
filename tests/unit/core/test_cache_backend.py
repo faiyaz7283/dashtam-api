@@ -290,7 +290,7 @@ class TestCacheIntegrationWithServices:
             try:
                 token_id = "session-token-123"
 
-                # 1. Revoke session (SessionManagementService)
+                # 1. Revoke session (session management)
                 blacklist_key = f"revoked_token:{token_id}"
                 await cache.set(blacklist_key, "1", ttl_seconds=2592000)
 

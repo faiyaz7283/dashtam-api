@@ -17,11 +17,13 @@ from sqlmodel import select
 
 from src.core.database import get_session
 from src.models.user import User
+from src.adapters.session_manager import get_session_manager_service
 from src.services.auth_service import AuthService
 from src.services.jwt_service import JWTService, JWTError
 from src.services.password_reset_service import PasswordResetService
 from src.services.token_service import TokenService
 from src.services.verification_service import VerificationService
+from src.session_manager.service import SessionManagerService
 
 logger = logging.getLogger(__name__)
 
@@ -389,3 +391,79 @@ def get_password_reset_service(
             await password_reset_service.request_reset(email)
     """
     return PasswordResetService(session)
+
+
+async def get_session_manager(
+    session: AsyncSession = Depends(get_session),
+) -> SessionManagerService:
+    """Get SessionManagerService instance with injected database session.
+
+    This provides a consistent dependency injection point for SessionManagerService
+    across all routers. The service is instantiated via the factory pattern which
+    wires up all dependencies (storage, backend, audit).
+
+    Args:
+        session: Database session from dependency.
+
+    Returns:
+        SessionManagerService instance (fully configured).
+
+    Example:
+        @router.get("/auth/sessions")
+        async def list_sessions(
+            current_user: User = Depends(get_current_user),
+            session_manager: SessionManagerService = Depends(get_session_manager),
+        ):
+            sessions = await session_manager.list_sessions(user_id=str(current_user.id))
+    """
+    return await get_session_manager_service(session)
+
+
+async def get_current_session_id(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> Optional[str]:
+    """Extract current session ID (jti) from JWT access token.
+
+    This dependency extracts the jti (JWT ID) claim from the access token,
+    which corresponds to the refresh_token ID (session ID) in the database.
+    This enables identifying which session (device) the current request is from.
+
+    Args:
+        credentials: HTTP Bearer token from Authorization header.
+
+    Returns:
+        Session ID (refresh token ID) as string, or None if jti claim not present.
+
+    Note:
+        - Returns None if token doesn't have jti claim (graceful degradation)
+        - Returns None if token is invalid (graceful degradation)
+        - This is used to mark "is_current" session in session list responses
+
+    Example:
+        @router.get("/auth/sessions")
+        async def list_sessions(
+            current_user: User = Depends(get_current_user),
+            current_session_id: Optional[str] = Depends(get_current_session_id),
+        ):
+            # Mark current session with is_current=True
+            pass
+    """
+    if not credentials:
+        return None
+
+    token = credentials.credentials
+
+    # Initialize JWT service
+    jwt_service = JWTService()
+
+    try:
+        # Decode token and extract jti claim
+        claims = jwt_service.decode_token(token)
+        jti = claims.get("jti")
+
+        return jti if jti else None
+
+    except (JWTError, Exception):
+        # Graceful degradation: if we can't decode token, return None
+        # The get_current_user dependency will handle authentication
+        return None

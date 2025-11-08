@@ -7,17 +7,23 @@ configuration will be added as features are implemented.
 
 Created as part of F0.2 (Docker & Environment Setup) to establish a
 functional development environment with Traefik routing.
+
+Updated in F0.3 (Configuration Management) to use Pydantic Settings.
 """
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
-# Initialize FastAPI application
+from src.core.config import settings
+
+# Initialize FastAPI application with settings
 app = FastAPI(
-    title="Dashtam API",
+    title=settings.app_name,
     description="Secure financial data aggregation platform",
-    version="0.1.0",
+    version=settings.app_version,
     docs_url="/docs",
     redoc_url="/redoc",
+    debug=settings.debug,
 )
 
 
@@ -45,3 +51,45 @@ async def health() -> dict[str, str]:
         dict: Health status indicator.
     """
     return {"status": "healthy"}
+
+
+@app.get("/config")
+async def get_config() -> JSONResponse:
+    """
+    Configuration debug endpoint (development only).
+
+    Returns configuration information for debugging purposes.
+    In production, this endpoint should be disabled or protected.
+
+    Returns:
+        JSONResponse: Configuration details (sanitized).
+    """
+    if not settings.is_development:
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Config endpoint only available in development"},
+        )
+
+    return JSONResponse(
+        content={
+            "environment": settings.environment.value,
+            "debug": settings.debug,
+            "api": {
+                "name": settings.app_name,
+                "version": settings.app_version,
+                "base_url": settings.api_base_url,
+                "v1_prefix": settings.api_v1_prefix,
+            },
+            "database": {
+                "url": "<redacted>",  # Never expose credentials
+                "echo": settings.db_echo,
+            },
+            "cache": {
+                "url": "<redacted>",
+            },
+            "cors": {
+                "origins": settings.cors_origins,
+                "allow_credentials": settings.cors_allow_credentials,
+            },
+        }
+    )

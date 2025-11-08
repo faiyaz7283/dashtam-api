@@ -74,6 +74,9 @@ coverage.xml
 .local/
 tmp/site/
 
+# Old implementation (for reference during clean slate development)
+DELETE/
+
 # MkDocs build output
 site/
 

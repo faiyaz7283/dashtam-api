@@ -47,9 +47,9 @@ services:
     container_name: dashtam-dev-app
     env_file:
       - ../env/.env.dev
-    ports:
-      - "${APP_PORT:-8000}:8000"
-      - "${MKDOCS_PORT:-8001}:8001"
+    expose:
+      - "8000"
+      - "8001"
     volumes:
       # Mount entire project for full dev experience (mkdocs, config files, etc.)
       - ..:/app:rw
@@ -62,6 +62,15 @@ services:
         condition: service_healthy
     networks:
       - dashtam-dev-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      # Main app router (HTTPS)
+      - "traefik.http.routers.dashtam-dev.rule=Host(`dashtam.local`)"
+      - "traefik.http.routers.dashtam-dev.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-dev.tls=true"
+      - "traefik.http.routers.dashtam-dev.service=dashtam-dev"
+      - "traefik.http.services.dashtam-dev.loadbalancer.server.port=8000"
     restart: unless-stopped
 
   # OAuth Callback Server (Development)
@@ -87,6 +96,8 @@ services:
 networks:
   dashtam-dev-network:
     driver: bridge
+  traefik-public:
+    external: true
 
 volumes:
   postgres_dev_data:

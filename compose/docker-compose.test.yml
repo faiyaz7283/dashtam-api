@@ -63,8 +63,8 @@ services:
     container_name: dashtam-test-app
     env_file:
       - ../env/.env.test
-    ports:
-      - "8002:8000"  # Different external port (8002), internal stays 8000
+    expose:
+      - "8000"
     volumes:
       - ../src:/app/src:rw
       - ../tests:/app/tests:rw
@@ -80,44 +80,55 @@ services:
         condition: service_healthy
     networks:
       - dashtam-test-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      # Test app router (HTTPS)
+      - "traefik.http.routers.dashtam-test.rule=Host(`test.dashtam.local`)"
+      - "traefik.http.routers.dashtam-test.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-test.tls=true"
+      - "traefik.http.routers.dashtam-test.service=dashtam-test"
+      - "traefik.http.services.dashtam-test.loadbalancer.server.port=8000"
     # Keep container running for on-demand test execution
-    # Run migrations first, then keep container alive
+    # TODO F0.4: Re-enable automatic migrations once Alembic is initialized
+    # TEMPORARY: Removed auto-migrations to prevent crash-loop during clean slate setup
     command: >
       sh -c "
-        echo 'Initializing test database with Alembic migrations...' &&
-        uv run alembic upgrade head &&
         echo 'Test environment ready. Database and Redis are available.' &&
         echo 'Run tests with: docker compose -f docker-compose.test.yml exec app pytest' &&
         tail -f /dev/null
       "
 
   # OAuth Callback Server (Testing)
-  callback:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      target: callback
-    container_name: dashtam-test-callback
-    env_file:
-      - ../env/.env.test
-    ports:
-      - "8184:8182"  # Different external port
-    volumes:
-      - ../certs:/app/certs:ro
-    depends_on:
-      - app
-    networks:
-      - dashtam-test-network
-    command: >
-      sh -c "
-        echo 'Test callback server ready.' &&
-        tail -f /dev/null
-      "
+  # TODO: Re-enable during Provider/Schwab phase (F4.x)
+  # callback:
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile
+  #     target: callback
+  #   container_name: dashtam-test-callback
+  #   env_file:
+  #     - ../env/.env.test
+  #   ports:
+  #     - "8184:8182"  # Different external port
+  #   volumes:
+  #     - ../certs:/app/certs:ro
+  #   depends_on:
+  #     - app
+  #   networks:
+  #     - dashtam-test-network
+  #   command: >
+  #     sh -c "
+  #       echo 'Test callback server ready.' &&
+  #       tail -f /dev/null
+  #     "
 
 
 networks:
   dashtam-test-network:
     driver: bridge
+  traefik-public:
+    external: true
 
 # Note: No named volumes - all storage is ephemeral via tmpfs
 # This ensures tests always start with a clean state

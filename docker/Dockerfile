@@ -46,8 +46,12 @@ RUN uv sync --frozen --all-groups
 # Copy application code (as appuser)
 COPY --chown=appuser:appuser . .
 
-# Development command - run migrations then start with reload
-CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --ssl-certfile certs/cert.pem --ssl-keyfile certs/key.pem"]
+# Development command - start with reload
+# TODO F0.4: Re-enable automatic migrations once Alembic is initialized
+# TEMPORARY: Removed auto-migrations to prevent crash-loop during clean slate setup
+# GOAL: Restore "uv run alembic upgrade head &&" prefix in F0.4 (Database Setup)
+# NOTE: Also remove --ssl-certfile/--ssl-keyfile (Traefik handles SSL termination)
+CMD ["sh", "-c", "echo 'Development server starting...' && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"]
 
 # =============================================================================
 # Builder Stage - Production dependency installation
@@ -96,7 +100,9 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f https://localhost:8000/health --insecure || exit 1
 
 # Production command
-CMD ["sh", "-c", "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000 --ssl-certfile certs/cert.pem --ssl-keyfile certs/key.pem"]
+# TODO F0.4: Re-enable automatic migrations once Alembic is initialized
+# NOTE: Remove --ssl-certfile/--ssl-keyfile (Traefik handles SSL termination)
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port 8000"]
 
 # =============================================================================
 # Callback Server Stage - OAuth callback handler

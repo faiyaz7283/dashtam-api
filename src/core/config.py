@@ -275,7 +275,7 @@ def get_settings() -> Settings:
     Returns:
         Settings: Cached settings instance.
     """
-    return Settings()
+    return Settings()  # type: ignore[call-arg]  # Pydantic Settings loads from env
 
 
 # Global settings instance (singleton pattern)

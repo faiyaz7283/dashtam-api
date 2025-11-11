@@ -76,3 +76,35 @@ show_missing = true
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+# =============================================================================
+# Type Checking Configuration
+# =============================================================================
+[tool.mypy]
+# Use Python version from project configuration
+# No need to specify python_version - mypy will use the environment's version
+files = ["src", "tests"]
+exclude = [
+    "DELETE/",
+    "htmlcov/",
+    "site/",
+    ".venv/",
+    "venv/",
+]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_reexport = true
+
+# Per-module options for third-party libraries without stubs
+[[tool.mypy.overrides]]
+module = [
+    "uvicorn",
+    "passlib.*",
+    "jose",
+    "fakeredis.*",
+    "alembic.*",
+    "sqlalchemy.*",
+    "asyncpg.*",
+]
+ignore_missing_imports = true

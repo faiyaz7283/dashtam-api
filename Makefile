@@ -46,6 +46,7 @@ help:
 	@echo "✨ Code Quality:"
 	@echo "  make lint            - Run Python linters (ruff)"
 	@echo "  make format          - Format Python code (ruff)"
+	@echo "  make type-check      - Type check with mypy (strict)"
 	@echo "  make lint-md FILE=path/to/file.md - Lint markdown (flexible)"
 	@echo "  make lint-md-fix     - Fix markdown issues (with safety)"
 	@echo ""
@@ -207,16 +208,18 @@ ci-test: _ensure-env-ci
 # CODE QUALITY
 # ==============================================================================
 
-lint:
+lint: dev-up
 	@echo "🔍 Running linters..."
-	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
 	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff check src/ tests/
 
-format:
+format: dev-up
 	@echo "✨ Formatting code..."
-	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
 	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff format src/ tests/
 	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff check --fix src/ tests/
+
+type-check: dev-up
+	@echo "🔍 Running type checks with mypy..."
+	@docker compose -f compose/docker-compose.dev.yml exec -w /app app uv run mypy src
 
 # ==============================================================================
 # MARKDOWN LINTING

@@ -5,11 +5,13 @@ This configuration ensures:
 2. Proper cleanup between tests
 3. No race conditions between async tests
 4. Database fixtures are properly isolated
+5. Cache fixtures bypass singleton for test isolation
 """
 
 import pytest
 import asyncio
 import pytest_asyncio
+from redis.asyncio import Redis, ConnectionPool
 
 
 # Configure pytest-asyncio
@@ -102,6 +104,65 @@ async def isolated_database_session():
 
     # Cleanup
     await db.close()
+
+
+# Cache test isolation helpers (matches database pattern)
+@pytest_asyncio.fixture
+async def redis_test_client():
+    """Provide a fresh Redis client for each test.
+
+    This fixture bypasses the singleton pattern used in production
+    to ensure complete isolation between tests. Each test gets its
+    own Redis connection that's properly cleaned up.
+
+    This matches the database test pattern where tests create fresh
+    Database instances instead of using the singleton.
+
+    Pattern:
+    - Production: Singleton with connection pool (efficient)
+    - Tests: Fresh instances per test (isolated)
+    """
+    from src.core.config import settings
+
+    # Create fresh connection pool (bypass singleton)
+    pool = ConnectionPool.from_url(
+        settings.redis_url,
+        max_connections=10,  # Smaller pool for tests
+        decode_responses=True,
+        socket_keepalive=True,
+        socket_connect_timeout=5,
+        retry_on_timeout=True,
+    )
+
+    # Create fresh Redis client
+    client = Redis(connection_pool=pool)
+
+    # Verify connection
+    await client.ping()
+
+    yield client
+
+    # Cleanup: Close client and disconnect pool
+    await client.aclose()
+    await pool.disconnect()
+
+
+@pytest_asyncio.fixture
+async def cache_adapter(redis_test_client):
+    """Provide a cache adapter for each test.
+
+    Uses the redis_test_client fixture to ensure test isolation.
+    Each test gets a fresh RedisAdapter instance with its own
+    Redis connection.
+
+    Usage:
+        async def test_something(cache_adapter):
+            result = await cache_adapter.set("key", "value", ttl=60)
+            assert result.is_success
+    """
+    from src.infrastructure.cache.redis_adapter import RedisAdapter
+
+    return RedisAdapter(redis_client=redis_test_client)
 
 
 # Async timeout configuration

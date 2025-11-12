@@ -8,11 +8,12 @@ This module provides foundational utilities used across all architectural layers
 The core module has NO dependencies on other application layers.
 """
 
-from src.core.errors import DashtamError, ValidationError
+from src.core.errors import DomainError, ErrorCode, ValidationError
 from src.core.result import Failure, Result, Success
 
 __all__ = [
-    "DashtamError",
+    "DomainError",
+    "ErrorCode",
     "Failure",
     "Result",
     "Success",

@@ -20,7 +20,7 @@ Usage:
 import re
 from typing import Any
 
-from src.core.errors import ValidationError
+from src.core.errors import ErrorCode, ValidationError
 from src.core.result import Failure, Result, Success
 
 
@@ -37,6 +37,7 @@ def validate_not_empty(value: Any, field_name: str) -> Result[Any, ValidationErr
     if value is None or (isinstance(value, str) and not value.strip()):
         return Failure(
             error=ValidationError(
+                code=ErrorCode.VALIDATION_FAILED,
                 message=f"{field_name} cannot be empty",
                 field=field_name,
             )
@@ -59,6 +60,7 @@ def validate_email(email: str) -> Result[str, ValidationError]:
     if not re.match(pattern, email):
         return Failure(
             error=ValidationError(
+                code=ErrorCode.INVALID_EMAIL,
                 message="Invalid email format",
                 field="email",
             )
@@ -82,6 +84,7 @@ def validate_min_length(
     if len(value) < min_length:
         return Failure(
             error=ValidationError(
+                code=ErrorCode.VALIDATION_FAILED,
                 message=f"{field_name} must be at least {min_length} characters",
                 field=field_name,
             )
@@ -105,6 +108,7 @@ def validate_max_length(
     if len(value) > max_length:
         return Failure(
             error=ValidationError(
+                code=ErrorCode.VALIDATION_FAILED,
                 message=f"{field_name} must be at most {max_length} characters",
                 field=field_name,
             )

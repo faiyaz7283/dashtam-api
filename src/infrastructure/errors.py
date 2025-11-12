@@ -1,20 +1,28 @@
 """Infrastructure layer error types.
 
-Following our error handling architecture:
-- Infrastructure errors are mapped to domain errors
+Infrastructure errors represent failures in external systems (database, cache, providers).
+
+Architecture:
+- Infrastructure catches exceptions and maps to DomainError
+- Infrastructure errors inherit from DomainError (not Exception)
+- Uses InfrastructureErrorCode for internal error tracking
+- Maps to domain ErrorCode when flowing to domain layer
 - Used with Result types for error propagation
-- No exceptions raised to domain layer
 """
 
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from src.core.errors import DashtamError
+from src.core.errors import DomainError
 
 
 class InfrastructureErrorCode(Enum):
-    """Infrastructure-specific error codes."""
+    """Infrastructure-specific error codes.
+
+    These are internal codes for tracking infrastructure failures.
+    They are mapped to domain ErrorCode when flowing to domain layer.
+    """
 
     # Database errors
     DATABASE_CONNECTION_FAILED = "database_connection_failed"
@@ -24,6 +32,13 @@ class InfrastructureErrorCode(Enum):
     DATABASE_DATA_ERROR = "database_data_error"
     DATABASE_ERROR = "database_error"
     DATABASE_UNKNOWN_ERROR = "database_unknown_error"
+
+    # Cache errors
+    CACHE_CONNECTION_ERROR = "cache_connection_error"
+    CACHE_TIMEOUT = "cache_timeout"
+    CACHE_GET_ERROR = "cache_get_error"
+    CACHE_SET_ERROR = "cache_set_error"
+    CACHE_DELETE_ERROR = "cache_delete_error"
 
     # External service errors
     EXTERNAL_SERVICE_UNAVAILABLE = "external_service_unavailable"
@@ -37,15 +52,20 @@ class InfrastructureErrorCode(Enum):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class InfrastructureError(DashtamError):
-    """Base class for infrastructure layer errors.
+class InfrastructureError(DomainError):
+    """Base infrastructure error.
+
+    Infrastructure errors still use domain ErrorCode enum (not InfrastructureErrorCode).
+    The InfrastructureErrorCode is for internal infrastructure tracking only.
 
     Attributes:
-        message: Human-readable error message
-        code: Infrastructure error code as string
-        details: Additional error context (optional)
+        code: Domain ErrorCode (maps from InfrastructureErrorCode).
+        message: Human-readable message.
+        infrastructure_code: Original infrastructure error code.
+        details: Additional context.
     """
 
+    infrastructure_code: InfrastructureErrorCode | None = None
     details: dict[str, Any] | None = None
 
 
@@ -53,13 +73,29 @@ class InfrastructureError(DashtamError):
 class DatabaseError(InfrastructureError):
     """Database-specific errors.
 
-    Used to wrap SQLAlchemy exceptions and provide
-    consistent error handling across repositories.
+    Wraps SQLAlchemy exceptions and provides consistent error handling.
 
     Attributes:
-        message: Human-readable error message
-        code: Database error code
-        details: Additional context (e.g., constraint name, original error)
+        code: Domain ErrorCode.
+        message: Human-readable message.
+        infrastructure_code: Database-specific error code.
+        details: Additional context (constraint name, original error).
+    """
+
+    pass
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CacheError(InfrastructureError):
+    """Cache-specific errors.
+
+    Wraps Redis/cache exceptions and provides consistent error handling.
+
+    Attributes:
+        code: Domain ErrorCode.
+        message: Human-readable message.
+        infrastructure_code: Cache-specific error code.
+        details: Additional context (key, operation, original error).
     """
 
     pass
@@ -69,14 +105,14 @@ class DatabaseError(InfrastructureError):
 class ExternalServiceError(InfrastructureError):
     """External service integration errors.
 
-    Used for non-provider external services like
-    email, SMS, payment gateways, etc.
+    Used for non-provider external services like email, SMS, payment gateways.
 
     Attributes:
-        message: Human-readable error message
-        code: Service error code
-        service_name: Name of the external service
-        details: Additional context (e.g., status code, response)
+        code: Domain ErrorCode.
+        message: Human-readable message.
+        infrastructure_code: Service-specific error code.
+        service_name: Name of the external service.
+        details: Additional context (status code, response).
     """
 
     service_name: str
@@ -86,14 +122,14 @@ class ExternalServiceError(InfrastructureError):
 class ProviderError(InfrastructureError):
     """Financial provider API errors.
 
-    Used for provider-specific errors from
-    Schwab, Plaid, Yodlee, etc.
+    Used for provider-specific errors from Schwab, Plaid, Yodlee, etc.
 
     Attributes:
-        message: Human-readable error message
-        code: Provider error code
-        provider_name: Name of the provider (schwab, plaid, etc.)
-        details: Additional context (e.g., API error code, response)
+        code: Domain ErrorCode.
+        message: Human-readable message.
+        infrastructure_code: Provider-specific error code.
+        provider_name: Name of the provider (schwab, plaid, etc.).
+        details: Additional context (API error code, response).
     """
 
     provider_name: str

@@ -90,10 +90,11 @@ services:
       - "traefik.http.routers.dashtam-test.service=dashtam-test"
       - "traefik.http.services.dashtam-test.loadbalancer.server.port=8000"
     # Keep container running for on-demand test execution
-    # TODO F0.4: Re-enable automatic migrations once Alembic is initialized
-    # TEMPORARY: Removed auto-migrations to prevent crash-loop during clean slate setup
+    # Run Alembic migrations before starting
     command: >
       sh -c "
+        echo 'Running Alembic migrations...' &&
+        uv run alembic upgrade head &&
         echo 'Test environment ready. Database and Redis are available.' &&
         echo 'Run tests with: docker compose -f docker-compose.test.yml exec app pytest' &&
         tail -f /dev/null

@@ -46,12 +46,8 @@ RUN uv sync --frozen --all-groups
 # Copy application code (as appuser)
 COPY --chown=appuser:appuser . .
 
-# Development command - start with reload
-# TODO F0.4: Re-enable automatic migrations once Alembic is initialized
-# TEMPORARY: Removed auto-migrations to prevent crash-loop during clean slate setup
-# GOAL: Restore "uv run alembic upgrade head &&" prefix in F0.4 (Database Setup)
-# NOTE: Also remove --ssl-certfile/--ssl-keyfile (Traefik handles SSL termination)
-CMD ["sh", "-c", "echo 'Development server starting...' && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"]
+# Development command - Run migrations then start with reload
+CMD ["sh", "-c", "echo 'Running Alembic migrations...' && uv run alembic upgrade head && echo 'Development server starting...' && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"]
 
 # =============================================================================
 # Builder Stage - Production dependency installation

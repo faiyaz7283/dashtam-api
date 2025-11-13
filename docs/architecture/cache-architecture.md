@@ -652,34 +652,67 @@ TTL_STATIC_DATA = 86400     # 24 hours
 
 ## Connection Management
 
+### Centralized Dependency Injection
+
+**Cache uses the centralized container pattern** (see
+`dependency-injection-architecture.md`):
+
+```python
+# src/core/container.py
+from functools import lru_cache
+from src.domain.protocols.cache import CacheProtocol
+
+@lru_cache()
+def get_cache() -> CacheProtocol:
+    """Get cache client singleton (app-scoped).
+    
+    Container creates RedisAdapter directly with connection pooling.
+    This follows the Composition Root pattern (industry best practice).
+    
+    Returns:
+        Cache client implementing CacheProtocol.
+    
+    Usage:
+        # Application Layer (direct use)
+        cache = get_cache()
+        await cache.set("key", "value")
+        
+        # Presentation Layer (FastAPI Depends)
+        cache: CacheProtocol = Depends(get_cache)
+    """
+    from redis.asyncio import ConnectionPool, Redis
+    from src.infrastructure.cache.redis_adapter import RedisAdapter
+    
+    # Container owns Redis connection pool configuration
+    pool = ConnectionPool.from_url(
+        settings.redis_url,
+        max_connections=50,
+        decode_responses=False,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        retry_on_timeout=True,
+        socket_keepalive=True,
+        socket_keepalive_options={1: 1, 2: 1, 3: 5},
+    )
+    redis_client = Redis(connection_pool=pool)
+    return RedisAdapter(redis_client=redis_client)
+```
+
 ### Connection Lifecycle
 
 ```python
 # src/infrastructure/cache/__init__.py
 from src.infrastructure.cache.redis_adapter import RedisAdapter
-from src.domain.protocols.cache import CacheProtocol
 
-_cache_instance: CacheProtocol | None = None
-
-async def get_cache() -> CacheProtocol:
-    """
-    Get cache instance (singleton).
-    
-    Used for dependency injection in FastAPI.
-    """
-    global _cache_instance
-    if not _cache_instance:
-        adapter = RedisAdapter()
-        await adapter.connect()
-        _cache_instance = adapter
-    return _cache_instance
+# Deprecated: Use src.core.container.get_cache() instead
+# This file exists only for backward compatibility
 
 async def close_cache() -> None:
     """Close cache connection on shutdown."""
-    global _cache_instance
-    if _cache_instance and isinstance(_cache_instance, RedisAdapter):
-        await _cache_instance.disconnect()
-        _cache_instance = None
+    from src.core.container import get_cache
+    cache = get_cache()
+    if isinstance(cache, RedisAdapter):
+        await cache.disconnect()
 ```
 
 ### Application Startup/Shutdown
@@ -688,15 +721,20 @@ async def close_cache() -> None:
 # src/main.py
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from src.infrastructure.cache import get_cache, close_cache
+from src.core.container import get_cache
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    await get_cache()  # Initialize connection
+    # Startup - initialize singleton
+    cache = get_cache()
+    if hasattr(cache, 'connect'):
+        await cache.connect()
+    
     yield
+    
     # Shutdown
-    await close_cache()
+    if hasattr(cache, 'disconnect'):
+        await cache.disconnect()
 
 app = FastAPI(lifespan=lifespan)
 ```
@@ -1034,10 +1072,13 @@ This Redis cache implementation follows hexagonal architecture principles with:
 - **Testability**: Integration tests only (no unit tests for adapters)
 - **Performance**: Connection pooling, pipelining, lazy loading
 - **Security**: No PII in keys, encryption for sensitive data
+- **Centralized DI**: Uses container pattern for consistent dependency management
 
 The cache is ready for use in rate limiting, session management, and
 general application caching needs.
 
+**See also**: `dependency-injection-architecture.md` for container pattern details.
+
 ---
 
-**Created**: 2025-11-11 | **Last Updated**: 2025-11-11
+**Created**: 2025-11-11 | **Last Updated**: 2025-11-13

@@ -71,15 +71,20 @@ graph TB
 - `result.py` - Result types for railway-oriented programming (`Success[T]`, `Failure[E]`)
 - `errors.py` - Base error classes (`DashtamError`, `ValidationError`, etc.)
 - `validation.py` - Common validation functions
+- `config.py` - Application settings with Pydantic
+- `container.py` - Centralized dependency injection container
 
 **Dependencies**: None (pure Python 3.13+)
 
 **Rules**:
 
 - No business logic
-- No framework imports
+- No framework imports (except FastAPI Depends in container)
 - Only foundational utilities
 - Keep flat (no subdirectories)
+- Container provides both app-scoped (singletons) and request-scoped dependencies
+
+**See also**: `dependency-injection-architecture.md` for container pattern details.
 
 ---
 
@@ -313,11 +318,48 @@ sequenceDiagram
 
 ## File Naming Conventions
 
-**Python Files**: `snake_case.py`
+### Python Files and Classes (PEP 8 Standard)
 
-- `user_repository.py` (interface)
-- `postgres_user_repository.py` (implementation)
-- `register_user.py` (command)
+**Universal Rule**: File name should match the main class name in `snake_case`
+
+**Class Names**: `CapWords` (also known as PascalCase)
+
+- `UserRepository`, `PostgresUserRepository`, `RegisterUser`
+
+**File Names**: `lowercase_with_underscores` matching the class
+
+- `user_repository.py` → `UserRepository` class
+- `postgres_user_repository.py` → `PostgresUserRepository` class
+- `register_user.py` → `RegisterUser` class
+- `redis_adapter.py` → `RedisAdapter` class
+- `env_adapter.py` → `EnvAdapter` class
+- `aws_adapter.py` → `AWSAdapter` class
+
+**Benefits**:
+
+- Easy to find: See `UserRepository` in code? Look for `user_repository.py`
+- PEP 8 compliant: Industry standard Python style
+- IDE-friendly: Auto-imports work correctly
+- Consistent: Same pattern everywhere
+
+**Examples Across Layers**:
+
+```python
+# Domain
+src/domain/entities/user.py              → class User
+src/domain/value_objects/email.py        → class Email
+src/domain/protocols/user_repository.py  → class UserRepository
+
+# Application
+src/application/commands/register_user.py         → class RegisterUser
+src/application/commands/handlers/register_user_handler.py → class RegisterUserHandler
+
+# Infrastructure
+src/infrastructure/persistence/postgres_user_repository.py → class PostgresUserRepository
+src/infrastructure/cache/redis_adapter.py                  → class RedisAdapter
+src/infrastructure/secrets/env_adapter.py                  → class EnvAdapter
+src/infrastructure/secrets/aws_adapter.py                  → class AWSAdapter
+```
 
 **Python Directories**: `snake_case/`
 
@@ -417,4 +459,4 @@ class UserRegistered:
 
 ---
 
-**Created**: 2025-11-08 | **Last Updated**: 2025-11-08
+**Created**: 2025-11-08 | **Last Updated**: 2025-11-13

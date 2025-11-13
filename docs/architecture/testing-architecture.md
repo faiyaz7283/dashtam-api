@@ -436,6 +436,308 @@ async def test_something(cleanup_tracker):
 
 ---
 
+## Testing with Centralized Dependency Injection
+
+### Container Pattern (see `dependency-injection-architecture.md`)
+
+**Production**: All dependencies managed by `src/core/container.py`
+
+**Testing Challenge**: Need to mock container dependencies without
+affecting production code
+
+### Strategy 1: Mock Container Functions
+
+**Pattern**: Patch container functions to return mocked dependencies
+
+```python
+# tests/unit/application/test_register_user_handler.py
+from unittest.mock import Mock, patch, AsyncMock
+import pytest
+
+@pytest.mark.asyncio
+async def test_register_user_with_mocked_container():
+    """Test handler by mocking container dependencies."""
+    # Arrange: Create mocks
+    mock_cache = AsyncMock()
+    mock_secrets = Mock()
+    mock_cache.set.return_value = Success(None)
+    mock_secrets.get_secret.return_value = "mock-secret"
+    
+    # Patch container functions
+    with patch("src.core.container.get_cache", return_value=mock_cache):
+        with patch("src.core.container.get_secrets", return_value=mock_secrets):
+            # Act: Instantiate handler (uses mocked container)
+            from src.application.commands.handlers.register_user_handler import RegisterUserHandler
+            handler = RegisterUserHandler()
+            
+            # Handler internally calls get_cache() and get_secrets()
+            # which now return our mocks
+            result = await handler.handle(command)
+    
+    # Assert
+    assert isinstance(result, Success)
+    mock_cache.set.assert_called_once()
+```
+
+**Benefits**:
+
+- Tests handler logic without real dependencies
+- Clear which dependencies are being mocked
+- Easy to verify mock calls
+
+### Strategy 2: Override Container for Test Module
+
+**Pattern**: Create test-specific container module
+
+```python
+# tests/mocks/test_container.py
+"""Test container with mocked dependencies."""
+from functools import lru_cache
+from unittest.mock import AsyncMock, Mock
+
+@lru_cache()
+def get_cache():
+    """Return mock cache for tests."""
+    return AsyncMock()
+
+@lru_cache()
+def get_secrets():
+    """Return mock secrets for tests."""
+    return Mock()
+
+@lru_cache()
+def get_database():
+    """Return mock database for tests."""
+    return Mock()
+```
+
+**Usage**:
+
+```python
+# tests/unit/application/test_user_service.py
+import sys
+from unittest.mock import patch
+
+# Replace production container with test container
+with patch.dict(sys.modules, {"src.core.container": __import__("tests.mocks.test_container")}):
+    from src.application.services.user_service import UserService
+    
+    # UserService now uses mocked container
+    service = UserService()
+```
+
+### Strategy 3: Container Fixture (Recommended)
+
+**Pattern**: Fixture that patches container for entire test
+
+```python
+# tests/conftest.py
+from unittest.mock import AsyncMock, Mock, patch
+import pytest
+
+@pytest.fixture
+def mock_container_dependencies():
+    """Mock all container dependencies for unit tests.
+    
+    Returns:
+        dict: Dictionary of mock dependencies
+    """
+    mocks = {
+        "cache": AsyncMock(),
+        "secrets": Mock(),
+        "database": Mock(),
+    }
+    
+    # Configure default mock behaviors
+    mocks["cache"].get.return_value = Success(None)
+    mocks["cache"].set.return_value = Success(None)
+    mocks["secrets"].get_secret.return_value = "mock-secret"
+    
+    # Patch container functions
+    with patch("src.core.container.get_cache", return_value=mocks["cache"]):
+        with patch("src.core.container.get_secrets", return_value=mocks["secrets"]):
+            with patch("src.core.container.get_database", return_value=mocks["database"]):
+                yield mocks
+
+# Usage in tests
+@pytest.mark.asyncio
+async def test_handler_with_mocked_container(mock_container_dependencies):
+    """Test with all container dependencies mocked."""
+    from src.application.commands.handlers.register_user_handler import RegisterUserHandler
+    
+    handler = RegisterUserHandler()
+    result = await handler.handle(command)
+    
+    # Access mocks to verify calls
+    assert mock_container_dependencies["cache"].set.called
+```
+
+**Benefits**:
+
+- Single fixture for all unit tests
+- Consistent mocking across test suite
+- Easy to extend with new dependencies
+- Reusable via conftest.py
+
+### Strategy 4: Fresh Instances (Infrastructure Integration Tests)
+
+**Pattern**: Create fresh adapter instances directly (bypass container)
+
+```python
+# tests/integration/test_cache_redis.py
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_cache_operation(cache_adapter):
+    """Integration test with REAL Redis."""
+    # cache_adapter fixture provides fresh RedisAdapter
+    # Bypasses container singleton for test isolation
+    result = await cache_adapter.set("key", "value", ttl=60)
+    assert isinstance(result, Success)
+
+# Fixture in conftest.py
+@pytest_asyncio.fixture
+async def cache_adapter(redis_test_client):
+    """Fresh RedisAdapter per test (bypasses container)."""
+    from src.infrastructure.cache.redis_adapter import RedisAdapter
+    return RedisAdapter(redis_client=redis_test_client)
+```
+
+**Why bypass container?**
+- Complete isolation between tests
+- No singleton state leakage
+- Fresh connections per test
+- Matches industry best practice
+
+**When to use**: Infrastructure adapter integration tests (database, cache, secrets)
+
+### Strategy 5: FastAPI Dependency Overrides (API Tests)
+
+**Pattern**: Override FastAPI dependencies with test implementations
+
+```python
+# tests/api/test_users_endpoints.py
+from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock
+
+def test_create_user_endpoint():
+    """Test endpoint with overridden dependencies."""
+    from src.main import app
+    from src.core.container import get_cache
+    
+    # Create mock
+    mock_cache = AsyncMock()
+    
+    # Override dependency
+    app.dependency_overrides[get_cache] = lambda: mock_cache
+    
+    try:
+        with TestClient(app) as client:
+            response = client.post("/api/v1/users", json={
+                "email": "test@example.com",
+                "password": "SecurePass123!"
+            })
+        
+        assert response.status_code == 201
+        assert mock_cache.set.called
+    finally:
+        # Clean up override
+        app.dependency_overrides.clear()
+```
+
+**Benefits**:
+
+- FastAPI's built-in dependency injection system
+- Clean separation of test and production dependencies
+- Easy to override specific dependencies per test
+
+### Container Testing Guidelines
+
+**Unit Tests** (Application/Domain):
+
+- ✅ Mock container functions (`patch("src.core.container.get_cache")`)
+- ✅ Use `mock_container_dependencies` fixture
+- ✅ Verify mock calls
+- ❌ Don't use real infrastructure
+- ❌ Don't call container functions directly
+
+**Integration Tests** (Infrastructure):
+
+- ✅ Create fresh adapter instances directly (bypass container)
+- ✅ Use fixtures that provide fresh instances (`cache_adapter`, `test_database`)
+- ✅ Test actual database, cache, secrets behavior
+- ❌ Don't use container singletons (`get_cache()`, `get_database()`)
+- ❌ Don't mock infrastructure adapters (use real implementations)
+
+**API Tests** (E2E):
+
+- ✅ Use FastAPI dependency overrides for selective mocking
+- ✅ Override specific dependencies per test
+- ✅ Test complete request/response flow
+- ✅ Can use real container for full integration scenarios
+
+### Container Fixture for Unit Tests
+
+```python
+# tests/conftest.py
+from unittest.mock import AsyncMock, Mock, patch
+import pytest
+
+@pytest.fixture
+def mock_container_dependencies():
+    """Mock all container dependencies for unit tests.
+    
+    Use this fixture in unit tests that need to mock infrastructure.
+    Integration tests should NOT use this - they use fresh instances.
+    
+    Returns:
+        dict: Dictionary of mock dependencies
+    """
+    mocks = {
+        "cache": AsyncMock(),
+        "secrets": Mock(),
+        "database": Mock(),
+    }
+    
+    # Configure default mock behaviors
+    mocks["cache"].get.return_value = Success(None)
+    mocks["cache"].set.return_value = Success(None)
+    mocks["secrets"].get_secret.return_value = "mock-secret"
+    
+    # Patch container functions
+    with patch("src.core.container.get_cache", return_value=mocks["cache"]):
+        with patch("src.core.container.get_secrets", return_value=mocks["secrets"]):
+            with patch("src.core.container.get_database", return_value=mocks["database"]):
+                yield mocks
+```
+
+**Usage**: Unit tests for application/domain layer that need infrastructure dependencies.
+
+### Testing Container Itself
+
+**Do we test `src/core/container.py`?** Generally NO - it's integration glue.
+
+**Exception**: Test that container returns correct types
+
+```python
+# tests/unit/core/test_container.py
+def test_container_returns_protocol_types():
+    """Verify container returns protocol implementations."""
+    from src.core.container import get_cache, get_secrets
+    from src.domain.protocols.cache import CacheProtocol
+    from src.domain.protocols.secrets_protocol import SecretsProtocol
+    
+    # Verify types (structural typing with Protocol)
+    cache = get_cache()
+    secrets = get_secrets()
+    
+    # Check that returned objects satisfy protocol
+    assert hasattr(cache, 'get')
+    assert hasattr(cache, 'set')
+    assert hasattr(secrets, 'get_secret')
+```
+
+---
+
 ## Common Testing Mistakes & Solutions
 
 ### Mistake 1: Unit Testing Infrastructure Adapters
@@ -892,16 +1194,21 @@ This testing architecture provides:
 - **Async testing** with proper isolation
 - **Integration over unit** for infrastructure
 - **Railway-oriented** testing with Result types
+- **Centralized DI testing** with container mocking strategies
 
 **Key Takeaways**:
 
 1. Test the right things at the right level
 2. Infrastructure = integration tests (not unit tests)
-3. Bypass singletons in tests for isolation
-4. Fresh event loops per test
-5. Use fixtures from conftest.py
-6. Target 85%+ overall coverage
+3. Mock container dependencies for unit tests
+4. Use real container for integration tests
+5. Clear container cache between tests to prevent state leakage
+6. Fresh event loops per test
+7. Use fixtures from conftest.py
+8. Target 85%+ overall coverage
+
+**See also**: `dependency-injection-architecture.md` for container pattern details.
 
 ---
 
-**Created**: 2025-11-12 | **Last Updated**: 2025-11-12
+**Created**: 2025-11-12 | **Last Updated**: 2025-11-13

@@ -63,6 +63,11 @@ class ErrorCode(Enum):
     TRANSFER_LIMIT_EXCEEDED = "transfer_limit_exceeded"
     INVALID_TRANSACTION_TYPE = "invalid_transaction_type"
 
+    # Secrets management errors
+    SECRET_NOT_FOUND = "secret_not_found"
+    SECRET_ACCESS_DENIED = "secret_access_denied"
+    SECRET_INVALID_JSON = "secret_invalid_json"
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class DomainError:
@@ -157,3 +162,18 @@ class AuthorizationError(DomainError):
     """
 
     required_permission: str | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SecretsError(DomainError):
+    """Secrets management failure.
+
+    Used by secrets adapters when secret retrieval or parsing fails.
+
+    Attributes:
+        code: ErrorCode enum (SECRET_NOT_FOUND, SECRET_ACCESS_DENIED, etc.).
+        message: Human-readable message.
+        details: Additional context.
+    """
+
+    pass

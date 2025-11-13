@@ -2,7 +2,10 @@
 
 ## Overview
 
-This document defines Dashtam's unified error handling strategy across all architectural layers. The design follows **Railway-Oriented Programming** principles with **Result types**, eliminating exceptions from domain logic while maintaining proper error propagation and user-friendly HTTP responses.
+This document defines Dashtam's unified error handling strategy across all
+architectural layers. The design follows **Railway-Oriented Programming**
+principles with **Result types**, eliminating exceptions from domain logic
+while maintaining proper error propagation and user-friendly HTTP responses.
 
 ---
 
@@ -25,7 +28,7 @@ This document defines Dashtam's unified error handling strategy across all archi
 - **Result Types**: Success[T] and Failure[E] for all fallible operations
 - **Pattern Matching**: Use match/case for error handling
 - **No Exception Inheritance**: Domain errors do NOT inherit from Exception
-- **Infrastructure Exceptions**: Only infrastructure layer catches exceptions and maps to errors
+- **Infrastructure Exceptions**: Only infra layer catches and maps to errors
 
 ---
 
@@ -36,12 +39,14 @@ This document defines Dashtam's unified error handling strategy across all archi
 **Official Standard**: [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807)
 
 **Required Fields**:
+
 - `type`: URI reference identifying the problem type
 - `title`: Short, human-readable summary
 - `status`: HTTP status code
 - `detail`: Human-readable explanation
 
 **Optional Fields**:
+
 - `instance`: URI reference to specific occurrence
 - `errors`: Array of field-specific errors (validation)
 - `trace_id`: Request correlation ID
@@ -69,11 +74,13 @@ This document defines Dashtam's unified error handling strategy across all archi
 ### HTTP Status Codes
 
 **2xx Success**:
+
 - `200 OK`: Successful GET, PATCH, PUT
 - `201 Created`: Successful POST
 - `204 No Content`: Successful DELETE
 
 **4xx Client Errors**:
+
 - `400 Bad Request`: Validation errors
 - `401 Unauthorized`: Authentication required/failed
 - `403 Forbidden`: No permission
@@ -83,6 +90,7 @@ This document defines Dashtam's unified error handling strategy across all archi
 - `429 Too Many Requests`: Rate limit exceeded
 
 **5xx Server Errors**:
+
 - `500 Internal Server Error`: Unexpected error
 - `502 Bad Gateway`: Upstream failure
 - `503 Service Unavailable`: Temporary overload
@@ -147,7 +155,8 @@ graph TB
 
 ### Location: `src/core/errors.py`
 
-Domain errors represent business rule violations and validation failures. They do NOT inherit from Exception.
+Domain errors represent business rule violations and validation failures.
+They do NOT inherit from Exception.
 
 ### ErrorCode Enum
 
@@ -740,6 +749,7 @@ async def register_user(
 **Format**: `ENTITY_ACTION_REASON` or `SYSTEM_ACTION_REASON`
 
 **Examples**:
+
 - `USER_NOT_FOUND` - Entity: User, Action: Lookup, Reason: Not Found
 - `EMAIL_ALREADY_EXISTS` - Entity: Email, Action: Create, Reason: Already Exists
 - `PASSWORD_TOO_WEAK` - Entity: Password, Action: Validate, Reason: Too Weak
@@ -796,6 +806,7 @@ logger.error(
 ### Security Considerations
 
 **NEVER log**:
+
 - Passwords (plain or hashed)
 - API keys or secrets
 - OAuth tokens
@@ -803,6 +814,7 @@ logger.error(
 - SSNs or PII
 
 **DO log**:
+
 - Error codes
 - User IDs (UUID)
 - Request paths
@@ -902,8 +914,10 @@ Dashtam's error handling architecture provides:
 - **Developer-Friendly**: Detailed logs with trace IDs for debugging
 - **Testable**: All error paths can be unit/integration tested
 
-This architecture eliminates inconsistent error messages, provides standardized client error handling, and maintains clean separation of concerns across all layers.
+This architecture eliminates inconsistent error messages, provides standardized
+client error handling, and maintains clean separation of concerns across all
+layers.
 
 ---
 
-**Created**: 2025-11-11 | **Last Updated**: 2025-11-11
+**Created**: 2025-11-11 | **Last Updated**: 2025-11-12

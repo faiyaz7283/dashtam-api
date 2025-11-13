@@ -263,6 +263,71 @@ class Settings(BaseSettings):
         """
         return self.environment == Environment.PRODUCTION
 
+    @classmethod
+    def from_secrets_manager(
+        cls,
+        secrets: "SecretsProtocol",  # type: ignore  # noqa: F821
+    ) -> "Settings":
+        """
+        Load settings from secrets manager (production environments).
+
+        This method loads all secrets from a backend (AWS Secrets Manager,
+        HashiCorp Vault, etc.) instead of environment variables.
+
+        Args:
+            secrets: Secrets manager implementing SecretsProtocol.
+
+        Returns:
+            Settings: Configuration loaded from secrets backend.
+
+        Raises:
+            SecretsError: If required secrets are missing or inaccessible.
+
+        Example:
+            >>> from src.core.container import get_secrets
+            >>> secrets = get_secrets()  # Returns AWS/Vault adapter
+            >>> settings = Settings.from_secrets_manager(secrets)
+            >>> # All config loaded from secrets backend
+        """
+        from src.core.result import Success
+
+        # Load secrets with error handling
+        def get_required(path: str) -> str:
+            result = secrets.get_secret(path)
+            if isinstance(result, Success):
+                value: str = result.value  # Type annotation for mypy
+                return value
+            raise ValueError(f"Required secret not found: {path}")
+
+        def get_optional(path: str) -> str | None:
+            result = secrets.get_secret(path)
+            if isinstance(result, Success):
+                value: str = result.value  # Type annotation for mypy
+                return value
+            return None
+
+        # Build settings from secrets
+        return cls(
+            # Core settings (still from env)
+            environment=Environment.PRODUCTION,  # Override to production
+            # Database
+            database_url=get_required("database/url"),
+            # Cache
+            redis_url=get_required("cache/redis_url"),
+            # Security
+            secret_key=get_required("security/secret_key"),
+            encryption_key=get_required("security/encryption_key"),
+            # API
+            api_base_url=get_required("api/base_url"),
+            callback_base_url=get_required("api/callback_base_url"),
+            # CORS
+            cors_origins=get_required("api/cors_origins"),
+            # Providers (optional)
+            schwab_api_key=get_optional("providers/schwab/api_key"),
+            schwab_api_secret=get_optional("providers/schwab/api_secret"),
+            schwab_redirect_uri=get_optional("providers/schwab/redirect_uri"),
+        )
+
 
 @lru_cache
 def get_settings() -> Settings:

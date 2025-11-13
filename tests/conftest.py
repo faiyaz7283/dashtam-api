@@ -195,6 +195,50 @@ def mock_async_context_manager():
     return factory
 
 
+# Container mocking (for unit tests that need to mock infrastructure)
+@pytest.fixture
+def mock_container_dependencies():
+    """Mock all container dependencies for unit tests.
+
+    Use this fixture in unit tests that need to mock infrastructure dependencies.
+    Integration tests should NOT use this - they create fresh instances directly.
+
+    Returns:
+        dict: Dictionary of mock dependencies (cache, secrets, database)
+
+    Example:
+        @pytest.mark.asyncio
+        async def test_handler(mock_container_dependencies):
+            # Handler uses mocked container dependencies
+            handler = RegisterUserHandler()
+            result = await handler.handle(command)
+
+            # Verify mock calls
+            assert mock_container_dependencies["cache"].set.called
+    """
+    from unittest.mock import AsyncMock, Mock, patch
+    from src.core.result import Success
+
+    mocks = {
+        "cache": AsyncMock(),
+        "secrets": Mock(),
+        "database": Mock(),
+    }
+
+    # Configure default mock behaviors
+    mocks["cache"].get.return_value = Success(None)
+    mocks["cache"].set.return_value = Success(None)
+    mocks["secrets"].get_secret.return_value = "mock-secret"
+
+    # Patch container functions
+    with patch("src.core.container.get_cache", return_value=mocks["cache"]):
+        with patch("src.core.container.get_secrets", return_value=mocks["secrets"]):
+            with patch(
+                "src.core.container.get_database", return_value=mocks["database"]
+            ):
+                yield mocks
+
+
 # Test data cleanup tracker
 @pytest.fixture
 def cleanup_tracker():

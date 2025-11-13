@@ -484,30 +484,57 @@ class Database:
         await self.engine.dispose()
 ```
 
-### Dependency Injection Setup
+### Centralized Dependency Injection
 
-**FastAPI integration**:
+**Database uses the centralized container pattern** (see
+`dependency-injection-architecture.md`):
 
 ```python
-# src/presentation/api/dependencies.py
-from fastapi import Depends
+# src/core/container.py
+from functools import lru_cache
+from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.infrastructure.persistence.database import Database
 from src.core.config import settings
 
-# Singleton database instance
-_database: Database | None = None
-
+@lru_cache()
 def get_database() -> Database:
-    """Get database instance (singleton)."""
-    global _database
-    if _database is None:
-        _database = Database(settings.database_url, echo=settings.db_echo)
-    return _database
+    """Get database manager singleton (app-scoped).
+    
+    Returns Database instance with connection pool.
+    Use get_db_session() for per-request sessions.
+    
+    Returns:
+        Database manager instance.
+    
+    Note:
+        This is rarely used directly. Prefer get_db_session() for sessions.
+    """
+    return Database(
+        database_url=settings.database_url,
+        echo=settings.db_echo,
+    )
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency for FastAPI endpoints."""
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get database session (request-scoped).
+    
+    Creates new session per request with automatic transaction management:
+        - Commits on success
+        - Rolls back on exception
+        - Always closes session
+    
+    Yields:
+        Database session for request duration.
+    
+    Usage:
+        # Presentation Layer (FastAPI endpoint)
+        @router.post("/users")
+        async def create_user(
+            session: AsyncSession = Depends(get_db_session)
+        ):
+            # Use session
+            ...
+    """
     db = get_database()
     async with db.get_session() as session:
         yield session
@@ -516,11 +543,18 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 @router.post("/users")
 async def create_user(
     data: UserCreate,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     # Session automatically managed
     ...
 ```
+
+**Benefits of centralized pattern**:
+
+- ✅ Single source of truth for all dependencies
+- ✅ Easy to mock in tests (`patch("src.core.container.get_database")`)
+- ✅ Clear lifecycle management (app-scoped vs request-scoped)
+- ✅ Consistent with cache and secrets management
 
 ## Base Model Design
 
@@ -972,6 +1006,7 @@ This ensures our database layer is:
 - **Testable**: Can mock for unit tests
 - **Flexible**: Can switch database implementations
 - **Maintainable**: Clear separation of concerns
+- **Centralized DI**: Uses container pattern for consistent dependency management
 
 ---
 
@@ -982,7 +1017,10 @@ This ensures our database layer is:
 3. **Keep domain pure**: BaseModel belongs in infrastructure, not domain
 4. **Integration tests are sufficient**: For thin wrappers around externals
 5. **Follow the checklist**: Would have caught the testing issue earlier
+6. **Centralized dependencies**: Use container pattern for all infrastructure
+
+**See also**: `dependency-injection-architecture.md` for container pattern details.
 
 ---
 
-- **Created**: 2025-11-09 | **Last Updated**: 2025-11-10
+**Created**: 2025-11-09 | **Last Updated**: 2025-11-13

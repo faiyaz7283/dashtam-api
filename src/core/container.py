@@ -1,0 +1,209 @@
+"""Centralized dependency injection container.
+
+Provides both application-scoped singletons and request-scoped dependencies
+for use across all architectural layers.
+
+Architecture:
+    - Application-scoped: @lru_cache() decorated functions (singletons)
+    - Request-scoped: Generator functions with yield (per-request)
+
+Reference:
+    See docs/architecture/dependency-injection-architecture.md for complete
+    patterns and usage examples.
+"""
+
+from functools import lru_cache
+from typing import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.config import settings
+from src.domain.protocols.cache import CacheProtocol
+from src.domain.protocols.secrets_protocol import SecretsProtocol
+from src.infrastructure.persistence.database import Database
+
+
+# ============================================================================
+# Application-Scoped Dependencies (Singletons)
+# ============================================================================
+
+
+@lru_cache()
+def get_cache() -> CacheProtocol:
+    """Get cache client singleton (app-scoped).
+
+    Returns RedisAdapter with connection pooling.
+    Connection pool is shared across entire application.
+
+    Returns:
+        Cache client implementing CacheProtocol.
+
+    Usage:
+        # Application Layer (direct use)
+        cache = get_cache()
+        await cache.set("key", "value")
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        cache: CacheProtocol = Depends(get_cache)
+    """
+    # Import here to avoid circular dependency
+    from redis.asyncio import ConnectionPool, Redis
+    from src.infrastructure.cache.redis_adapter import RedisAdapter
+
+    # Create Redis client with connection pooling
+    pool = ConnectionPool.from_url(
+        settings.redis_url,
+        max_connections=50,
+        decode_responses=False,  # RedisAdapter handles decoding
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        retry_on_timeout=True,
+        socket_keepalive=True,
+        socket_keepalive_options={
+            1: 1,  # TCP_KEEPIDLE
+            2: 1,  # TCP_KEEPINTVL
+            3: 5,  # TCP_KEEPCNT
+        },
+    )
+    redis_client = Redis(connection_pool=pool)
+
+    # Create and return RedisAdapter
+    # mypy limitation: CacheError is subtype of DomainError (correct by LSP),
+    # but mypy doesn't recognize this in Protocol return type covariance
+    return RedisAdapter(redis_client=redis_client)  # type: ignore[return-value]
+
+
+@lru_cache()
+def get_secrets() -> SecretsProtocol:
+    """Get secrets manager singleton (app-scoped).
+
+    Container owns factory logic - decides which adapter based on SECRETS_BACKEND.
+    This follows the Composition Root pattern (industry best practice).
+
+    Returns correct adapter based on SECRETS_BACKEND environment variable:
+        - 'env': EnvAdapter (local development)
+        - 'aws': AWSAdapter (production)
+
+    Returns:
+        Secrets manager implementing SecretsProtocol.
+
+    Raises:
+        ValueError: If SECRETS_BACKEND is unsupported or required env vars missing.
+
+    Usage:
+        # Application Layer (direct use)
+        secrets = get_secrets()
+        db_url = secrets.get_secret("database/url")
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        secrets: SecretsProtocol = Depends(get_secrets)
+    """
+    # Import here to avoid circular dependency
+    import os
+
+    backend = os.getenv("SECRETS_BACKEND", "env")
+
+    if backend == "aws":
+        from src.infrastructure.secrets.aws_adapter import AWSAdapter
+
+        region = os.getenv("AWS_REGION", "us-east-1")
+        return AWSAdapter(environment=settings.environment, region=region)
+
+    elif backend == "env":
+        from src.infrastructure.secrets.env_adapter import EnvAdapter
+
+        return EnvAdapter()
+
+    else:
+        raise ValueError(
+            f"Unsupported SECRETS_BACKEND: {backend}. Supported: 'env', 'aws'"
+        )
+
+
+@lru_cache()
+def get_database() -> Database:
+    """Get database manager singleton (app-scoped).
+
+    Returns Database instance with connection pool.
+    Use get_db_session() for per-request sessions.
+
+    Returns:
+        Database manager instance.
+
+    Note:
+        This is rarely used directly. Prefer get_db_session() for sessions.
+
+    Usage:
+        # Application Layer (direct use)
+        db = get_database()
+
+        # Presentation Layer - use get_db_session() instead
+    """
+    return Database(
+        database_url=settings.database_url,
+        echo=settings.db_echo,
+    )
+
+
+# ============================================================================
+# Request-Scoped Dependencies (Per-Request)
+# ============================================================================
+
+
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get database session (request-scoped).
+
+    Creates new session per request with automatic transaction management:
+        - Commits on success
+        - Rolls back on exception
+        - Always closes session
+
+    Yields:
+        Database session for request duration.
+
+    Usage:
+        # Presentation Layer (FastAPI endpoint)
+        from fastapi import Depends
+        from sqlalchemy.ext.asyncio import AsyncSession
+
+        @router.post("/users")
+        async def create_user(
+            session: AsyncSession = Depends(get_db_session)
+        ):
+            # Use session
+            ...
+    """
+    db = get_database()
+    async with db.get_session() as session:
+        yield session
+
+
+# ============================================================================
+# Handler Factories (Request-Scoped) - Add as needed
+# ============================================================================
+
+# Example handler factory (uncomment when handlers are created):
+#
+# def get_register_user_handler():
+#     """Get RegisterUser command handler (request-scoped).
+#
+#     Creates new handler instance per request.
+#     Handler uses application-scoped dependencies internally.
+#
+#     Returns:
+#         RegisterUserHandler instance.
+#
+#     Usage:
+#         @router.post("/users")
+#         async def create_user(
+#             handler: RegisterUserHandler = Depends(get_register_user_handler)
+#         ):
+#             result = await handler.handle(command)
+#     """
+#     from src.application.commands.handlers.register_user_handler import (
+#         RegisterUserHandler,
+#     )
+#
+#     return RegisterUserHandler()

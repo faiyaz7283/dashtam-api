@@ -14,6 +14,7 @@ Architecture:
 
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
+from typing import Any
 
 import pytest
 
@@ -28,7 +29,7 @@ class TestTraceMiddlewareTraceIdGeneration:
     """Test TraceMiddleware trace ID generation."""
 
     @pytest.mark.asyncio
-    async def test_generates_new_trace_id_when_missing(self):
+    async def test_generates_new_trace_id_when_missing(self) -> None:
         """Test middleware generates new trace ID when not in headers."""
         # Mock request without X-Trace-Id header
         mock_request = MagicMock()
@@ -53,7 +54,7 @@ class TestTraceMiddlewareTraceIdGeneration:
         UUID(trace_id)  # Raises ValueError if invalid
 
     @pytest.mark.asyncio
-    async def test_uses_existing_trace_id_from_header(self):
+    async def test_uses_existing_trace_id_from_header(self) -> None:
         """Test middleware uses existing trace ID from request headers."""
         existing_trace_id = "12345678-1234-5678-1234-567812345678"
 
@@ -81,14 +82,14 @@ class TestTraceMiddlewareContextPropagation:
     """Test TraceMiddleware contextvars propagation."""
 
     @pytest.mark.asyncio
-    async def test_trace_id_available_during_request(self):
+    async def test_trace_id_available_during_request(self) -> None:
         """Test trace ID is available via get_trace_id() during request."""
         # Mock request
         mock_request = MagicMock()
         mock_request.headers = {}
 
         # Mock call_next that checks trace_id
-        async def check_trace_id(request):
+        async def check_trace_id(request: Any) -> MagicMock:
             # get_trace_id() should return current trace ID
             trace_id = get_trace_id()
             assert trace_id is not None
@@ -106,7 +107,7 @@ class TestTraceMiddlewareContextPropagation:
         await middleware.dispatch(mock_request, check_trace_id)
 
     @pytest.mark.asyncio
-    async def test_trace_id_consistent_across_request(self):
+    async def test_trace_id_consistent_across_request(self) -> None:
         """Test trace ID remains consistent throughout request lifecycle."""
         # Mock request
         mock_request = MagicMock()
@@ -115,7 +116,7 @@ class TestTraceMiddlewareContextPropagation:
         trace_ids_captured = []
 
         # Mock call_next that captures trace_id multiple times
-        async def capture_trace_ids(request):
+        async def capture_trace_ids(request: Any) -> MagicMock:
             # Capture trace ID multiple times
             trace_ids_captured.append(get_trace_id())
             trace_ids_captured.append(get_trace_id())
@@ -137,7 +138,7 @@ class TestTraceMiddlewareContextPropagation:
         assert trace_ids_captured[1] == trace_ids_captured[2]
 
     @pytest.mark.asyncio
-    async def test_trace_id_cleared_after_request(self):
+    async def test_trace_id_cleared_after_request(self) -> None:
         """Test trace ID is cleared after request completes."""
         # Mock request
         mock_request = MagicMock()
@@ -164,7 +165,7 @@ class TestTraceMiddlewareResponseHeaders:
     """Test TraceMiddleware response header injection."""
 
     @pytest.mark.asyncio
-    async def test_adds_trace_id_to_response_headers(self):
+    async def test_adds_trace_id_to_response_headers(self) -> None:
         """Test middleware adds X-Trace-Id to response headers."""
         # Mock request
         mock_request = MagicMock()
@@ -186,7 +187,7 @@ class TestTraceMiddlewareResponseHeaders:
         assert len(response.headers["X-Trace-Id"]) > 0
 
     @pytest.mark.asyncio
-    async def test_response_trace_id_matches_request(self):
+    async def test_response_trace_id_matches_request(self) -> None:
         """Test response trace ID matches the one used during request."""
         # Mock request
         mock_request = MagicMock()
@@ -195,7 +196,7 @@ class TestTraceMiddlewareResponseHeaders:
         captured_trace_id = None
 
         # Mock call_next that captures trace_id
-        async def capture_trace_id(request):
+        async def capture_trace_id(request: Any) -> MagicMock:
             nonlocal captured_trace_id
             captured_trace_id = get_trace_id()
 
@@ -213,7 +214,7 @@ class TestTraceMiddlewareResponseHeaders:
         assert response.headers["X-Trace-Id"] == captured_trace_id
 
     @pytest.mark.asyncio
-    async def test_preserves_existing_response_headers(self):
+    async def test_preserves_existing_response_headers(self) -> None:
         """Test middleware preserves existing response headers."""
         # Mock request
         mock_request = MagicMock()
@@ -244,20 +245,20 @@ class TestTraceMiddlewareResponseHeaders:
 class TestGetTraceIdFunction:
     """Test get_trace_id() utility function."""
 
-    def test_get_trace_id_returns_none_outside_request(self):
+    def test_get_trace_id_returns_none_outside_request(self) -> None:
         """Test get_trace_id() returns None when called outside request context."""
         trace_id = get_trace_id()
         assert trace_id is None
 
     @pytest.mark.asyncio
-    async def test_get_trace_id_returns_string(self):
+    async def test_get_trace_id_returns_string(self) -> None:
         """Test get_trace_id() returns string trace ID during request."""
         # Mock request
         mock_request = MagicMock()
         mock_request.headers = {}
 
         # Mock call_next that checks trace_id type
-        async def check_trace_id_type(request):
+        async def check_trace_id_type(request: Any) -> MagicMock:
             trace_id = get_trace_id()
             assert isinstance(trace_id, str)
 
@@ -277,7 +278,7 @@ class TestTraceMiddlewareErrorHandling:
     """Test TraceMiddleware error handling."""
 
     @pytest.mark.asyncio
-    async def test_middleware_propagates_exceptions(self):
+    async def test_middleware_propagates_exceptions(self) -> None:
         """Test middleware propagates exceptions from downstream."""
         # Mock request
         mock_request = MagicMock()
@@ -299,7 +300,7 @@ class TestTraceMiddlewareIntegration:
     """Test TraceMiddleware integration patterns."""
 
     @pytest.mark.asyncio
-    async def test_middleware_with_multiple_requests(self):
+    async def test_middleware_with_multiple_requests(self) -> None:
         """Test middleware handles multiple requests with different trace IDs."""
         # Create middleware
         middleware = TraceMiddleware(app=MagicMock())
@@ -312,7 +313,7 @@ class TestTraceMiddlewareIntegration:
             mock_request.headers = {}
 
             # Mock call_next that captures trace_id
-            async def capture_trace_id(request):
+            async def capture_trace_id(request: Any) -> MagicMock:
                 trace_ids.append(get_trace_id())
                 mock_response = MagicMock()
                 mock_response.headers = {}
@@ -325,7 +326,7 @@ class TestTraceMiddlewareIntegration:
         assert len(set(trace_ids)) == 3  # All unique
 
     @pytest.mark.asyncio
-    async def test_middleware_call_next_invoked(self):
+    async def test_middleware_call_next_invoked(self) -> None:
         """Test middleware calls next middleware/handler in chain."""
         # Mock request
         mock_request = MagicMock()

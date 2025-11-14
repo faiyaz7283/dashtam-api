@@ -13,14 +13,17 @@ Reference:
 """
 
 from functools import lru_cache
-from typing import AsyncGenerator
+from typing import AsyncGenerator, TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
-from src.domain.protocols.cache import CacheProtocol
-from src.domain.protocols.secrets_protocol import SecretsProtocol
 from src.infrastructure.persistence.database import Database
+
+if TYPE_CHECKING:
+    from src.domain.protocols.cache import CacheProtocol
+    from src.domain.protocols.secrets_protocol import SecretsProtocol
+    from src.domain.protocols.logger_protocol import LoggerProtocol
 
 
 # ============================================================================
@@ -29,7 +32,7 @@ from src.infrastructure.persistence.database import Database
 
 
 @lru_cache()
-def get_cache() -> CacheProtocol:
+def get_cache() -> "CacheProtocol":
     """Get cache client singleton (app-scoped).
 
     Returns RedisAdapter with connection pooling.
@@ -75,7 +78,7 @@ def get_cache() -> CacheProtocol:
 
 
 @lru_cache()
-def get_secrets() -> SecretsProtocol:
+def get_secrets() -> "SecretsProtocol":
     """Get secrets manager singleton (app-scoped).
 
     Container owns factory logic - decides which adapter based on SECRETS_BACKEND.
@@ -178,6 +181,62 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     db = get_database()
     async with db.get_session() as session:
         yield session
+
+
+# ============================================================================
+# Logging (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_logger() -> "LoggerProtocol":  # noqa: F821
+    """Return the application-scoped logger singleton.
+
+    Adapter selection is centralized here (composition root):
+    - development: ConsoleAdapter (human-readable)
+    - testing/ci: ConsoleAdapter (JSON)
+    - production: CloudWatchAdapter (AWS CloudWatch)
+
+    Returns:
+        LoggerProtocol: Logger instance implementing the protocol.
+    """
+    from datetime import datetime, UTC
+    from socket import gethostname
+
+    env = (
+        settings.environment.value
+        if hasattr(settings.environment, "value")
+        else str(settings.environment)
+    )
+
+    if env == "production":
+        # Lazily import to avoid hard dependency when not in production
+        from src.infrastructure.logging.cloudwatch_adapter import CloudWatchAdapter
+
+        log_group = f"/dashtam/{env}/app"
+        log_stream = f"{gethostname()}/{datetime.now(UTC).date().isoformat()}"
+        return CloudWatchAdapter(
+            log_group=log_group,
+            log_stream=log_stream,
+            region=settings.aws_region,
+        )
+    else:
+        from src.infrastructure.logging.console_adapter import ConsoleAdapter
+
+        use_json = env in {"testing", "ci"}
+        return ConsoleAdapter(use_json=use_json)
+
+
+def clear_container_cache() -> None:
+    """Clear caches for all app-scoped singletons (testing utility)."""
+    get_cache.cache_clear()
+    get_secrets.cache_clear()
+    get_database.cache_clear()
+    try:
+        get_logger.cache_clear()
+    except Exception:
+        # get_logger may not be defined in some test import orders
+        pass
 
 
 # ============================================================================

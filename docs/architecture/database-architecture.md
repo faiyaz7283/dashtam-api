@@ -294,8 +294,10 @@ class Database:
 **Important**: The database layer uses utilities from `src/core/` and domain/infrastructure:
 
 - **Result Types** (`src/core/result.py`): For explicit error handling
-- **Core Error Classes** (`src/core/errors/`): Base error types (DomainError, ValidationError, NotFoundError, etc.)
-- **Infrastructure Errors** (`src/infrastructure/errors/`): DatabaseError, CacheError, etc.
+- **Core Error Classes** (`src/core/errors/`): Base error types (DomainError,
+  ValidationError, NotFoundError, etc.)
+- **Infrastructure Errors** (`src/infrastructure/errors/`): DatabaseError,
+  CacheError, etc.
 - **Validation** (`src/core/validation.py`): Common validation functions
 
 All domain operations should return Result types instead of raising exceptions:

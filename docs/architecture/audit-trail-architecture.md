@@ -422,6 +422,7 @@ class AuditError(DomainError):
 ```
 
 **Error Codes**: Added to `src/core/enums/error_code.py`:
+
 - `AUDIT_RECORD_FAILED` - Failed to record audit entry
 - `AUDIT_QUERY_FAILED` - Failed to query audit trail
 

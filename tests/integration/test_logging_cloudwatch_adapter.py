@@ -305,8 +305,10 @@ class TestCloudWatchAdapterIntegration:
             logStreamName="test-stream",
         )
 
-        # Should now have all 5 messages
-        assert len(response["events"]) >= 5
+        # Should now have all 5 messages (more than initial)
+        final_count = len(response["events"])
+        assert final_count >= 5
+        assert final_count > initial_count  # Verify batch flush added messages
 
     @mock_aws
     def test_adapter_cleanup_on_close(self):

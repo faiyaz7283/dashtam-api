@@ -194,6 +194,10 @@ class TestCloudWatchAdapterInitialization:
                 log_stream="test-stream",
             )
 
+            # Verify adapter initialized successfully
+            assert adapter is not None
+            assert adapter._group == "/test/group"
+
             # Should use default region
             call_kwargs = mock_boto3.client.call_args[1]
             assert call_kwargs["region_name"] == "us-east-1"

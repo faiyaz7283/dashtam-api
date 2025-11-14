@@ -694,7 +694,7 @@ The Database class is a thin wrapper around SQLAlchemy. Unit testing it would re
 ### Testing by Layer
 
 | Layer | Testing Strategy | Reasoning |
-|-------|-----------------|------------|
+| ------- | ---------------- | ------------ |
 | Domain | Heavy unit testing | Business logic lives here |
 | Application | Unit tests with mocked repos | Use case orchestration |
 | Infrastructure | Integration tests ONLY | Thin adapters around systems |

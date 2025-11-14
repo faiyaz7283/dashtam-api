@@ -226,6 +226,9 @@ class TestGetLoggerEnvironmentSpecific:
 
                 logger = get_logger()
 
+                # Verify correct adapter returned
+                assert logger == mock_adapter
+
                 # Verify correct AWS region passed
                 assert mock_cloudwatch.call_count == 1
                 call_kwargs = mock_cloudwatch.call_args[1]

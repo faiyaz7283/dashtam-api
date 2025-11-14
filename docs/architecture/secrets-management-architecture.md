@@ -30,7 +30,7 @@ Manager for production) with a read-only, environment-agnostic interface.
 ### 1.2 Multi-Tier Strategy
 
 | Environment | Backend | Cost | Use Case |
-|------------|---------|------|----------|
+| ------------ | ------- | ------ | ---------- |
 | **Local Development** | `.env` files | Free | Fast, offline, no dependencies |
 | **Testing** | Fake/Mocked | Free | Hardcoded test values, isolation |
 | **CI/CD** | GitHub Secrets | Free | Platform-managed encryption |
@@ -708,7 +708,7 @@ Examples:
 For `EnvAdapter`, paths map to env vars:
 
 | Secret Path | Environment Variable |
-|------------|---------------------|
+| ------------ | --------------------- |
 | `database/url` | `DATABASE_URL` |
 | `schwab/api_key` | `SCHWAB_API_KEY` |
 | `schwab/api_secret` | `SCHWAB_API_SECRET` |

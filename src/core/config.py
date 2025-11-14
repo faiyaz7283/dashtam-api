@@ -80,6 +80,10 @@ class Settings(BaseSettings):
         default="INFO",
         description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
     )
+    aws_region: str = Field(
+        default="us-east-1",
+        description="AWS region for cloud services (e.g., CloudWatch)",
+    )
 
     # Application metadata
     app_name: str = Field(

@@ -38,7 +38,7 @@ class AWSAdapter:
             ImportError: If boto3 not installed.
         """
         try:
-            import boto3  # type: ignore
+            import boto3
         except ImportError as e:
             raise ImportError(
                 "boto3 required for AWS Secrets Manager. Install with: uv add boto3"

@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from src.core.config import settings
+from src.presentation.api.middleware.trace_middleware import TraceMiddleware
 
 # Initialize FastAPI application with settings
 app = FastAPI(
@@ -25,6 +26,9 @@ app = FastAPI(
     redoc_url="/redoc",
     debug=settings.debug,
 )
+
+# Wire trace middleware (request correlation)
+app.add_middleware(TraceMiddleware)
 
 
 @app.get("/")

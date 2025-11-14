@@ -22,20 +22,12 @@ Usage:
         # Dev-specific behavior
 """
 
-from enum import Enum
 from functools import lru_cache
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-class Environment(str, Enum):
-    """Application environment types."""
-
-    DEVELOPMENT = "development"
-    TESTING = "testing"
-    CI = "ci"
-    PRODUCTION = "production"
+from src.core.enums import Environment
 
 
 class Settings(BaseSettings):

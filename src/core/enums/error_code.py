@@ -65,3 +65,7 @@ class ErrorCode(Enum):
     SECRET_NOT_FOUND = "secret_not_found"
     SECRET_ACCESS_DENIED = "secret_access_denied"
     SECRET_INVALID_JSON = "secret_invalid_json"
+
+    # Audit trail errors
+    AUDIT_RECORD_FAILED = "audit_record_failed"
+    AUDIT_QUERY_FAILED = "audit_query_failed"

@@ -161,15 +161,16 @@ class SecretsProtocol(Protocol):
 catch exceptions and return Result types. Domain never raises exceptions.
 
 ```python
-# src/core/errors.py - Domain errors (already exist)
+# src/domain/errors/secrets_error.py - Domain-specific error
 from dataclasses import dataclass
+from src.core.errors import DomainError
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SecretsError(DomainError):
     """Secrets-related errors."""
     pass
 
-# Error codes
+# Error codes in src/core/enums/error_code.py
 class ErrorCode(Enum):
     # ... existing codes ...
     SECRET_NOT_FOUND = "secret_not_found"
@@ -203,7 +204,8 @@ import os
 import json
 from typing import Dict, Any
 from src.core.result import Result, Success, Failure
-from src.core.errors import SecretsError, ErrorCode
+from src.core.enums import ErrorCode
+from src.domain.errors import SecretsError
 
 
 class EnvAdapter:
@@ -279,7 +281,8 @@ import json
 import boto3
 from typing import Dict, Any
 from src.core.result import Result, Success, Failure
-from src.core.errors import SecretsError, ErrorCode
+from src.core.enums import ErrorCode
+from src.domain.errors import SecretsError
 
 
 class AWSAdapter:
@@ -386,7 +389,8 @@ import json
 import hvac
 from typing import Dict, Any
 from src.core.result import Result, Success, Failure
-from src.core.errors import SecretsError, ErrorCode
+from src.core.enums import ErrorCode
+from src.domain.errors import SecretsError
 
 
 class VaultAdapter:

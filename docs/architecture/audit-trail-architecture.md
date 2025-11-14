@@ -238,24 +238,8 @@ from uuid import UUID
 from datetime import datetime
 
 from src.domain.enums import AuditAction
+from src.domain.errors import AuditError
 from src.core.result import Result
-from src.core.errors import DomainError
-from src.core.enums import ErrorCode
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class AuditError(DomainError):
-    """Audit system failure.
-    
-    Used when audit trail recording fails (database error, connection loss).
-    
-    Attributes:
-        code: ErrorCode enum (AUDIT_RECORD_FAILED, AUDIT_QUERY_FAILED).
-        message: Human-readable message.
-        details: Additional context.
-    """
-    
-    pass
 
 
 class AuditProtocol(Protocol):
@@ -417,8 +401,29 @@ class AuditAction(str, Enum):
 
 ### 3.3 AuditError Class
 
-**Note**: AuditError is defined in same file as protocol following pattern from
-`src/core/errors.py` (error classes grouped together).
+**File**: `src/domain/errors/audit_error.py`
+
+```python
+from dataclasses import dataclass
+from src.core.errors import DomainError
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AuditError(DomainError):
+    """Audit system failure.
+    
+    Used when audit trail recording fails (database error, connection loss).
+    
+    Attributes:
+        code: ErrorCode enum (AUDIT_RECORD_FAILED, AUDIT_QUERY_FAILED).
+        message: Human-readable message.
+        details: Additional context.
+    """
+    pass
+```
+
+**Error Codes**: Added to `src/core/enums/error_code.py`:
+- `AUDIT_RECORD_FAILED` - Failed to record audit entry
+- `AUDIT_QUERY_FAILED` - Failed to query audit trail
 
 ### 3.4 Required Context Fields
 

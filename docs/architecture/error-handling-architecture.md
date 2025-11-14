@@ -153,10 +153,14 @@ graph TB
 
 ## Domain Layer Errors
 
-### Location: `src/core/errors.py`
+### Location: `src/core/errors/`
 
 Domain errors represent business rule violations and validation failures.
 They do NOT inherit from Exception.
+
+- **Base error**: `src/core/errors/domain_error.py` - DomainError base class
+- **Common errors**: `src/core/errors/common_errors.py` - ValidationError, NotFoundError, ConflictError, AuthenticationError, AuthorizationError
+- **ErrorCode enum**: `src/core/enums/error_code.py` - Domain error codes
 
 ### ErrorCode Enum
 
@@ -304,7 +308,8 @@ class AuthorizationError(DomainError):
 
 ```python
 from src.core.result import Result, Success, Failure
-from src.core.errors import ValidationError, ConflictError, ErrorCode
+from src.core.enums import ErrorCode
+from src.core.errors import ValidationError, ConflictError
 
 class UserService:
     """Domain service for user operations."""
@@ -459,9 +464,12 @@ class CreateUserHandler:
 
 ## Infrastructure Layer Errors
 
-### Location: `src/infrastructure/errors.py`
+### Location: `src/infrastructure/errors/`
 
 Infrastructure errors represent failures in external systems (database, cache, providers).
+
+- **Base error**: `src/infrastructure/errors/infrastructure_error.py` - InfrastructureError and specific error classes
+- **Error codes**: `src/infrastructure/enums/infrastructure_error_code.py` - Infrastructure-specific error codes
 
 ### InfrastructureErrorCode Enum
 
@@ -542,8 +550,10 @@ class ProviderError(InfrastructureError):
 
 ```python
 from src.core.result import Result, Success, Failure
-from src.core.errors import DomainError, ErrorCode
-from src.infrastructure.errors import CacheError, InfrastructureErrorCode
+from src.core.enums import ErrorCode
+from src.core.errors import DomainError
+from src.infrastructure.enums import InfrastructureErrorCode
+from src.infrastructure.errors import CacheError
 
 class RedisAdapter:
     """Redis cache adapter."""

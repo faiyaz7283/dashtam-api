@@ -220,7 +220,8 @@ Database operations return Result types, NOT exceptions:
 
 ```python
 from src.core.result import Result, Success, Failure
-from src.core.errors import DatabaseError, NotFoundError
+from src.core.errors import NotFoundError
+from src.infrastructure.errors import DatabaseError
 
 class PostgresUserRepository:
     async def find_by_id(self, user_id: UUID) -> Result[User, NotFoundError]:
@@ -290,10 +291,11 @@ class Database:
 
 ## Core Layer Integration
 
-**Important**: The database layer uses utilities from `src/core/`:
+**Important**: The database layer uses utilities from `src/core/` and domain/infrastructure:
 
 - **Result Types** (`src/core/result.py`): For explicit error handling
-- **Error Classes** (`src/core/errors.py`): Base error types
+- **Core Error Classes** (`src/core/errors/`): Base error types (DomainError, ValidationError, NotFoundError, etc.)
+- **Infrastructure Errors** (`src/infrastructure/errors/`): DatabaseError, CacheError, etc.
 - **Validation** (`src/core/validation.py`): Common validation functions
 
 All domain operations should return Result types instead of raising exceptions:

@@ -18,7 +18,8 @@ from unittest.mock import patch
 import pytest
 
 from src.core.config import settings
-from src.core.errors import ErrorCode
+from src.core.enums import ErrorCode
+from src.domain.errors import SecretsError
 from src.core.result import Failure, Success
 from src.infrastructure.secrets.env_adapter import EnvAdapter
 

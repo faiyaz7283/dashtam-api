@@ -11,7 +11,7 @@ Protocol Pattern:
 
 from typing import Protocol
 
-from src.core.errors import SecretsError
+from src.domain.errors import SecretsError
 from src.core.result import Result
 
 

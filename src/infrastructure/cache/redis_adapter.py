@@ -17,9 +17,10 @@ from typing import Any
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from src.core.errors import ErrorCode
+from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
-from src.infrastructure.errors import CacheError, InfrastructureErrorCode
+from src.infrastructure.enums import InfrastructureErrorCode
+from src.infrastructure.errors import CacheError
 
 
 class RedisAdapter:

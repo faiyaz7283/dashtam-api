@@ -142,7 +142,7 @@ Three **separate** concerns with different purposes:
 
 ### 2.4 Why Adapter Pattern (NOT Repository Pattern)
 
-**CRITICAL ARCHITECTURAL DECISION**: Audit uses **Adapter Pattern**, NOT **Repository Pattern**.
+**CRITICAL**: Audit uses **Adapter Pattern**, NOT **Repository Pattern**.
 
 #### Repository Pattern vs Adapter Pattern
 
@@ -289,7 +289,8 @@ class PostgresAuditAdapter:
 
 **Examples in Dashtam**:
 
-- **Repository**: UserRepository, ProviderRepository, AccountRepository, TransactionRepository (F3.1-F3.3)
+- **Repository**: UserRepository, ProviderRepository, AccountRepository,
+TransactionRepository (F3.1-F3.3)
 - **Adapter**: PostgresAuditAdapter (F0.9), RedisAdapter (F0.5), AWSAdapter (F0.7)
 
 ---
@@ -965,7 +966,8 @@ def clear_container_cache() -> None:
 
 ### 5.2.1 Principle: Independent Audit Sessions
 
-**CRITICAL REQUIREMENT**: Audit logs MUST persist **regardless of request outcome** to meet PCI-DSS and SOC 2 requirements.
+**CRITICAL REQUIREMENT**: Audit logs MUST persist regardless of request outcome
+to meet PCI-DSS and SOC 2 requirements.
 
 **Why this matters**:
 
@@ -1083,7 +1085,7 @@ class PostgresAuditAdapter:
 
 ### 5.2.4 Example Scenarios
 
-**Scenario 1: Failed Authentication**
+**Scenario 1: Failed Authentication**:
 
 ```python
 @router.post("/auth/login")
@@ -1106,7 +1108,7 @@ async def login(
     # Result: Audit log persists ✅, business transaction rolled back ✅
 ```
 
-**Scenario 2: Database Constraint Violation**
+**Scenario 2: Database Constraint Violation**:
 
 ```python
 async def create_provider(
@@ -1651,4 +1653,4 @@ current_entry.previous_hash = previous_hash
 
 ---
 
-**Created**: 2025-11-14 | **Last Updated**: 2025-11-14
+**Created**: 2025-11-14 | **Last Updated**: 2025-11-16

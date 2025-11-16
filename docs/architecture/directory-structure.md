@@ -515,8 +515,6 @@ src/infrastructure/enums/
 **Class names**: `PascalCase` (e.g., `AuditAction`)  
 **Enum values**: `UPPER_SNAKE_CASE` (e.g., `USER_LOGIN = "user_login"`)
 
-### Import Pattern
-
 **Export all enums in `__init__.py`**:
 
 ```python
@@ -595,7 +593,8 @@ directories, organized by architectural layer (core vs domain vs infrastructure)
 
 ### Why Centralized Errors?
 
-**Problem**: As the project scales, we'll have 20+ error types. Scattered errors cause:
+**Problem**: As the project scales, we'll have 20+ error types. Scattered
+errors cause:
 
 - Hard to discover ("Where is `AuditError` defined?")
 - Inconsistent error handling
@@ -627,16 +626,19 @@ src/infrastructure/errors/
 ### When to Use Each Layer
 
 **Core Errors** (`src/core/errors/`):
+
 - **DomainError**: Base class for ALL application errors
 - **Generic errors**: Used across ALL domains and layers
 - Examples: ValidationError, NotFoundError, ConflictError, AuthenticationError
 
 **Domain Errors** (`src/domain/errors/`):
+
 - **Domain-specific errors**: Tied to specific domain concepts
 - Examples: AuditError (audit trail), SecretsError (secrets management)
 - Future: ProviderError, TransactionError, AccountError
 
 **Infrastructure Errors** (`src/infrastructure/errors/`):
+
 - **Infrastructure failures**: Database, cache, external services
 - Examples: DatabaseError, CacheError, ProviderError
 - Maps to domain errors when flowing to domain layer
@@ -645,8 +647,6 @@ src/infrastructure/errors/
 
 **File names**: `snake_case.py` (e.g., `audit_error.py`)  
 **Class names**: `PascalCase` ending in `Error` (e.g., `AuditError`)
-
-### Import Pattern
 
 **Export all errors in `__init__.py`**:
 
@@ -709,7 +709,7 @@ class AuditError(DomainError):
 **CRITICAL DISTINCTION**: Our "Protocol over ABC" rule applies to
 **interfaces/behavior**, NOT data structures.
 
-#### Use Protocol (Structural Typing) For:
+**Use Protocol (Structural Typing) For**:
 
 **Interfaces that define BEHAVIOR** - Multiple implementations with same interface:
 
@@ -728,6 +728,7 @@ class MemcachedAdapter:  # No inheritance
 ```
 
 **Why Protocol?**
+
 - Different implementations (Redis, Memcached, InMemory)
 - Structural typing (no inheritance required)
 - Easy to swap implementations
@@ -735,7 +736,7 @@ class MemcachedAdapter:  # No inheritance
 
 **Examples**: CacheProtocol, SecretsProtocol, LoggerProtocol, AuditProtocol
 
-#### Use Inheritance (Dataclass) For:
+**Use Inheritance (Dataclass) For**:
 
 **Data structures that share FIELDS** - Subclasses add additional fields:
 
@@ -755,6 +756,7 @@ class AuditError(DomainError):  # Inherits base fields
 ```
 
 **Why Inheritance?**
+
 - Errors are data structures (carry information)
 - Subclasses extend base structure with additional fields
 - Type safety: `Result[T, DomainError]` accepts all error subclasses
@@ -764,17 +766,21 @@ class AuditError(DomainError):  # Inherits base fields
 
 #### Summary Table
 
+<!-- markdownlint-disable MD013 -->
 | Use Case | Pattern | Example | Why |
 | -------- | ------- | ------- | --- |
 | **Interfaces/Behavior** | Protocol | CacheProtocol, LoggerProtocol | Multiple implementations |
 | **Data Structures** | Inheritance | DomainError → ValidationError | Shared structure + fields |
+<!-- markdownlint-enable MD013 -->
 
 **Industry Examples**:
+
 - Django: Errors use inheritance ✅, Views use ABC/Protocol ✅
 - FastAPI: HTTPException uses inheritance ✅, Dependencies use duck typing ✅
 - Python stdlib: Exception uses inheritance ✅, collections.abc uses Protocol ✅
 
 **Our Architecture**:
+
 - ✅ Protocol for: Cache, Secrets, Logger, Audit (interfaces)
 - ✅ Inheritance for: Errors, Events, Commands, Queries (data structures)
 
@@ -789,4 +795,4 @@ class AuditError(DomainError):  # Inherits base fields
 
 ---
 
-**Created**: 2025-11-08 | **Last Updated**: 2025-11-14
+**Created**: 2025-11-08 | **Last Updated**: 2025-11-16

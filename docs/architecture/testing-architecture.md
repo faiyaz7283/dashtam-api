@@ -603,6 +603,7 @@ async def cache_adapter(redis_test_client):
 ```
 
 **Why bypass container?**
+
 - Complete isolation between tests
 - No singleton state leakage
 - Fresh connections per test
@@ -1211,4 +1212,4 @@ This testing architecture provides:
 
 ---
 
-**Created**: 2025-11-12 | **Last Updated**: 2025-11-13
+**Created**: 2025-11-12 | **Last Updated**: 2025-11-16

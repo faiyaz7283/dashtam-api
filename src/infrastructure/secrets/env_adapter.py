@@ -8,8 +8,9 @@ File: env_adapter.py → class EnvAdapter (PEP 8 naming)
 import json
 import os
 
-from src.core.errors import ErrorCode, SecretsError
+from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
+from src.domain.errors import SecretsError
 
 
 class EnvAdapter:

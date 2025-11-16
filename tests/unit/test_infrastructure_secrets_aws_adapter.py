@@ -20,7 +20,8 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from src.core.errors import ErrorCode, SecretsError
+from src.core.enums import ErrorCode
+from src.domain.errors import SecretsError
 from src.core.result import Failure, Success
 from src.infrastructure.secrets.aws_adapter import AWSAdapter
 

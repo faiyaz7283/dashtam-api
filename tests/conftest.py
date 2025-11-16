@@ -85,10 +85,11 @@ async def isolated_database_session():
     - Race conditions in parallel test execution
     """
     from src.infrastructure.persistence.database import Database
+    from src.core.config import settings
 
-    # Use test database
+    # Use test database (from settings)
     db = Database(
-        database_url="postgresql+asyncpg://dashtam_user:secure_password_change_me@postgres:5432/dashtam_test"
+        database_url=settings.database_url  # Uses DATABASE_URL from .env.test
     )
 
     async with db.get_session() as session:

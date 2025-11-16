@@ -69,7 +69,12 @@ graph TB
 **Contents**:
 
 - `result.py` - Result types for railway-oriented programming (`Success[T]`, `Failure[E]`)
-- `errors.py` - Base error classes (`DashtamError`, `ValidationError`, etc.)
+- `errors/` - Core error classes (base and generic errors)
+  - `domain_error.py` - DomainError (base class for all errors)
+  - `common_errors.py` - ValidationError, NotFoundError, ConflictError, etc.
+- `enums/` - Core enums (error codes, environment)
+  - `error_code.py` - ErrorCode enum (domain-level error codes)
+  - `environment.py` - Environment enum (dev, test, prod, ci)
 - `validation.py` - Common validation functions
 - `config.py` - Application settings with Pydantic
 - `container.py` - Centralized dependency injection container
@@ -99,6 +104,8 @@ src/domain/
 ├── __init__.py
 ├── entities/          # Domain entities (mutable, have identity)
 ├── value_objects/     # Value objects (immutable, no identity)
+├── enums/             # Domain enums (audit actions, provider types, etc.)
+├── errors/            # Domain-specific errors (audit, secrets, etc.)
 ├── protocols/         # Protocols (repository interfaces, service interfaces)
 └── events/            # Domain events (things that happened)
 ```
@@ -117,6 +124,10 @@ src/domain/
 
 - `entities/user.py` - User entity with business methods
 - `value_objects/email.py` - Email value object with validation
+- `enums/audit_action.py` - AuditAction enum (extensible audit events)
+- `enums/provider_type.py` - ProviderType enum (schwab, plaid, etc.)
+- `errors/audit_error.py` - AuditError (audit system failures)
+- `errors/secrets_error.py` - SecretsError (secrets retrieval failures)
 - `protocols/user_repository.py` - UserRepository protocol (port)
 - `events/user_registered.py` - UserRegistered domain event
 
@@ -173,7 +184,9 @@ src/infrastructure/
 ├── __init__.py
 ├── persistence/       # Database adapters (PostgreSQL repositories)
 ├── external/          # External service clients (email, cache, secrets)
-└── providers/         # Financial provider integrations (OAuth, data sync)
+├── providers/         # Financial provider integrations (OAuth, data sync)
+├── enums/             # Infrastructure enums (error codes)
+└── errors/            # Infrastructure errors (database, cache, providers)
 ```
 
 **Dependencies**: `src/domain/`, `src/core/`, external libraries
@@ -459,4 +472,327 @@ class UserRegistered:
 
 ---
 
-**Created**: 2025-11-08 | **Last Updated**: 2025-11-13
+## Enum Organization
+
+**Architectural Decision**: Enums are centralized in dedicated `enums/` directories
+for discoverability, maintainability, and to avoid circular import issues.
+
+### Why Centralized Enums?
+
+**Problem**: As the project scales, we'll have 10+ enums. Inline enums cause:
+
+- Large files mixing concerns (protocols + enums + errors)
+- Hard to discover ("Where is `AuditAction` defined?")
+- Circular import risks (enum used by multiple modules)
+- Violates Single Responsibility Principle
+
+**Solution**: Treat enums as **Value Objects** in DDD - they get their own directory.
+
+### Directory Structure for Enums
+
+```text
+src/core/enums/
+├── __init__.py           # Export all core enums
+├── error_code.py        # ErrorCode enum (domain errors)
+└── environment.py       # Environment enum (dev/test/prod/ci)
+
+src/domain/enums/
+├── __init__.py           # Export all domain enums
+├── audit_action.py      # AuditAction enum (audit events)
+├── provider_type.py     # ProviderType enum (schwab, plaid, yodlee)
+├── account_type.py      # AccountType enum (checking, savings, investment)
+├── transaction_type.py  # TransactionType enum (debit, credit, transfer)
+└── sync_status.py       # SyncStatus enum (pending, in_progress, completed)
+
+src/infrastructure/enums/
+├── __init__.py                      # Export infrastructure enums
+└── infrastructure_error_code.py    # InfrastructureErrorCode enum
+```
+
+### Enum Naming Convention
+
+**File names**: `snake_case.py` (e.g., `audit_action.py`)  
+**Class names**: `PascalCase` (e.g., `AuditAction`)  
+**Enum values**: `UPPER_SNAKE_CASE` (e.g., `USER_LOGIN = "user_login"`)
+
+**Export all enums in `__init__.py`**:
+
+```python
+# src/domain/enums/__init__.py
+from src.domain.enums.audit_action import AuditAction
+from src.domain.enums.provider_type import ProviderType
+from src.domain.enums.account_type import AccountType
+
+__all__ = ["AuditAction", "ProviderType", "AccountType"]
+```
+
+**Import from enums package**:
+
+```python
+# ✅ CORRECT: Import from enums package
+from src.domain.enums import AuditAction, ProviderType
+
+# ✅ ALSO CORRECT: Direct import (if only need one)
+from src.domain.enums.audit_action import AuditAction
+
+# ❌ WRONG: Don't import from parent module
+from src.domain import AuditAction  # No!
+```
+
+### Enum Template
+
+**Every enum file follows this structure**:
+
+```python
+# src/domain/enums/audit_action.py
+"""Audit action types for compliance tracking.
+
+This enum defines all auditable actions in the system (PCI-DSS, SOC 2, GDPR).
+Extensible via enum values - no database schema changes needed.
+"""
+
+from enum import Enum
+
+
+class AuditAction(str, Enum):
+    """Audit action types (extensible via enum).
+    
+    Organized by category for clarity. Add new actions as needed
+    without database schema changes (metadata stores action-specific data).
+    
+    Categories:
+    - Authentication (USER_*)
+    - Authorization (ACCESS_*)
+    - Data Operations (DATA_*)
+    - Administrative (ADMIN_*)
+    - Provider (PROVIDER_*)
+    """
+    
+    # Authentication events (PCI-DSS required)
+    USER_LOGIN = "user_login"
+    USER_LOGOUT = "user_logout"
+    USER_LOGIN_FAILED = "user_login_failed"
+    # ... more values ...
+```
+
+### Benefits of Centralized Enums
+
+✅ **Discoverability**: All enums in one place per layer  
+✅ **Scalability**: Easy to add new enums without bloating other files  
+✅ **Single Responsibility**: Each file has one enum  
+✅ **Avoids Circular Imports**: Enums are leaf nodes in dependency graph  
+✅ **Industry Standard**: Django, FastAPI complex projects use this pattern  
+✅ **DDD Compliant**: Enums are treated as Value Objects
+
+---
+
+## Error Organization
+
+**Architectural Decision**: Error classes are centralized in dedicated `errors/`
+directories, organized by architectural layer (core vs domain vs infrastructure).
+
+### Why Centralized Errors?
+
+**Problem**: As the project scales, we'll have 20+ error types. Scattered
+errors cause:
+
+- Hard to discover ("Where is `AuditError` defined?")
+- Inconsistent error handling
+- Difficult to understand error hierarchy
+- Mixed concerns (protocols + errors in same file)
+
+**Solution**: Group errors by layer in dedicated directories.
+
+### Directory Structure for Errors
+
+```text
+src/core/errors/
+├── __init__.py              # Export all core errors
+├── domain_error.py          # DomainError (base class for all errors)
+└── common_errors.py         # ValidationError, NotFoundError, ConflictError,
+                             # AuthenticationError, AuthorizationError
+
+src/domain/errors/
+├── __init__.py              # Export all domain errors
+├── audit_error.py           # AuditError (audit system failures)
+└── secrets_error.py         # SecretsError (secrets retrieval failures)
+
+src/infrastructure/errors/
+├── __init__.py              # Export all infrastructure errors
+└── infrastructure_error.py  # InfrastructureError, DatabaseError, CacheError,
+                             # ExternalServiceError, ProviderError
+```
+
+### When to Use Each Layer
+
+**Core Errors** (`src/core/errors/`):
+
+- **DomainError**: Base class for ALL application errors
+- **Generic errors**: Used across ALL domains and layers
+- Examples: ValidationError, NotFoundError, ConflictError, AuthenticationError
+
+**Domain Errors** (`src/domain/errors/`):
+
+- **Domain-specific errors**: Tied to specific domain concepts
+- Examples: AuditError (audit trail), SecretsError (secrets management)
+- Future: ProviderError, TransactionError, AccountError
+
+**Infrastructure Errors** (`src/infrastructure/errors/`):
+
+- **Infrastructure failures**: Database, cache, external services
+- Examples: DatabaseError, CacheError, ProviderError
+- Maps to domain errors when flowing to domain layer
+
+### Error Naming Convention
+
+**File names**: `snake_case.py` (e.g., `audit_error.py`)  
+**Class names**: `PascalCase` ending in `Error` (e.g., `AuditError`)
+
+**Export all errors in `__init__.py`**:
+
+```python
+# src/domain/errors/__init__.py
+from src.domain.errors.audit_error import AuditError
+from src.domain.errors.secrets_error import SecretsError
+
+__all__ = ["AuditError", "SecretsError"]
+```
+
+**Import from errors package**:
+
+```python
+# ✅ CORRECT: Import from errors package
+from src.core.errors import DomainError, ValidationError
+from src.domain.errors import AuditError, SecretsError
+
+# ✅ ALSO CORRECT: Direct import (if only need one)
+from src.domain.errors.audit_error import AuditError
+
+# ❌ WRONG: Don't import from parent module
+from src.domain import AuditError  # No!
+```
+
+### Error Template
+
+**Every error file follows this structure**:
+
+```python
+# src/domain/errors/audit_error.py
+"""Audit trail error types.
+
+Used when audit trail recording or querying fails.
+Returned in Result types, not raised as exceptions.
+"""
+
+from dataclasses import dataclass
+
+from src.core.errors import DomainError
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AuditError(DomainError):
+    """Audit system failure.
+    
+    Used when audit trail recording fails (database error, connection loss).
+    
+    Attributes:
+        code: ErrorCode enum (AUDIT_RECORD_FAILED, AUDIT_QUERY_FAILED).
+        message: Human-readable message.
+        details: Additional context.
+    """
+    
+    pass  # Inherits all fields from DomainError
+```
+
+### Protocol vs Inheritance: When to Use Each
+
+**CRITICAL DISTINCTION**: Our "Protocol over ABC" rule applies to
+**interfaces/behavior**, NOT data structures.
+
+**Use Protocol (Structural Typing) For**:
+
+**Interfaces that define BEHAVIOR** - Multiple implementations with same interface:
+
+```python
+# ✅ CORRECT: Protocol for behavior/interface
+class CacheProtocol(Protocol):
+    async def get(self, key: str) -> Result[str | None, DomainError]: ...
+    async def set(self, key: str, value: str) -> Result[None, DomainError]: ...
+
+# Implementations DON'T inherit (duck typing)
+class RedisAdapter:  # No inheritance
+    async def get(self, key: str) -> ...
+
+class MemcachedAdapter:  # No inheritance
+    async def get(self, key: str) -> ...
+```
+
+**Why Protocol?**
+
+- Different implementations (Redis, Memcached, InMemory)
+- Structural typing (no inheritance required)
+- Easy to swap implementations
+- Follows Python 3.13+ best practices
+
+**Examples**: CacheProtocol, SecretsProtocol, LoggerProtocol, AuditProtocol
+
+**Use Inheritance (Dataclass) For**:
+
+**Data structures that share FIELDS** - Subclasses add additional fields:
+
+```python
+# ✅ CORRECT: Inheritance for data structures
+@dataclass(frozen=True, slots=True, kw_only=True)
+class DomainError:
+    code: ErrorCode
+    message: str
+    details: dict | None = None
+
+class ValidationError(DomainError):  # Inherits base fields
+    field: str | None = None  # Adds new field
+
+class AuditError(DomainError):  # Inherits base fields
+    pass  # No additional fields
+```
+
+**Why Inheritance?**
+
+- Errors are data structures (carry information)
+- Subclasses extend base structure with additional fields
+- Type safety: `Result[T, DomainError]` accepts all error subclasses
+- Standard Python pattern (like `Exception` hierarchy)
+
+**Examples**: Error classes, Domain events, Commands/Queries
+
+#### Summary Table
+
+<!-- markdownlint-disable MD013 -->
+| Use Case | Pattern | Example | Why |
+| -------- | ------- | ------- | --- |
+| **Interfaces/Behavior** | Protocol | CacheProtocol, LoggerProtocol | Multiple implementations |
+| **Data Structures** | Inheritance | DomainError → ValidationError | Shared structure + fields |
+<!-- markdownlint-enable MD013 -->
+
+**Industry Examples**:
+
+- Django: Errors use inheritance ✅, Views use ABC/Protocol ✅
+- FastAPI: HTTPException uses inheritance ✅, Dependencies use duck typing ✅
+- Python stdlib: Exception uses inheritance ✅, collections.abc uses Protocol ✅
+
+**Our Architecture**:
+
+- ✅ Protocol for: Cache, Secrets, Logger, Audit (interfaces)
+- ✅ Inheritance for: Errors, Events, Commands, Queries (data structures)
+
+### Benefits of Centralized Errors
+
+✅ **Discoverability**: All errors in one place per layer  
+✅ **Type Safety**: Clear error hierarchy with base class  
+✅ **Single Responsibility**: Errors separated from protocols  
+✅ **Consistency**: Same pattern across all layers  
+✅ **Industry Standard**: Mirrors Django, FastAPI error organization  
+✅ **DDD Compliant**: Domain errors separate from infrastructure errors
+
+---
+
+**Created**: 2025-11-08 | **Last Updated**: 2025-11-16

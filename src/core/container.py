@@ -21,6 +21,7 @@ from src.core.config import settings
 from src.infrastructure.persistence.database import Database
 
 if TYPE_CHECKING:
+    from src.domain.protocols.audit_protocol import AuditProtocol
     from src.domain.protocols.cache import CacheProtocol
     from src.domain.protocols.secrets_protocol import SecretsProtocol
     from src.domain.protocols.logger_protocol import LoggerProtocol
@@ -183,6 +184,50 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+def get_audit(session: AsyncSession) -> "AuditProtocol":
+    """Get audit trail adapter (request-scoped).
+
+    Creates audit adapter instance per request with database session.
+    This follows the Composition Root pattern (industry best practice).
+
+    Returns correct adapter based on database type:
+        - PostgreSQL: PostgresAuditAdapter
+        - MySQL: MySQLAuditAdapter (future)
+        - SQLite: SQLiteAuditAdapter (future/testing)
+
+    Args:
+        session: Database session for audit operations (injected).
+
+    Returns:
+        Audit adapter implementing AuditProtocol.
+
+    Usage:
+        # Presentation Layer (FastAPI endpoint)
+        from fastapi import Depends
+        from sqlalchemy.ext.asyncio import AsyncSession
+        from src.domain.protocols import AuditProtocol
+
+        @router.post("/users")
+        async def create_user(
+            session: AsyncSession = Depends(get_db_session),
+            audit: AuditProtocol = Depends(get_audit),
+        ):
+            # Use audit trail
+            await audit.record(
+                action=AuditAction.USER_REGISTERED,
+                user_id=user_id,
+                resource_type="user",
+                ip_address=request.client.host,
+            )
+    """
+    # Import here to avoid circular dependency
+    from src.infrastructure.audit.postgres_adapter import PostgresAuditAdapter
+
+    # For now, always return PostgreSQL adapter
+    # In future, detect database type from settings.database_url
+    return PostgresAuditAdapter(session=session)
+
+
 # ============================================================================
 # Logging (Application-Scoped)
 # ============================================================================
@@ -228,7 +273,10 @@ def get_logger() -> "LoggerProtocol":  # noqa: F821
 
 
 def clear_container_cache() -> None:
-    """Clear caches for all app-scoped singletons (testing utility)."""
+    """Clear caches for all app-scoped singletons (testing utility).
+
+    Note: get_audit is request-scoped (not cached), so no cache to clear.
+    """
     get_cache.cache_clear()
     get_secrets.cache_clear()
     get_database.cache_clear()

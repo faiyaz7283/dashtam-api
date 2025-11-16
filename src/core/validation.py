@@ -20,7 +20,8 @@ Usage:
 import re
 from typing import Any
 
-from src.core.errors import ErrorCode, ValidationError
+from src.core.enums import ErrorCode
+from src.core.errors import ValidationError
 from src.core.result import Failure, Result, Success
 
 

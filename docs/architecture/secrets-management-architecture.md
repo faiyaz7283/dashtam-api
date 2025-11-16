@@ -30,7 +30,7 @@ Manager for production) with a read-only, environment-agnostic interface.
 ### 1.2 Multi-Tier Strategy
 
 | Environment | Backend | Cost | Use Case |
-|------------|---------|------|----------|
+| ------------ | ------- | ------ | ---------- |
 | **Local Development** | `.env` files | Free | Fast, offline, no dependencies |
 | **Testing** | Fake/Mocked | Free | Hardcoded test values, isolation |
 | **CI/CD** | GitHub Secrets | Free | Platform-managed encryption |
@@ -161,15 +161,16 @@ class SecretsProtocol(Protocol):
 catch exceptions and return Result types. Domain never raises exceptions.
 
 ```python
-# src/core/errors.py - Domain errors (already exist)
+# src/domain/errors/secrets_error.py - Domain-specific error
 from dataclasses import dataclass
+from src.core.errors import DomainError
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SecretsError(DomainError):
     """Secrets-related errors."""
     pass
 
-# Error codes
+# Error codes in src/core/enums/error_code.py
 class ErrorCode(Enum):
     # ... existing codes ...
     SECRET_NOT_FOUND = "secret_not_found"
@@ -203,7 +204,8 @@ import os
 import json
 from typing import Dict, Any
 from src.core.result import Result, Success, Failure
-from src.core.errors import SecretsError, ErrorCode
+from src.core.enums import ErrorCode
+from src.domain.errors import SecretsError
 
 
 class EnvAdapter:
@@ -279,7 +281,8 @@ import json
 import boto3
 from typing import Dict, Any
 from src.core.result import Result, Success, Failure
-from src.core.errors import SecretsError, ErrorCode
+from src.core.enums import ErrorCode
+from src.domain.errors import SecretsError
 
 
 class AWSAdapter:
@@ -386,7 +389,8 @@ import json
 import hvac
 from typing import Dict, Any
 from src.core.result import Result, Success, Failure
-from src.core.errors import SecretsError, ErrorCode
+from src.core.enums import ErrorCode
+from src.domain.errors import SecretsError
 
 
 class VaultAdapter:
@@ -704,7 +708,7 @@ Examples:
 For `EnvAdapter`, paths map to env vars:
 
 | Secret Path | Environment Variable |
-|------------|---------------------|
+| ------------ | --------------------- |
 | `database/url` | `DATABASE_URL` |
 | `schwab/api_key` | `SCHWAB_API_KEY` |
 | `schwab/api_secret` | `SCHWAB_API_SECRET` |

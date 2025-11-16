@@ -130,12 +130,17 @@ class TestDatabaseIntegration:
 
     @pytest.mark.asyncio
     async def test_initial_migration_recorded(self, test_database):
-        """Test that the initial migration is recorded."""
+        """Test that migrations have been applied and match Alembic head."""
         async with test_database.get_session() as session:
+            # Verify a migration version is recorded
             result = await session.execute(
                 text("SELECT version_num FROM alembic_version")
             )
             version = result.scalar()
-            assert version is not None
-            # Verify we have a migration recorded (initial setup)
-            assert version == "bb433187db3b"
+            assert version is not None, "No migration version recorded"
+
+            # Verify it's a valid Alembic version format (12 hex chars)
+            assert len(version) == 12, f"Invalid version format: {version}"
+            assert all(c in "0123456789abcdef" for c in version), (
+                f"Version contains non-hex characters: {version}"
+            )

@@ -13,7 +13,7 @@ Architecture:
 Usage:
     from src.core.errors import DomainError
     from src.core.enums import ErrorCode
-    
+
     @dataclass(frozen=True, slots=True, kw_only=True)
     class MyError(DomainError):
         pass  # Inherits code, message, details

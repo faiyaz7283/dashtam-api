@@ -140,6 +140,158 @@ Three **separate** concerns with different purposes:
 
 **Protocol doesn't care HOW** - it just says "record this audit entry".
 
+### 2.4 Why Adapter Pattern (NOT Repository Pattern)
+
+**CRITICAL ARCHITECTURAL DECISION**: Audit uses **Adapter Pattern**, NOT **Repository Pattern**.
+
+#### Repository Pattern vs Adapter Pattern
+
+**Repository Pattern** (for domain entities with business logic):
+
+```text
+Domain Entity → Repository Protocol → Repository Implementation
+     ↓                  ↓                      ↓
+   User      →   UserRepository    →  PostgresUserRepository
+   Provider  →   ProviderRepository →  PostgresProviderRepository
+   Account   →   AccountRepository  →  PostgresAccountRepository
+```
+
+**Purpose**: Manage domain entities (User, Provider, Account, Transaction)
+
+**When to use**:
+
+- Domain entity EXISTS in `src/domain/entities/`
+- Has business logic and domain rules
+- Lives in memory as domain objects
+- Repository maps between domain entities ↔ database models
+
+**Adapter Pattern** (for external system integration):
+
+```text
+Domain Protocol → Infrastructure Adapter
+       ↓                    ↓
+  AuditProtocol  →  PostgresAuditAdapter
+  CacheProtocol  →  RedisAdapter
+  SecretsProtocol → AWSAdapter
+```
+
+**Purpose**: Adapt external systems (database, cache, AWS) to domain protocols
+
+**When to use**:
+
+- NO domain entity (pure infrastructure concern)
+- No business logic in domain layer
+- Direct database access (SQL in adapter)
+- Protocol IS the abstraction (no repository needed)
+
+#### Why Audit Uses Adapter Pattern
+
+**AuditLog is NOT a domain entity**:
+
+- ❌ No business logic (just INSERT and SELECT)
+- ❌ No domain rules (compliance is infrastructure concern)
+- ❌ Lives ONLY in database (never loaded into memory as domain object)
+- ❌ Model exists ONLY in infrastructure: `src/infrastructure/persistence/models/audit.py`
+
+**AuditProtocol IS the abstraction**:
+
+- ✅ Domain defines "what" (protocol interface)
+- ✅ Infrastructure defines "how" (SQL queries)
+- ✅ SQL belongs in adapter (correct separation of concerns)
+- ✅ Protocol-first design (hexagonal architecture)
+
+#### Repository Pattern Would Be Over-Engineering
+
+**❌ Wrong approach** (adds unnecessary layers):
+
+```python
+# Domain entity (not needed!)
+src/domain/entities/audit_log.py
+
+# Repository protocol (redundant with AuditProtocol!)
+src/domain/repositories/audit_log_repository.py
+
+# Repository implementation (redundant layer!)
+src/infrastructure/persistence/repositories/audit_log_repository.py
+
+# Adapter (finally the real implementation!)
+src/infrastructure/audit/postgres_adapter.py
+```
+
+This is 4 layers when 2 layers are sufficient!
+
+**✅ Correct approach** (adapter pattern):
+
+```python
+# Protocol defines interface
+src/domain/protocols/audit_protocol.py
+
+# Adapter implements protocol with SQL
+src/infrastructure/audit/postgres_adapter.py
+```
+
+Just 2 layers - protocol and adapter!
+
+#### SQL in Adapter is CORRECT
+
+**PostgresAuditAdapter contains SQL queries directly**:
+
+```python
+class PostgresAuditAdapter:
+    async def query(...):
+        # ✅ CORRECT: SQL belongs here!
+        query = select(AuditLogModel)
+        query = query.where(AuditLogModel.user_id == user_id)
+        query = query.order_by(AuditLogModel.created_at.desc())
+        result = await self.session.execute(query)
+        ...
+```
+
+**Why this is correct**:
+
+- Adapter's job is to adapt database to protocol
+- SQL is database-specific (belongs in infrastructure)
+- No domain entity to map to/from
+- Protocol abstracts away database details
+- Easy to test (mock protocol)
+- Easy to swap databases (create MySQLAuditAdapter)
+
+**No migration needed** - this is the correct architecture! ✅
+
+#### Comparison: Repository vs Adapter
+
+| Aspect | Repository Pattern | Adapter Pattern |
+| ------ | ------------------ | --------------- |
+| **Domain Entity** | ✅ Yes (`User`, `Provider`) | ❌ No |
+| **Business Logic** | ✅ Yes (validation, rules) | ❌ No |
+| **Lives in Memory** | ✅ Yes (domain objects) | ❌ No (database only) |
+| **SQL Location** | Repository implementation | Adapter directly |
+| **Abstraction** | Repository protocol | Protocol (port) |
+| **Example Features** | F3.1-F3.3 (repositories) | F0.9 (audit adapter) |
+
+#### When to Use Which Pattern
+
+**Use Repository Pattern when**:
+
+- Domain entity exists (User, Provider, Account, Transaction)
+- Has business logic and domain rules
+- Entity lives in memory as domain object
+- Need to map between domain entity ↔ database model
+- See F3.1 (Provider Repository) in roadmap
+
+**Use Adapter Pattern when**:
+
+- NO domain entity (pure infrastructure)
+- External system integration (database, cache, AWS, APIs)
+- Protocol IS the abstraction
+- No business logic in domain
+- See F0.9 (Audit), F0.5 (Cache), F0.7 (Secrets) in roadmap
+
+**Examples in Dashtam**:
+
+- **Repository**: UserRepository, ProviderRepository, AccountRepository, TransactionRepository (F3.1-F3.3)
+- **Adapter**: PostgresAuditAdapter (F0.9), RedisAdapter (F0.5), AWSAdapter (F0.7)
+
 ---
 
 ## 3. Domain Layer - Protocol Definition
@@ -806,6 +958,223 @@ def clear_container_cache() -> None:
     get_logger.cache_clear()
     get_audit.cache_clear()  # Add audit to cache clearing
 ```
+
+---
+
+## 5.2 Session Architecture: Audit Durability
+
+### 5.2.1 Principle: Independent Audit Sessions
+
+**CRITICAL REQUIREMENT**: Audit logs MUST persist **regardless of request outcome** to meet PCI-DSS and SOC 2 requirements.
+
+**Why this matters**:
+
+- Failed authentication attempts MUST be logged (security monitoring)
+- Access denied events MUST be logged (compliance requirement)
+- Invalid operations MUST be logged (forensics)
+- Transaction rollbacks MUST NOT lose audit logs
+
+### 5.2.2 Architecture: Separate Sessions
+
+**Problem with shared sessions**:
+
+```text
+┌─────────────────────────────────────────┐
+│ FastAPI Request                         │
+├─────────────────────────────────────────┤
+│ Session (begin)                         │
+│   ├─> Business logic                    │
+│   ├─> Audit log (flush)   ← Audit here  │
+│   ├─> More business logic               │
+│   └─> Commit or Rollback  ← Lost here   │
+└─────────────────────────────────────────┘
+```
+
+**Issue**: If request fails, audit logs are lost with transaction rollback.
+
+**Solution: Independent audit session**:
+
+```text
+┌─────────────────────────────────────────┐
+│ FastAPI Request                         │
+├─────────────────────────────────────────┤
+│ Business Session (begin)                │
+│   ├─> Business logic                    │
+│   ├─> More business logic               │
+│   └─> Commit or Rollback                │
+│                                         │
+│ Audit Session (separate)                │
+│   ├─> Audit log                         │
+│   └─> Commit (immediate) ← Durable      │
+└─────────────────────────────────────────┘
+```
+
+**Benefits**:
+
+- ✅ Audit logs persist even when business transaction fails
+- ✅ Failed operations are audited (compliance requirement)
+- ✅ Clear separation of concerns
+- ✅ No risk of losing security-critical audit data
+
+### 5.2.3 Implementation Pattern
+
+**Container with two session factories**:
+
+```python
+# src/core/container.py
+
+@lru_cache()
+def get_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get database session (request-scoped, no auto-commit).
+    
+    Used for business logic. Managed by FastAPI request lifecycle.
+    Commits on success, rolls back on exception.
+    """
+    async with Database().get_session() as session:
+        yield session
+
+@lru_cache()
+def get_audit_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get audit session (auto-commits, independent lifecycle).
+    
+    Used ONLY for audit logging. Commits immediately after each
+    audit record to ensure durability regardless of request outcome.
+    
+    Separate from business session to prevent audit logs from being
+    lost when business transactions roll back.
+    
+    Yields:
+        AsyncSession: Session that commits after each audit operation.
+    """
+    async with Database().get_session() as session:
+        # Session commits are managed by adapter
+        yield session
+
+def get_audit(
+    audit_session: AsyncSession = Depends(get_audit_session)
+) -> AuditProtocol:
+    """Get audit adapter (uses separate audit session).
+    
+    Args:
+        audit_session: Independent session from get_audit_session().
+    
+    Returns:
+        Audit adapter that commits immediately (durable).
+    """
+    return PostgresAuditAdapter(session=audit_session)
+```
+
+**Adapter commits immediately**:
+
+```python
+# src/infrastructure/audit/postgres_adapter.py
+
+class PostgresAuditAdapter:
+    async def record(...) -> Result[None, AuditError]:
+        try:
+            audit_log = AuditLogModel(...)
+            self.session.add(audit_log)
+            await self.session.commit()  # ✅ Durable (separate session)
+            return Success(value=None)
+        except SQLAlchemyError as e:
+            await self.session.rollback()  # Rollback audit session only
+            return Failure(AuditError(...))
+```
+
+### 5.2.4 Example Scenarios
+
+**Scenario 1: Failed Authentication**
+
+```python
+@router.post("/auth/login")
+async def login(
+    data: LoginRequest,
+    audit: AuditProtocol = Depends(get_audit),  # Separate session
+    business_session: AsyncSession = Depends(get_session),
+):
+    # Record audit FIRST (separate session, commits immediately)
+    await audit.record(
+        action=AuditAction.USER_LOGIN_FAILED,
+        resource_type="session",
+        ip_address=request.client.host,
+    )
+    
+    # Business logic fails
+    user = await business_session.execute(...)
+    raise HTTPException(401, "Invalid credentials")
+    
+    # Result: Audit log persists ✅, business transaction rolled back ✅
+```
+
+**Scenario 2: Database Constraint Violation**
+
+```python
+async def create_provider(
+    data: ProviderData,
+    audit: AuditProtocol = Depends(get_audit),
+    session: AsyncSession = Depends(get_session),
+):
+    # Record audit
+    await audit.record(
+        action=AuditAction.PROVIDER_CONNECTED,
+        user_id=user_id,
+        resource_type="provider",
+    )
+    
+    # Business logic fails (duplicate provider)
+    session.add(Provider(...))
+    await session.commit()  # Raises IntegrityError
+    
+    # Result: Audit log persists ✅, provider not created ✅
+```
+
+### 5.2.5 Testing Durability
+
+```python
+# tests/integration/test_audit_durability.py
+
+async def test_audit_persists_when_request_fails(
+    business_session,
+    audit_session,
+):
+    """Verify audit logs persist even when business transaction fails."""
+    # Record audit in separate session
+    audit = PostgresAuditAdapter(session=audit_session)
+    result = await audit.record(
+        action=AuditAction.USER_LOGIN,
+        resource_type="session",
+        user_id=user_id,
+    )
+    assert isinstance(result, Success)
+    
+    # Simulate business transaction failure
+    business_session.add(User(email="duplicate"))  # Unique constraint
+    with pytest.raises(IntegrityError):
+        await business_session.commit()
+    
+    # Verify audit log still exists
+    logs = await audit_session.execute(
+        select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+    )
+    assert len(logs.scalars().all()) == 1  # ✅ Audit persisted
+```
+
+### 5.2.6 Compliance Impact
+
+**PCI-DSS Requirement 10**: Track and monitor all access to cardholder data.
+
+- **10.2.4**: Invalid logical access attempts MUST be logged
+- **10.2.5**: Authentication mechanisms MUST be logged
+
+**SOC 2 CC6.1**: Access controls restrict access to authorized users.
+
+- Access denied events MUST be logged for security monitoring
+
+**GDPR Article 30**: Records of processing activities.
+
+- Personal data access MUST be logged even if operation fails
+
+**With separate sessions**: ✅ All compliance requirements met.
 
 ---
 

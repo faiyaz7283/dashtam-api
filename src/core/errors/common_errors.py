@@ -14,7 +14,7 @@ Usage:
     from src.core.errors import ValidationError, NotFoundError
     from src.core.enums import ErrorCode
     from src.core.result import Failure
-    
+
     return Failure(ValidationError(
         code=ErrorCode.INVALID_EMAIL,
         message="Invalid email format",

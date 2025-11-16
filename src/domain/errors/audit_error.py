@@ -7,7 +7,7 @@ Usage:
     from src.domain.errors import AuditError
     from src.core.enums import ErrorCode
     from src.core.result import Failure
-    
+
     return Failure(AuditError(
         code=ErrorCode.AUDIT_RECORD_FAILED,
         message="Failed to record audit entry: database connection lost"
@@ -22,7 +22,7 @@ from src.core.errors import DomainError
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AuditError(DomainError):
     """Audit system failure.
-    
+
     Used when audit trail recording or querying fails (database error,
     connection loss, etc.).
 

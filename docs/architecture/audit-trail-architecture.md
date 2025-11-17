@@ -295,7 +295,495 @@ TransactionRepository (F3.1-F3.3)
 
 ---
 
-## 3. Domain Layer - Protocol Definition
+## 3. Audit Event Semantics: The Truth Contract
+
+### 3.1 Core Principle: Audit What Actually Happened
+
+**CRITICAL**: Audit logs must record **observable facts**, not intentions or predictions.
+
+**The Problem**: Recording outcomes before they occur
+
+```python
+# ❌ WRONG: Lying in audit logs
+await audit.record(
+    action=AuditAction.USER_REGISTERED,  # ❌ LIE - user NOT registered yet!
+    user_id=user_id,
+)
+# Audit committed (permanent)
+
+# Business logic (might fail)
+session.add(user)
+await session.commit()  # ❌ If this fails, audit lies!
+
+# Result: Audit says "USER_REGISTERED" but user doesn't exist
+# ❌ Compliance violation - audit trail is inconsistent with database
+```
+
+**The Solution**: Audit ATTEMPTS and OUTCOMES separately
+
+```python
+# ✅ CORRECT: Record what user ATTEMPTED
+await audit.record(
+    action=AuditAction.USER_REGISTRATION_ATTEMPTED,  # ✅ Truth: they TRIED
+    user_id=None,  # Don't have ID yet
+    email=data.email,
+)
+
+# Business logic
+try:
+    user = User(email=data.email, ...)
+    session.add(user)
+    await session.commit()  # ✅ User NOW exists
+    
+    # ✅ CORRECT: Record SUCCESS after business commit
+    await audit.record(
+        action=AuditAction.USER_REGISTERED,  # ✅ Truth: NOW they're registered
+        user_id=user.id,
+    )
+    
+except HTTPException as e:
+    # ✅ CORRECT: Record FAILURE with reason
+    await audit.record(
+        action=AuditAction.USER_REGISTRATION_FAILED,  # ✅ Truth: it FAILED
+        user_id=None,
+        context={"reason": "duplicate_email"},
+    )
+```
+
+### 3.2 The ATTEMPT → OUTCOME Pattern
+
+**Every state-changing operation follows this pattern**:
+
+```text
+ATTEMPTED → (FAILED | SUCCESS)
+```
+
+**Timeline**:
+
+```text
+Time: T0  - User initiates action
+          ↓
+          [Audit: ATTEMPTED] ← Record immediately (independent session)
+          ↓
+Time: T1  - Business logic executes
+          ↓
+          [Business: Success or Failure?]
+          ↓
+Time: T2  - Record outcome
+          ↓
+          [Audit: SUCCESS] ← After business commit
+          OR
+          [Audit: FAILED] ← After business rollback
+```
+
+### 3.3 Event Taxonomy
+
+#### Category 1: State-Changing Operations (ATTEMPT → OUTCOME)
+
+**Pattern**: Always record ATTEMPTED first, then FAILED or SUCCESS
+
+**Registration**:
+```text
+USER_REGISTRATION_ATTEMPTED  → User hit endpoint
+    ↓
+USER_REGISTRATION_FAILED     → Validation failed, duplicate email, etc.
+OR
+USER_REGISTERED              → User exists in database
+```
+
+**Login**:
+```text
+USER_LOGIN_ATTEMPTED         → User submitted credentials
+    ↓
+USER_LOGIN_FAILED            → Invalid credentials, account locked, etc.
+OR
+USER_LOGIN_SUCCESS           → Session created
+```
+
+**Provider Connection**:
+```text
+PROVIDER_CONNECTION_ATTEMPTED → OAuth flow started
+    ↓
+PROVIDER_CONNECTION_FAILED    → OAuth failed, API error, etc.
+OR
+PROVIDER_CONNECTED            → Tokens saved, provider active
+```
+
+**Data Modification**:
+```text
+DATA_MODIFICATION_ATTEMPTED  → Update operation started
+    ↓
+DATA_MODIFICATION_FAILED     → Validation failed, constraint violation
+OR
+DATA_MODIFIED                → Changes committed to database
+```
+
+#### Category 2: Access Control Events (ATTEMPT → OUTCOME)
+
+**Pattern**: Record access attempt, then DENIED or GRANTED
+
+**Data Access**:
+```text
+DATA_ACCESS_ATTEMPTED        → User requested data
+    ↓
+ACCESS_DENIED                → Permission check failed
+OR
+DATA_VIEWED                  → Permission check passed, data returned
+```
+
+**Admin Action**:
+```text
+ADMIN_ACTION_ATTEMPTED       → Admin initiated action
+    ↓
+ADMIN_ACTION_DENIED          → Insufficient permissions
+OR
+ADMIN_ACTION_COMPLETED       → Action executed successfully
+```
+
+#### Category 3: Completed Events (No ATTEMPT needed)
+
+**Pattern**: Record after action completes (these are reactions, not initiations)
+
+**Session Events**:
+```text
+USER_LOGOUT                  → User logged out (always succeeds)
+SESSION_EXPIRED              → Session timed out (always succeeds)
+TOKEN_ROTATED                → Token refresh completed (always succeeds)
+```
+
+**System Events**:
+```text
+BACKUP_COMPLETED             → Backup job finished
+DATA_SYNC_COMPLETED          → Sync job finished
+CACHE_CLEARED                → Cache operation completed
+```
+
+**Why no ATTEMPT?**: These events are triggered by completed actions or system processes.
+
+### 3.4 Compliance Rationale
+
+**Why ATTEMPT/OUTCOME pattern is mandatory**:
+
+#### PCI-DSS Requirement 10.2.4
+
+> "Invalid logical access attempts must be logged."
+
+**Wrong approach** (no ATTEMPT record):
+```text
+Audit log: [empty]
+Database: no user record
+Result: ❌ No evidence of failed attempt (compliance violation)
+```
+
+**Correct approach**:
+```text
+Audit log:
+  - USER_REGISTRATION_ATTEMPTED (IP: 123.45.67.89)
+  - USER_REGISTRATION_FAILED (reason: duplicate_email)
+Database: no user record
+Result: ✅ Clear evidence of attempt and failure (compliance met)
+```
+
+#### SOC 2 CC6.1
+
+> "The entity implements logical access security measures to protect against
+> threats from sources outside its system boundaries."
+
+**Audit trail must show**:
+- Who attempted access (USER_LOGIN_ATTEMPTED)
+- Whether access was granted (USER_LOGIN_SUCCESS) or denied (USER_LOGIN_FAILED)
+- Why access was denied (context: {"reason": "invalid_password"})
+
+#### GDPR Article 30
+
+> "Records of processing activities must be maintained."
+
+**Processing activity** = ATTEMPT (user initiated action)  
+**Processing outcome** = FAILED or SUCCESS
+
+Both must be logged for complete audit trail.
+
+### 3.5 Real-World Scenarios
+
+#### Scenario 1: Registration with Duplicate Email
+
+```python
+@router.post("/users", status_code=201)
+async def register_user(
+    data: UserCreate,
+    session: AsyncSession = Depends(get_db_session),
+    audit: AuditProtocol = Depends(get_audit),
+    request: Request = None,
+):
+    # Step 1: ALWAYS record attempt first
+    await audit.record(
+        action=AuditAction.USER_REGISTRATION_ATTEMPTED,
+        user_id=None,  # Don't have ID yet
+        resource_type="user",
+        ip_address=request.client.host,
+        context={"email": data.email},
+    )
+    # ✅ Committed: Attempt is permanent record
+    
+    # Step 2: Validation
+    if await email_exists(data.email, session):
+        # Step 3: Record FAILURE
+        await audit.record(
+            action=AuditAction.USER_REGISTRATION_FAILED,
+            user_id=None,
+            resource_type="user",
+            ip_address=request.client.host,
+            context={
+                "email": data.email,
+                "reason": "duplicate_email",
+            },
+        )
+        # ✅ Committed: Failure is permanent record
+        
+        raise HTTPException(400, "Email already registered")
+    
+    # Step 4: Business logic
+    user = User(email=data.email, ...)
+    session.add(user)
+    await session.commit()  # ✅ User NOW exists in database
+    
+    # Step 5: Record SUCCESS (after business commit)
+    await audit.record(
+        action=AuditAction.USER_REGISTERED,
+        user_id=user.id,  # NOW we have ID
+        resource_type="user",
+        ip_address=request.client.host,
+        context={"email": user.email},
+    )
+    # ✅ Committed: Success is permanent record
+    
+    return UserResponse(id=user.id, email=user.email)
+```
+
+**Audit Timeline**:
+
+```text
+10:00:00.001 - USER_REGISTRATION_ATTEMPTED (email: john@example.com)
+10:00:00.050 - USER_REGISTRATION_FAILED (reason: duplicate_email)
+
+Result: ✅ Audit shows ATTEMPT + FAILURE
+        ✅ Database has no user record (consistent)
+        ✅ Compliance requirement met
+```
+
+#### Scenario 2: Failed Login Attempt (Security)
+
+```python
+@router.post("/auth/login")
+async def login(
+    data: LoginRequest,
+    audit: AuditProtocol = Depends(get_audit),
+    request: Request = None,
+):
+    # Step 1: Record attempt
+    await audit.record(
+        action=AuditAction.USER_LOGIN_ATTEMPTED,
+        user_id=None,
+        resource_type="session",
+        ip_address=request.client.host,
+        context={"email": data.email},
+    )
+    
+    # Step 2: Authenticate
+    user = await find_user(data.email)
+    if not user or not verify_password(data.password, user.password_hash):
+        # Step 3: Record FAILURE (security event)
+        await audit.record(
+            action=AuditAction.USER_LOGIN_FAILED,
+            user_id=user.id if user else None,
+            resource_type="session",
+            ip_address=request.client.host,
+            context={
+                "email": data.email,
+                "reason": "invalid_credentials",
+            },
+        )
+        raise HTTPException(401, "Invalid credentials")
+    
+    # Step 4: Create session (business logic)
+    session_id = create_session(user.id)
+    
+    # Step 5: Record SUCCESS
+    await audit.record(
+        action=AuditAction.USER_LOGIN_SUCCESS,
+        user_id=user.id,
+        resource_type="session",
+        resource_id=session_id,
+        ip_address=request.client.host,
+    )
+    
+    return {"access_token": create_token(user)}
+```
+
+**Security Investigation Use Case**:
+
+```sql
+-- Find all failed login attempts from suspicious IP
+SELECT * FROM audit_logs
+WHERE action = 'user_login_failed'
+  AND ip_address = '123.45.67.89'
+  AND created_at > NOW() - INTERVAL '24 hours'
+ORDER BY created_at;
+
+-- Result: Clear evidence of brute force attack
+-- 100 failed attempts, 0 successes
+-- ✅ Block IP with confidence
+```
+
+#### Scenario 3: Provider Connection with API Failure
+
+```python
+@router.post("/providers/{provider_name}/connect")
+async def connect_provider(
+    provider_name: str,
+    data: OAuth2Request,
+    session: AsyncSession = Depends(get_db_session),
+    audit: AuditProtocol = Depends(get_audit),
+    request: Request = None,
+):
+    # Step 1: Record attempt
+    await audit.record(
+        action=AuditAction.PROVIDER_CONNECTION_ATTEMPTED,
+        user_id=current_user.id,
+        resource_type="provider",
+        ip_address=request.client.host,
+        context={"provider": provider_name},
+    )
+    
+    # Step 2: OAuth flow
+    try:
+        tokens = await oauth_client.exchange_code(data.code)
+    except OAuthError as e:
+        # Step 3: Record FAILURE (API error)
+        await audit.record(
+            action=AuditAction.PROVIDER_CONNECTION_FAILED,
+            user_id=current_user.id,
+            resource_type="provider",
+            ip_address=request.client.host,
+            context={
+                "provider": provider_name,
+                "reason": "oauth_failed",
+                "error": str(e),
+            },
+        )
+        raise HTTPException(400, "Provider connection failed")
+    
+    # Step 4: Save provider (business logic)
+    provider = Provider(
+        user_id=current_user.id,
+        name=provider_name,
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
+    )
+    session.add(provider)
+    await session.commit()  # ✅ Provider NOW exists
+    
+    # Step 5: Record SUCCESS
+    await audit.record(
+        action=AuditAction.PROVIDER_CONNECTED,
+        user_id=current_user.id,
+        resource_type="provider",
+        resource_id=provider.id,
+        ip_address=request.client.host,
+        context={"provider": provider_name},
+    )
+    
+    return ProviderResponse(id=provider.id, name=provider_name)
+```
+
+### 3.6 Anti-Patterns (Common Mistakes)
+
+#### Anti-Pattern 1: Recording SUCCESS Before Business Commit
+
+```python
+# ❌ WRONG: Audit says user registered, but commit might fail
+await audit.record(action=AuditAction.USER_REGISTERED, ...)
+session.add(user)
+await session.commit()  # ❌ If this fails, audit is lying
+```
+
+**Fix**: Record SUCCESS AFTER business commit succeeds.
+
+#### Anti-Pattern 2: No ATTEMPT Record
+
+```python
+# ❌ WRONG: No record of failed attempt
+if email_exists:
+    raise HTTPException(400)  # ❌ No audit of failed attempt
+```
+
+**Fix**: Always record ATTEMPTED first, then FAILED.
+
+#### Anti-Pattern 3: Single Event for Both Attempt and Outcome
+
+```python
+# ❌ WRONG: Can't distinguish attempt from success
+await audit.record(action=AuditAction.USER_LOGIN, ...)
+# ❌ Was this successful login or just an attempt?
+```
+
+**Fix**: Use ATTEMPTED → (FAILED or SUCCESS) pattern.
+
+#### Anti-Pattern 4: Recording Predictions
+
+```python
+# ❌ WRONG: Audit predicts the future
+await audit.record(action=AuditAction.DATA_WILL_BE_EXPORTED, ...)
+# ❌ "will be" is prediction, not fact
+```
+
+**Fix**: Only audit completed actions (past tense: DATA_EXPORTED).
+
+### 3.7 Decision Tree: When to Audit
+
+```text
+Is this a user-initiated action?
+├─ YES → Record ATTEMPTED immediately
+│       ↓
+│       Does business logic execute?
+│       ├─ YES → Record FAILED or SUCCESS after business commit
+│       └─ NO  → Just record ATTEMPTED (e.g., validation fails immediately)
+│
+└─ NO  → Is this a completed system event?
+        ├─ YES → Record event after completion (e.g., BACKUP_COMPLETED)
+        └─ NO  → Is this internal workflow? → Don't audit (use events instead)
+```
+
+### 3.8 Testing Semantic Accuracy
+
+```python
+# tests/integration/test_audit_semantics.py
+
+async def test_registration_audit_timeline(
+    test_database,
+    audit: AuditProtocol,
+):
+    """Verify registration follows ATTEMPTED → FAILED/SUCCESS pattern."""
+    
+    # Attempt registration with duplicate email
+    # Should see: ATTEMPTED → FAILED
+    
+    # Query audit logs
+    logs = await audit.query(user_id=None, limit=100)
+    
+    # Verify timeline
+    assert logs[0]["action"] == "user_registration_attempted"
+    assert logs[1]["action"] == "user_registration_failed"
+    assert logs[1]["context"]["reason"] == "duplicate_email"
+    
+    # Verify database consistency
+    users = await session.execute(select(User).where(User.email == email))
+    assert len(users.scalars().all()) == 0  # ✅ No user created
+```
+
+---
+
+## 4. Domain Layer - Protocol Definition
 
 ### 3.1 AuditAction Enum
 

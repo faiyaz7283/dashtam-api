@@ -21,6 +21,9 @@ principles from the ground up.
 
 ### Infrastructure Components
 
+- **[Audit Trail](architecture/audit-trail-architecture.md)** -
+  Immutable audit logging with ATTEMPT → OUTCOME semantics,
+  PCI-DSS/SOC 2/GDPR compliance
 - **[Database Architecture](architecture/database-architecture.md)** -
   PostgreSQL with async SQLAlchemy, session management, Alembic migrations
 - **[Cache Architecture](architecture/cache-architecture.md)** -
@@ -28,6 +31,8 @@ principles from the ground up.
   fail-open patterns
 - **[Secrets Management](architecture/secrets-management-architecture.md)** -
   Multi-tier secrets (local .env → AWS Secrets Manager), read-only protocol
+- **[Structured Logging](architecture/structured-logging-architecture.md)** -
+  JSON structured logs with contextual information for observability
 
 ## Project Overview
 
@@ -149,6 +154,12 @@ make test
 7. **Document changes** (architecture docs, API flows)
 8. **Commit with conventional commits** (`feat:`, `fix:`, `docs:`)
 
+## Development Guides
+
+- **[Audit Usage Patterns](guides/audit-usage-patterns.md)** -
+  Complete guide with copy-pasteable examples for registration,
+  login, provider connection, data access audit patterns
+
 ### Architecture Documentation Status
 
 ✅ **Complete**:
@@ -157,14 +168,16 @@ make test
 - Dependency injection container pattern
 - Error handling with Result types
 - Testing architecture with container mocking
+- Audit trail with semantic accuracy (ATTEMPT → OUTCOME)
 - Database setup with async SQLAlchemy
 - Cache implementation with Redis
 - Secrets management multi-tier strategy
+- Structured logging with JSON output
 
 🚧 **In Progress**:
 
-- Feature implementation (F0.7 Secrets Management)
-- API endpoint documentation
+- Audit semantic accuracy implementation (Phase 6/9)
+- Feature implementation (F0.9 Audit Trail)
 - Domain models and repositories
 
 📋 **Planned**:
@@ -172,7 +185,6 @@ make test
 - Authentication & authorization
 - Financial provider integrations
 - Transaction aggregation
-- API documentation site
 
 ## Contributing
 
@@ -189,4 +201,4 @@ See `~/starter/development-checklist.md` for the complete feature development wo
 
 ---
 
-**Last Updated**: 2025-11-13
+**Created**: 2025-11-13  | **Last Updated**: 2025-11-17

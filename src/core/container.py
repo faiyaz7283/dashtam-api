@@ -15,6 +15,7 @@ Reference:
 from functools import lru_cache
 from typing import AsyncGenerator, TYPE_CHECKING
 
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
@@ -184,11 +185,56 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-def get_audit(session: AsyncSession) -> "AuditProtocol":
-    """Get audit trail adapter (request-scoped).
+async def get_audit_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get audit session (request-scoped, independent lifecycle).
 
-    Creates audit adapter instance per request with database session.
-    This follows the Composition Root pattern (industry best practice).
+    Creates separate session ONLY for audit logging with immediate commits
+    to ensure audit logs persist regardless of request outcome.
+
+    CRITICAL: Audit logs MUST persist even when business transactions fail
+    (PCI-DSS 10.2.4, SOC 2 CC6.1, GDPR Article 30 requirements).
+
+    Separate from get_db_session() to prevent audit logs from being lost
+    when business transactions roll back.
+
+    Yields:
+        Database session for audit operations only.
+
+    Usage:
+        # Presentation Layer (FastAPI endpoint)
+        from fastapi import Depends
+        from src.domain.protocols import AuditProtocol
+
+        @router.post("/users")
+        async def create_user(
+            audit: AuditProtocol = Depends(get_audit),
+        ):
+            # Audit adapter commits immediately (durable)
+            await audit.record(
+                action=AuditAction.USER_REGISTERED,
+                user_id=user_id,
+                resource_type="user",
+            )
+
+    See Also:
+        docs/architecture/audit-trail-architecture.md Section 5.2
+        for complete audit session architecture.
+    """
+    db = get_database()
+    async with db.get_session() as session:
+        yield session
+
+
+async def get_audit(
+    audit_session: AsyncSession = Depends(get_audit_session),
+) -> "AuditProtocol":
+    """Get audit trail adapter (request-scoped with separate session).
+
+    Creates audit adapter instance per request with SEPARATE audit session
+    that commits immediately to ensure durability.
+
+    CRITICAL: Uses get_audit_session() (NOT get_db_session()) to ensure
+    audit logs persist even when business transactions fail.
 
     Returns correct adapter based on database type:
         - PostgreSQL: PostgresAuditAdapter
@@ -196,7 +242,8 @@ def get_audit(session: AsyncSession) -> "AuditProtocol":
         - SQLite: SQLiteAuditAdapter (future/testing)
 
     Args:
-        session: Database session for audit operations (injected).
+        audit_session: Independent database session for audit operations.
+            Injected via Depends(get_audit_session).
 
     Returns:
         Audit adapter implementing AuditProtocol.
@@ -209,23 +256,27 @@ def get_audit(session: AsyncSession) -> "AuditProtocol":
 
         @router.post("/users")
         async def create_user(
-            session: AsyncSession = Depends(get_db_session),
-            audit: AuditProtocol = Depends(get_audit),
+            session: AsyncSession = Depends(get_db_session),  # Business logic
+            audit: AuditProtocol = Depends(get_audit),  # Separate audit session
         ):
-            # Use audit trail
+            # Audit persists even if business logic fails
             await audit.record(
                 action=AuditAction.USER_REGISTERED,
                 user_id=user_id,
                 resource_type="user",
                 ip_address=request.client.host,
             )
+
+    See Also:
+        docs/architecture/audit-trail-architecture.md Section 5.2
+        for complete audit session architecture and compliance impact.
     """
     # Import here to avoid circular dependency
     from src.infrastructure.audit.postgres_adapter import PostgresAuditAdapter
 
     # For now, always return PostgreSQL adapter
     # In future, detect database type from settings.database_url
-    return PostgresAuditAdapter(session=session)
+    return PostgresAuditAdapter(session=audit_session)
 
 
 # ============================================================================

@@ -153,11 +153,13 @@ class PostgresAuditAdapter:
 
             # Insert into database (only operation allowed)
             self.session.add(audit_log)
-            await self.session.flush()  # Flush to catch errors before commit
+            await self.session.commit()  # Commit immediately for durability
 
             return Success(value=None)
 
         except SQLAlchemyError as e:
+            # Rollback audit session on error
+            await self.session.rollback()
             # Catch database errors (connection, constraint violations, etc.)
             return Failure(
                 error=AuditError(

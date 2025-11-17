@@ -73,8 +73,8 @@ class TestPostgresAuditAdapterRecord:
         assert audit_log.user_agent == "Mozilla/5.0"
         assert audit_log.context == test_context
 
-        # Verify flush was called (adapter uses flush, not commit)
-        mock_session.flush.assert_called_once()
+        # Verify commit was called (adapter commits immediately for durability)
+        mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_record_success_with_minimal_fields(self):
@@ -82,7 +82,7 @@ class TestPostgresAuditAdapterRecord:
         # Arrange
         mock_session = AsyncMock()
         mock_session.add = MagicMock()
-        mock_session.flush = AsyncMock()
+        mock_session.commit = AsyncMock()
 
         adapter = PostgresAuditAdapter(session=mock_session)
 
@@ -116,10 +116,10 @@ class TestPostgresAuditAdapterRecord:
     @pytest.mark.asyncio
     async def test_record_failure_database_error(self):
         """Test record() returns Failure when database error occurs."""
-        # Arrange: Mock session that raises error on flush
+        # Arrange: Mock session that raises error on commit
         mock_session = AsyncMock()
         mock_session.add = MagicMock()
-        mock_session.flush = AsyncMock(
+        mock_session.commit = AsyncMock(
             side_effect=SQLAlchemyError("Database connection failed")
         )
 
@@ -144,7 +144,7 @@ class TestPostgresAuditAdapterRecord:
         # Arrange
         mock_session = AsyncMock()
         mock_session.add = MagicMock()
-        mock_session.flush = AsyncMock()
+        mock_session.commit = AsyncMock()
 
         adapter = PostgresAuditAdapter(session=mock_session)
 
@@ -488,7 +488,7 @@ class TestPostgresAuditAdapterEdgeCases:
         # Arrange
         mock_session = AsyncMock()
         mock_session.add = MagicMock()
-        mock_session.flush = AsyncMock()
+        mock_session.commit = AsyncMock()
 
         adapter = PostgresAuditAdapter(session=mock_session)
 
@@ -551,7 +551,7 @@ class TestPostgresAuditAdapterEdgeCases:
         # Arrange: Create two different sessions
         mock_session1 = AsyncMock()
         mock_session1.add = MagicMock()
-        mock_session1.flush = AsyncMock()
+        mock_session1.commit = AsyncMock()
 
         mock_session2 = AsyncMock()
         mock_result = MagicMock()

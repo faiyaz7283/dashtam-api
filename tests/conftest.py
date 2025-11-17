@@ -166,6 +166,32 @@ async def cache_adapter(redis_test_client):
     return RedisAdapter(redis_client=redis_test_client)
 
 
+@pytest_asyncio.fixture
+async def test_database():
+    """Provide a test database instance for integration tests.
+
+    Returns a Database instance that can create multiple independent sessions.
+    Used for audit durability tests where separate sessions are required.
+
+    This fixture provides the Database object (not a session), allowing
+    tests to create multiple separate sessions as needed for testing
+    session isolation scenarios.
+
+    Usage:
+        async def test_something(test_database):
+            async with test_database.get_session() as session1:
+                # Use session1
+            async with test_database.get_session() as session2:
+                # Use session2 (separate from session1)
+    """
+    from src.infrastructure.persistence.database import Database
+    from src.core.config import settings
+
+    db = Database(database_url=settings.database_url, echo=settings.db_echo)
+    yield db
+    await db.close()
+
+
 # Async timeout configuration
 @pytest.fixture
 def async_timeout():

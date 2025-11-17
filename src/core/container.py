@@ -209,7 +209,15 @@ async def get_audit_session() -> AsyncGenerator[AsyncSession, None]:
         async def create_user(
             audit: AuditProtocol = Depends(get_audit),
         ):
-            # Audit adapter commits immediately (durable)
+            # Step 1: Record ATTEMPT first
+            await audit.record(
+                action=AuditAction.USER_REGISTRATION_ATTEMPTED,
+                user_id=None,
+                resource_type="user",
+            )
+            # Step 2: Business logic
+            # ... create user ...
+            # Step 3: Record SUCCESS after business commit
             await audit.record(
                 action=AuditAction.USER_REGISTERED,
                 user_id=user_id,
@@ -259,7 +267,16 @@ async def get_audit(
             session: AsyncSession = Depends(get_db_session),  # Business logic
             audit: AuditProtocol = Depends(get_audit),  # Separate audit session
         ):
-            # Audit persists even if business logic fails
+            # Step 1: Record ATTEMPT (persists even if business fails)
+            await audit.record(
+                action=AuditAction.USER_REGISTRATION_ATTEMPTED,
+                user_id=None,
+                resource_type="user",
+                ip_address=request.client.host,
+            )
+            # Step 2: Business logic creates user and commits
+            # ... session.add(user), session.commit() ...
+            # Step 3: Record SUCCESS after business commit
             await audit.record(
                 action=AuditAction.USER_REGISTERED,
                 user_id=user_id,

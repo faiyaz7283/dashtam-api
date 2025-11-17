@@ -43,7 +43,7 @@ class TestPostgresAuditAdapterRecord:
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
             result = await adapter.record(
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 resource_type="session",
                 user_id=user_id,
                 resource_id=resource_id,  # Must be UUID, not string
@@ -61,7 +61,7 @@ class TestPostgresAuditAdapterRecord:
 
             assert len(logs) == 1
             log = logs[0]
-            assert log.action == AuditAction.USER_LOGIN
+            assert log.action == AuditAction.USER_LOGIN_SUCCESS
             assert log.user_id == user_id
             assert log.resource_type == "session"
             assert log.resource_id == resource_id  # UUID
@@ -189,7 +189,7 @@ class TestPostgresAuditAdapterImmutability:
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
             await adapter.record(
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 resource_type="session",
                 user_id=user_id,
                 ip_address="192.168.1.1",
@@ -223,7 +223,7 @@ class TestPostgresAuditAdapterImmutability:
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
             await adapter.record(
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 resource_type="session",
                 user_id=user_id,
             )
@@ -294,7 +294,7 @@ class TestPostgresAuditAdapterQuery:
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
             await adapter.record(
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 resource_type="session",
                 user_id=user_id,
             )
@@ -318,7 +318,7 @@ class TestPostgresAuditAdapterQuery:
             adapter = PostgresAuditAdapter(session=query_session)
             result = await adapter.query(
                 user_id=user_id,
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
             )
 
             # Assert
@@ -497,7 +497,7 @@ class TestPostgresAuditAdapterEdgeCases:
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
             await adapter.record(
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 resource_type="session",
                 user_id=user_id,
             )
@@ -582,7 +582,7 @@ class TestPostgresAuditAdapterEdgeCases:
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
             result = await adapter.record(
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 resource_type="session",
                 user_id=uuid4(),
                 user_agent=long_user_agent,
@@ -605,7 +605,7 @@ class TestPostgresAuditAdapterEdgeCases:
         async with test_database.get_session() as audit_session1:
             adapter1 = PostgresAuditAdapter(session=audit_session1)
             await adapter1.record(
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 resource_type="session",
                 user_id=user_id,
             )

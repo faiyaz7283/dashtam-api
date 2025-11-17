@@ -30,13 +30,24 @@ Usage:
     # Inject via container
     adapter = PostgresAuditAdapter(session)
 
-    # Record audit event
-    result = await adapter.record(
-        action=AuditAction.USER_LOGIN,
-        user_id=user_id,
+    # Record audit events (follows ATTEMPT → OUTCOME pattern)
+    # Step 1: Record attempt
+    await adapter.record(
+        action=AuditAction.USER_LOGIN_ATTEMPTED,
+        user_id=None,
         resource_type="session",
         ip_address="192.168.1.1",
-        context={"method": "password"},
+        context={"email": "user@example.com"},
+    )
+
+    # Step 2: Record outcome (success or failure)
+    await adapter.record(
+        action=AuditAction.USER_LOGIN_SUCCESS,
+        user_id=user_id,
+        resource_type="session",
+        resource_id=session_id,
+        ip_address="192.168.1.1",
+        context={"method": "password", "mfa": True},
     )
 """
 
@@ -112,9 +123,19 @@ class PostgresAuditAdapter:
                 - Failure(AuditError) if database operation failed
 
         Example:
-            # Successful login
+            # Record login attempt
             result = await adapter.record(
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_ATTEMPTED,
+                user_id=None,
+                resource_type="session",
+                ip_address="192.168.1.1",
+                user_agent="Mozilla/5.0...",
+                context={"email": "user@example.com"},
+            )
+
+            # After authentication succeeds, record success
+            result = await adapter.record(
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 user_id=user_id,
                 resource_type="session",
                 resource_id=session_id,

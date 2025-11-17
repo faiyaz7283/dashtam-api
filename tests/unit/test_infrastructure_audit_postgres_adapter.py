@@ -48,7 +48,7 @@ class TestPostgresAuditAdapterRecord:
 
         # Act
         result = await adapter.record(
-            action=AuditAction.USER_LOGIN,
+            action=AuditAction.USER_LOGIN_SUCCESS,
             user_id=user_id,
             resource_type="session",
             resource_id="session-123",
@@ -127,7 +127,7 @@ class TestPostgresAuditAdapterRecord:
 
         # Act
         result = await adapter.record(
-            action=AuditAction.USER_LOGIN,
+            action=AuditAction.USER_LOGIN_SUCCESS,
             resource_type="session",
             user_id=uuid4(),
         )
@@ -169,7 +169,7 @@ class TestPostgresAuditAdapterRecord:
 
         # Act
         result = await adapter.record(
-            action=AuditAction.USER_LOGIN,
+            action=AuditAction.USER_LOGIN_SUCCESS,
             resource_type="session",
             context=complex_context,
         )
@@ -197,7 +197,7 @@ class TestPostgresAuditAdapterQuery:
         mock_logs = [
             MagicMock(
                 id=uuid4(),
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 user_id=user_id,
                 resource_type="session",
                 resource_id="session-1",
@@ -274,7 +274,7 @@ class TestPostgresAuditAdapterQuery:
         # Act
         result = await adapter.query(
             user_id=uuid4(),
-            action=AuditAction.USER_LOGIN,
+            action=AuditAction.USER_LOGIN_SUCCESS,
         )
 
         # Assert
@@ -335,7 +335,7 @@ class TestPostgresAuditAdapterQuery:
         mock_logs = [
             MagicMock(
                 id=uuid4(),
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 user_id=uuid4(),
                 resource_type="session",
                 resource_id=None,
@@ -382,7 +382,7 @@ class TestPostgresAuditAdapterQuery:
         # Act
         result = await adapter.query(
             user_id=uuid4(),
-            action=AuditAction.USER_LOGIN,
+            action=AuditAction.USER_LOGIN_SUCCESS,
         )
 
         # Assert
@@ -403,7 +403,7 @@ class TestPostgresAuditAdapterQuery:
         mock_logs = [
             MagicMock(
                 id=log_id,
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 user_id=user_id,
                 resource_type="session",
                 resource_id="session-1",
@@ -513,7 +513,7 @@ class TestPostgresAuditAdapterEdgeCases:
         mock_logs = [
             MagicMock(
                 id=uuid4(),
-                action=AuditAction.USER_LOGIN,
+                action=AuditAction.USER_LOGIN_SUCCESS,
                 user_id=uuid4(),
                 resource_type="session",
                 resource_id=None,
@@ -565,7 +565,7 @@ class TestPostgresAuditAdapterEdgeCases:
         adapter2 = PostgresAuditAdapter(session=mock_session2)
 
         result1 = await adapter1.record(
-            action=AuditAction.USER_LOGIN,
+            action=AuditAction.USER_LOGIN_SUCCESS,
             resource_type="session",
         )
         result2 = await adapter2.query(user_id=uuid4())

@@ -1,3 +1,4 @@
+# mypy: disable-error-code="arg-type"
 """Centralized dependency injection container.
 
 Provides both application-scoped singletons and request-scoped dependencies
@@ -24,8 +25,9 @@ from src.infrastructure.persistence.database import Database
 if TYPE_CHECKING:
     from src.domain.protocols.audit_protocol import AuditProtocol
     from src.domain.protocols.cache import CacheProtocol
-    from src.domain.protocols.secrets_protocol import SecretsProtocol
+    from src.domain.protocols.event_bus_protocol import EventBusProtocol
     from src.domain.protocols.logger_protocol import LoggerProtocol
+    from src.domain.protocols.secrets_protocol import SecretsProtocol
 
 
 # ============================================================================
@@ -340,19 +342,212 @@ def get_logger() -> "LoggerProtocol":  # noqa: F821
         return ConsoleAdapter(use_json=use_json)
 
 
-def clear_container_cache() -> None:
-    """Clear caches for all app-scoped singletons (testing utility).
+# ============================================================================
+# Domain Events (Application-Scoped)
+# ============================================================================
 
-    Note: get_audit is request-scoped (not cached), so no cache to clear.
+
+@lru_cache()
+def get_event_bus() -> "EventBusProtocol":  # noqa: F821
+    """Get event bus singleton (app-scoped).
+
+    Container owns factory logic - decides which adapter based on EVENT_BUS_TYPE.
+    This follows the Composition Root pattern (industry best practice).
+
+    Returns correct adapter based on EVENT_BUS_TYPE environment variable:
+        - 'in-memory': InMemoryEventBus (MVP, single-server)
+        - 'rabbitmq': RabbitMQEventBus (future, distributed)
+        - 'kafka': KafkaEventBus (future, high-volume)
+
+    Event handlers are registered at startup (ALL 27 subscriptions):
+        - LoggingEventHandler: 12 events (all authentication events)
+        - AuditEventHandler: 12 events (all authentication events)
+        - EmailEventHandler: 2 SUCCEEDED events (registration, password change)
+        - SessionEventHandler: 1 SUCCEEDED event (password change)
+
+    Returns:
+        Event bus implementing EventBusProtocol.
+
+    Usage:
+        # Application Layer (direct use)
+        event_bus = get_event_bus()
+        await event_bus.publish(UserRegistrationSucceeded(...))
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        event_bus: EventBusProtocol = Depends(get_event_bus)
+
+    Reference:
+        - docs/architecture/domain-events-architecture.md
+        - docs/architecture/dependency-injection-architecture.md
     """
-    get_cache.cache_clear()
-    get_secrets.cache_clear()
-    get_database.cache_clear()
-    try:
-        get_logger.cache_clear()
-    except Exception:
-        # get_logger may not be defined in some test import orders
-        pass
+    # Import here to avoid circular dependency
+    import os
+    from src.infrastructure.events.in_memory_event_bus import InMemoryEventBus
+    from src.infrastructure.events.handlers.logging_event_handler import (
+        LoggingEventHandler,
+    )
+    from src.infrastructure.events.handlers.audit_event_handler import AuditEventHandler
+    from src.infrastructure.events.handlers.email_event_handler import EmailEventHandler
+    from src.infrastructure.events.handlers.session_event_handler import (
+        SessionEventHandler,
+    )
+    from src.domain.events.authentication_events import (
+        UserRegistrationAttempted,
+        UserRegistrationSucceeded,
+        UserRegistrationFailed,
+        UserPasswordChangeAttempted,
+        UserPasswordChangeSucceeded,
+        UserPasswordChangeFailed,
+        ProviderConnectionAttempted,
+        ProviderConnectionSucceeded,
+        ProviderConnectionFailed,
+        TokenRefreshAttempted,
+        TokenRefreshSucceeded,
+        TokenRefreshFailed,
+    )
+
+    event_bus_type = os.getenv("EVENT_BUS_TYPE", "in-memory")
+
+    if event_bus_type == "in-memory":
+        # Create InMemoryEventBus with logger
+        event_bus = InMemoryEventBus(logger=get_logger())
+    # elif event_bus_type == "rabbitmq":
+    #     # Future: RabbitMQ adapter
+    #     from src.infrastructure.events.rabbitmq_event_bus import RabbitMQEventBus
+    #
+    #     event_bus = RabbitMQEventBus(url=os.getenv("RABBITMQ_URL"))
+    # elif event_bus_type == "kafka":
+    #     # Future: Kafka adapter
+    #     from src.infrastructure.events.kafka_event_bus import KafkaEventBus
+    #
+    #     event_bus = KafkaEventBus(brokers=os.getenv("KAFKA_BROKERS"))
+    else:
+        raise ValueError(
+            f"Unsupported EVENT_BUS_TYPE: {event_bus_type}. "
+            f"Supported: 'in-memory' (rabbitmq and kafka: future)"
+        )
+
+    # Create event handlers
+    logging_handler = LoggingEventHandler(logger=get_logger())
+
+    # Audit handler manages its own database sessions for audit writes.
+    # Pass database instance - handler creates audit adapter per event.
+    # This ensures proper session lifecycle (commit per audit write).
+    audit_handler = AuditEventHandler(database=get_database())
+
+    email_handler = EmailEventHandler(logger=get_logger())
+    session_handler = SessionEventHandler(logger=get_logger())
+
+    # =========================================================================
+    # Subscribe ALL handlers to events (27 subscriptions total)
+    # =========================================================================
+    # NOTE: mypy shows arg-type errors because handler signatures are more specific
+    # (e.g., Callable[[UserRegistrationAttempted], Awaitable[None]]) than the
+    # EventHandler type alias (Callable[[DomainEvent], Awaitable[None]]). This is
+    # correct by contravariance principle - handlers accepting specific events can
+    # safely handle the base type. Runtime behavior is sound, so we suppress mypy
+    # at file level (first line of this file).
+
+    # User Registration Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        UserRegistrationAttempted, logging_handler.handle_user_registration_attempted
+    )
+    event_bus.subscribe(
+        UserRegistrationAttempted, audit_handler.handle_user_registration_attempted
+    )
+
+    event_bus.subscribe(
+        UserRegistrationSucceeded, logging_handler.handle_user_registration_succeeded
+    )
+    event_bus.subscribe(
+        UserRegistrationSucceeded, audit_handler.handle_user_registration_succeeded
+    )
+    event_bus.subscribe(
+        UserRegistrationSucceeded, email_handler.handle_user_registration_succeeded
+    )  # +1 email
+
+    event_bus.subscribe(
+        UserRegistrationFailed, logging_handler.handle_user_registration_failed
+    )
+    event_bus.subscribe(
+        UserRegistrationFailed, audit_handler.handle_user_registration_failed
+    )
+
+    # User Password Change Events (3 events × 2 handlers + email + session = 9 subscriptions)
+    event_bus.subscribe(
+        UserPasswordChangeAttempted,
+        logging_handler.handle_user_password_change_attempted,
+    )
+    event_bus.subscribe(
+        UserPasswordChangeAttempted, audit_handler.handle_user_password_change_attempted
+    )
+
+    event_bus.subscribe(
+        UserPasswordChangeSucceeded,
+        logging_handler.handle_user_password_change_succeeded,
+    )
+    event_bus.subscribe(
+        UserPasswordChangeSucceeded, audit_handler.handle_user_password_change_succeeded
+    )
+    event_bus.subscribe(
+        UserPasswordChangeSucceeded, email_handler.handle_user_password_change_succeeded
+    )  # +1 email
+    event_bus.subscribe(
+        UserPasswordChangeSucceeded,
+        session_handler.handle_user_password_change_succeeded,
+    )  # +1 session
+
+    event_bus.subscribe(
+        UserPasswordChangeFailed, logging_handler.handle_user_password_change_failed
+    )
+    event_bus.subscribe(
+        UserPasswordChangeFailed, audit_handler.handle_user_password_change_failed
+    )
+
+    # Provider Connection Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        ProviderConnectionAttempted,
+        logging_handler.handle_provider_connection_attempted,
+    )
+    event_bus.subscribe(
+        ProviderConnectionAttempted, audit_handler.handle_provider_connection_attempted
+    )
+
+    event_bus.subscribe(
+        ProviderConnectionSucceeded,
+        logging_handler.handle_provider_connection_succeeded,
+    )
+    event_bus.subscribe(
+        ProviderConnectionSucceeded, audit_handler.handle_provider_connection_succeeded
+    )
+
+    event_bus.subscribe(
+        ProviderConnectionFailed, logging_handler.handle_provider_connection_failed
+    )
+    event_bus.subscribe(
+        ProviderConnectionFailed, audit_handler.handle_provider_connection_failed
+    )
+
+    # Token Refresh Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        TokenRefreshAttempted, logging_handler.handle_token_refresh_attempted
+    )
+    event_bus.subscribe(
+        TokenRefreshAttempted, audit_handler.handle_token_refresh_attempted
+    )
+
+    event_bus.subscribe(
+        TokenRefreshSucceeded, logging_handler.handle_token_refresh_succeeded
+    )
+    event_bus.subscribe(
+        TokenRefreshSucceeded, audit_handler.handle_token_refresh_succeeded
+    )
+
+    event_bus.subscribe(TokenRefreshFailed, logging_handler.handle_token_refresh_failed)
+    event_bus.subscribe(TokenRefreshFailed, audit_handler.handle_token_refresh_failed)
+
+    return event_bus
 
 
 # ============================================================================

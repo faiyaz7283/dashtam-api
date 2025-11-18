@@ -119,9 +119,11 @@ nav:
     - Database: architecture/database-architecture.md
     - Dependency Injection: architecture/dependency-injection-architecture.md
     - Directory Structure: architecture/directory-structure.md
+    - Domain Events: architecture/domain-events-architecture.md
     - Error Handling: architecture/error-handling-architecture.md
     - Secrets Management: architecture/secrets-management-architecture.md
     - Structured Logging: architecture/structured-logging-architecture.md
     - Testing: architecture/testing-architecture.md
   - Guides:
     - Audit Usage Patterns: guides/audit-usage-patterns.md
+    - Domain Events Usage: guides/domain-events-usage.md

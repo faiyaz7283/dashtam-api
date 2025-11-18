@@ -29,6 +29,9 @@ principles from the ground up.
 - **[Cache Architecture](architecture/cache-architecture.md)** -
   Redis implementation with connection pooling, TTL strategies,
   fail-open patterns
+- **[Domain Events](architecture/domain-events-architecture.md)** -
+  Event-driven architecture with in-memory event bus, fail-open behavior,
+  pragmatic DDD approach (events for critical workflows only)
 - **[Secrets Management](architecture/secrets-management-architecture.md)** -
   Multi-tier secrets (local .env → AWS Secrets Manager), read-only protocol
 - **[Structured Logging](architecture/structured-logging-architecture.md)** -
@@ -159,6 +162,9 @@ make test
 - **[Audit Usage Patterns](guides/audit-usage-patterns.md)** -
   Complete guide with copy-pasteable examples for registration,
   login, provider connection, data access audit patterns
+- **[Domain Events Usage](guides/domain-events-usage.md)** -
+  Complete guide for using domain events - when to use, event naming,
+  defining events, creating handlers, testing, anti-patterns
 
 ### Architecture Documentation Status
 
@@ -171,6 +177,7 @@ make test
 - Audit trail with semantic accuracy (ATTEMPT → OUTCOME)
 - Database setup with async SQLAlchemy
 - Cache implementation with Redis
+- Domain events with in-memory event bus
 - Secrets management multi-tier strategy
 - Structured logging with JSON output
 

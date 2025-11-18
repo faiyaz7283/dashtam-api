@@ -324,7 +324,7 @@ class TestPostgresAuditAdapterQuery:
             # Assert
             assert isinstance(result, Success)
             assert len(result.value) == 1
-            assert result.value[0]["action"] == AuditAction.USER_LOGIN
+            assert result.value[0]["action"] == AuditAction.USER_LOGIN_SUCCESS.value
 
     @pytest.mark.asyncio
     async def test_query_filter_by_resource_type(self, test_database):

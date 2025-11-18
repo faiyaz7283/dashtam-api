@@ -65,7 +65,7 @@ class TestPostgresAuditAdapterRecord:
         mock_session.add.assert_called_once()
         audit_log = mock_session.add.call_args[0][0]
         assert isinstance(audit_log, AuditLogModel)
-        assert audit_log.action == AuditAction.USER_LOGIN
+        assert audit_log.action == AuditAction.USER_LOGIN_SUCCESS.value
         assert audit_log.user_id == user_id
         assert audit_log.resource_type == "session"
         assert audit_log.resource_id == "session-123"
@@ -243,7 +243,7 @@ class TestPostgresAuditAdapterQuery:
 
         # Verify first log
         log1 = result.value[0]
-        assert log1["action"] == AuditAction.USER_LOGIN
+        assert log1["action"] == AuditAction.USER_LOGIN_SUCCESS.value
         assert log1["resource_type"] == "session"
         assert log1["context"]["method"] == "password"
 

@@ -77,7 +77,7 @@ async def test_audit_persists_when_business_transaction_fails(
 
         # Audit log must exist (durability requirement)
         assert len(logs) == 1, "Audit log should persist despite business failure"
-        assert logs[0].action == AuditAction.USER_LOGIN_SUCCESSvalue
+        assert logs[0].action == AuditAction.USER_LOGIN_SUCCESS.value
         assert logs[0].context == {"test": "durability"}
 
 
@@ -200,7 +200,7 @@ async def test_multiple_audits_persist_independently(
 
         # Verify each audit is correct
         actions = {log.action for log in logs}
-        assert AuditAction.USER_LOGIN_SUCCESSvalue in actions
+        assert AuditAction.USER_LOGIN_SUCCESS.value in actions
         assert AuditAction.USER_LOGIN_FAILED.value in actions
         assert AuditAction.ACCESS_DENIED.value in actions
 

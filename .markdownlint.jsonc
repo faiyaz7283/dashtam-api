@@ -1,0 +1,23 @@
+{
+  // markdownlint configuration
+  // Main linting rules for markdown documentation
+  
+  // Disable line-length rule (MD013) for documentation
+  // Rationale: Technical documentation often has long lines for:
+  // - Code examples, file paths, URLs
+  // - Table cells with detailed content
+  // - Command examples with multiple flags
+  "MD013": false,
+  
+  // Disable ordered list prefix (MD029) for global numbering
+  // Rationale: We use global workflow IDs (1-17) across multiple sections
+  // Each phase shows its subset (e.g., Phase 2: 8-11) maintaining context
+  "MD029": false,
+  
+  // Keep other important rules enabled
+  "MD032": true,  // Blank lines around lists
+  "MD060": true,  // Table column alignment
+  
+  // Default: all other rules enabled
+  "default": true
+}

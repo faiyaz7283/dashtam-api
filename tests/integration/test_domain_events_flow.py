@@ -78,8 +78,9 @@ class TestEventFlowEndToEnd:
             user_id=user_id, email="integration@example.com"
         )
 
-        # Act
-        await event_bus.publish(event)
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
 
         # Assert - Audit record created in database
         async with test_database.get_session() as session:
@@ -104,8 +105,9 @@ class TestEventFlowEndToEnd:
         user_id = uuid4()
         event = UserPasswordChangeSucceeded(user_id=user_id, initiated_by="user")
 
-        # Act
-        await event_bus.publish(event)
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
 
         # Assert - Audit record created
         async with test_database.get_session() as session:
@@ -133,8 +135,9 @@ class TestEventFlowEndToEnd:
             user_id=user_id, provider_id=provider_id, provider_name="schwab"
         )
 
-        # Act
-        await event_bus.publish(event)
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
 
         # Assert - Audit record created
         async with test_database.get_session() as session:
@@ -165,8 +168,9 @@ class TestEventFlowEndToEnd:
             error_message="Refresh token expired",
         )
 
-        # Act
-        await event_bus.publish(event)
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
 
         # Assert - Audit record created
         async with test_database.get_session() as session:
@@ -193,19 +197,23 @@ class TestMultipleEventsSequence:
         event_bus = get_event_bus()
         user_id = uuid4()
 
-        # Act - Publish 3 different events
-        await event_bus.publish(
-            UserRegistrationSucceeded(user_id=user_id, email="test1@example.com")
-        )
-        await event_bus.publish(
-            UserPasswordChangeSucceeded(user_id=user_id, initiated_by="user")
-        )
-        provider_id = uuid4()
-        await event_bus.publish(
-            ProviderConnectionSucceeded(
-                user_id=user_id, provider_id=provider_id, provider_name="schwab"
+        # Act - Publish 3 different events (pass session to each)
+        async with test_database.get_session() as session:
+            await event_bus.publish(
+                UserRegistrationSucceeded(user_id=user_id, email="test1@example.com"),
+                session=session,
             )
-        )
+            await event_bus.publish(
+                UserPasswordChangeSucceeded(user_id=user_id, initiated_by="user"),
+                session=session,
+            )
+            provider_id = uuid4()
+            await event_bus.publish(
+                ProviderConnectionSucceeded(
+                    user_id=user_id, provider_id=provider_id, provider_name="schwab"
+                ),
+                session=session,
+            )
 
         # Assert - 3 separate audit records
         async with test_database.get_session() as session:
@@ -231,20 +239,24 @@ class TestMultipleEventsSequence:
         event_bus = get_event_bus()
         user_id = uuid4()
 
-        # Act - Publish same event 3 times with different data
-        await event_bus.publish(
-            UserRegistrationSucceeded(user_id=user_id, email="user1@example.com")
-        )
+        # Act - Publish same event 3 times with different data (pass session)
+        async with test_database.get_session() as session:
+            await event_bus.publish(
+                UserRegistrationSucceeded(user_id=user_id, email="user1@example.com"),
+                session=session,
+            )
 
-        user_id_2 = uuid4()
-        await event_bus.publish(
-            UserRegistrationSucceeded(user_id=user_id_2, email="user2@example.com")
-        )
+            user_id_2 = uuid4()
+            await event_bus.publish(
+                UserRegistrationSucceeded(user_id=user_id_2, email="user2@example.com"),
+                session=session,
+            )
 
-        user_id_3 = uuid4()
-        await event_bus.publish(
-            UserRegistrationSucceeded(user_id=user_id_3, email="user3@example.com")
-        )
+            user_id_3 = uuid4()
+            await event_bus.publish(
+                UserRegistrationSucceeded(user_id=user_id_3, email="user3@example.com"),
+                session=session,
+            )
 
         # Assert - 3 audit records (one per event)
         async with test_database.get_session() as session:
@@ -280,8 +292,9 @@ class TestHandlerExecutionOrder:
             user_id=user_id, email="concurrent@example.com"
         )
 
-        # Act
-        await event_bus.publish(event)
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
 
         # Assert - All handlers completed (audit, logging, email)
         # Audit handler side effect: Database record exists
@@ -320,7 +333,8 @@ class TestFailOpenBehaviorWithRealInfrastructure:
 
         # Act - Should not raise exception even if handler fails
         # (Event bus catches exceptions with asyncio.gather(return_exceptions=True))
-        await event_bus.publish(event)
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
 
         # Assert - Event bus completed (no exception raised)
         # If fail-open wasn't working, an exception would propagate
@@ -347,8 +361,9 @@ class TestEventDataIntegrity:
             provider_name="schwab",
         )
 
-        # Act
-        await event_bus.publish(event)
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
 
         # Assert - All event fields preserved in audit
         async with test_database.get_session() as session:
@@ -374,8 +389,9 @@ class TestEventDataIntegrity:
         # UserPasswordChangeSucceeded doesn't have ip_address (unlike ATTEMPTED)
         event = UserPasswordChangeSucceeded(user_id=user_id, initiated_by="admin")
 
-        # Act
-        await event_bus.publish(event)
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
 
         # Assert - Audit record created without issues
         async with test_database.get_session() as session:

@@ -74,6 +74,15 @@ def mock_database():
 
 
 @pytest.fixture
+def mock_event_bus():
+    """Create mock InMemoryEventBus with get_session method."""
+    event_bus = MagicMock()
+    # Mock get_session to return None (fallback mode for unit tests)
+    event_bus.get_session = MagicMock(return_value=None)
+    return event_bus
+
+
+@pytest.fixture
 def sample_user_id() -> UUID:
     """Sample user UUID for tests."""
     return UUID("12345678-1234-5678-1234-567812345678")
@@ -372,21 +381,22 @@ class TestLoggingEventHandler:
 class TestAuditEventHandler:
     """Test AuditEventHandler creates audit records with correct actions."""
 
-    def test_handler_initialization(self, mock_database):
-        """Test AuditEventHandler initializes with database."""
+    def test_handler_initialization(self, mock_database, mock_event_bus):
+        """Test AuditEventHandler initializes with database and event bus."""
         # Act
-        handler = AuditEventHandler(database=mock_database)
+        handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
 
         # Assert
         assert handler._database is mock_database
+        assert handler._event_bus is mock_event_bus
 
     @pytest.mark.asyncio
     async def test_user_registration_attempted_creates_audit(
-        self, mock_database, sample_user_id
+        self, mock_database, mock_event_bus, sample_user_id
     ):
         """Test UserRegistrationAttempted creates audit record."""
         # Arrange
-        handler = AuditEventHandler(database=mock_database)
+        handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = UserRegistrationAttempted(
             email="test@example.com", ip_address="192.168.1.1"
         )
@@ -411,11 +421,11 @@ class TestAuditEventHandler:
 
     @pytest.mark.asyncio
     async def test_user_registration_succeeded_creates_audit(
-        self, mock_database, sample_user_id
+        self, mock_database, mock_event_bus, sample_user_id
     ):
         """Test UserRegistrationSucceeded creates audit record."""
         # Arrange
-        handler = AuditEventHandler(database=mock_database)
+        handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = UserRegistrationSucceeded(
             user_id=sample_user_id, email="test@example.com"
         )
@@ -440,11 +450,11 @@ class TestAuditEventHandler:
 
     @pytest.mark.asyncio
     async def test_user_registration_failed_creates_audit(
-        self, mock_database, sample_user_id
+        self, mock_database, mock_event_bus, sample_user_id
     ):
         """Test UserRegistrationFailed creates audit record."""
         # Arrange
-        handler = AuditEventHandler(database=mock_database)
+        handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = UserRegistrationFailed(
             email="test@example.com",
             error_code="duplicate_email",
@@ -471,11 +481,11 @@ class TestAuditEventHandler:
 
     @pytest.mark.asyncio
     async def test_password_change_succeeded_creates_audit(
-        self, mock_database, sample_user_id
+        self, mock_database, mock_event_bus, sample_user_id
     ):
         """Test UserPasswordChangeSucceeded creates audit record."""
         # Arrange
-        handler = AuditEventHandler(database=mock_database)
+        handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = UserPasswordChangeSucceeded(user_id=sample_user_id, initiated_by="user")
 
         # Mock PostgresAuditAdapter
@@ -497,11 +507,11 @@ class TestAuditEventHandler:
 
     @pytest.mark.asyncio
     async def test_provider_connection_succeeded_creates_audit(
-        self, mock_database, sample_user_id, sample_provider_id
+        self, mock_database, mock_event_bus, sample_user_id, sample_provider_id
     ):
         """Test ProviderConnectionSucceeded creates audit record."""
         # Arrange
-        handler = AuditEventHandler(database=mock_database)
+        handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = ProviderConnectionSucceeded(
             user_id=sample_user_id,
             provider_id=sample_provider_id,
@@ -528,11 +538,11 @@ class TestAuditEventHandler:
 
     @pytest.mark.asyncio
     async def test_token_refresh_failed_creates_audit(
-        self, mock_database, sample_user_id, sample_provider_id
+        self, mock_database, mock_event_bus, sample_user_id, sample_provider_id
     ):
         """Test TokenRefreshFailed creates audit record."""
         # Arrange
-        handler = AuditEventHandler(database=mock_database)
+        handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = TokenRefreshFailed(
             user_id=sample_user_id,
             provider_id=sample_provider_id,
@@ -708,11 +718,11 @@ class TestHandlerFailureIsolation:
 
     @pytest.mark.asyncio
     async def test_audit_handler_exception_does_not_propagate(
-        self, mock_database, sample_user_id
+        self, mock_database, mock_event_bus, sample_user_id
     ):
         """Test AuditEventHandler exception doesn't break event bus."""
         # Arrange
-        handler = AuditEventHandler(database=mock_database)
+        handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = UserRegistrationSucceeded(
             user_id=sample_user_id, email="test@example.com"
         )

@@ -1249,6 +1249,116 @@ class AuditEventHandler:
         )
 ```
 
+##### Session Lifecycle Management
+
+**Problem**: AuditEventHandler creates database sessions inside event handlers, which causes "Event loop is closed" errors in integration tests when handlers are called during test teardown.
+
+**Root Cause**: Event handlers creating async database sessions via `async with self._database.get_session()` violates async context lifecycle management - the session factory is invoked after the event loop context is closed.
+
+**Solution**: Pass database session through event bus to handlers that need it.
+
+**Architecture**:
+
+```python
+# EventBusProtocol updated to accept optional session
+class EventBusProtocol(Protocol):
+    async def publish(
+        self,
+        event: DomainEvent,
+        session: AsyncSession | None = None,  # ← New parameter
+    ) -> None:
+        ...
+
+# InMemoryEventBus stores session for handlers
+class InMemoryEventBus:
+    def __init__(self, logger: LoggerProtocol):
+        self._session: AsyncSession | None = None  # Session storage
+    
+    async def publish(
+        self,
+        event: DomainEvent,
+        session: AsyncSession | None = None,
+    ) -> None:
+        # Store session for handlers to access
+        self._session = session
+        
+        try:
+            # Execute handlers (handlers call get_session())
+            ...
+        finally:
+            # Clear session after publish
+            self._session = None
+    
+    def get_session(self) -> AsyncSession | None:
+        """Get current session for event handlers."""
+        return self._session
+
+# AuditEventHandler uses session from event bus
+class AuditEventHandler:
+    def __init__(self, database: Database, event_bus: InMemoryEventBus):
+        self._database = database  # Fallback
+        self._event_bus = event_bus  # Preferred session source
+    
+    async def _create_audit_record(self, **kwargs):
+        # Try event bus session first (proper lifecycle)
+        session = self._event_bus.get_session()
+        
+        if session:
+            # Use session from event bus (no new session created)
+            audit = PostgresAuditAdapter(session=session)
+            await audit.record(**kwargs)
+        else:
+            # Fallback: Create own session (backward compatibility)
+            async with self._database.get_session() as session:
+                audit = PostgresAuditAdapter(session=session)
+                await audit.record(**kwargs)
+```
+
+**Usage** (in application layer):
+
+```python
+# Command handler publishes events with session
+async def handle(self, cmd: RegisterUser) -> Result[UUID, Error]:
+    async with self.database.get_session() as session:
+        # Business logic
+        user = User(...)
+        await self.users.save(user)
+        
+        # Publish event with session
+        await self.event_bus.publish(
+            UserRegistrationSucceeded(user_id=user.id, email=user.email),
+            session=session,  # ← Pass session to event handlers
+        )
+```
+
+**Benefits**:
+
+1. **Proper session lifecycle**: Session created in command handler, passed to event handlers
+2. **No "Event loop is closed" errors**: Session lifecycle managed by caller, not handler
+3. **Backward compatible**: Falls back to creating own session if none provided
+4. **Aligns with F0.9.1**: Uses same separate audit session concept, just better injection
+
+**Testing**:
+
+```python
+# Integration tests pass session to avoid lifecycle issues
+async def test_event_creates_audit(test_database):
+    event_bus = get_event_bus()
+    
+    async with test_database.get_session() as session:
+        await event_bus.publish(
+            UserRegistrationSucceeded(...),
+            session=session,  # ← Tests provide session
+        )
+    
+    # Verify audit record created
+    ...
+```
+
+**Related**: See F0.9.1 (Separate Audit Session) for audit durability context and F0.9.3 (Audit Event Handler Session Lifecycle) in roadmap for complete implementation details.
+
+---
+
 #### EmailEventHandler (Stub)
 
 **File**: `src/infrastructure/email/event_handlers/email_event_handler.py`

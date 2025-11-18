@@ -29,10 +29,14 @@ Reference:
 
 import asyncio
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from src.domain.events.base_event import DomainEvent
 from src.domain.protocols.event_bus_protocol import EventHandler
 from src.domain.protocols.logger_protocol import LoggerProtocol
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class InMemoryEventBus:
@@ -93,6 +97,9 @@ class InMemoryEventBus:
         """
         self._handlers: dict[type[DomainEvent], list[EventHandler]] = defaultdict(list)
         self._logger = logger
+        self._session: "AsyncSession | None" = (
+            None  # Session for handlers that need DB access
+        )
 
     def subscribe(
         self,
@@ -127,7 +134,11 @@ class InMemoryEventBus:
         """
         self._handlers[event_type].append(handler)
 
-    async def publish(self, event: DomainEvent) -> None:
+    async def publish(
+        self,
+        event: DomainEvent,
+        session: "AsyncSession | None" = None,
+    ) -> None:
         """Publish event to all registered handlers.
 
         Executes all handlers concurrently with fail-open behavior. Handler
@@ -137,6 +148,10 @@ class InMemoryEventBus:
         Args:
             event: Domain event to publish (subclass of DomainEvent). All
                 handlers registered for type(event) will be called.
+            session: Optional database session for handlers that need database
+                access (e.g., AuditEventHandler). Stored as instance variable
+                for duration of publish() so handlers can access via get_session().
+                Defaults to None for backward compatibility.
 
         Example:
             >>> # After successful business logic
@@ -170,39 +185,77 @@ class InMemoryEventBus:
             - Handler failures logged with event_id for debugging
             - NEVER raises exceptions (fail-open guarantee)
         """
-        event_type = type(event)
-        handlers = self._handlers.get(event_type, [])
+        # Store session for handlers that need it (e.g., AuditEventHandler)
+        self._session = session
 
-        if not handlers:
-            # No handlers registered (not an error for optional workflows)
-            return
+        try:
+            event_type = type(event)
+            handlers = self._handlers.get(event_type, [])
 
-        # Log event publishing (debug level) - helpful for debugging
-        self._logger.debug(
-            "event_publishing",
-            event_type=event_type.__name__,
-            event_id=str(event.event_id),
-            handler_count=len(handlers),
-        )
+            if not handlers:
+                # No handlers registered (not an error for optional workflows)
+                return
 
-        # Execute all handlers concurrently with fail-open behavior
-        # return_exceptions=True prevents one handler failure from breaking others
-        results = await asyncio.gather(
-            *(handler(event) for handler in handlers),
-            return_exceptions=True,  # ← Fail-open: catch exceptions
-        )
+            # Log event publishing (debug level) - helpful for debugging
+            self._logger.debug(
+                "event_publishing",
+                event_type=event_type.__name__,
+                event_id=str(event.event_id),
+                handler_count=len(handlers),
+            )
 
-        # Log any handler failures (warning level)
-        for idx, result in enumerate(results):
-            if isinstance(result, Exception):
-                handler_name = handlers[idx].__name__
-                self._logger.warning(
-                    "event_handler_failed",
-                    event_type=event_type.__name__,
-                    event_id=str(event.event_id),
-                    handler_name=handler_name,
-                    error_type=type(result).__name__,
-                    error_message=str(result),
-                    # Include stack trace for debugging
-                    exc_info=result,
-                )
+            # Execute all handlers concurrently with fail-open behavior
+            # return_exceptions=True prevents one handler failure from breaking others
+            results = await asyncio.gather(
+                *(handler(event) for handler in handlers),
+                return_exceptions=True,  # ← Fail-open: catch exceptions
+            )
+
+            # Log any handler failures (warning level)
+            for idx, result in enumerate(results):
+                if isinstance(result, Exception):
+                    handler_name = handlers[idx].__name__
+                    self._logger.warning(
+                        "event_handler_failed",
+                        event_type=event_type.__name__,
+                        event_id=str(event.event_id),
+                        handler_name=handler_name,
+                        error_type=type(result).__name__,
+                        error_message=str(result),
+                        # Include stack trace for debugging
+                        exc_info=result,
+                    )
+        finally:
+            # Clear session after publish completes
+            self._session = None
+
+    def get_session(self) -> "AsyncSession | None":
+        """Get current database session for event handlers.
+
+        Returns the session passed to publish() for handlers that need database
+        access (e.g., AuditEventHandler). This avoids handlers creating their
+        own sessions, which can cause "Event loop is closed" errors in tests.
+
+        Returns:
+            AsyncSession | None: Current session or None if not provided.
+
+        Example:
+            >>> # In AuditEventHandler
+            >>> class AuditEventHandler:
+            ...     def __init__(self, event_bus: InMemoryEventBus, audit_adapter: PostgresAuditAdapter):
+            ...         self._event_bus = event_bus
+            ...         self._audit = audit_adapter
+            ...
+            ...     async def handle_event(self, event: DomainEvent):
+            ...         session = self._event_bus.get_session()
+            ...         if session:
+            ...             # Use provided session
+            ...             audit = PostgresAuditAdapter(session=session)
+            ...             await audit.record(...)
+
+        Notes:
+            - Only available during publish() execution
+            - Returns None if no session provided to publish()
+            - Cleared after publish() completes (finally block)
+        """
+        return self._session

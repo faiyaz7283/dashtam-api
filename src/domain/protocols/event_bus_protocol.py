@@ -40,9 +40,12 @@ Reference:
 """
 
 from collections.abc import Awaitable, Callable
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from src.domain.events.base_event import DomainEvent
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 # Type alias for event handler functions
 EventHandler = Callable[[DomainEvent], Awaitable[None]]
@@ -174,7 +177,11 @@ class EventBusProtocol(Protocol):
         """
         ...
 
-    async def publish(self, event: DomainEvent) -> None:
+    async def publish(
+        self,
+        event: DomainEvent,
+        session: "AsyncSession | None" = None,
+    ) -> None:
         """Publish event to all registered handlers.
 
         Executes all handlers registered for the event's type concurrently.
@@ -185,6 +192,11 @@ class EventBusProtocol(Protocol):
             event: Domain event to publish (subclass of DomainEvent). All
                 handlers registered for type(event) will be called with this
                 event instance.
+            session: Optional database session for handlers that need database
+                access (e.g., AuditEventHandler). If provided, handlers can use
+                this session instead of creating their own. This ensures proper
+                session lifecycle management and prevents "Event loop is closed"
+                errors in tests. Defaults to None for backward compatibility.
 
         Raises:
             No exceptions raised. Handler failures are logged but not propagated.

@@ -57,6 +57,7 @@ from src.domain.events.authentication_events import (
     UserRegistrationFailed,
     UserRegistrationSucceeded,
 )
+from src.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from src.infrastructure.persistence.database import Database
 
 
@@ -67,57 +68,81 @@ class AuditEventHandler:
     full context for compliance (PCI-DSS, SOC 2, GDPR). Supports ATTEMPT →
     OUTCOME audit pattern for security event tracking.
 
-    Manages its own database sessions for audit writes to ensure proper
-    session lifecycle (commit per audit write, independent of business logic).
+    Uses database session from event bus (if provided) to avoid creating
+    sessions inside event handlers, which causes "Event loop is closed" errors
+    in tests. Falls back to creating own session if none provided (backward
+    compatibility).
 
     Attributes:
-        _database: Database instance for creating audit sessions.
+        _database: Database instance for fallback session creation.
+        _event_bus: Event bus instance to get current session from.
 
     Example:
         >>> # Create handler
-        >>> handler = AuditEventHandler(database=get_database())
+        >>> handler = AuditEventHandler(
+        ...     database=get_database(),
+        ...     event_bus=get_event_bus()
+        ... )
         >>>
         >>> # Subscribe to events (in container)
         >>> event_bus.subscribe(UserRegistered, handler.handle_user_registration_succeeded)
         >>>
-        >>> # Events automatically audited when published
-        >>> await event_bus.publish(UserRegistrationSucceeded(
-        ...     user_id=uuid4(),
-        ...     email="test@example.com"
-        ... ))
-        >>> # Audit record created: action=USER_REGISTERED, user_id=..., context={email: ...}
+        >>> # Events automatically audited when published with session
+        >>> async with database.get_session() as session:
+        ...     await event_bus.publish(
+        ...         UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com"),
+        ...         session=session
+        ...     )
+        >>> # Audit record created using provided session
     """
 
-    def __init__(self, database: Database) -> None:
-        """Initialize audit handler with database instance.
+    def __init__(self, database: Database, event_bus: InMemoryEventBus) -> None:
+        """Initialize audit handler with database and event bus.
 
         Args:
-            database: Database instance from container. Handler creates
-                audit sessions per event for proper lifecycle management.
+            database: Database instance from container. Used as fallback to
+                create sessions if event bus doesn't provide one.
+            event_bus: Event bus instance to get current session from during
+                event handling. Avoids creating sessions inside handlers.
 
         Example:
-            >>> from src.core.container import get_database
+            >>> from src.core.container import get_database, get_event_bus
             >>> database = get_database()
-            >>> handler = AuditEventHandler(database=database)
+            >>> event_bus = get_event_bus()
+            >>> handler = AuditEventHandler(database=database, event_bus=event_bus)
         """
         self._database = database
+        self._event_bus = event_bus
 
     async def _create_audit_record(self, **kwargs: Any) -> None:
-        """Helper to create audit record with own session lifecycle.
+        """Helper to create audit record using session from event bus.
+
+        Gets session from event bus (if available) or creates own session as
+        fallback. This ensures proper session lifecycle management and prevents
+        "Event loop is closed" errors in tests.
 
         Args:
             **kwargs: Arguments to pass to audit.record().
 
         Note:
-            Creates new database session, writes audit record, commits, closes.
-            This ensures audit writes are independent of business logic transactions.
+            Prefers session from event bus (passed to publish()). Falls back to
+            creating own session for backward compatibility when no session provided.
         """
         from src.infrastructure.audit.postgres_adapter import PostgresAuditAdapter
 
-        async with self._database.get_session() as session:
+        # Try to get session from event bus first (preferred)
+        session = self._event_bus.get_session()
+
+        if session:
+            # Use session from event bus (proper lifecycle)
             audit = PostgresAuditAdapter(session=session)
             await audit.record(**kwargs)
-            # Session auto-commits on context exit (success path)
+        else:
+            # Fallback: Create own session (backward compatibility)
+            async with self._database.get_session() as session:
+                audit = PostgresAuditAdapter(session=session)
+                await audit.record(**kwargs)
+                # Session auto-commits on context exit (success path)
 
     # =========================================================================
     # User Registration Event Handlers

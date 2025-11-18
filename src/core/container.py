@@ -431,10 +431,11 @@ def get_event_bus() -> "EventBusProtocol":  # noqa: F821
     # Create event handlers
     logging_handler = LoggingEventHandler(logger=get_logger())
 
-    # Audit handler manages its own database sessions for audit writes.
-    # Pass database instance - handler creates audit adapter per event.
-    # This ensures proper session lifecycle (commit per audit write).
-    audit_handler = AuditEventHandler(database=get_database())
+    # Audit handler uses database session from event bus (if provided).
+    # Pass both database (fallback) and event_bus (preferred session source).
+    # This prevents "Event loop is closed" errors in tests by avoiding
+    # session creation inside event handlers.
+    audit_handler = AuditEventHandler(database=get_database(), event_bus=event_bus)
 
     email_handler = EmailEventHandler(logger=get_logger())
     session_handler = SessionEventHandler(logger=get_logger())

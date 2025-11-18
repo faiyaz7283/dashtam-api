@@ -176,6 +176,26 @@ __all__ = [
 
 ## Publishing Events
 
+### Session Requirement (CRITICAL)
+
+**As of F0.9.3**: Events triggering `AuditEventHandler` **require** an explicit database session.
+
+```python
+# ✅ CORRECT - Pass session to event_bus.publish()
+await event_bus.publish(
+    UserRegistrationSucceeded(user_id=user.id, email=user.email),
+    session=session,  # Required for audit events
+)
+
+# ❌ WRONG - Missing session parameter
+await event_bus.publish(UserRegistrationSucceeded(...))
+# RuntimeError: AuditEventHandler requires a database session
+```
+
+**Quick fix**: Add `session=session` parameter to all `event_bus.publish()` calls for audit events.
+
+**Which events?** All authentication, provider, and state-change events (check if `AuditEventHandler` is subscribed).
+
 ### From Command Handlers (Application Layer)
 
 **Recommended pattern**: Publish events from command handlers after business logic succeeds.
@@ -191,27 +211,31 @@ class RegisterUserHandler:
         self,
         user_repo: UserRepository,
         event_bus: EventBusProtocol,
+        database: DatabaseProtocol,
     ):
         self._users = user_repo
         self._event_bus = event_bus
+        self._database = database
     
     async def handle(self, cmd: RegisterUser) -> Result[UUID, Error]:
         """Register new user and publish event."""
-        # 1. Business logic
-        user = User.create(email=cmd.email, password=cmd.password)
-        
-        # 2. Persist to database
-        await self._users.save(user)
-        
-        # 3. Publish event AFTER successful save
-        await self._event_bus.publish(
-            UserRegistrationSucceeded(
-                user_id=user.id,
-                email=user.email
+        async with self._database.get_session() as session:
+            # 1. Business logic
+            user = User.create(email=cmd.email, password=cmd.password)
+            
+            # 2. Persist to database
+            await self._users.save(user)
+            
+            # 3. Publish event AFTER successful save WITH session
+            await self._event_bus.publish(
+                UserRegistrationSucceeded(
+                    user_id=user.id,
+                    email=user.email
+                ),
+                session=session,  # Required for audit
             )
-        )
-        
-        return Success(user.id)
+            
+            return Success(user.id)
 ```
 
 **Key points**:
@@ -230,9 +254,11 @@ class PasswordResetService:
         self,
         user_repo: UserRepository,
         event_bus: EventBusProtocol,
+        database: DatabaseProtocol,
     ):
         self._users = user_repo
         self._event_bus = event_bus
+        self._database = database
     
     async def reset_password(
         self,
@@ -240,26 +266,28 @@ class PasswordResetService:
         new_password: str,
     ) -> Result[None, Error]:
         """Reset user password and publish event."""
-        # 1. Fetch user
-        user = await self._users.find_by_id(user_id)
-        if not user:
-            return Failure(UserNotFound())
-        
-        # 2. Change password (domain logic)
-        user.change_password(new_password)
-        
-        # 3. Persist
-        await self._users.save(user)
-        
-        # 4. Publish event
-        await self._event_bus.publish(
-            UserPasswordChangeSucceeded(
-                user_id=user.id,
-                initiated_by="admin"
+        async with self._database.get_session() as session:
+            # 1. Fetch user
+            user = await self._users.find_by_id(user_id)
+            if not user:
+                return Failure(UserNotFound())
+            
+            # 2. Change password (domain logic)
+            user.change_password(new_password)
+            
+            # 3. Persist
+            await self._users.save(user)
+            
+            # 4. Publish event WITH session
+            await self._event_bus.publish(
+                UserPasswordChangeSucceeded(
+                    user_id=user.id,
+                    initiated_by="admin"
+                ),
+                session=session,  # Required for audit
             )
-        )
-        
-        return Success(None)
+            
+            return Success(None)
 ```
 
 ## Creating Event Handlers

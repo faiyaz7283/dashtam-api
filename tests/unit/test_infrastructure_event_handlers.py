@@ -77,8 +77,9 @@ def mock_database():
 def mock_event_bus():
     """Create mock InMemoryEventBus with get_session method."""
     event_bus = MagicMock()
-    # Mock get_session to return None (fallback mode for unit tests)
-    event_bus.get_session = MagicMock(return_value=None)
+    # Mock get_session to return a mock session (required by AuditEventHandler)
+    mock_session = MagicMock()
+    event_bus.get_session = MagicMock(return_value=mock_session)
     return event_bus
 
 

@@ -68,14 +68,13 @@ class AuditEventHandler:
     full context for compliance (PCI-DSS, SOC 2, GDPR). Supports ATTEMPT →
     OUTCOME audit pattern for security event tracking.
 
-    Uses database session from event bus (if provided) to avoid creating
-    sessions inside event handlers, which causes "Event loop is closed" errors
-    in tests. Falls back to creating own session if none provided (backward
-    compatibility).
+    REQUIRES database session from event bus to ensure proper lifecycle
+    management and compliance with F0.9.1 (Separate Audit Session). Session
+    MUST be passed to event_bus.publish(event, session=session).
 
     Attributes:
-        _database: Database instance for fallback session creation.
-        _event_bus: Event bus instance to get current session from.
+        _database: Database instance (kept for future use/debugging).
+        _event_bus: Event bus instance to get required session from.
 
     Example:
         >>> # Create handler
@@ -100,10 +99,9 @@ class AuditEventHandler:
         """Initialize audit handler with database and event bus.
 
         Args:
-            database: Database instance from container. Used as fallback to
-                create sessions if event bus doesn't provide one.
-            event_bus: Event bus instance to get current session from during
-                event handling. Avoids creating sessions inside handlers.
+            database: Database instance from container (kept for future use).
+            event_bus: Event bus instance to get REQUIRED session from during
+                event handling. Session must be passed to event_bus.publish().
 
         Example:
             >>> from src.core.container import get_database, get_event_bus
@@ -117,32 +115,40 @@ class AuditEventHandler:
     async def _create_audit_record(self, **kwargs: Any) -> None:
         """Helper to create audit record using session from event bus.
 
-        Gets session from event bus (if available) or creates own session as
-        fallback. This ensures proper session lifecycle management and prevents
-        "Event loop is closed" errors in tests.
+        Gets session from event bus. Session is REQUIRED for audit trail recording
+        to ensure proper lifecycle management and compliance with F0.9.1 (Separate
+        Audit Session).
 
         Args:
             **kwargs: Arguments to pass to audit.record().
 
+        Raises:
+            RuntimeError: If no session provided to event bus. This is a
+                programming error - caller must pass session to event_bus.publish().
+
         Note:
-            Prefers session from event bus (passed to publish()). Falls back to
-            creating own session for backward compatibility when no session provided.
+            Session must be passed to event_bus.publish(event, session=session).
+            See docs/architecture/domain-events-architecture.md for session
+            lifecycle management patterns.
         """
         from src.infrastructure.audit.postgres_adapter import PostgresAuditAdapter
 
-        # Try to get session from event bus first (preferred)
+        # Get session from event bus (REQUIRED)
         session = self._event_bus.get_session()
 
-        if session:
-            # Use session from event bus (proper lifecycle)
-            audit = PostgresAuditAdapter(session=session)
-            await audit.record(**kwargs)
-        else:
-            # Fallback: Create own session (backward compatibility)
-            async with self._database.get_session() as session:
-                audit = PostgresAuditAdapter(session=session)
-                await audit.record(**kwargs)
-                # Session auto-commits on context exit (success path)
+        if session is None:
+            raise RuntimeError(
+                "AuditEventHandler requires a database session for audit recording. "
+                "No session was provided to event_bus.publish(). "
+                "\n\nUsage: "
+                "\n  async with database.get_session() as session:"
+                "\n      await event_bus.publish(event, session=session)"
+                "\n\nSee docs/architecture/domain-events-architecture.md for details."
+            )
+
+        # Use session from event bus (proper lifecycle)
+        audit = PostgresAuditAdapter(session=session)
+        await audit.record(**kwargs)
 
     # =========================================================================
     # User Registration Event Handlers

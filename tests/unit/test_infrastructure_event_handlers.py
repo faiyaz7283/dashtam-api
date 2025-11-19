@@ -580,12 +580,17 @@ class TestEmailEventHandler:
     """Test EmailEventHandler processes events without exceptions (stub)."""
 
     def test_handler_initialization(self, mock_logger):
-        """Test EmailEventHandler initializes with logger."""
+        """Test EmailEventHandler initializes with logger and settings."""
+        # Arrange
+        from src.core.config import get_settings
+        settings = get_settings()
+        
         # Act
-        handler = EmailEventHandler(logger=mock_logger)
+        handler = EmailEventHandler(logger=mock_logger, settings=settings)
 
         # Assert
         assert handler._logger is mock_logger
+        assert handler._settings is settings
 
     @pytest.mark.asyncio
     async def test_user_registration_succeeded_processes_event(
@@ -593,7 +598,8 @@ class TestEmailEventHandler:
     ):
         """Test EmailEventHandler processes UserRegistrationSucceeded without exception."""
         # Arrange
-        handler = EmailEventHandler(logger=mock_logger)
+        from src.core.config import get_settings
+        handler = EmailEventHandler(logger=mock_logger, settings=get_settings())
         event = UserRegistrationSucceeded(
             user_id=sample_user_id, email="test@example.com"
         )
@@ -610,7 +616,8 @@ class TestEmailEventHandler:
     ):
         """Test EmailEventHandler processes UserPasswordChangeSucceeded without exception."""
         # Arrange
-        handler = EmailEventHandler(logger=mock_logger)
+        from src.core.config import get_settings
+        handler = EmailEventHandler(logger=mock_logger, settings=get_settings())
         event = UserPasswordChangeSucceeded(user_id=sample_user_id, initiated_by="user")
 
         # Act - Should not raise exception
@@ -625,7 +632,8 @@ class TestEmailEventHandler:
     ):
         """Test EmailEventHandler receives correct event data."""
         # Arrange
-        handler = EmailEventHandler(logger=mock_logger)
+        from src.core.config import get_settings
+        handler = EmailEventHandler(logger=mock_logger, settings=get_settings())
         event = UserRegistrationSucceeded(
             user_id=sample_user_id, email="test@example.com"
         )
@@ -746,7 +754,8 @@ class TestHandlerFailureIsolation:
     ):
         """Test EmailEventHandler exception doesn't break event bus."""
         # Arrange
-        handler = EmailEventHandler(logger=mock_logger)
+        from src.core.config import get_settings
+        handler = EmailEventHandler(logger=mock_logger, settings=get_settings())
         mock_logger.info.side_effect = Exception("Email stub failed")
         event = UserRegistrationSucceeded(
             user_id=sample_user_id, email="test@example.com"

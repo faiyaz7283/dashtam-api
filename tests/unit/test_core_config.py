@@ -18,6 +18,25 @@ from pydantic import ValidationError
 from src.core.config import Environment, Settings, get_settings
 
 
+@pytest.fixture
+def base_test_env():
+    """Base environment dict for config tests.
+    
+    Provides minimal required settings. Tests can override specific values
+    by merging with this dict.
+    """
+    return {
+        "DATABASE_URL": "postgresql://test",
+        "REDIS_URL": "redis://test",
+        "SECRET_KEY": "test-key",
+        "ENCRYPTION_KEY": "test-encryption-key",
+        "API_BASE_URL": "https://test.com",
+        "CALLBACK_BASE_URL": "https://callback.com",
+        "CORS_ORIGINS": "https://test.com",
+        "VERIFICATION_URL_BASE": "https://test.com",
+    }
+
+
 class TestEnvironmentEnum:
     """Test Environment enum."""
 
@@ -32,42 +51,18 @@ class TestEnvironmentEnum:
 class TestSettingsValidation:
     """Test Settings field validation."""
 
-    def test_bcrypt_rounds_valid(self):
+    def test_bcrypt_rounds_valid(self, base_test_env):
         """Test bcrypt_rounds validation with valid values."""
-        with patch.dict(
-            os.environ,
-            {
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test-key",
-                "ENCRYPTION_KEY": "test-encryption-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-                "BCRYPT_ROUNDS": "10",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {"BCRYPT_ROUNDS": "10"}
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
             assert settings.bcrypt_rounds == 10
 
-    def test_bcrypt_rounds_too_low(self):
+    def test_bcrypt_rounds_too_low(self, base_test_env):
         """Test bcrypt_rounds validation rejects values < 4."""
-        with patch.dict(
-            os.environ,
-            {
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test-key",
-                "ENCRYPTION_KEY": "test-encryption-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-                "BCRYPT_ROUNDS": "3",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {"BCRYPT_ROUNDS": "3"}
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             with pytest.raises(ValidationError) as exc_info:
                 Settings()
@@ -78,22 +73,10 @@ class TestSettingsValidation:
                 for error in errors
             )
 
-    def test_bcrypt_rounds_too_high(self):
+    def test_bcrypt_rounds_too_high(self, base_test_env):
         """Test bcrypt_rounds validation rejects values > 31."""
-        with patch.dict(
-            os.environ,
-            {
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test-key",
-                "ENCRYPTION_KEY": "test-encryption-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-                "BCRYPT_ROUNDS": "32",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {"BCRYPT_ROUNDS": "32"}
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             with pytest.raises(ValidationError) as exc_info:
                 Settings()
@@ -104,41 +87,24 @@ class TestSettingsValidation:
                 for error in errors
             )
 
-    def test_url_trailing_slash_removed(self):
+    def test_url_trailing_slash_removed(self, base_test_env):
         """Test that trailing slashes are removed from URLs."""
-        with patch.dict(
-            os.environ,
-            {
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test-key",
-                "ENCRYPTION_KEY": "test-encryption-key",
-                "API_BASE_URL": "https://test.com/",
-                "CALLBACK_BASE_URL": "https://callback.com/",
-                "CORS_ORIGINS": "https://test.com",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {
+            "API_BASE_URL": "https://test.com/",
+            "CALLBACK_BASE_URL": "https://callback.com/",
+        }
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
             assert settings.api_base_url == "https://test.com"
             assert settings.callback_base_url == "https://callback.com"
 
-    def test_cors_origins_parsing(self):
+    def test_cors_origins_parsing(self, base_test_env):
         """Test that comma-separated CORS origins are parsed correctly."""
-        with patch.dict(
-            os.environ,
-            {
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test-key",
-                "ENCRYPTION_KEY": "test-encryption-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://example.com,https://app.example.com, https://test.com",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {
+            "CORS_ORIGINS": "https://example.com,https://app.example.com, https://test.com",
+        }
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
             assert settings.cors_origins == [
@@ -151,22 +117,16 @@ class TestSettingsValidation:
 class TestSettingsLoading:
     """Test Settings loading from environment variables."""
 
-    def test_settings_from_env(self):
+    def test_settings_from_env(self, base_test_env):
         """Test that Settings loads from environment variables."""
-        with patch.dict(
-            os.environ,
-            {
-                "ENVIRONMENT": "testing",
-                "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
-                "REDIS_URL": "redis://localhost:6379/1",
-                "SECRET_KEY": "test-secret",
-                "ENCRYPTION_KEY": "test-encryption-key",
-                "API_BASE_URL": "https://test.example.com",
-                "CALLBACK_BASE_URL": "https://callback.test.com",
-                "CORS_ORIGINS": "https://test.com",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {
+            "ENVIRONMENT": "testing",
+            "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
+            "REDIS_URL": "redis://localhost:6379/1",
+            "SECRET_KEY": "test-secret",
+            "API_BASE_URL": "https://test.example.com",
+        }
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
 
@@ -180,21 +140,9 @@ class TestSettingsLoading:
             assert settings.api_base_url == "https://test.example.com"
             assert settings.cors_origins == ["https://test.com"]
 
-    def test_settings_defaults(self):
+    def test_settings_defaults(self, base_test_env):
         """Test Settings default values."""
-        with patch.dict(
-            os.environ,
-            {
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test",
-                "ENCRYPTION_KEY": "test-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-            },
-            clear=True,
-        ):
+        with patch.dict(os.environ, base_test_env, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
 
@@ -239,22 +187,10 @@ class TestSettingsLoading:
 class TestEnvironmentProperties:
     """Test environment check convenience properties."""
 
-    def test_is_development(self):
+    def test_is_development(self, base_test_env):
         """Test is_development property."""
-        with patch.dict(
-            os.environ,
-            {
-                "ENVIRONMENT": "development",
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test",
-                "ENCRYPTION_KEY": "test-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {"ENVIRONMENT": "development"}
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
 
@@ -263,66 +199,30 @@ class TestEnvironmentProperties:
             assert settings.is_ci is False
             assert settings.is_production is False
 
-    def test_is_testing(self):
+    def test_is_testing(self, base_test_env):
         """Test is_testing property."""
-        with patch.dict(
-            os.environ,
-            {
-                "ENVIRONMENT": "testing",
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test",
-                "ENCRYPTION_KEY": "test-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {"ENVIRONMENT": "testing"}
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
 
             assert settings.is_testing is True
             assert settings.is_development is False
 
-    def test_is_ci(self):
+    def test_is_ci(self, base_test_env):
         """Test is_ci property."""
-        with patch.dict(
-            os.environ,
-            {
-                "ENVIRONMENT": "ci",
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test",
-                "ENCRYPTION_KEY": "test-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {"ENVIRONMENT": "ci"}
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
 
             assert settings.is_ci is True
             assert settings.is_development is False
 
-    def test_is_production(self):
+    def test_is_production(self, base_test_env):
         """Test is_production property."""
-        with patch.dict(
-            os.environ,
-            {
-                "ENVIRONMENT": "production",
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test",
-                "ENCRYPTION_KEY": "test-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-            },
-            clear=True,
-        ):
+        env_values = base_test_env | {"ENVIRONMENT": "production"}
+        with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
 
@@ -333,21 +233,9 @@ class TestEnvironmentProperties:
 class TestSettingsCaching:
     """Test Settings singleton caching behavior."""
 
-    def test_get_settings_cached(self):
+    def test_get_settings_cached(self, base_test_env):
         """Test that get_settings returns cached instance."""
-        with patch.dict(
-            os.environ,
-            {
-                "DATABASE_URL": "postgresql://test",
-                "REDIS_URL": "redis://test",
-                "SECRET_KEY": "test",
-                "ENCRYPTION_KEY": "test-key",
-                "API_BASE_URL": "https://test.com",
-                "CALLBACK_BASE_URL": "https://callback.com",
-                "CORS_ORIGINS": "https://test.com",
-            },
-            clear=True,
-        ):
+        with patch.dict(os.environ, base_test_env, clear=True):
             get_settings.cache_clear()
 
             settings1 = get_settings()

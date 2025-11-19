@@ -5,14 +5,13 @@ Implements SecretsProtocol using AWS Secrets Manager with in-memory caching.
 File: aws_adapter.py → class AWSAdapter (PEP 8 naming)
 """
 
-import json
-
 from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
 from src.domain.errors import SecretsError
+from src.infrastructure.secrets.base_adapter import BaseSecretsAdapter
 
 
-class AWSAdapter:
+class AWSAdapter(BaseSecretsAdapter):
     """Production secrets from AWS Secrets Manager.
 
     Features:
@@ -95,36 +94,7 @@ class AWSAdapter:
                 )
             )
 
-    def get_secret_json(self, secret_path: str) -> Result[dict[str, str], SecretsError]:
-        """Get secret as parsed JSON dictionary.
-
-        Args:
-            secret_path: Path to JSON-formatted secret.
-
-        Returns:
-            Success(parsed_dict) if valid JSON.
-            Failure(SecretsError) if not found, access denied, or invalid JSON.
-
-        Example:
-            >>> adapter = AWSAdapter(environment="production")
-            >>> result = adapter.get_secret_json("app/config")
-            >>> # Success({"key": "value", ...})
-        """
-        result = self.get_secret(secret_path)
-
-        match result:
-            case Success(value=secret_value):
-                try:
-                    return Success(value=json.loads(secret_value))
-                except json.JSONDecodeError:
-                    return Failure(
-                        error=SecretsError(
-                            code=ErrorCode.SECRET_INVALID_JSON,
-                            message=f"Secret is not valid JSON: {secret_path}",
-                        )
-                    )
-            case Failure(error=error):
-                return Failure(error=error)
+    # get_secret_json() inherited from BaseSecretsAdapter
 
     def refresh_cache(self) -> None:
         """Clear cache to force reload on next access.

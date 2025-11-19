@@ -1070,6 +1070,295 @@ make test-coverage
 
 ---
 
+## Established Patterns
+
+**Context**: These patterns represent our production testing practices and have
+been validated through extensive use across the codebase.
+
+### Session Management for Domain Events
+
+**Critical Pattern**: When testing domain events that trigger event handlers
+requiring database access (e.g., audit handlers), always pass the database
+session explicitly to `event_bus.publish()`.
+
+**Why**: Event handlers that perform database operations need an active session.
+Without explicit session passing, handlers would create their own sessions,
+which can cause "Event loop is closed" errors during test teardown due to
+improper session lifecycle management.
+
+**Example** (from `tests/integration/test_domain_events_flow.py`):
+
+```python
+@pytest.mark.integration
+class TestEventFlowEndToEnd:
+    """Test complete event flow with real infrastructure."""
+
+    @pytest.mark.asyncio
+    async def test_user_registration_succeeded_creates_audit_record(
+        self, test_database
+    ):
+        """Test UserRegistrationSucceeded → audit record created."""
+        # Arrange
+        event_bus = get_event_bus()
+        user_id = uuid4()
+        event = UserRegistrationSucceeded(
+            user_id=user_id, email="integration@example.com"
+        )
+
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)  # ← CRITICAL
+
+        # Assert - Audit record created in database
+        async with test_database.get_session() as session:
+            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            result = await session.execute(stmt)
+            logs = result.scalars().all()
+
+            assert len(logs) == 1
+            assert logs[0].action == AuditAction.USER_REGISTERED
+```
+
+**Pattern Summary**:
+
+1. Use `test_database` fixture for tests involving event handlers with database operations
+2. Wrap event publishing in `async with test_database.get_session()` context
+3. Pass session explicitly: `event_bus.publish(event, session=session)`
+4. Use separate session contexts for querying verification data
+
+### Test File Naming Conventions
+
+**Unit Tests** (`tests/unit/`):
+
+- `test_core_config.py` - Configuration management
+- `test_core_container_logger.py` - Logger container
+- `test_core_container_secrets.py` - Secrets container
+- `test_domain_enums_audit_action.py` - Domain enums
+- `test_domain_events_authentication_events.py` - Domain events
+- `test_domain_events_event_bus.py` - Event bus protocol
+- `test_infrastructure_audit_postgres_adapter.py` - Audit adapter
+- `test_infrastructure_event_handlers.py` - Event handlers
+- `test_infrastructure_logging_cloudwatch_adapter.py` - CloudWatch logging
+- `test_infrastructure_logging_console_adapter.py` - Console logging
+- `test_infrastructure_secrets_aws_adapter.py` - AWS secrets
+- `test_infrastructure_secrets_env_adapter.py` - Environment secrets
+- `test_presentation_middleware_trace.py` - Trace middleware
+
+**Integration Tests** (`tests/integration/`):
+
+- `test_audit_durability.py` - Audit persistence guarantees
+- `test_audit_postgres_adapter.py` - Audit database operations
+- `test_cache_redis.py` - Redis cache operations
+- `test_database_postgres.py` - PostgreSQL database operations
+- `test_domain_events_flow.py` - Event bus end-to-end flows
+- `test_logging_cloudwatch_adapter.py` - CloudWatch integration
+- `test_logging_console_adapter.py` - Console logging integration
+- `test_secrets_env_adapter.py` - Environment secrets integration
+
+**Naming Convention**:
+
+- `test_<layer>_<component>.py` for unit tests
+- `test_<component>_<technology>.py` for integration tests
+- `test_<feature>_flow.py` for end-to-end flow tests
+
+### Fixture Patterns
+
+**Source**: `tests/conftest.py` provides reusable fixtures for all test types.
+
+#### 1. Function-Scoped Event Loop (Lines 30-48)
+
+```python
+@pytest.fixture(scope="function")
+def event_loop(event_loop_policy):
+    """Create a new event loop for each test function.
+    
+    Ensures complete isolation between tests.
+    """
+    loop = event_loop_policy.new_event_loop()
+    yield loop
+    
+    try:
+        loop.close()
+    except Exception:
+        pass  # Loop might already be closed
+```
+
+**Why function scope**: Each test gets fresh event loop - prevents state
+leakage between async tests.
+
+#### 2. Automatic Asyncio Marker (Lines 63-71)
+
+```python
+def pytest_collection_modifyitems(config, items):
+    """Automatically add asyncio marker to async test functions."""
+    for item in items:
+        if asyncio.iscoroutinefunction(item.function):
+            item.add_marker(pytest.mark.asyncio)
+```
+
+**Benefit**: No need to manually add `@pytest.mark.asyncio` decorator.
+
+#### 3. Fresh Redis Client Per Test (Lines 111-148)
+
+```python
+@pytest_asyncio.fixture
+async def redis_test_client():
+    """Provide fresh Redis client for each test.
+    
+    Bypasses singleton pattern for complete test isolation.
+    """
+    from src.core.config import settings
+    
+    # Create fresh connection pool (bypass singleton)
+    pool = ConnectionPool.from_url(
+        settings.redis_url,
+        max_connections=10,  # Smaller pool for tests
+        decode_responses=True,
+        socket_keepalive=True,
+        socket_connect_timeout=5,
+        retry_on_timeout=True,
+    )
+    
+    client = Redis(connection_pool=pool)
+    await client.ping()  # Verify connection
+    
+    yield client
+    
+    # Cleanup
+    await client.aclose()
+    await pool.disconnect()
+```
+
+**Pattern**: Bypass singleton for tests, fresh instances for isolation.
+
+#### 4. Test Database Fixture (Lines 169-192)
+
+```python
+@pytest_asyncio.fixture
+async def test_database():
+    """Provide test database instance for integration tests.
+    
+    Returns Database object (not session) for creating multiple
+    independent sessions as needed.
+    """
+    from src.infrastructure.persistence.database import Database
+    from src.core.config import settings
+    
+    db = Database(database_url=settings.database_url, echo=settings.db_echo)
+    yield db
+    await db.close()
+```
+
+**Usage**: For tests that need multiple separate sessions (e.g., audit
+durability, event bus tests).
+
+#### 5. Mock Container Dependencies (Lines 226-266)
+
+```python
+@pytest.fixture
+def mock_container_dependencies():
+    """Mock all container dependencies for unit tests.
+    
+    Returns:
+        dict: Dictionary of mock dependencies
+    """
+    from unittest.mock import AsyncMock, Mock, patch
+    from src.core.result import Success
+    
+    mocks = {
+        "cache": AsyncMock(),
+        "secrets": Mock(),
+        "database": Mock(),
+    }
+    
+    # Configure default behaviors
+    mocks["cache"].get.return_value = Success(None)
+    mocks["cache"].set.return_value = Success(None)
+    mocks["secrets"].get_secret.return_value = "mock-secret"
+    
+    # Patch container functions
+    with patch("src.core.container.get_cache", return_value=mocks["cache"]):
+        with patch("src.core.container.get_secrets", return_value=mocks["secrets"]):
+            with patch("src.core.container.get_database", return_value=mocks["database"]):
+                yield mocks
+```
+
+**Use**: Unit tests for application/domain layer that need mocked
+infrastructure.
+
+### Result Type Assertion Patterns
+
+**Pattern**: Consistent use of `isinstance()` for Result type checking:
+
+**Success Assertions**:
+
+```python
+# From test_cache_redis.py
+result = await cache_adapter.set("test_key", "test_value")
+assert isinstance(result, Success)
+assert result.value is None  # set() returns None on success
+
+get_result = await cache_adapter.get("test_key")
+assert isinstance(get_result, Success)
+assert get_result.value == "test_value"
+```
+
+**Failure Assertions**:
+
+```python
+# From test_cache_redis.py
+result = await cache_adapter.get_json("invalid_json")
+assert isinstance(result, Failure)
+assert isinstance(result.error, CacheError)
+assert "parse json" in result.error.message.lower()
+```
+
+**Pattern**: Always use `isinstance()` for Result type checking, never
+direct comparison.
+
+### Test Class Structure Pattern
+
+```python
+@pytest.mark.integration
+class TestCacheIntegration:
+    """Integration tests for cache infrastructure.
+    
+    Uses fixtures from conftest.py:
+    - cache_adapter: Fresh RedisAdapter per test
+    - redis_test_client: Fresh Redis client per test
+    """
+    
+    @pytest.mark.asyncio
+    async def test_cache_connection_works(self, cache_adapter):
+        """Test description with clear intent."""
+        result = await cache_adapter.ping()
+        assert isinstance(result, Success)
+```
+
+**Pattern Elements**:
+
+1. Mark class with test type (`@pytest.mark.integration` or `@pytest.mark.unit`)
+2. Descriptive class docstring listing fixtures used
+3. Each method marked `@pytest.mark.asyncio` if async
+4. Descriptive test method names with docstrings
+
+### Test Distribution Guidelines
+
+**Target distribution** (following test pyramid):
+
+- **Unit tests**: 60-70% (fast, isolated, mock dependencies)
+- **Integration tests**: 25-35% (real infrastructure, test interactions)
+- **Flow tests**: 5-10% (end-to-end, critical user journeys)
+
+**Coverage targets**:
+
+- **Overall**: 85%+ across all code
+- **Critical components**: 95%+ (authentication, audit, security)
+- **Infrastructure adapters**: 90%+ (database, cache, secrets)
+- **Domain logic**: 100% (pure business logic, no excuses)
+
+---
+
 ## Best Practices
 
 ### Do's ✅

@@ -4,8 +4,9 @@ This package provides secrets management adapters implementing SecretsProtocol.
 All secrets dependencies are managed through src.core.container.
 
 Architecture:
-- EnvAdapter: Local development (.env files)
-- AWSAdapter: Production (AWS Secrets Manager with caching)
+- BaseSecretsAdapter: Shared functionality (get_secret_json implementation)
+- EnvAdapter: Local development (.env files) - inherits from BaseSecretsAdapter
+- AWSAdapter: Production (AWS Secrets Manager with caching) - inherits from BaseSecretsAdapter
 - Use src.core.container.get_secrets() for dependency injection
 
 Multi-Tier Strategy:
@@ -20,9 +21,11 @@ Security:
 """
 
 from src.infrastructure.secrets.aws_adapter import AWSAdapter
+from src.infrastructure.secrets.base_adapter import BaseSecretsAdapter
 from src.infrastructure.secrets.env_adapter import EnvAdapter
 
 __all__ = [
+    "BaseSecretsAdapter",
     "EnvAdapter",
     "AWSAdapter",
 ]

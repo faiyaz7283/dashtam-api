@@ -173,3 +173,94 @@ class TestCacheIntegration:
         assert result1.value is None
         assert result2.value is None
         assert result3.value is None
+
+    @pytest.mark.asyncio
+    async def test_delete_nonexistent_key_returns_false(self, cache_adapter):
+        """Test deleting nonexistent key returns False."""
+        result = await cache_adapter.delete("nonexistent_key")
+        assert isinstance(result, Success)
+        assert result.value is False
+
+    @pytest.mark.asyncio
+    async def test_expire_existing_key(self, cache_adapter):
+        """Test setting expiration on existing key returns True."""
+        # Set key
+        await cache_adapter.set("expire_test", "value")
+
+        # Set expiration
+        result = await cache_adapter.expire("expire_test", 30)
+        assert isinstance(result, Success)
+        assert result.value is True
+
+        # Verify TTL is set
+        ttl_result = await cache_adapter.ttl("expire_test")
+        assert isinstance(ttl_result, Success)
+        assert ttl_result.value is not None
+        assert 0 < ttl_result.value <= 30
+
+    @pytest.mark.asyncio
+    async def test_expire_nonexistent_key_returns_false(self, cache_adapter):
+        """Test setting expiration on nonexistent key returns False."""
+        result = await cache_adapter.expire("nonexistent", 30)
+        assert isinstance(result, Success)
+        assert result.value is False
+
+    @pytest.mark.asyncio
+    async def test_ttl_on_key_without_expiration_returns_none(self, cache_adapter):
+        """Test TTL on key without expiration returns None."""
+        # Set key without TTL
+        await cache_adapter.set("no_ttl_key", "value")
+
+        # Get TTL
+        result = await cache_adapter.ttl("no_ttl_key")
+        assert isinstance(result, Success)
+        assert result.value is None
+
+    @pytest.mark.asyncio
+    async def test_ttl_on_nonexistent_key_returns_none(self, cache_adapter):
+        """Test TTL on nonexistent key returns None."""
+        result = await cache_adapter.ttl("nonexistent")
+        assert isinstance(result, Success)
+        assert result.value is None
+
+    @pytest.mark.asyncio
+    async def test_increment_with_custom_amount(self, cache_adapter):
+        """Test incrementing counter by custom amount."""
+        # Increment by 5
+        result = await cache_adapter.increment("custom_incr", amount=5)
+        assert isinstance(result, Success)
+        assert result.value == 5
+
+        # Increment by 10
+        result = await cache_adapter.increment("custom_incr", amount=10)
+        assert isinstance(result, Success)
+        assert result.value == 15
+
+    @pytest.mark.asyncio
+    async def test_decrement_with_custom_amount(self, cache_adapter):
+        """Test decrementing counter by custom amount."""
+        # Set counter to 100
+        await cache_adapter.increment("custom_decr", amount=100)
+
+        # Decrement by 25
+        result = await cache_adapter.decrement("custom_decr", amount=25)
+        assert isinstance(result, Success)
+        assert result.value == 75
+
+    @pytest.mark.asyncio
+    async def test_error_handling_set_json_invalid_type(self, cache_adapter):
+        """Test set_json with non-serializable type returns error."""
+        # Try to set non-serializable object (function)
+        invalid_data = {"func": lambda x: x}  # type: ignore[dict-item]
+
+        result = await cache_adapter.set_json("invalid", invalid_data)
+        assert isinstance(result, Failure)
+        assert isinstance(result.error, CacheError)
+        assert "serialize" in result.error.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_json_with_nonexistent_key_returns_none(self, cache_adapter):
+        """Test get_json on nonexistent key returns None."""
+        result = await cache_adapter.get_json("nonexistent_json")
+        assert isinstance(result, Success)
+        assert result.value is None

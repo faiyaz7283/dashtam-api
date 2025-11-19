@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 
 from src.core.config import settings
 from src.presentation.api.middleware.trace_middleware import TraceMiddleware
+from src.presentation.api.v1.errors import register_exception_handlers
 
 # Initialize FastAPI application with settings
 app = FastAPI(
@@ -29,6 +30,9 @@ app = FastAPI(
 
 # Wire trace middleware (request correlation)
 app.add_middleware(TraceMiddleware)
+
+# Register global exception handlers (RFC 7807 error responses)
+register_exception_handlers(app)
 
 
 @app.get("/")

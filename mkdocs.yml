@@ -127,3 +127,4 @@ nav:
   - Guides:
     - Audit Usage Patterns: guides/audit-usage-patterns.md
     - Domain Events Usage: guides/domain-events-usage.md
+    - Error Handling Usage: guides/error-handling-usage.md

@@ -35,6 +35,7 @@ Reference:
     - docs/architecture/domain-events-architecture.md (Lines 1304-1362)
 """
 
+from src.core.config import Settings
 from src.domain.events.authentication_events import (
     UserPasswordChangeSucceeded,
     UserRegistrationSucceeded,
@@ -52,10 +53,11 @@ class EmailEventHandler:
 
     Attributes:
         _logger: Logger protocol implementation (from container).
+        _settings: Application settings for configuration (e.g., verification URL).
 
     Example:
         >>> # Create handler
-        >>> handler = EmailEventHandler(logger=get_logger())
+        >>> handler = EmailEventHandler(logger=get_logger(), settings=get_settings())
         >>>
         >>> # Subscribe to events (in container)
         >>> event_bus.subscribe(UserRegistrationSucceeded, handler.handle_user_registration_succeeded)
@@ -68,19 +70,23 @@ class EmailEventHandler:
         >>> # Log output: {"event": "email_would_be_sent", "template": "welcome_email", ...}
     """
 
-    def __init__(self, logger: LoggerProtocol) -> None:
-        """Initialize email handler with logger.
+    def __init__(self, logger: LoggerProtocol, settings: Settings) -> None:
+        """Initialize email handler with logger and settings.
 
         Args:
             logger: Logger protocol implementation from container. Used for
                 structured logging of email events (stub only).
+            settings: Application settings providing configuration such as
+                verification_url_base for email links.
 
         Example:
-            >>> from src.core.container import get_logger
+            >>> from src.core.container import get_logger, get_settings
             >>> logger = get_logger()
-            >>> handler = EmailEventHandler(logger=logger)
+            >>> settings = get_settings()
+            >>> handler = EmailEventHandler(logger=logger, settings=settings)
         """
         self._logger = logger
+        self._settings = settings
 
     async def handle_user_registration_succeeded(
         self,
@@ -100,7 +106,7 @@ class EmailEventHandler:
             - Variables:
                 - user_email: event.email
                 - verification_token: (generated from user_id)
-                - verification_link: f"https://dashtam.com/verify?token={token}"
+                - verification_link: f"{settings.verification_url_base}/verify?token={{token}}"
 
         Notes:
             - Email sent asynchronously (fail-open - don't block registration)

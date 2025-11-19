@@ -19,7 +19,7 @@ from typing import AsyncGenerator, TYPE_CHECKING
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.config import settings
+from src.core.config import get_settings, settings
 from src.infrastructure.persistence.database import Database
 
 if TYPE_CHECKING:
@@ -437,7 +437,7 @@ def get_event_bus() -> "EventBusProtocol":  # noqa: F821
     # session creation inside event handlers.
     audit_handler = AuditEventHandler(database=get_database(), event_bus=event_bus)
 
-    email_handler = EmailEventHandler(logger=get_logger())
+    email_handler = EmailEventHandler(logger=get_logger(), settings=get_settings())
     session_handler = SessionEventHandler(logger=get_logger())
 
     # =========================================================================

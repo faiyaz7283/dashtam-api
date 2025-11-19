@@ -136,6 +136,9 @@ class Settings(BaseSettings):
     callback_base_url: str = Field(
         description="OAuth callback server base URL (e.g., https://127.0.0.1:8182)",
     )
+    verification_url_base: str = Field(
+        description="Base URL for email verification links (e.g., https://dashtam.local)",
+    )
 
     # CORS configuration
     cors_origins: str = Field(
@@ -190,7 +193,7 @@ class Settings(BaseSettings):
             raise ValueError("bcrypt_rounds must be between 4 and 31")
         return v
 
-    @field_validator("api_base_url", "callback_base_url")
+    @field_validator("api_base_url", "callback_base_url", "verification_url_base")
     @classmethod
     def validate_url(cls, v: str) -> str:
         """

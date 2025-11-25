@@ -20,7 +20,7 @@ from uuid import UUID
 
 import pytest
 
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
@@ -47,6 +47,7 @@ class TestDomainEventBaseProperties:
         event = UserRegistrationSucceeded(
             user_id=UUID("12345678-1234-5678-1234-567812345678"),
             email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Assert
@@ -62,6 +63,7 @@ class TestDomainEventBaseProperties:
         event = UserRegistrationSucceeded(
             user_id=UUID("12345678-1234-5678-1234-567812345678"),
             email="test@example.com",
+            verification_token="test_token_123",
         )
 
         after = datetime.now(UTC)
@@ -78,6 +80,7 @@ class TestDomainEventBaseProperties:
         event = UserRegistrationSucceeded(
             user_id=UUID("12345678-1234-5678-1234-567812345678"),
             email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Act & Assert - Attempting to modify should raise FrozenInstanceError
@@ -92,6 +95,7 @@ class TestDomainEventBaseProperties:
         event = UserRegistrationSucceeded(
             user_id=UUID("12345678-1234-5678-1234-567812345678"),
             email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Assert
@@ -105,24 +109,12 @@ class TestUserRegistrationEvents:
     def test_user_registration_attempted_creation(self):
         """Test UserRegistrationAttempted event with all fields."""
         # Act
-        event = UserRegistrationAttempted(
-            email="test@example.com", ip_address="192.168.1.1"
-        )
+        event = UserRegistrationAttempted(email="test@example.com")
 
         # Assert
         assert event.email == "test@example.com"
-        assert event.ip_address == "192.168.1.1"
         assert isinstance(event.event_id, UUID)
         assert isinstance(event.occurred_at, datetime)
-
-    def test_user_registration_attempted_without_ip(self):
-        """Test UserRegistrationAttempted with optional ip_address=None."""
-        # Act
-        event = UserRegistrationAttempted(email="test@example.com", ip_address=None)
-
-        # Assert
-        assert event.email == "test@example.com"
-        assert event.ip_address is None
 
     def test_user_registration_succeeded_creation(self):
         """Test UserRegistrationSucceeded event with all fields."""
@@ -130,11 +122,16 @@ class TestUserRegistrationEvents:
         user_id = UUID("12345678-1234-5678-1234-567812345678")
 
         # Act
-        event = UserRegistrationSucceeded(user_id=user_id, email="test@example.com")
+        event = UserRegistrationSucceeded(
+            user_id=user_id,
+            email="test@example.com",
+            verification_token="abc123def456",
+        )
 
         # Assert
         assert event.user_id == user_id
         assert event.email == "test@example.com"
+        assert event.verification_token == "abc123def456"
         assert isinstance(event.event_id, UUID)
         assert isinstance(event.occurred_at, datetime)
 
@@ -143,16 +140,12 @@ class TestUserRegistrationEvents:
         # Act
         event = UserRegistrationFailed(
             email="test@example.com",
-            error_code="duplicate_email",
-            error_message="Email already registered",
-            ip_address="192.168.1.1",
+            reason="duplicate_email",
         )
 
         # Assert
         assert event.email == "test@example.com"
-        assert event.error_code == "duplicate_email"
-        assert event.error_message == "Email already registered"
-        assert event.ip_address == "192.168.1.1"
+        assert event.reason == "duplicate_email"
 
 
 @pytest.mark.unit
@@ -165,14 +158,10 @@ class TestUserPasswordChangeEvents:
         user_id = UUID("12345678-1234-5678-1234-567812345678")
 
         # Act
-        event = UserPasswordChangeAttempted(
-            user_id=user_id, initiated_by="user", ip_address="192.168.1.1"
-        )
+        event = UserPasswordChangeAttempted(user_id=user_id)
 
         # Assert
         assert event.user_id == user_id
-        assert event.initiated_by == "user"
-        assert event.ip_address == "192.168.1.1"
 
     def test_user_password_change_succeeded_creation(self):
         """Test UserPasswordChangeSucceeded event with all fields."""
@@ -194,18 +183,12 @@ class TestUserPasswordChangeEvents:
         # Act
         event = UserPasswordChangeFailed(
             user_id=user_id,
-            initiated_by="user",
-            error_code="invalid_old_password",
-            error_message="Old password incorrect",
-            ip_address="192.168.1.1",
+            reason="invalid_old_password",
         )
 
         # Assert
         assert event.user_id == user_id
-        assert event.initiated_by == "user"
-        assert event.error_code == "invalid_old_password"
-        assert event.error_message == "Old password incorrect"
-        assert event.ip_address == "192.168.1.1"
+        assert event.reason == "invalid_old_password"
 
 
 @pytest.mark.unit
@@ -219,13 +202,13 @@ class TestProviderConnectionEvents:
 
         # Act
         event = ProviderConnectionAttempted(
-            user_id=user_id, provider_name="schwab", ip_address="192.168.1.1"
+            user_id=user_id,
+            provider_name="schwab",
         )
 
         # Assert
         assert event.user_id == user_id
         assert event.provider_name == "schwab"
-        assert event.ip_address == "192.168.1.1"
 
     def test_provider_connection_succeeded_creation(self):
         """Test ProviderConnectionSucceeded event with all fields."""
@@ -252,15 +235,13 @@ class TestProviderConnectionEvents:
         event = ProviderConnectionFailed(
             user_id=user_id,
             provider_name="schwab",
-            error_code="access_denied",
-            error_message="User denied OAuth access",
+            reason="access_denied",
         )
 
         # Assert
         assert event.user_id == user_id
         assert event.provider_name == "schwab"
-        assert event.error_code == "access_denied"
-        assert event.error_message == "User denied OAuth access"
+        assert event.reason == "access_denied"
 
 
 @pytest.mark.unit
@@ -311,7 +292,6 @@ class TestTokenRefreshEvents:
             provider_id=provider_id,
             provider_name="schwab",
             error_code="invalid_grant",
-            error_message="Refresh token expired",
         )
 
         # Assert
@@ -319,7 +299,6 @@ class TestTokenRefreshEvents:
         assert event.provider_id == provider_id
         assert event.provider_name == "schwab"
         assert event.error_code == "invalid_grant"
-        assert event.error_message == "Refresh token expired"
 
 
 @pytest.mark.unit
@@ -360,6 +339,7 @@ class TestEventDataclassStructure:
                     "12345678-1234-5678-1234-567812345678"
                 ),  # Positional - should fail
                 "test@example.com",
+                "verification_token",
             )
 
     def test_event_with_explicit_event_id(self):
@@ -370,7 +350,10 @@ class TestEventDataclassStructure:
 
         # Act
         event = UserRegistrationSucceeded(
-            event_id=custom_event_id, user_id=user_id, email="test@example.com"
+            event_id=custom_event_id,
+            user_id=user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Assert
@@ -384,7 +367,10 @@ class TestEventDataclassStructure:
 
         # Act
         event = UserRegistrationSucceeded(
-            occurred_at=custom_timestamp, user_id=user_id, email="test@example.com"
+            occurred_at=custom_timestamp,
+            user_id=user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Assert

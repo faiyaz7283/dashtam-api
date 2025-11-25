@@ -760,7 +760,7 @@ def test_user_repository_save():
 @pytest.mark.integration
 async def test_user_repository_save(test_database):
     """Integration test with REAL database."""
-    repo = PostgresUserRepository(test_database)
+    repo = UserRepository(test_database)
     user = User(email="test@example.com", ...)
     
     await repo.save(user)

@@ -26,7 +26,15 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Import all models here for autogenerate support
 # This ensures Alembic can detect schema changes
-from src.infrastructure.persistence.models.audit import AuditLogModel  # noqa: F401
+from src.infrastructure.persistence.models.audit_log import AuditLog  # noqa: F401
+from src.infrastructure.persistence.models.email_verification_token import (  # noqa: F401
+    EmailVerificationToken,
+)
+from src.infrastructure.persistence.models.password_reset_token import (  # noqa: F401
+    PasswordResetToken,
+)
+from src.infrastructure.persistence.models.refresh_token import RefreshToken  # noqa: F401
+from src.infrastructure.persistence.models.user import User  # noqa: F401
 
 # Add model's MetaData for autogenerate
 target_metadata = BaseModel.metadata

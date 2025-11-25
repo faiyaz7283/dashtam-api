@@ -25,13 +25,19 @@ Reference:
     - docs/guides/domain-events-usage.md for usage guide
 """
 
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
+    EmailVerificationAttempted,
+    EmailVerificationFailed,
+    EmailVerificationSucceeded,
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
     TokenRefreshAttempted,
     TokenRefreshFailed,
     TokenRefreshSucceeded,
+    UserLoginAttempted,
+    UserLoginFailed,
+    UserLoginSucceeded,
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
@@ -40,18 +46,22 @@ from src.domain.events.authentication_events import (
     UserRegistrationSucceeded,
 )
 from src.domain.events.base_event import DomainEvent
-from src.domain.protocols.event_bus_protocol import EventBusProtocol, EventHandler
 
 __all__ = [
     # Base event
     "DomainEvent",
-    # Protocols
-    "EventBusProtocol",
-    "EventHandler",
     # User Registration Events (3-state)
     "UserRegistrationAttempted",
     "UserRegistrationSucceeded",
     "UserRegistrationFailed",
+    # User Login Events (3-state)
+    "UserLoginAttempted",
+    "UserLoginSucceeded",
+    "UserLoginFailed",
+    # Email Verification Events (3-state)
+    "EmailVerificationAttempted",
+    "EmailVerificationSucceeded",
+    "EmailVerificationFailed",
     # User Password Change Events (3-state)
     "UserPasswordChangeAttempted",
     "UserPasswordChangeSucceeded",

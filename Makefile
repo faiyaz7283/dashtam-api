@@ -457,8 +457,12 @@ migrate:
 migrate-create:
 	@echo "📝 Creating migration..."
 	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
-	@read -p "Migration message: " msg; \
-	docker compose -f compose/docker-compose.dev.yml exec app uv run alembic revision --autogenerate -m "$$msg"
+	@if [ -z "$(MSG)" ]; then \
+		echo "❌ Error: MSG parameter required"; \
+		echo "Usage: make migrate-create MSG=\"your migration message\""; \
+		exit 1; \
+	fi
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run alembic revision --autogenerate -m "$(MSG)"
 	@echo "✅ Migration created (review before applying!)"
 
 migrate-down:

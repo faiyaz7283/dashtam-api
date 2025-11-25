@@ -22,12 +22,49 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config import get_settings, settings
 from src.infrastructure.persistence.database import Database
 
+# ============================================================================
+# Type-Checking Only Imports (Circular Import Prevention)
+# ============================================================================
+# These imports are ONLY executed during type checking (mypy, pyright), NOT at runtime.
+#
+# Why?
+#   - Prevents circular import deadlocks (Container → Adapter → Container → ...)
+#   - Type checkers need to see Protocol types for validation
+#   - Runtime doesn't need these imports (factories import adapters internally)
+#
+# How it works:
+#   - TYPE_CHECKING = True during static analysis (mypy)
+#   - TYPE_CHECKING = False during runtime (python execution)
+#   - Return type annotations use string quotes: "AuditProtocol" (forward reference)
+#   - Actual imports happen inside factory functions (deferred until needed)
+#
+# Example:
+#   def get_audit() -> "AuditProtocol":  # ← String annotation (not evaluated at runtime)
+#       from src.infrastructure.audit.postgres_adapter import PostgresAuditAdapter  # ← Runtime import
+#       return PostgresAuditAdapter(...)
+#
+# Without TYPE_CHECKING guard:
+#   - Would cause circular imports if adapter imports from container
+#   - Example: Container imports Adapter → Adapter imports get_logger → Container (deadlock!)
+#
+# With TYPE_CHECKING guard:
+#   - Type checkers see the Protocol types for validation
+#   - Runtime skips these imports entirely (no circular dependency)
+#   - Imports happen lazily inside functions when actually needed
+#
+# Reference:
+#   - PEP 563 (Postponed Evaluation of Annotations)
+#   - Python typing docs: https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
+# ============================================================================
 if TYPE_CHECKING:
     from src.domain.protocols.audit_protocol import AuditProtocol
-    from src.domain.protocols.cache import CacheProtocol
+    from src.domain.protocols.cache_protocol import CacheProtocol
+    from src.domain.protocols.email_protocol import EmailProtocol
     from src.domain.protocols.event_bus_protocol import EventBusProtocol
     from src.domain.protocols.logger_protocol import LoggerProtocol
+    from src.domain.protocols.password_hashing_protocol import PasswordHashingProtocol
     from src.domain.protocols.secrets_protocol import SecretsProtocol
+    from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
 
 
 # ============================================================================
@@ -299,6 +336,141 @@ async def get_audit(
 
 
 # ============================================================================
+# Security Services (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_password_service() -> "PasswordHashingProtocol":
+    """Get password hashing service singleton (app-scoped).
+
+    Returns BcryptPasswordService with cost factor 12 (~250ms per hash).
+    Service instance is shared across entire application.
+
+    Returns:
+        Password hashing service implementing PasswordHashingProtocol.
+
+    Usage:
+        # Application Layer (direct use)
+        from src.core.container import get_password_service
+        password_service = get_password_service()
+        password_hash = password_service.hash_password("SecurePass123!")
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        from src.domain.protocols import PasswordHashingProtocol
+
+        @router.post("/users")
+        async def create_user(
+            password_service: PasswordHashingProtocol = Depends(get_password_service)
+        ):
+            password_hash = password_service.hash_password(data.password)
+
+    Reference:
+        - docs/architecture/authentication-architecture.md (Lines 853-875)
+    """
+    from src.infrastructure.security import BcryptPasswordService
+
+    return BcryptPasswordService(cost_factor=12)
+
+
+@lru_cache()
+def get_token_service() -> "TokenGenerationProtocol":
+    """Get JWT token service singleton (app-scoped).
+
+    Returns JWTService with HMAC-SHA256 and 15-minute expiration.
+    Service instance is shared across entire application.
+
+    Returns:
+        Token generation service implementing TokenGenerationProtocol.
+
+    Usage:
+        # Application Layer (direct use)
+        from src.core.container import get_token_service
+        token_service = get_token_service()
+        token = token_service.generate_access_token(
+            user_id=user_id,
+            email=user.email,
+            roles=["user"],
+        )
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        from src.domain.protocols import TokenGenerationProtocol
+
+        @router.post("/auth/login")
+        async def login(
+            token_service: TokenGenerationProtocol = Depends(get_token_service)
+        ):
+            token = token_service.generate_access_token(...)
+
+    Reference:
+        - docs/architecture/authentication-architecture.md (Lines 131-173)
+    """
+    from src.infrastructure.security import JWTService
+
+    return JWTService(
+        secret_key=settings.secret_key,
+        expiration_minutes=15,  # 15 minutes per auth architecture (not settings default)
+    )
+
+
+# ============================================================================
+# Email Service (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_email_service() -> "EmailProtocol":
+    """Get email service singleton (app-scoped).
+
+    Container owns factory logic - decides which adapter based on ENVIRONMENT.
+    This follows the Composition Root pattern (industry best practice).
+
+    Returns correct adapter based on environment:
+        - development/testing/ci: StubEmailService (logs to console)
+        - production: AWSEmailService (real AWS SES)
+
+    Returns:
+        Email service implementing EmailProtocol.
+
+    Usage:
+        # Application Layer (direct use)
+        email_service = get_email_service()
+        await email_service.send_verification_email(
+            to_email="user@example.com",
+            verification_url="https://app.com/verify?token=abc123",
+        )
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        email_service: EmailProtocol = Depends(get_email_service)
+
+    Reference:
+        - docs/architecture/authentication-architecture.md (Lines 272-278)
+    """
+    # Import here to avoid circular dependency
+    from src.infrastructure.email import StubEmailService
+
+    env = (
+        settings.environment.value
+        if hasattr(settings.environment, "value")
+        else str(settings.environment)
+    )
+
+    if env == "production":
+        # Future: AWS SES implementation
+        # from src.infrastructure.email import AWSEmailService
+        # return AWSEmailService(region=settings.aws_region)
+        #
+        # For now, use stub even in production (upgrade later)
+        return StubEmailService(logger=get_logger())
+    else:
+        # Development, testing, CI: Use stub
+        return StubEmailService(logger=get_logger())
+
+
+# ============================================================================
 # Logging (Application-Scoped)
 # ============================================================================
 
@@ -392,7 +564,7 @@ def get_event_bus() -> "EventBusProtocol":  # noqa: F821
     from src.infrastructure.events.handlers.session_event_handler import (
         SessionEventHandler,
     )
-    from src.domain.events.authentication_events import (
+    from src.domain.events.auth_events import (
         UserRegistrationAttempted,
         UserRegistrationSucceeded,
         UserRegistrationFailed,
@@ -552,29 +724,103 @@ def get_event_bus() -> "EventBusProtocol":  # noqa: F821
 
 
 # ============================================================================
+# Repository Factories (Request-Scoped)
+# ============================================================================
+
+
+async def get_user_repository(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get user repository (request-scoped).
+
+    Creates new repository instance per request with database session.
+    Repository provides CRUD operations for User domain entities.
+
+    Args:
+        session: Database session for request duration.
+            Injected via Depends(get_db_session).
+
+    Returns:
+        UserRepository instance.
+
+    Usage:
+        # Application Layer (command handlers)
+        from src.core.container import get_user_repository
+        user_repo = await anext(get_user_repository())
+        user = await user_repo.find_by_email("user@example.com")
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        from src.infrastructure.persistence.repositories import UserRepository
+
+        @router.post("/users")
+        async def create_user(
+            user_repo: UserRepository = Depends(get_user_repository)
+        ):
+            await user_repo.save(user)
+
+    Reference:
+        - docs/architecture/authentication-architecture.md (Lines 589-593)
+    """
+    from src.infrastructure.persistence.repositories import UserRepository
+
+    return UserRepository(session=session)
+
+
+# ============================================================================
 # Handler Factories (Request-Scoped) - Add as needed
 # ============================================================================
 
-# Example handler factory (uncomment when handlers are created):
-#
-# def get_register_user_handler():
-#     """Get RegisterUser command handler (request-scoped).
-#
-#     Creates new handler instance per request.
-#     Handler uses application-scoped dependencies internally.
-#
-#     Returns:
-#         RegisterUserHandler instance.
-#
-#     Usage:
-#         @router.post("/users")
-#         async def create_user(
-#             handler: RegisterUserHandler = Depends(get_register_user_handler)
-#         ):
-#             result = await handler.handle(command)
-#     """
-#     from src.application.commands.handlers.register_user_handler import (
-#         RegisterUserHandler,
-#     )
-#
-#     return RegisterUserHandler()
+
+async def get_register_user_handler(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get RegisterUser command handler (request-scoped).
+
+    Creates new handler instance per request with all required dependencies:
+    - UserRepository (request-scoped, uses session)
+    - EmailVerificationTokenRepository (request-scoped, uses session)
+    - BcryptPasswordService (app-scoped singleton)
+    - EventBus (app-scoped singleton)
+
+    Returns:
+        RegisterUserHandler instance.
+
+    Usage:
+        # Presentation Layer (FastAPI endpoint)
+        from fastapi import Depends
+        from src.application.commands.handlers.register_user_handler import (
+            RegisterUserHandler,
+        )
+
+        @router.post("/users")
+        async def create_user(
+            handler: RegisterUserHandler = Depends(get_register_user_handler)
+        ):
+            result = await handler.handle(command)
+
+    Reference:
+        - docs/architecture/authentication-architecture.md (Lines 250-278)
+    """
+    from src.application.commands.handlers.register_user_handler import (
+        RegisterUserHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        UserRepository,
+        EmailVerificationTokenRepository,
+    )
+
+    # Create repositories with session
+    user_repo = UserRepository(session=session)
+    verification_token_repo = EmailVerificationTokenRepository(session=session)
+
+    # Get application-scoped singletons
+    password_service = get_password_service()
+    event_bus = get_event_bus()
+
+    return RegisterUserHandler(
+        user_repo=user_repo,
+        verification_token_repo=verification_token_repo,
+        password_service=password_service,
+        event_bus=event_bus,
+    )

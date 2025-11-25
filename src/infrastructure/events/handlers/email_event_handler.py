@@ -36,7 +36,7 @@ Reference:
 """
 
 from src.core.config import Settings
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     UserPasswordChangeSucceeded,
     UserRegistrationSucceeded,
 )

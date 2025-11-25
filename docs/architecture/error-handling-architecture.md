@@ -13,13 +13,82 @@ while maintaining proper error propagation and user-friendly HTTP responses.
 
 ### Core Principles
 
-1. **No Exceptions in Domain**: Domain logic uses Result types, not exceptions
+1. **No Exceptions in Domain Business Logic**: Domain services and entities use Result types, not exceptions
 2. **Railway-Oriented Programming**: Errors flow through pipeline as data
 3. **RFC 7807 Compliance**: HTTP API errors follow industry standard
 4. **Machine-Readable Codes**: All errors have enums for client handling
 5. **User-Friendly Messages**: Human-readable descriptions for end users
 6. **Detailed Logging**: Structured logs with trace IDs for debugging
 7. **Type Safety**: Strong typing with Python 3.13+ features
+
+### Exception Handling Boundaries
+
+**IMPORTANT**: Not all exceptions are banned from the domain layer. The rule is nuanced:
+
+**✅ Exceptions ALLOWED (Construction/Validation)**:
+
+- **Value Objects**: Can raise `ValueError` in `__post_init__` during construction
+- **Reason**: Python dataclasses require fail-fast validation at creation time
+- **Handled by**: Application layer catches and converts to Result types
+
+**❌ Exceptions FORBIDDEN (Business Logic)**:
+
+- **Domain Services**: Must return `Result[T, DomainError]`, never raise exceptions
+- **Entity Methods**: Must return Result types for fallible operations
+- **Reason**: Business logic should be testable without exception handling
+
+**Example - Value Object Construction (Exceptions OK)**:
+
+```python
+@dataclass(frozen=True)
+class Email:
+    value: str
+    
+    def __post_init__(self):
+        try:
+            validate_email(self.value)
+        except EmailNotValidError as e:
+            raise ValueError(f"Invalid email: {e}")  # ✅ OK in __post_init__
+```
+
+**Example - Domain Service (Must use Result)**:
+
+```python
+class UserService:
+    async def create_user(self, email: str) -> Result[User, ValidationError]:
+        # ✅ Returns Result, never raises
+        if not email:
+            return Failure(ValidationError(...))
+        return Success(user)
+```
+
+**Example - Application Layer (Catches Value Object Exceptions)**:
+
+```python
+class RegisterUserHandler:
+    async def handle(self, cmd: RegisterUser) -> Result[UUID, ApplicationError]:
+        try:
+            # Value object construction might raise ValueError
+            email = Email(cmd.email)  # ← ValueError might be raised here
+            password = Password(cmd.password)
+        except ValueError as e:
+            # Application layer catches and converts to Result
+            return Failure(ApplicationError(
+                code=ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
+                message=str(e),
+            ))
+        
+        # Now call domain service (returns Result, no exceptions)
+        result = await self.user_service.create_user(email, password)
+        return result  # Result type flows through
+```
+
+**Why This Design?**:
+
+1. **Pragmatic**: Python's `__post_init__` can't return values, must validate in-place
+2. **Fail-Fast**: Invalid data caught immediately at construction
+3. **Clear Boundaries**: Value objects are construction, services are business logic
+4. **Simple**: No need for complex Result-based factory methods on value objects
 
 ### Architectural Decisions
 
@@ -29,6 +98,7 @@ while maintaining proper error propagation and user-friendly HTTP responses.
 - **Pattern Matching**: Use match/case for error handling
 - **No Exception Inheritance**: Domain errors do NOT inherit from Exception
 - **Infrastructure Exceptions**: Only infra layer catches and maps to errors
+- **Value Object Exceptions**: Value objects can raise ValueError in \_\_post\_init\_\_ (see Exception Handling Boundaries below)
 
 ---
 

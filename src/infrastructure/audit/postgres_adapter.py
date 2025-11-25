@@ -63,7 +63,7 @@ from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
 from src.domain.enums import AuditAction
 from src.domain.errors import AuditError
-from src.infrastructure.persistence.models.audit import AuditLogModel
+from src.infrastructure.persistence.models.audit_log import AuditLog
 
 
 class PostgresAuditAdapter:
@@ -162,7 +162,7 @@ class PostgresAuditAdapter:
         """
         try:
             # Create audit log model
-            audit_log = AuditLogModel(
+            audit_log = AuditLog(
                 action=action.value,  # Convert enum to string
                 user_id=user_id,
                 resource_type=resource_type,
@@ -275,26 +275,26 @@ class PostgresAuditAdapter:
             limit = min(limit, 1000)
 
             # Build query with filters
-            query = select(AuditLogModel)
+            query = select(AuditLog)
 
             # Apply filters
             if user_id is not None:
-                query = query.where(AuditLogModel.user_id == user_id)
+                query = query.where(AuditLog.user_id == user_id)
 
             if action is not None:
-                query = query.where(AuditLogModel.action == action.value)
+                query = query.where(AuditLog.action == action.value)
 
             if resource_type is not None:
-                query = query.where(AuditLogModel.resource_type == resource_type)
+                query = query.where(AuditLog.resource_type == resource_type)
 
             if start_date is not None:
-                query = query.where(AuditLogModel.created_at >= start_date)
+                query = query.where(AuditLog.created_at >= start_date)
 
             if end_date is not None:
-                query = query.where(AuditLogModel.created_at <= end_date)
+                query = query.where(AuditLog.created_at <= end_date)
 
             # Order by created_at DESC (newest first)
-            query = query.order_by(AuditLogModel.created_at.desc())
+            query = query.order_by(AuditLog.created_at.desc())
 
             # Apply pagination
             query = query.limit(limit).offset(offset)

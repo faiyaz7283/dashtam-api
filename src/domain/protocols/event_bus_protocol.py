@@ -19,7 +19,7 @@ Implementations:
 Usage:
     >>> # Application layer uses protocol (dependency injection)
     >>> from src.core.container import get_event_bus
-    >>> from src.domain.events.authentication_events import UserRegistered
+    >>> from src.domain.events.auth_events import UserRegistered
     >>>
     >>> event_bus = get_event_bus()  # Returns EventBusProtocol implementation
     >>>

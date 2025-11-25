@@ -870,7 +870,7 @@ Pattern:
 - *Succeeded events → logger.info()
 - *Failed events → logger.warning()
 """
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     UserRegistrationAttempted,
     UserRegistrationSucceeded,
     UserRegistrationFailed,
@@ -1048,7 +1048,7 @@ Pattern:
 - *Succeeded events → AuditAction.* (outcome without suffix)
 - *Failed events → AuditAction.*_FAILED
 """
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     UserRegistrationAttempted,
     UserRegistrationSucceeded,
     UserRegistrationFailed,
@@ -1368,7 +1368,7 @@ async def test_event_creates_audit(test_database):
 
 Subscribes to SUCCEEDED events only (no emails for attempts or failures).
 """
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     UserRegistrationSucceeded,
     UserPasswordChangeSucceeded,
     ProviderConnectionSucceeded,
@@ -1430,7 +1430,7 @@ class EmailEventHandler:
 
 Subscribes to password change SUCCEEDED events only (revoke sessions on success).
 """
-from src.domain.events.authentication_events import UserPasswordChangeSucceeded
+from src.domain.events.auth_events import UserPasswordChangeSucceeded
 from src.domain.protocols.logger_protocol import LoggerProtocol
 
 
@@ -1480,7 +1480,7 @@ from src.infrastructure.email.event_handlers.email_event_handler import EmailEve
 from src.infrastructure.session.event_handlers.session_event_handler import SessionEventHandler
 
 # Events
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     UserRegistrationAttempted,
     UserRegistrationSucceeded,
     UserRegistrationFailed,
@@ -1614,7 +1614,7 @@ from datetime import datetime, UTC
 from src.application.commands.change_password import ChangePassword
 from src.domain.protocols.user_repository import UserRepository
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     UserPasswordChangeAttempted,
     UserPasswordChangeSucceeded,
     UserPasswordChangeFailed,

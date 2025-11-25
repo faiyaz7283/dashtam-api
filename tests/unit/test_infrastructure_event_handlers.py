@@ -26,7 +26,7 @@ from uuid import UUID
 import pytest
 
 from src.domain.enums.audit_action import AuditAction
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
@@ -113,15 +113,11 @@ class TestLoggingEventHandler:
         assert handler._logger is mock_logger
 
     @pytest.mark.asyncio
-    async def test_user_registration_attempted_logs_info(
-        self, mock_logger, sample_user_id
-    ):
+    async def test_user_registration_attempted_logs_info(self, mock_logger):
         """Test UserRegistrationAttempted logged at INFO level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
-        event = UserRegistrationAttempted(
-            email="test@example.com", ip_address="192.168.1.1"
-        )
+        event = UserRegistrationAttempted(email="test@example.com")
 
         # Act
         await handler.handle_user_registration_attempted(event)
@@ -131,7 +127,6 @@ class TestLoggingEventHandler:
         call_args = mock_logger.info.call_args
         assert call_args[0][0] == "user_registration_attempted"
         assert call_args[1]["email"] == "test@example.com"
-        assert call_args[1]["ip_address"] == "192.168.1.1"
 
     @pytest.mark.asyncio
     async def test_user_registration_succeeded_logs_info(
@@ -141,7 +136,9 @@ class TestLoggingEventHandler:
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = UserRegistrationSucceeded(
-            user_id=sample_user_id, email="test@example.com"
+            user_id=sample_user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Act
@@ -155,17 +152,13 @@ class TestLoggingEventHandler:
         assert call_args[1]["email"] == "test@example.com"
 
     @pytest.mark.asyncio
-    async def test_user_registration_failed_logs_warning(
-        self, mock_logger, sample_user_id
-    ):
+    async def test_user_registration_failed_logs_warning(self, mock_logger):
         """Test UserRegistrationFailed logged at WARNING level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = UserRegistrationFailed(
             email="test@example.com",
-            error_code="duplicate_email",
-            error_message="Email already registered",
-            ip_address="192.168.1.1",
+            reason="duplicate_email",
         )
 
         # Act
@@ -175,8 +168,7 @@ class TestLoggingEventHandler:
         mock_logger.warning.assert_called_once()
         call_args = mock_logger.warning.call_args
         assert call_args[0][0] == "user_registration_failed"
-        assert call_args[1]["error_code"] == "duplicate_email"
-        assert call_args[1]["error_message"] == "Email already registered"
+        assert call_args[1]["reason"] == "duplicate_email"
 
     @pytest.mark.asyncio
     async def test_password_change_attempted_logs_info(
@@ -185,9 +177,7 @@ class TestLoggingEventHandler:
         """Test UserPasswordChangeAttempted logged at INFO level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
-        event = UserPasswordChangeAttempted(
-            user_id=sample_user_id, initiated_by="user", ip_address="192.168.1.1"
-        )
+        event = UserPasswordChangeAttempted(user_id=sample_user_id)
 
         # Act
         await handler.handle_user_password_change_attempted(event)
@@ -197,7 +187,6 @@ class TestLoggingEventHandler:
         call_args = mock_logger.info.call_args
         assert call_args[0][0] == "user_password_change_attempted"
         assert call_args[1]["user_id"] == str(sample_user_id)
-        assert call_args[1]["initiated_by"] == "user"
 
     @pytest.mark.asyncio
     async def test_password_change_succeeded_logs_info(
@@ -226,10 +215,7 @@ class TestLoggingEventHandler:
         handler = LoggingEventHandler(logger=mock_logger)
         event = UserPasswordChangeFailed(
             user_id=sample_user_id,
-            initiated_by="user",
-            error_code="invalid_old_password",
-            error_message="Old password incorrect",
-            ip_address="192.168.1.1",
+            reason="invalid_old_password",
         )
 
         # Act
@@ -239,7 +225,7 @@ class TestLoggingEventHandler:
         mock_logger.warning.assert_called_once()
         call_args = mock_logger.warning.call_args
         assert call_args[0][0] == "user_password_change_failed"
-        assert call_args[1]["error_code"] == "invalid_old_password"
+        assert call_args[1]["reason"] == "invalid_old_password"
 
     @pytest.mark.asyncio
     async def test_provider_connection_attempted_logs_info(
@@ -249,7 +235,7 @@ class TestLoggingEventHandler:
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = ProviderConnectionAttempted(
-            user_id=sample_user_id, provider_name="schwab", ip_address="192.168.1.1"
+            user_id=sample_user_id, provider_name="schwab"
         )
 
         # Act
@@ -293,8 +279,7 @@ class TestLoggingEventHandler:
         event = ProviderConnectionFailed(
             user_id=sample_user_id,
             provider_name="schwab",
-            error_code="access_denied",
-            error_message="User denied OAuth access",
+            reason="access_denied",
         )
 
         # Act
@@ -304,7 +289,7 @@ class TestLoggingEventHandler:
         mock_logger.warning.assert_called_once()
         call_args = mock_logger.warning.call_args
         assert call_args[0][0] == "provider_connection_failed"
-        assert call_args[1]["error_code"] == "access_denied"
+        assert call_args[1]["reason"] == "access_denied"
 
     @pytest.mark.asyncio
     async def test_token_refresh_attempted_logs_info(
@@ -360,7 +345,6 @@ class TestLoggingEventHandler:
             provider_id=sample_provider_id,
             provider_name="schwab",
             error_code="invalid_grant",
-            error_message="Refresh token expired",
         )
 
         # Act
@@ -393,14 +377,12 @@ class TestAuditEventHandler:
 
     @pytest.mark.asyncio
     async def test_user_registration_attempted_creates_audit(
-        self, mock_database, mock_event_bus, sample_user_id
+        self, mock_database, mock_event_bus
     ):
         """Test UserRegistrationAttempted creates audit record."""
         # Arrange
         handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
-        event = UserRegistrationAttempted(
-            email="test@example.com", ip_address="192.168.1.1"
-        )
+        event = UserRegistrationAttempted(email="test@example.com")
 
         # Mock PostgresAuditAdapter
         with patch(
@@ -428,7 +410,9 @@ class TestAuditEventHandler:
         # Arrange
         handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = UserRegistrationSucceeded(
-            user_id=sample_user_id, email="test@example.com"
+            user_id=sample_user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Mock PostgresAuditAdapter
@@ -451,16 +435,14 @@ class TestAuditEventHandler:
 
     @pytest.mark.asyncio
     async def test_user_registration_failed_creates_audit(
-        self, mock_database, mock_event_bus, sample_user_id
+        self, mock_database, mock_event_bus
     ):
         """Test UserRegistrationFailed creates audit record."""
         # Arrange
         handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = UserRegistrationFailed(
             email="test@example.com",
-            error_code="duplicate_email",
-            error_message="Email already registered",
-            ip_address="192.168.1.1",
+            reason="duplicate_email",
         )
 
         # Mock PostgresAuditAdapter
@@ -549,7 +531,6 @@ class TestAuditEventHandler:
             provider_id=sample_provider_id,
             provider_name="schwab",
             error_code="invalid_grant",
-            error_message="Refresh token expired",
         )
 
         # Mock PostgresAuditAdapter
@@ -583,8 +564,9 @@ class TestEmailEventHandler:
         """Test EmailEventHandler initializes with logger and settings."""
         # Arrange
         from src.core.config import get_settings
+
         settings = get_settings()
-        
+
         # Act
         handler = EmailEventHandler(logger=mock_logger, settings=settings)
 
@@ -599,9 +581,12 @@ class TestEmailEventHandler:
         """Test EmailEventHandler processes UserRegistrationSucceeded without exception."""
         # Arrange
         from src.core.config import get_settings
+
         handler = EmailEventHandler(logger=mock_logger, settings=get_settings())
         event = UserRegistrationSucceeded(
-            user_id=sample_user_id, email="test@example.com"
+            user_id=sample_user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Act - Should not raise exception
@@ -617,6 +602,7 @@ class TestEmailEventHandler:
         """Test EmailEventHandler processes UserPasswordChangeSucceeded without exception."""
         # Arrange
         from src.core.config import get_settings
+
         handler = EmailEventHandler(logger=mock_logger, settings=get_settings())
         event = UserPasswordChangeSucceeded(user_id=sample_user_id, initiated_by="user")
 
@@ -633,9 +619,12 @@ class TestEmailEventHandler:
         """Test EmailEventHandler receives correct event data."""
         # Arrange
         from src.core.config import get_settings
+
         handler = EmailEventHandler(logger=mock_logger, settings=get_settings())
         event = UserRegistrationSucceeded(
-            user_id=sample_user_id, email="test@example.com"
+            user_id=sample_user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Act
@@ -718,7 +707,9 @@ class TestHandlerFailureIsolation:
         handler = LoggingEventHandler(logger=mock_logger)
         mock_logger.info.side_effect = Exception("Logger failed")
         event = UserRegistrationSucceeded(
-            user_id=sample_user_id, email="test@example.com"
+            user_id=sample_user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Act & Assert - Exception should propagate (event bus will catch it)
@@ -733,7 +724,9 @@ class TestHandlerFailureIsolation:
         # Arrange
         handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = UserRegistrationSucceeded(
-            user_id=sample_user_id, email="test@example.com"
+            user_id=sample_user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Mock adapter to raise exception
@@ -755,10 +748,13 @@ class TestHandlerFailureIsolation:
         """Test EmailEventHandler exception doesn't break event bus."""
         # Arrange
         from src.core.config import get_settings
+
         handler = EmailEventHandler(logger=mock_logger, settings=get_settings())
         mock_logger.info.side_effect = Exception("Email stub failed")
         event = UserRegistrationSucceeded(
-            user_id=sample_user_id, email="test@example.com"
+            user_id=sample_user_id,
+            email="test@example.com",
+            verification_token="test_token_123",
         )
 
         # Act & Assert - Exception should propagate (event bus will catch it)

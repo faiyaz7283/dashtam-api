@@ -32,7 +32,7 @@ Reference:
     - docs/architecture/structured-logging-architecture.md
 """
 
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
@@ -99,14 +99,13 @@ class LoggingEventHandler:
         """Log user registration attempt (INFO level).
 
         Args:
-            event: UserRegistrationAttempted event with email and IP address.
+            event: UserRegistrationAttempted event with email.
         """
         self._logger.info(
             "user_registration_attempted",
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             email=event.email,
-            ip_address=event.ip_address,
         )
 
     async def handle_user_registration_succeeded(
@@ -140,9 +139,7 @@ class LoggingEventHandler:
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             email=event.email,
-            error_code=event.error_code,
-            error_message=event.error_message,
-            ip_address=event.ip_address,
+            reason=event.reason,
         )
 
     # =========================================================================
@@ -156,15 +153,13 @@ class LoggingEventHandler:
         """Log password change attempt (INFO level).
 
         Args:
-            event: UserPasswordChangeAttempted event with user_id and initiator.
+            event: UserPasswordChangeAttempted event with user_id.
         """
         self._logger.info(
             "user_password_change_attempted",
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
-            initiated_by=event.initiated_by,
-            ip_address=event.ip_address,
         )
 
     async def handle_user_password_change_succeeded(
@@ -198,9 +193,7 @@ class LoggingEventHandler:
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
-            error_code=event.error_code,
-            error_message=event.error_message,
-            ip_address=event.ip_address,
+            reason=event.reason,
         )
 
     # =========================================================================
@@ -222,7 +215,6 @@ class LoggingEventHandler:
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
             provider_name=event.provider_name,
-            ip_address=event.ip_address,
         )
 
     async def handle_provider_connection_succeeded(
@@ -258,8 +250,7 @@ class LoggingEventHandler:
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
             provider_name=event.provider_name,
-            error_code=event.error_code,
-            error_message=event.error_message,
+            reason=event.reason,
         )
 
     # =========================================================================
@@ -319,5 +310,4 @@ class LoggingEventHandler:
             provider_id=str(event.provider_id),
             provider_name=event.provider_name,
             error_code=event.error_code,
-            error_message=event.error_message,
         )

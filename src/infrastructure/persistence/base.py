@@ -12,13 +12,13 @@ Following hexagonal architecture:
 
 Usage:
     # For mutable models (can be updated) - RECOMMENDED
-    class UserModel(BaseMutableModel):
+    class User(BaseMutableModel):
         __tablename__ = "users"
         email: Mapped[str]
         # Has: id, created_at, updated_at
 
     # For immutable models (cannot be updated)
-    class AuditLogModel(BaseModel):
+    class AuditLog(BaseModel):
         __tablename__ = "audit_logs"
         action: Mapped[str]
         # Has: id, created_at (no updated_at)
@@ -27,10 +27,10 @@ Architecture:
     BaseModel (id, created_at)
         ↑
         ├── BaseMutableModel (+ updated_at via TimestampMixin)
-        │   ├── UserModel
-        │   └── ProviderModel
+        │   ├── User
+        │   └── Provider
         │
-        └── AuditLogModel (immutable, no updated_at)
+        └── AuditLog (immutable, no updated_at)
 
 Note: While we use PostgreSQL for Dashtam, we keep the base model
 reasonably database-agnostic by using SQLAlchemy's Uuid type which
@@ -56,13 +56,13 @@ class BaseModel(DeclarativeBase):
 
     Example:
         # Mutable model (can be updated)
-        class UserModel(TimestampMixin, BaseModel):
+        class User(TimestampMixin, BaseModel):
             __tablename__ = "users"
             email: Mapped[str]
             # Has: id, created_at, updated_at
 
         # Immutable model (cannot be updated)
-        class AuditLogModel(BaseModel):
+        class AuditLog(BaseModel):
             __tablename__ = "audit_logs"
             action: Mapped[str]
             # Has: id, created_at (no updated_at)
@@ -167,13 +167,13 @@ class BaseMutableModel(TimestampMixin, BaseModel):
         - updated_at: Timestamp when last updated (from TimestampMixin)
 
     Usage:
-        class UserModel(BaseMutableModel):
+        class User(BaseMutableModel):
             __tablename__ = "users"
             email: Mapped[str]
             password_hash: Mapped[str]
             # Has: id, created_at, updated_at
 
-        class ProviderModel(BaseMutableModel):
+        class Provider(BaseMutableModel):
             __tablename__ = "providers"
             name: Mapped[str]
             # Has: id, created_at, updated_at
@@ -181,7 +181,7 @@ class BaseMutableModel(TimestampMixin, BaseModel):
     When NOT to use:
         For immutable models (like audit logs), use BaseModel directly:
 
-        class AuditLogModel(BaseModel):  # No updated_at
+        class AuditLog(BaseModel):  # No updated_at
             __tablename__ = "audit_logs"
             action: Mapped[str]
             # Has: id, created_at (no updated_at)

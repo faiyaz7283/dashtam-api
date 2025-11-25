@@ -26,7 +26,7 @@ from sqlalchemy.exc import IntegrityError
 from src.core.result import Success
 from src.domain.enums import AuditAction
 from src.infrastructure.audit.postgres_adapter import PostgresAuditAdapter
-from src.infrastructure.persistence.models.audit import AuditLogModel
+from src.infrastructure.persistence.models.audit_log import AuditLog
 
 
 @pytest.mark.asyncio
@@ -71,7 +71,7 @@ async def test_audit_persists_when_business_transaction_fails(
 
     # Verify audit log persists in database (separate query)
     async with test_database.get_session() as verify_session:
-        stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+        stmt = select(AuditLog).where(AuditLog.user_id == user_id)
         result = await verify_session.execute(stmt)
         logs = result.scalars().all()
 
@@ -123,7 +123,7 @@ async def test_audit_persists_on_constraint_violation(
 
     # Verify audit persists after business failure
     async with test_database.get_session() as verify_session:
-        stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+        stmt = select(AuditLog).where(AuditLog.user_id == user_id)
         result = await verify_session.execute(stmt)
         logs = result.scalars().all()
 
@@ -190,8 +190,8 @@ async def test_multiple_audits_persist_independently(
 
     # Verify all 3 audits persist despite business failure
     async with test_database.get_session() as verify_session:
-        stmt = select(AuditLogModel).where(
-            AuditLogModel.user_id.in_([user_id_1, user_id_2, user_id_3])
+        stmt = select(AuditLog).where(
+            AuditLog.user_id.in_([user_id_1, user_id_2, user_id_3])
         )
         result = await verify_session.execute(stmt)
         logs = result.scalars().all()
@@ -240,7 +240,7 @@ async def test_audit_session_commits_immediately(
         # Audit committed, but business session still open
         # Verify audit is ALREADY visible in database
         async with test_database.get_session() as verify_session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             result = await verify_session.execute(stmt)
             logs = result.scalars().all()
 
@@ -253,7 +253,7 @@ async def test_audit_session_commits_immediately(
 
     # Verify audit still persists after business rollback
     async with test_database.get_session() as final_verify:
-        stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+        stmt = select(AuditLog).where(AuditLog.user_id == user_id)
         result = await final_verify.execute(stmt)
         logs = result.scalars().all()
         assert len(logs) == 1, "Audit persists after business rollback"

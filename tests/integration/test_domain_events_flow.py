@@ -25,13 +25,13 @@ from sqlalchemy import select
 
 from src.core.container import get_event_bus
 from src.domain.enums.audit_action import AuditAction
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     UserRegistrationSucceeded,
     UserPasswordChangeSucceeded,
     ProviderConnectionSucceeded,
     TokenRefreshFailed,
 )
-from src.infrastructure.persistence.models.audit import AuditLogModel
+from src.infrastructure.persistence.models.audit_log import AuditLog
 
 
 @pytest.mark.integration
@@ -75,7 +75,9 @@ class TestEventFlowEndToEnd:
         event_bus = get_event_bus()
         user_id = uuid4()
         event = UserRegistrationSucceeded(
-            user_id=user_id, email="integration@example.com"
+            user_id=user_id,
+            email="integration@example.com",
+            verification_token="test_token_123",
         )
 
         # Act - Pass session to avoid "Event loop is closed" error
@@ -84,7 +86,7 @@ class TestEventFlowEndToEnd:
 
         # Assert - Audit record created in database
         async with test_database.get_session() as session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             result = await session.execute(stmt)
             logs = result.scalars().all()
 
@@ -111,7 +113,7 @@ class TestEventFlowEndToEnd:
 
         # Assert - Audit record created
         async with test_database.get_session() as session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             result = await session.execute(stmt)
             logs = result.scalars().all()
 
@@ -141,7 +143,7 @@ class TestEventFlowEndToEnd:
 
         # Assert - Audit record created
         async with test_database.get_session() as session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             result = await session.execute(stmt)
             logs = result.scalars().all()
 
@@ -165,7 +167,6 @@ class TestEventFlowEndToEnd:
             provider_id=provider_id,
             provider_name="schwab",
             error_code="invalid_grant",
-            error_message="Refresh token expired",
         )
 
         # Act - Pass session to avoid "Event loop is closed" error
@@ -174,7 +175,7 @@ class TestEventFlowEndToEnd:
 
         # Assert - Audit record created
         async with test_database.get_session() as session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             result = await session.execute(stmt)
             logs = result.scalars().all()
 
@@ -200,7 +201,11 @@ class TestMultipleEventsSequence:
         # Act - Publish 3 different events (pass session to each)
         async with test_database.get_session() as session:
             await event_bus.publish(
-                UserRegistrationSucceeded(user_id=user_id, email="test1@example.com"),
+                UserRegistrationSucceeded(
+                    user_id=user_id,
+                    email="test1@example.com",
+                    verification_token="test_token_1",
+                ),
                 session=session,
             )
             await event_bus.publish(
@@ -218,9 +223,9 @@ class TestMultipleEventsSequence:
         # Assert - 3 separate audit records
         async with test_database.get_session() as session:
             stmt = (
-                select(AuditLogModel)
-                .where(AuditLogModel.user_id == user_id)
-                .order_by(AuditLogModel.created_at)
+                select(AuditLog)
+                .where(AuditLog.user_id == user_id)
+                .order_by(AuditLog.created_at)
             )
             result = await session.execute(stmt)
             logs = result.scalars().all()
@@ -242,26 +247,38 @@ class TestMultipleEventsSequence:
         # Act - Publish same event 3 times with different data (pass session)
         async with test_database.get_session() as session:
             await event_bus.publish(
-                UserRegistrationSucceeded(user_id=user_id, email="user1@example.com"),
+                UserRegistrationSucceeded(
+                    user_id=user_id,
+                    email="user1@example.com",
+                    verification_token="test_token_user1",
+                ),
                 session=session,
             )
 
             user_id_2 = uuid4()
             await event_bus.publish(
-                UserRegistrationSucceeded(user_id=user_id_2, email="user2@example.com"),
+                UserRegistrationSucceeded(
+                    user_id=user_id_2,
+                    email="user2@example.com",
+                    verification_token="test_token_user2",
+                ),
                 session=session,
             )
 
             user_id_3 = uuid4()
             await event_bus.publish(
-                UserRegistrationSucceeded(user_id=user_id_3, email="user3@example.com"),
+                UserRegistrationSucceeded(
+                    user_id=user_id_3,
+                    email="user3@example.com",
+                    verification_token="test_token_user3",
+                ),
                 session=session,
             )
 
         # Assert - 3 audit records (one per event)
         async with test_database.get_session() as session:
-            stmt = select(AuditLogModel).where(
-                AuditLogModel.action == AuditAction.USER_REGISTERED
+            stmt = select(AuditLog).where(
+                AuditLog.action == AuditAction.USER_REGISTERED
             )
             result = await session.execute(stmt)
             logs = result.scalars().all()
@@ -289,7 +306,9 @@ class TestHandlerExecutionOrder:
         event_bus = get_event_bus()
         user_id = uuid4()
         event = UserRegistrationSucceeded(
-            user_id=user_id, email="concurrent@example.com"
+            user_id=user_id,
+            email="concurrent@example.com",
+            verification_token="test_token_concurrent",
         )
 
         # Act - Pass session to avoid "Event loop is closed" error
@@ -299,7 +318,7 @@ class TestHandlerExecutionOrder:
         # Assert - All handlers completed (audit, logging, email)
         # Audit handler side effect: Database record exists
         async with test_database.get_session() as session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             result = await session.execute(stmt)
             log = result.scalars().first()
 
@@ -329,7 +348,11 @@ class TestFailOpenBehaviorWithRealInfrastructure:
         # Arrange
         event_bus = get_event_bus()
         user_id = uuid4()
-        event = UserRegistrationSucceeded(user_id=user_id, email="failopen@example.com")
+        event = UserRegistrationSucceeded(
+            user_id=user_id,
+            email="failopen@example.com",
+            verification_token="test_token_failopen",
+        )
 
         # Act - Should not raise exception even if handler fails
         # (Event bus catches exceptions with asyncio.gather(return_exceptions=True))
@@ -367,7 +390,7 @@ class TestEventDataIntegrity:
 
         # Assert - All event fields preserved in audit
         async with test_database.get_session() as session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             result = await session.execute(stmt)
             log = result.scalars().first()
 
@@ -395,7 +418,7 @@ class TestEventDataIntegrity:
 
         # Assert - Audit record created without issues
         async with test_database.get_session() as session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             result = await session.execute(stmt)
             log = result.scalars().first()
 

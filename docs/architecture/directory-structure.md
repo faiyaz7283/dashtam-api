@@ -106,8 +106,31 @@ src/domain/
 ├── value_objects/     # Value objects (immutable, no identity)
 ├── enums/             # Domain enums (audit actions, provider types, etc.)
 ├── errors/            # Domain-specific errors (audit, secrets, etc.)
-├── protocols/         # Protocols (repository interfaces, service interfaces)
-└── events/            # Domain events (things that happened)
+├── protocols/         # ALL protocols consolidated here (repositories, services, etc.)
+├── events/            # Domain events (things that happened)
+├── types.py           # Annotated types (Email, Password, etc.)
+└── validators.py      # Centralized validation functions
+```
+
+**Protocol Consolidation** (CRITICAL):
+
+All protocols are in `domain/protocols/` - NO separate `domain/repositories/` directory:
+
+```text
+src/domain/protocols/
+├── __init__.py                            # Exports all protocols
+├── user_repository.py                     # User persistence protocol
+├── email_verification_token_repository.py # Email token persistence
+├── refresh_token_repository.py            # Refresh token persistence
+├── password_reset_token_repository.py     # Password reset token persistence
+├── cache_protocol.py                      # Cache operations (Redis)
+├── password_hashing_protocol.py           # Password hashing (bcrypt)
+├── token_generation_protocol.py           # JWT/token generation
+├── event_bus_protocol.py                  # Domain event publishing
+├── audit_protocol.py                      # Audit trail recording
+├── logger_protocol.py                     # Structured logging
+├── secrets_protocol.py                    # Secrets management
+└── email_protocol.py                      # Email sending
 ```
 
 **Dependencies**: `src/core/` only (Result types, errors)
@@ -129,7 +152,8 @@ src/domain/
 - `errors/audit_error.py` - AuditError (audit system failures)
 - `errors/secrets_error.py` - SecretsError (secrets retrieval failures)
 - `protocols/user_repository.py` - UserRepository protocol (port)
-- `events/user_registered.py` - UserRegistered domain event
+- `protocols/cache_protocol.py` - CacheProtocol (port)
+- `events/auth_events.py` - Authentication domain events (12 events)
 
 ---
 
@@ -153,7 +177,7 @@ src/application/
     └── handlers/      # Domain event handler implementations
 ```
 
-**Dependencies**: `src/domain/`, `src/core/`
+**Dependencies**: `src/domain/` ONLY (protocols, entities, events, errors), `src/core/`
 
 **Rules**:
 
@@ -162,6 +186,7 @@ src/application/
 - Event handlers react to domain events (side effects)
 - No business logic (orchestrate domain entities)
 - One handler per command/query
+- **CRITICAL**: Application layer imports ONLY from `domain/` and `core/` - NEVER from `infrastructure/`
 
 **Examples**:
 
@@ -337,12 +362,11 @@ sequenceDiagram
 
 **Class Names**: `CapWords` (also known as PascalCase)
 
-- `UserRepository`, `PostgresUserRepository`, `RegisterUser`
+- `UserRepository`, `RegisterUser`, `RedisAdapter`
 
 **File Names**: `lowercase_with_underscores` matching the class
 
 - `user_repository.py` → `UserRepository` class
-- `postgres_user_repository.py` → `PostgresUserRepository` class
 - `register_user.py` → `RegisterUser` class
 - `redis_adapter.py` → `RedisAdapter` class
 - `env_adapter.py` → `EnvAdapter` class
@@ -368,8 +392,8 @@ src/application/commands/register_user.py         → class RegisterUser
 src/application/commands/handlers/register_user_handler.py → class RegisterUserHandler
 
 # Infrastructure
-src/infrastructure/persistence/postgres_user_repository.py → class PostgresUserRepository
-src/infrastructure/cache/redis_adapter.py                  → class RedisAdapter
+src/infrastructure/persistence/repositories/user_repository.py → class UserRepository
+src/infrastructure/cache/redis_adapter.py                       → class RedisAdapter
 src/infrastructure/secrets/env_adapter.py                  → class EnvAdapter
 src/infrastructure/secrets/aws_adapter.py                  → class AWSAdapter
 ```
@@ -795,4 +819,9 @@ class AuditError(DomainError):  # Inherits base fields
 
 ---
 
-**Created**: 2025-11-08 | **Last Updated**: 2025-11-16
+**Related Documentation**:
+
+- [Import Guidelines](../guides/import-guidelines.md)
+- [Dependency Injection Architecture](dependency-injection-architecture.md)
+
+**Created**: 2025-11-08 | **Last Updated**: 2025-11-25

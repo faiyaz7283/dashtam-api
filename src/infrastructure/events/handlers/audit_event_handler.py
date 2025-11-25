@@ -43,16 +43,20 @@ Reference:
 from typing import Any
 
 from src.domain.enums.audit_action import AuditAction
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
+    # Provider Connection Events
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
-    TokenRefreshAttempted,
-    TokenRefreshFailed,
-    TokenRefreshSucceeded,
+    # Provider Token Refresh Events (OAuth)
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
+    # User Password Change Events
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
+    # User Registration Events
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
@@ -161,7 +165,7 @@ class AuditEventHandler:
         """Record user registration attempt audit (ATTEMPT).
 
         Args:
-            event: UserRegistrationAttempted event with email and IP.
+            event: UserRegistrationAttempted event with email.
 
         Audit Record:
             - action: USER_REGISTRATION_ATTEMPTED
@@ -174,7 +178,6 @@ class AuditEventHandler:
             user_id=None,  # User not created yet
             resource_type="user",
             resource_id=None,
-            ip_address=event.ip_address,
             context={
                 "event_id": str(event.event_id),
                 "email": event.email,
@@ -224,19 +227,17 @@ class AuditEventHandler:
             - action: USER_REGISTRATION_FAILED
             - user_id: None (user not created)
             - resource_type: "user"
-            - context: {email, reason (error_code)}
+            - context: {email, reason}
         """
         await self._create_audit_record(
             action=AuditAction.USER_REGISTRATION_FAILED,
             user_id=None,  # User not created
             resource_type="user",
             resource_id=None,
-            ip_address=event.ip_address,
             context={
                 "event_id": str(event.event_id),
                 "email": event.email,
-                "reason": event.error_code,
-                "error_message": event.error_message,
+                "reason": event.reason,
             },
         )
 
@@ -258,17 +259,15 @@ class AuditEventHandler:
             - user_id: UUID of user attempting change
             - resource_type: "user"
             - resource_id: user_id
-            - context: {initiated_by}
+            - context: {event_id}
         """
         await self._create_audit_record(
             action=AuditAction.USER_PASSWORD_CHANGE_ATTEMPTED,
             user_id=event.user_id,
             resource_type="user",
             resource_id=event.user_id,  # UUID, not string
-            ip_address=event.ip_address,
             context={
                 "event_id": str(event.event_id),
-                "initiated_by": event.initiated_by,
             },
         )
 
@@ -316,19 +315,16 @@ class AuditEventHandler:
             - user_id: UUID of user whose password change failed
             - resource_type: "user"
             - resource_id: user_id
-            - context: {reason (error_code), initiated_by}
+            - context: {reason}
         """
         await self._create_audit_record(
             action=AuditAction.USER_PASSWORD_CHANGE_FAILED,
             user_id=event.user_id,
             resource_type="user",
             resource_id=event.user_id,  # UUID, not string
-            ip_address=event.ip_address,
             context={
                 "event_id": str(event.event_id),
-                "reason": event.error_code,
-                "error_message": event.error_message,
-                "initiated_by": event.initiated_by,
+                "reason": event.reason,
             },
         )
 
@@ -356,7 +352,6 @@ class AuditEventHandler:
             user_id=event.user_id,
             resource_type="provider",
             resource_id=None,  # Provider not created yet
-            ip_address=event.ip_address,
             context={
                 "event_id": str(event.event_id),
                 "provider_name": event.provider_name,
@@ -405,7 +400,7 @@ class AuditEventHandler:
             - action: PROVIDER_CONNECTION_FAILED
             - user_id: UUID of user whose connection failed
             - resource_type: "provider"
-            - context: {provider_name, reason (error_code), error_code}
+            - context: {provider_name, reason}
         """
         await self._create_audit_record(
             action=AuditAction.PROVIDER_CONNECTION_FAILED,
@@ -415,24 +410,22 @@ class AuditEventHandler:
             context={
                 "event_id": str(event.event_id),
                 "provider_name": event.provider_name,
-                "reason": event.error_code,
-                "error_code": event.error_code,
-                "error_message": event.error_message,
+                "reason": event.reason,
             },
         )
 
     # =========================================================================
-    # Token Refresh Event Handlers
+    # Provider Token Refresh Event Handlers (OAuth)
     # =========================================================================
 
-    async def handle_token_refresh_attempted(
+    async def handle_provider_token_refresh_attempted(
         self,
-        event: TokenRefreshAttempted,
+        event: ProviderTokenRefreshAttempted,
     ) -> None:
-        """Record token refresh attempt audit (ATTEMPT).
+        """Record provider token refresh attempt audit (ATTEMPT).
 
         Args:
-            event: TokenRefreshAttempted event with provider details.
+            event: ProviderTokenRefreshAttempted event with provider details.
 
         Audit Record:
             - action: PROVIDER_TOKEN_REFRESH_ATTEMPTED
@@ -453,14 +446,14 @@ class AuditEventHandler:
             },
         )
 
-    async def handle_token_refresh_succeeded(
+    async def handle_provider_token_refresh_succeeded(
         self,
-        event: TokenRefreshSucceeded,
+        event: ProviderTokenRefreshSucceeded,
     ) -> None:
-        """Record successful token refresh audit (SUCCESS).
+        """Record successful provider token refresh audit (SUCCESS).
 
         Args:
-            event: TokenRefreshSucceeded event with provider details.
+            event: ProviderTokenRefreshSucceeded event with provider details.
 
         Audit Record:
             - action: PROVIDER_TOKEN_REFRESHED
@@ -481,21 +474,21 @@ class AuditEventHandler:
             },
         )
 
-    async def handle_token_refresh_failed(
+    async def handle_provider_token_refresh_failed(
         self,
-        event: TokenRefreshFailed,
+        event: ProviderTokenRefreshFailed,
     ) -> None:
-        """Record failed token refresh audit (FAILURE).
+        """Record failed provider token refresh audit (FAILURE).
 
         Args:
-            event: TokenRefreshFailed event with error details.
+            event: ProviderTokenRefreshFailed event with error details.
 
         Audit Record:
             - action: PROVIDER_TOKEN_REFRESH_FAILED
             - user_id: UUID of user whose token refresh failed
             - resource_type: "token"
             - resource_id: provider_id
-            - context: {provider_name, error_code, error_message}
+            - context: {provider_name, error_code}
         """
         await self._create_audit_record(
             action=AuditAction.PROVIDER_TOKEN_REFRESH_FAILED,
@@ -506,6 +499,5 @@ class AuditEventHandler:
                 "event_id": str(event.event_id),
                 "provider_name": event.provider_name,
                 "error_code": event.error_code,
-                "error_message": event.error_message,
             },
         )

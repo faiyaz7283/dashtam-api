@@ -25,7 +25,7 @@ from sqlalchemy import select, update, delete
 from src.core.result import Success
 from src.domain.enums import AuditAction
 from src.infrastructure.audit.postgres_adapter import PostgresAuditAdapter
-from src.infrastructure.persistence.models.audit import AuditLogModel
+from src.infrastructure.persistence.models.audit_log import AuditLog
 
 
 @pytest.mark.integration
@@ -55,7 +55,7 @@ class TestPostgresAuditAdapterRecord:
 
         # Assert: Verify in database (separate session)
         async with test_database.get_session() as verify_session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             db_result = await verify_session.execute(stmt)
             logs = db_result.scalars().all()
 
@@ -89,7 +89,7 @@ class TestPostgresAuditAdapterRecord:
 
         # Assert: Verify None is stored (not empty dict)
         async with test_database.get_session() as verify_session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             db_result = await verify_session.execute(stmt)
             log = db_result.scalars().first()
 
@@ -132,7 +132,7 @@ class TestPostgresAuditAdapterRecord:
 
         # Assert: Verify complex JSON stored correctly
         async with test_database.get_session() as verify_session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             db_result = await verify_session.execute(stmt)
             log = db_result.scalars().first()
 
@@ -165,7 +165,7 @@ class TestPostgresAuditAdapterRecord:
 
         # Assert: All 3 logs in database
         async with test_database.get_session() as verify_session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             db_result = await verify_session.execute(stmt)
             logs = db_result.scalars().all()
 
@@ -197,7 +197,7 @@ class TestPostgresAuditAdapterImmutability:
 
         # Get the log ID
         async with test_database.get_session() as verify_session:
-            stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+            stmt = select(AuditLog).where(AuditLog.user_id == user_id)
             db_result = await verify_session.execute(stmt)
             log = db_result.scalars().first()
             log_id = log.id
@@ -205,8 +205,8 @@ class TestPostgresAuditAdapterImmutability:
         # Act: Attempt to UPDATE (should be blocked by RULE)
         async with test_database.get_session() as update_session:
             update_stmt = (
-                update(AuditLogModel)
-                .where(AuditLogModel.id == log_id)
+                update(AuditLog)
+                .where(AuditLog.id == log_id)
                 .values(ip_address="192.168.1.2")  # Try to change IP
             )
             result = await update_session.execute(update_stmt)
@@ -229,7 +229,7 @@ class TestPostgresAuditAdapterImmutability:
             )
 
         # Get the log ID
-        stmt = select(AuditLogModel).where(AuditLogModel.user_id == user_id)
+        stmt = select(AuditLog).where(AuditLog.user_id == user_id)
         async with test_database.get_session() as verify_session:
             db_result = await verify_session.execute(stmt)
             log = db_result.scalars().first()
@@ -237,7 +237,7 @@ class TestPostgresAuditAdapterImmutability:
 
         # Act: Attempt to DELETE (should be blocked by RULE)
         async with test_database.get_session() as delete_session:
-            delete_stmt = delete(AuditLogModel).where(AuditLogModel.id == log_id)
+            delete_stmt = delete(AuditLog).where(AuditLog.id == log_id)
             result = await delete_session.execute(delete_stmt)
 
             # Assert: DELETE was blocked (0 rows deleted)

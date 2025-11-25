@@ -164,7 +164,7 @@ class UserRepository(Protocol):
     async def save(self, user: User) -> None: ...
 
 # Infrastructure implements ADAPTER
-class PostgresUserRepository:
+class UserRepository:
     async def find_by_email(self, email: str) -> User | None:
         # Database logic here
         ...
@@ -478,7 +478,7 @@ Only use when operation is genuinely an action, not a resource state change.
   - [ ] Create RegisterUserHandler
   - [ ] Wire up event handlers
 - [ ] Phase 4: Infrastructure Layer
-  - [ ] Implement PostgresUserRepository
+  - [ ] Implement UserRepository
   - [ ] Implement email service adapter
 - [ ] Phase 5: Presentation Layer
   - [ ] Create UserCreate schema
@@ -687,7 +687,7 @@ def test_user_validates_email():
 # tests/integration/infrastructure/test_user_repository.py
 async def test_user_repository_saves_and_retrieves(db_session):
     # Real PostgreSQL database
-    repo = PostgresUserRepository(db_session)
+    repo = UserRepository(db_session)
     user = User(email="test@example.com", ...)
     
     await repo.save(user)
@@ -1569,11 +1569,11 @@ classDiagram
         +find_by_email(email) User
         +save(user) None
     }
-    class PostgresUserRepository {
+    class UserRepositoryImpl {
         +find_by_email(email) User
         +save(user) None
     }
-    UserRepository <|.. PostgresUserRepository
+    UserRepository <|.. UserRepositoryImpl
 
 ```
 ````

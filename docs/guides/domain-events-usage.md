@@ -160,7 +160,7 @@ from src.domain.events.account_events import (
     AccountUpdated,
     AccountClosed,
 )
-from src.domain.events.authentication_events import (
+from src.domain.events.auth_events import (
     UserRegistrationSucceeded,
     # ... other events
 )
@@ -202,7 +202,7 @@ await event_bus.publish(UserRegistrationSucceeded(...))
 
 ```python
 from src.core.container import get_event_bus
-from src.domain.events.authentication_events import UserRegistrationSucceeded
+from src.domain.events.auth_events import UserRegistrationSucceeded
 
 class RegisterUserHandler:
     """Command handler for user registration."""
@@ -433,7 +433,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.application.commands.register_user import RegisterUserHandler
-from src.domain.events.authentication_events import UserRegistrationSucceeded
+from src.domain.events.auth_events import UserRegistrationSucceeded
 
 @pytest.mark.unit
 @pytest.mark.asyncio

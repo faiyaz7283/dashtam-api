@@ -7,6 +7,67 @@ combining application-scoped singletons (custom container) with request-scoped
 dependencies (FastAPI Depends). This ensures consistent, maintainable, and
 testable dependency management across all architectural layers.
 
+**Related**: See [Import Guidelines](../guides/import-guidelines.md) for cross-layer import rules.
+
+---
+
+## 0. Protocol-First Pattern
+
+**Core Principle**: All cross-layer dependencies use **protocols** (interfaces), not concrete implementations.
+
+### Why Protocol-First?
+
+1. **Clean Architecture**: Application layer depends only on domain protocols, not infrastructure
+2. **Testability**: Easy to mock protocols in unit tests without real database/cache
+3. **Flexibility**: Swap implementations (PostgreSQL → MongoDB) without changing handlers
+4. **No Circular Imports**: Protocols in domain, implementations in infrastructure
+
+### Protocol Locations
+
+All protocols live in `src/domain/protocols/`:
+
+- `user_repository.py` - User persistence
+- `email_verification_token_repository.py` - Email token persistence
+- `refresh_token_repository.py` - Refresh token persistence
+- `password_reset_token_repository.py` - Password reset token persistence
+- `cache_protocol.py` - Cache operations (Redis)
+- `password_hashing_protocol.py` - Password hashing (bcrypt)
+- `token_generation_protocol.py` - JWT/token generation
+- `event_bus_protocol.py` - Domain event publishing
+- `audit_protocol.py` - Audit trail recording
+- `logger_protocol.py` - Structured logging
+- `secrets_protocol.py` - Secrets management
+
+### Container Pattern
+
+Container returns protocol types, creates concrete implementations:
+
+```python
+# ✅ CORRECT: Return protocol type, create implementation
+def get_user_repository(session: AsyncSession) -> UserRepository:
+    from src.infrastructure.persistence.repositories.user_repository import (
+        UserRepository as UserRepositoryImpl
+    )
+    return UserRepositoryImpl(session=session)
+```
+
+### Handler Pattern
+
+Handlers depend on protocols via constructor injection:
+
+```python
+class RegisterUserHandler:
+    def __init__(
+        self,
+        user_repo: UserRepository,           # Protocol from domain
+        password_hasher: PasswordHashingProtocol,  # Protocol from domain
+        event_bus: EventBusProtocol,         # Protocol from domain
+    ):
+        self._user_repo = user_repo
+        self._password_hasher = password_hasher
+        self._event_bus = event_bus
+```
+
 ---
 
 ## 1. Two-Tier Dependency Injection
@@ -48,6 +109,11 @@ testable dependency management across all architectural layers.
 - Current user (authentication per request)
 - Request context (headers, query params)
 - Command/Query handlers (stateless per request)
+
+**Note on Auth Dependencies**: Authentication dependencies (`get_current_user`, `require_role`)
+use FastAPI-idiomatic `HTTPException` for auth failures instead of Result types. This is acceptable
+because auth is an HTTP concern, not business logic. See `docs/architecture/error-handling-architecture.md`
+"FastAPI-Idiomatic Exceptions" section.
 
 **Benefits**:
 

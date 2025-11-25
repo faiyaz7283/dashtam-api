@@ -35,7 +35,7 @@ Reference:
     - docs/architecture/domain-events-architecture.md (Lines 1363-1421)
 """
 
-from src.domain.events.authentication_events import UserPasswordChangeSucceeded
+from src.domain.events.auth_events import UserPasswordChangeSucceeded
 from src.domain.protocols.logger_protocol import LoggerProtocol
 
 

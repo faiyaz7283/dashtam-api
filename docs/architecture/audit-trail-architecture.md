@@ -151,9 +151,9 @@ Three **separate** concerns with different purposes:
 ```text
 Domain Entity → Repository Protocol → Repository Implementation
      ↓                  ↓                      ↓
-   User      →   UserRepository    →  PostgresUserRepository
-   Provider  →   ProviderRepository →  PostgresProviderRepository
-   Account   →   AccountRepository  →  PostgresAccountRepository
+   User      →   UserRepository    →  UserRepository
+   Provider  →   ProviderRepository →  ProviderRepository
+   Account   →   AccountRepository  →  AccountRepository
 ```
 
 **Purpose**: Manage domain entities (User, Provider, Account, Transaction)
@@ -209,7 +209,7 @@ Domain Protocol → Infrastructure Adapter
 src/domain/entities/audit_log.py
 
 # Repository protocol (redundant with AuditProtocol!)
-src/domain/repositories/audit_log_repository.py
+src/domain/protocols/audit_log_repository.py
 
 # Repository implementation (redundant layer!)
 src/infrastructure/persistence/repositories/audit_log_repository.py
@@ -383,6 +383,7 @@ Time: T2  - Record outcome
 **Pattern**: Always record ATTEMPTED first, then FAILED or SUCCESS
 
 **Registration**:
+
 ```text
 USER_REGISTRATION_ATTEMPTED  → User hit endpoint
     ↓
@@ -392,6 +393,7 @@ USER_REGISTERED              → User exists in database
 ```
 
 **Login**:
+
 ```text
 USER_LOGIN_ATTEMPTED         → User submitted credentials
     ↓
@@ -401,6 +403,7 @@ USER_LOGIN_SUCCESS           → Session created
 ```
 
 **Provider Connection**:
+
 ```text
 PROVIDER_CONNECTION_ATTEMPTED → OAuth flow started
     ↓
@@ -410,6 +413,7 @@ PROVIDER_CONNECTED            → Tokens saved, provider active
 ```
 
 **Data Modification**:
+
 ```text
 DATA_MODIFICATION_ATTEMPTED  → Update operation started
     ↓
@@ -423,6 +427,7 @@ DATA_MODIFIED                → Changes committed to database
 **Pattern**: Record access attempt, then DENIED or GRANTED
 
 **Data Access**:
+
 ```text
 DATA_ACCESS_ATTEMPTED        → User requested data
     ↓
@@ -432,6 +437,7 @@ DATA_VIEWED                  → Permission check passed, data returned
 ```
 
 **Admin Action**:
+
 ```text
 ADMIN_ACTION_ATTEMPTED       → Admin initiated action
     ↓
@@ -445,6 +451,7 @@ ADMIN_ACTION_COMPLETED       → Action executed successfully
 **Pattern**: Record after action completes (these are reactions, not initiations)
 
 **Session Events**:
+
 ```text
 USER_LOGOUT                  → User logged out (always succeeds)
 SESSION_EXPIRED              → Session timed out (always succeeds)
@@ -452,6 +459,7 @@ TOKEN_ROTATED                → Token refresh completed (always succeeds)
 ```
 
 **System Events**:
+
 ```text
 BACKUP_COMPLETED             → Backup job finished
 DATA_SYNC_COMPLETED          → Sync job finished
@@ -469,6 +477,7 @@ CACHE_CLEARED                → Cache operation completed
 > "Invalid logical access attempts must be logged."
 
 **Wrong approach** (no ATTEMPT record):
+
 ```text
 Audit log: [empty]
 Database: no user record
@@ -476,6 +485,7 @@ Result: ❌ No evidence of failed attempt (compliance violation)
 ```
 
 **Correct approach**:
+
 ```text
 Audit log:
   - USER_REGISTRATION_ATTEMPTED (IP: 123.45.67.89)
@@ -490,6 +500,7 @@ Result: ✅ Clear evidence of attempt and failure (compliance met)
 > threats from sources outside its system boundaries."
 
 **Audit trail must show**:
+
 - Who attempted access (USER_LOGIN_ATTEMPTED)
 - Whether access was granted (USER_LOGIN_SUCCESS) or denied (USER_LOGIN_FAILED)
 - Why access was denied (context: {"reason": "invalid_password"})

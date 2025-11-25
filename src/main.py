@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 
 from src.core.config import settings
 from src.presentation.api.middleware.trace_middleware import TraceMiddleware
+from src.presentation.api.v1 import v1_router
 from src.presentation.api.v1.errors import register_exception_handlers
 
 # Initialize FastAPI application with settings
@@ -33,6 +34,9 @@ app.add_middleware(TraceMiddleware)
 
 # Register global exception handlers (RFC 7807 error responses)
 register_exception_handlers(app)
+
+# Include API v1 routers (RESTful resource-based endpoints)
+app.include_router(v1_router)
 
 
 @app.get("/")

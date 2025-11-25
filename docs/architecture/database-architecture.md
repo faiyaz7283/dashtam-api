@@ -223,7 +223,7 @@ from src.core.result import Result, Success, Failure
 from src.core.errors import NotFoundError
 from src.infrastructure.errors import DatabaseError
 
-class PostgresUserRepository:
+class UserRepository:
     async def find_by_id(self, user_id: UUID) -> Result[User, NotFoundError]:
         try:
             model = await self.session.get(UserModel, user_id)
@@ -371,7 +371,7 @@ src/infrastructure/persistence/
 │   └── user.py          # Example: UserModel (NOT domain entity)
 └── repositories/        # Concrete repository implementations
     ├── __init__.py
-    └── user_repository.py  # Example: PostgresUserRepository
+    └── user_repository.py  # Example: UserRepository
 ```
 
 ### Application Layer (Orchestration)

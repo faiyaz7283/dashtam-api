@@ -1,6 +1,6 @@
 """Audit log database model for compliance tracking.
 
-This module defines the AuditLogModel for storing immutable audit trail records.
+This module defines the AuditLog model for storing immutable audit trail records.
 Used for PCI-DSS, SOC 2, and GDPR compliance.
 
 CRITICAL: This table is IMMUTABLE. Records cannot be modified or deleted.
@@ -16,7 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.infrastructure.persistence.base import BaseModel
 
 
-class AuditLogModel(BaseModel):
+class AuditLog(BaseModel):
     """Audit log model - IMMUTABLE (cannot be updated or deleted).
 
     This model stores all audit trail records for compliance and security
@@ -148,7 +148,7 @@ class AuditLogModel(BaseModel):
             str: Human-readable representation of audit log.
         """
         return (
-            f"<AuditLogModel("
+            f"<AuditLog("
             f"id={self.id}, "
             f"action={self.action!r}, "
             f"user_id={self.user_id}, "

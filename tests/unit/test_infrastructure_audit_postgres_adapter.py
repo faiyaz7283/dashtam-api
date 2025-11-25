@@ -26,7 +26,7 @@ from src.core.result import Failure, Success
 from src.domain.enums import AuditAction
 from src.domain.errors import AuditError
 from src.infrastructure.audit.postgres_adapter import PostgresAuditAdapter
-from src.infrastructure.persistence.models.audit import AuditLogModel
+from src.infrastructure.persistence.models.audit_log import AuditLog
 
 
 @pytest.mark.unit
@@ -61,10 +61,10 @@ class TestPostgresAuditAdapterRecord:
         assert isinstance(result, Success)
         assert result.value is None  # record() returns None on success
 
-        # Verify session.add was called with AuditLogModel
+        # Verify session.add was called with AuditLog
         mock_session.add.assert_called_once()
         audit_log = mock_session.add.call_args[0][0]
-        assert isinstance(audit_log, AuditLogModel)
+        assert isinstance(audit_log, AuditLog)
         assert audit_log.action == AuditAction.USER_LOGIN_SUCCESS.value
         assert audit_log.user_id == user_id
         assert audit_log.resource_type == "session"

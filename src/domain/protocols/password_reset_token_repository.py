@@ -12,13 +12,28 @@ Reference:
     - docs/architecture/authentication-architecture.md (Password Reset Flow)
 """
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from src.infrastructure.persistence.models.password_reset_token import (
-    PasswordResetToken,
-)
+
+@dataclass
+class PasswordResetTokenData:
+    """Data transfer object for password reset token information.
+
+    Used by protocol methods to return token data without
+    exposing infrastructure model classes to domain/application layers.
+    """
+
+    id: UUID
+    user_id: UUID
+    token: str
+    expires_at: datetime
+    used_at: datetime | None
+    ip_address: str | None
+    user_agent: str | None
+    created_at: datetime
 
 
 class PasswordResetTokenRepository(Protocol):
@@ -45,7 +60,7 @@ class PasswordResetTokenRepository(Protocol):
         expires_at: datetime,
         ip_address: str | None = None,
         user_agent: str | None = None,
-    ) -> PasswordResetToken:
+    ) -> PasswordResetTokenData:
         """Create new password reset token.
 
         Args:
@@ -60,7 +75,7 @@ class PasswordResetTokenRepository(Protocol):
         """
         ...
 
-    async def find_by_token(self, token: str) -> PasswordResetToken | None:
+    async def find_by_token(self, token: str) -> PasswordResetTokenData | None:
         """Find password reset token by token string.
 
         Only returns tokens that have NOT been used (used_at IS NULL).
@@ -98,7 +113,7 @@ class PasswordResetTokenRepository(Protocol):
         """
         ...
 
-    async def find_by_user_id(self, user_id: UUID) -> list[PasswordResetToken]:
+    async def find_by_user_id(self, user_id: UUID) -> list[PasswordResetTokenData]:
         """Find all password reset tokens for a user.
 
         Useful for debugging, admin views, or detecting abuse patterns.

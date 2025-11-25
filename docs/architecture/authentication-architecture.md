@@ -80,11 +80,11 @@ Refresh Token (Opaque):
 ┌─────────────┐
 │   Client    │
 └──────┬──────┘
-       │ POST /auth/login
+       │ POST /api/v1/sessions
        │ email + password
        ↓
 ┌─────────────────────────────┐
-│     Auth Handler            │
+│     Session Handler         │
 │  (Note: Login uses simple   │
 │   success pattern for MVP)  │
 │  1. Validate credentials    │
@@ -95,7 +95,7 @@ Refresh Token (Opaque):
 │  6. Create session (F1.3)   │
 │  7. Emit event (success)    │
 └──────┬────────────────────────┘
-       │ 200 OK
+       │ 201 Created
        │ { access_token, refresh_token }
        ↓
 ┌─────────────┐
@@ -103,7 +103,7 @@ Refresh Token (Opaque):
 │  (uses JWT) │   Uses JWT for API requests
 └──────┬──────┘   
        │ After 15min, JWT expires
-       │ POST /auth/refresh
+       │ POST /api/v1/tokens
        │ { refresh_token }
        ↓
 ┌─────────────────────────────┐
@@ -118,7 +118,7 @@ Refresh Token (Opaque):
 │  6. Rotate refresh token    │
 │  7. Emit event (success)    │
 └──────┬────────────────────────┘
-       │ 200 OK
+       │ 201 Created
        │ { access_token, refresh_token }
        ↓
 ┌─────────────┐
@@ -1079,11 +1079,25 @@ async def handle(self, cmd: RefreshToken) -> Result[RefreshResponse, Error]:
 
 ---
 
-## 12. API Endpoints
+## 12. API Endpoints (RESTful)
 
-### Authentication Endpoints
+**Design Principle**: 100% resource-based URLs. No verbs in URLs - HTTP methods indicate actions.
 
-- **POST /api/v1/auth/register**
+### Resource Summary
+
+| Resource | Method | Endpoint | Description | Status |
+|----------|--------|----------|-------------|--------|
+| User | POST | `/api/v1/users` | Create user (register) | 201 |
+| Session | POST | `/api/v1/sessions` | Create session (login) | 201 |
+| Session | DELETE | `/api/v1/sessions/current` | Delete session (logout) | 204 |
+| Token | POST | `/api/v1/tokens` | Create tokens (refresh) | 201 |
+| EmailVerification | POST | `/api/v1/email-verifications` | Create verification | 201 |
+| PasswordResetToken | POST | `/api/v1/password-reset-tokens` | Create reset token | 201 |
+| PasswordReset | POST | `/api/v1/password-resets` | Execute reset | 201 |
+
+### User Resource
+
+- **POST /api/v1/users** - Create user (registration)
 
 Request:
 
@@ -1100,30 +1114,33 @@ Response (201 Created):
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "email": "user@example.com",
-  "is_verified": false,
-  "created_at": "2025-11-19T18:30:00Z"
+  "message": "Registration successful. Please check your email to verify your account."
 }
 ```
 
-- **POST /api/v1/auth/verify-email**
+### Email Verification Resource
+
+- **POST /api/v1/email-verifications** - Create verification (verify email)
 
 Request:
 
 ```json
 {
-  "token": "abc123def456..."
+  "token": "abc123def456..." 
 }
 ```
 
-Response (200 OK):
+Response (201 Created):
 
 ```json
 {
-  "message": "Email verified successfully"
+  "message": "Email verified successfully. You can now create a session."
 }
 ```
 
-- **POST /api/v1/auth/login**
+### Session Resource
+
+- **POST /api/v1/sessions** - Create session (login)
 
 Request:
 
@@ -1134,7 +1151,7 @@ Request:
 }
 ```
 
-Response (200 OK):
+Response (201 Created):
 
 ```json
 {
@@ -1145,28 +1162,7 @@ Response (200 OK):
 }
 ```
 
-- **POST /api/v1/auth/refresh**
-
-Request:
-
-```json
-{
-  "refresh_token": "dGhpcyBpcyBhIHJhbmRvbSB0b2tlbg=="
-}
-```
-
-Response (200 OK):
-
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "bmV3IHJhbmRvbSB0b2tlbiBhZnRlciByb3RhdGlvbg==",
-  "token_type": "bearer",
-  "expires_in": 900
-}
-```
-
-- **POST /api/v1/auth/logout**
+- **DELETE /api/v1/sessions/current** - Delete current session (logout)
 
 Request (with Authorization header):
 
@@ -1182,15 +1178,34 @@ Body:
 }
 ```
 
-Response (200 OK):
+Response: **204 No Content** (empty body)
+
+### Token Resource
+
+- **POST /api/v1/tokens** - Create new tokens (refresh)
+
+Request:
 
 ```json
 {
-  "message": "Logged out successfully"
+  "refresh_token": "dGhpcyBpcyBhIHJhbmRvbSB0b2tlbg=="
 }
 ```
 
-- **POST /api/v1/auth/password-reset/request**
+Response (201 Created):
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "bmV3IHJhbmRvbSB0b2tlbiBhZnRlciByb3RhdGlvbg==",
+  "token_type": "bearer",
+  "expires_in": 900
+}
+```
+
+### Password Reset Resources
+
+- **POST /api/v1/password-reset-tokens** - Create reset token (request)
 
 Request:
 
@@ -1200,15 +1215,15 @@ Request:
 }
 ```
 
-Response (200 OK - always, no user enumeration):
+Response (201 Created - always, prevents user enumeration):
 
 ```json
 {
-  "message": "If email exists, reset link sent"
+  "message": "If an account with that email exists, a password reset link has been sent."
 }
 ```
 
-- **POST /api/v1/auth/password-reset/confirm**
+- **POST /api/v1/password-resets** - Create password reset (execute)
 
 Request:
 
@@ -1219,11 +1234,11 @@ Request:
 }
 ```
 
-Response (200 OK):
+Response (201 Created):
 
 ```json
 {
-  "message": "Password reset successfully"
+  "message": "Password has been reset successfully. Please create a new session."
 }
 ```
 

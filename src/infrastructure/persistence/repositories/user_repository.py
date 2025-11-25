@@ -4,6 +4,7 @@ Adapter for hexagonal architecture.
 Maps between domain User entities and database UserModel.
 """
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -146,6 +147,37 @@ class UserRepository:
         stmt = select(UserModel.id).where(UserModel.email.ilike(email))
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none() is not None
+
+    async def update_password(self, user_id: UUID, password_hash: str) -> None:
+        """Update user's password hash.
+
+        Args:
+            user_id: User's unique identifier.
+            password_hash: New bcrypt password hash.
+        """
+        stmt = select(UserModel).where(UserModel.id == user_id)
+        result = await self.session.execute(stmt)
+        user_model = result.scalar_one()
+
+        user_model.password_hash = password_hash
+        user_model.updated_at = datetime.now(UTC)
+
+        await self.session.commit()
+
+    async def verify_email(self, user_id: UUID) -> None:
+        """Mark user's email as verified.
+
+        Args:
+            user_id: User's unique identifier.
+        """
+        stmt = select(UserModel).where(UserModel.id == user_id)
+        result = await self.session.execute(stmt)
+        user_model = result.scalar_one()
+
+        user_model.is_verified = True
+        user_model.updated_at = datetime.now(UTC)
+
+        await self.session.commit()
 
     def _to_domain(self, user_model: UserModel) -> User:
         """Convert database model to domain entity.

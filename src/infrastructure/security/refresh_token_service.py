@@ -20,7 +20,6 @@ Reference:
 
 import secrets
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
 
 import bcrypt
 

@@ -3,6 +3,7 @@
 Handles CRUD operations for refresh tokens with automatic expiration checks.
 """
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -186,3 +187,32 @@ class RefreshTokenRepository:
             token.revoked_reason = reason
 
         await self.session.commit()
+
+    async def find_by_token_verification(
+        self,
+        token: str,
+        verify_fn: Callable[[str, str], bool],
+    ) -> RefreshTokenData | None:
+        """Find refresh token by verifying against stored hashes.
+
+        Since bcrypt hashes are non-deterministic, we iterate through active
+        tokens and verify each one against the provided token.
+
+        Args:
+            token: Plain refresh token from user request.
+            verify_fn: Function to verify token against hash (token, hash) -> bool.
+
+        Returns:
+            RefreshTokenData if found and verified, None otherwise.
+        """
+        # Get all active (non-revoked) tokens
+        stmt = select(RefreshToken).where(RefreshToken.revoked_at.is_(None))
+        result = await self.session.execute(stmt)
+        tokens = result.scalars().all()
+
+        # Verify each token against the provided token
+        for token_model in tokens:
+            if verify_fn(token, token_model.token_hash):
+                return _to_data(token_model)
+
+        return None

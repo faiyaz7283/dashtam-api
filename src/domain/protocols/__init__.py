@@ -18,7 +18,11 @@ Usage:
 # Service protocols
 from src.domain.protocols.audit_protocol import AuditProtocol
 from src.domain.protocols.cache_protocol import CacheEntry, CacheProtocol
+from src.domain.protocols.email_service_protocol import EmailServiceProtocol
 from src.domain.protocols.password_hashing_protocol import PasswordHashingProtocol
+from src.domain.protocols.password_reset_token_service_protocol import (
+    PasswordResetTokenServiceProtocol,
+)
 from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
 
 # Repository protocols
@@ -27,11 +31,15 @@ from src.domain.protocols.email_verification_token_repository import (
     EmailVerificationTokenRepository,
 )
 from src.domain.protocols.password_reset_token_repository import (
+    PasswordResetTokenData,
     PasswordResetTokenRepository,
 )
 from src.domain.protocols.refresh_token_repository import (
     RefreshTokenData,
     RefreshTokenRepository,
+)
+from src.domain.protocols.refresh_token_service_protocol import (
+    RefreshTokenServiceProtocol,
 )
 from src.domain.protocols.user_repository import UserRepository
 
@@ -40,13 +48,17 @@ __all__ = [
     "AuditProtocol",
     "CacheEntry",
     "CacheProtocol",
+    "EmailServiceProtocol",
     "PasswordHashingProtocol",
+    "PasswordResetTokenServiceProtocol",
     "TokenGenerationProtocol",
     # Repository protocols
     "EmailVerificationTokenData",
     "EmailVerificationTokenRepository",
+    "PasswordResetTokenData",
     "PasswordResetTokenRepository",
     "RefreshTokenData",
     "RefreshTokenRepository",
+    "RefreshTokenServiceProtocol",
     "UserRepository",
 ]

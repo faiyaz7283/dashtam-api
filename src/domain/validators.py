@@ -66,7 +66,7 @@ def validate_strong_password(v: str) -> str:
         raise ValueError("Password must contain lowercase letter")
     if not any(c.isdigit() for c in v):
         raise ValueError("Password must contain digit")
-    if not any(c in "!@#$%^&*(),.?\":{}|<>" for c in v):
+    if not any(c in '!@#$%^&*(),.?":{}|<>' for c in v):
         raise ValueError("Password must contain special character")
     return v
 

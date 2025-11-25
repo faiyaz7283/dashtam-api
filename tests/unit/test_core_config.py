@@ -21,7 +21,7 @@ from src.core.config import Environment, Settings, get_settings
 @pytest.fixture
 def base_test_env():
     """Base environment dict for config tests.
-    
+
     Provides minimal required settings. Tests can override specific values
     by merging with this dict.
     """

@@ -5,7 +5,7 @@ All custom types use Pydantic's Annotated with Field constraints and AfterValida
 
 Usage:
     from src.domain.types import Email, Password, VerificationToken
-    
+
     class RegisterUser:
         email: Email  # Validation included!
         password: Password  # Validation included!

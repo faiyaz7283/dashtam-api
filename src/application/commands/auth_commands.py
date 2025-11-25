@@ -87,7 +87,7 @@ class VerifyEmail:
 
 
 @dataclass(frozen=True, kw_only=True)
-class RefreshToken:
+class RefreshAccessToken:
     """Refresh access token using refresh token.
 
     Validates refresh token, generates new access token + new refresh token.
@@ -97,7 +97,7 @@ class RefreshToken:
         refresh_token: Opaque refresh token (validated urlsafe base64 format).
 
     Example:
-        >>> command = RefreshToken(refresh_token="dGhpcyBpcyB...")
+        >>> command = RefreshAccessToken(refresh_token="dGhpcyBpcyB...")
         >>> result = await handler.handle(command)
     """
 
@@ -173,4 +173,4 @@ class LogoutUser:
     """
 
     user_id: UUID
-    refresh_token: RefreshToken
+    refresh_token: RefreshToken  # Type alias from domain.types

@@ -167,9 +167,7 @@ class JWTService:
             # python-jose automatically validates:
             # - Signature (using secret_key)
             # - Expiration (exp claim)
-            payload = jwt.decode(
-                token, self._secret_key, algorithms=[self._algorithm]
-            )
+            payload = jwt.decode(token, self._secret_key, algorithms=[self._algorithm])
 
             return Success(payload)
 

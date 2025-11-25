@@ -3,15 +3,32 @@
 Handles CRUD operations for password reset tokens with expiration checks.
 """
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.domain.protocols.password_reset_token_repository import (
+    PasswordResetTokenData,
+)
 from src.infrastructure.persistence.models.password_reset_token import (
     PasswordResetToken,
 )
+
+
+def _to_data(model: PasswordResetToken) -> PasswordResetTokenData:
+    """Convert database model to domain DTO."""
+    return PasswordResetTokenData(
+        id=model.id,
+        user_id=model.user_id,
+        token=model.token,
+        expires_at=model.expires_at,
+        used_at=model.used_at,
+        ip_address=model.ip_address,
+        user_agent=model.user_agent,
+        created_at=model.created_at,
+    )
 
 
 class PasswordResetTokenRepository:
@@ -47,7 +64,7 @@ class PasswordResetTokenRepository:
         expires_at: datetime,
         ip_address: str | None = None,
         user_agent: str | None = None,
-    ) -> PasswordResetToken:
+    ) -> PasswordResetTokenData:
         """Create new password reset token in database.
 
         Args:
@@ -58,7 +75,7 @@ class PasswordResetTokenRepository:
             user_agent: User agent of requester (for audit).
 
         Returns:
-            Created PasswordResetToken model.
+            Created PasswordResetTokenData.
         """
         token_model = PasswordResetToken(
             user_id=user_id,
@@ -70,16 +87,16 @@ class PasswordResetTokenRepository:
         self.session.add(token_model)
         await self.session.commit()
         await self.session.refresh(token_model)
-        return token_model
+        return _to_data(token_model)
 
-    async def find_by_token(self, token: str) -> PasswordResetToken | None:
+    async def find_by_token(self, token: str) -> PasswordResetTokenData | None:
         """Find password reset token by token string.
 
         Args:
             token: The reset token string.
 
         Returns:
-            PasswordResetToken if found and not used, None otherwise.
+            PasswordResetTokenData if found and not used, None otherwise.
         """
         stmt = (
             select(PasswordResetToken)
@@ -87,7 +104,8 @@ class PasswordResetTokenRepository:
             .where(PasswordResetToken.used_at.is_(None))
         )
         result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        model = result.scalar_one_or_none()
+        return _to_data(model) if model else None
 
     async def mark_as_used(self, token_id: UUID) -> None:
         """Mark password reset token as used.
@@ -123,7 +141,7 @@ class PasswordResetTokenRepository:
         await self.session.commit()
         return count
 
-    async def find_by_user_id(self, user_id: UUID) -> list[PasswordResetToken]:
+    async def find_by_user_id(self, user_id: UUID) -> list[PasswordResetTokenData]:
         """Find all password reset tokens for a user.
 
         Useful for debugging, admin views, or detecting abuse.
@@ -132,7 +150,7 @@ class PasswordResetTokenRepository:
             user_id: User's unique identifier.
 
         Returns:
-            List of PasswordResetToken models.
+            List of PasswordResetTokenData.
         """
         stmt = (
             select(PasswordResetToken)
@@ -140,7 +158,7 @@ class PasswordResetTokenRepository:
             .order_by(PasswordResetToken.created_at.desc())
         )
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        return [_to_data(model) for model in result.scalars().all()]
 
     async def count_recent_requests(
         self,

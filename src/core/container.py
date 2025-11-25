@@ -574,9 +574,9 @@ def get_event_bus() -> "EventBusProtocol":  # noqa: F821
         ProviderConnectionAttempted,
         ProviderConnectionSucceeded,
         ProviderConnectionFailed,
-        TokenRefreshAttempted,
-        TokenRefreshSucceeded,
-        TokenRefreshFailed,
+        ProviderTokenRefreshAttempted,
+        ProviderTokenRefreshSucceeded,
+        ProviderTokenRefreshFailed,
     )
 
     event_bus_type = os.getenv("EVENT_BUS_TYPE", "in-memory")
@@ -702,23 +702,31 @@ def get_event_bus() -> "EventBusProtocol":  # noqa: F821
         ProviderConnectionFailed, audit_handler.handle_provider_connection_failed
     )
 
-    # Token Refresh Events (3 events × 2 handlers = 6 subscriptions)
+    # Provider Token Refresh Events (3 events × 2 handlers = 6 subscriptions)
     event_bus.subscribe(
-        TokenRefreshAttempted, logging_handler.handle_token_refresh_attempted
+        ProviderTokenRefreshAttempted,
+        logging_handler.handle_provider_token_refresh_attempted,
     )
     event_bus.subscribe(
-        TokenRefreshAttempted, audit_handler.handle_token_refresh_attempted
+        ProviderTokenRefreshAttempted,
+        audit_handler.handle_provider_token_refresh_attempted,
+    )
+
+    event_bus.subscribe(
+        ProviderTokenRefreshSucceeded,
+        logging_handler.handle_provider_token_refresh_succeeded,
+    )
+    event_bus.subscribe(
+        ProviderTokenRefreshSucceeded,
+        audit_handler.handle_provider_token_refresh_succeeded,
     )
 
     event_bus.subscribe(
-        TokenRefreshSucceeded, logging_handler.handle_token_refresh_succeeded
+        ProviderTokenRefreshFailed, logging_handler.handle_provider_token_refresh_failed
     )
     event_bus.subscribe(
-        TokenRefreshSucceeded, audit_handler.handle_token_refresh_succeeded
+        ProviderTokenRefreshFailed, audit_handler.handle_provider_token_refresh_failed
     )
-
-    event_bus.subscribe(TokenRefreshFailed, logging_handler.handle_token_refresh_failed)
-    event_bus.subscribe(TokenRefreshFailed, audit_handler.handle_token_refresh_failed)
 
     return event_bus
 
@@ -822,5 +830,188 @@ async def get_register_user_handler(
         user_repo=user_repo,
         verification_token_repo=verification_token_repo,
         password_service=password_service,
+        event_bus=event_bus,
+    )
+
+
+async def get_login_user_handler(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get LoginUser command handler (request-scoped).
+
+    Returns:
+        LoginUserHandler instance.
+    """
+    from src.application.commands.handlers.login_user_handler import LoginUserHandler
+    from src.infrastructure.persistence.repositories import (
+        UserRepository,
+        RefreshTokenRepository,
+    )
+    from src.infrastructure.security.refresh_token_service import RefreshTokenService
+
+    user_repo = UserRepository(session=session)
+    refresh_token_repo = RefreshTokenRepository(session=session)
+    password_service = get_password_service()
+    token_service = get_token_service()
+    refresh_token_service = RefreshTokenService()
+    event_bus = get_event_bus()
+
+    return LoginUserHandler(
+        user_repo=user_repo,
+        refresh_token_repo=refresh_token_repo,
+        password_service=password_service,
+        token_service=token_service,
+        refresh_token_service=refresh_token_service,
+        event_bus=event_bus,
+    )
+
+
+async def get_logout_user_handler(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get LogoutUser command handler (request-scoped).
+
+    Returns:
+        LogoutUserHandler instance.
+    """
+    from src.application.commands.handlers.logout_user_handler import LogoutUserHandler
+    from src.infrastructure.persistence.repositories import RefreshTokenRepository
+    from src.infrastructure.security.refresh_token_service import RefreshTokenService
+
+    refresh_token_repo = RefreshTokenRepository(session=session)
+    refresh_token_service = RefreshTokenService()
+    event_bus = get_event_bus()
+
+    return LogoutUserHandler(
+        refresh_token_repo=refresh_token_repo,
+        refresh_token_service=refresh_token_service,
+        event_bus=event_bus,
+    )
+
+
+async def get_refresh_token_handler(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get RefreshAccessToken command handler (request-scoped).
+
+    Returns:
+        RefreshAccessTokenHandler instance.
+    """
+    from src.application.commands.handlers.refresh_access_token_handler import (
+        RefreshAccessTokenHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        UserRepository,
+        RefreshTokenRepository,
+    )
+    from src.infrastructure.security.refresh_token_service import RefreshTokenService
+
+    user_repo = UserRepository(session=session)
+    refresh_token_repo = RefreshTokenRepository(session=session)
+    token_service = get_token_service()
+    refresh_token_service = RefreshTokenService()
+    event_bus = get_event_bus()
+
+    return RefreshAccessTokenHandler(
+        user_repo=user_repo,
+        refresh_token_repo=refresh_token_repo,
+        token_service=token_service,
+        refresh_token_service=refresh_token_service,
+        event_bus=event_bus,
+    )
+
+
+async def get_verify_email_handler(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get VerifyEmail command handler (request-scoped).
+
+    Returns:
+        VerifyEmailHandler instance.
+    """
+    from src.application.commands.handlers.verify_email_handler import (
+        VerifyEmailHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        UserRepository,
+        EmailVerificationTokenRepository,
+    )
+
+    user_repo = UserRepository(session=session)
+    verification_token_repo = EmailVerificationTokenRepository(session=session)
+    event_bus = get_event_bus()
+
+    return VerifyEmailHandler(
+        user_repo=user_repo,
+        verification_token_repo=verification_token_repo,
+        event_bus=event_bus,
+    )
+
+
+async def get_request_password_reset_handler(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get RequestPasswordReset command handler (request-scoped).
+
+    Returns:
+        RequestPasswordResetHandler instance.
+    """
+    from src.application.commands.handlers.request_password_reset_handler import (
+        RequestPasswordResetHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        UserRepository,
+        PasswordResetTokenRepository,
+    )
+    from src.infrastructure.security.password_reset_token_service import (
+        PasswordResetTokenService,
+    )
+
+    user_repo = UserRepository(session=session)
+    password_reset_repo = PasswordResetTokenRepository(session=session)
+    token_service = PasswordResetTokenService()
+    email_service = get_email_service()
+    event_bus = get_event_bus()
+
+    return RequestPasswordResetHandler(
+        user_repo=user_repo,
+        password_reset_repo=password_reset_repo,
+        token_service=token_service,
+        email_service=email_service,
+        event_bus=event_bus,
+        verification_url_base=settings.app_url,
+    )
+
+
+async def get_confirm_password_reset_handler(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get ConfirmPasswordReset command handler (request-scoped).
+
+    Returns:
+        ConfirmPasswordResetHandler instance.
+    """
+    from src.application.commands.handlers.confirm_password_reset_handler import (
+        ConfirmPasswordResetHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        UserRepository,
+        PasswordResetTokenRepository,
+        RefreshTokenRepository,
+    )
+
+    user_repo = UserRepository(session=session)
+    password_reset_repo = PasswordResetTokenRepository(session=session)
+    refresh_token_repo = RefreshTokenRepository(session=session)
+    password_service = get_password_service()
+    email_service = get_email_service()
+    event_bus = get_event_bus()
+
+    return ConfirmPasswordResetHandler(
+        user_repo=user_repo,
+        password_reset_repo=password_reset_repo,
+        refresh_token_repo=refresh_token_repo,
+        password_service=password_service,
+        email_service=email_service,
         event_bus=event_bus,
     )

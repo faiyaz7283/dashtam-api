@@ -113,7 +113,7 @@ class VerifyEmailHandler:
                 token=token_preview,
                 reason=VerifyEmailError.TOKEN_NOT_FOUND,
             )
-            return Failure(VerifyEmailError.TOKEN_NOT_FOUND)
+            return Failure(error=VerifyEmailError.TOKEN_NOT_FOUND)
 
         # Step 4: Check token not expired
         if token_data.expires_at < datetime.now(UTC):
@@ -121,7 +121,7 @@ class VerifyEmailHandler:
                 token=token_preview,
                 reason=VerifyEmailError.TOKEN_EXPIRED,
             )
-            return Failure(VerifyEmailError.TOKEN_EXPIRED)
+            return Failure(error=VerifyEmailError.TOKEN_EXPIRED)
 
         # Step 5: Check token not already used (should not happen due to find_by_token filter)
         if token_data.used_at is not None:
@@ -129,7 +129,7 @@ class VerifyEmailHandler:
                 token=token_preview,
                 reason=VerifyEmailError.TOKEN_ALREADY_USED,
             )
-            return Failure(VerifyEmailError.TOKEN_ALREADY_USED)
+            return Failure(error=VerifyEmailError.TOKEN_ALREADY_USED)
 
         # Find user to update
         user = await self._user_repo.find_by_id(token_data.user_id)
@@ -138,7 +138,7 @@ class VerifyEmailHandler:
                 token=token_preview,
                 reason=VerifyEmailError.USER_NOT_FOUND,
             )
-            return Failure(VerifyEmailError.USER_NOT_FOUND)
+            return Failure(error=VerifyEmailError.USER_NOT_FOUND)
 
         # Step 6: Update user.is_verified = True
         user.is_verified = True
@@ -159,7 +159,7 @@ class VerifyEmailHandler:
         )
 
         # Step 9: Return Success
-        return Success(user.id)
+        return Success(value=user.id)
 
     async def _publish_failed_event(
         self,

@@ -277,13 +277,233 @@ class ProviderConnectionFailed(DomainEvent):
 
 
 # ═══════════════════════════════════════════════════════════════
-# Token Refresh (Workflow 6) - Placeholder for Phase 2
+# Auth Token Refresh (Workflow 6) - JWT/Refresh Token Rotation
 # ═══════════════════════════════════════════════════════════════
 
 
 @dataclass(frozen=True, kw_only=True)
-class TokenRefreshAttempted(DomainEvent):
-    """Token refresh attempt initiated."""
+class AuthTokenRefreshAttempted(DomainEvent):
+    """Auth token refresh attempt initiated.
+
+    Triggers:
+    - LoggingEventHandler: Log attempt
+    - AuditEventHandler: Record AUTH_TOKEN_REFRESH_ATTEMPTED
+
+    Attributes:
+        user_id: User requesting refresh (if known from token).
+    """
+
+    user_id: UUID | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class AuthTokenRefreshSucceeded(DomainEvent):
+    """Auth token refresh completed successfully (rotation done).
+
+    Triggers:
+    - LoggingEventHandler: Log success
+    - AuditEventHandler: Record AUTH_TOKEN_REFRESHED
+
+    Attributes:
+        user_id: User whose tokens were refreshed.
+        session_id: Session associated with token.
+    """
+
+    user_id: UUID
+    session_id: UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class AuthTokenRefreshFailed(DomainEvent):
+    """Auth token refresh failed.
+
+    Triggers:
+    - LoggingEventHandler: Log failure
+    - AuditEventHandler: Record AUTH_TOKEN_REFRESH_FAILED
+
+    Attributes:
+        user_id: User requesting refresh (if known).
+        reason: Failure reason (e.g., "token_expired", "token_revoked",
+            "token_invalid", "user_not_found").
+    """
+
+    user_id: UUID | None = None
+    reason: str
+
+
+# ═══════════════════════════════════════════════════════════════
+# User Logout (Workflow 7)
+# ═══════════════════════════════════════════════════════════════
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserLogoutAttempted(DomainEvent):
+    """User logout attempt initiated.
+
+    Triggers:
+    - LoggingEventHandler: Log attempt
+    - AuditEventHandler: Record USER_LOGOUT_ATTEMPTED
+
+    Attributes:
+        user_id: User attempting logout.
+    """
+
+    user_id: UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserLogoutSucceeded(DomainEvent):
+    """User logout completed successfully.
+
+    Triggers:
+    - LoggingEventHandler: Log success
+    - AuditEventHandler: Record USER_LOGGED_OUT
+
+    Attributes:
+        user_id: User who logged out.
+        session_id: Session that was terminated.
+    """
+
+    user_id: UUID
+    session_id: UUID | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserLogoutFailed(DomainEvent):
+    """User logout failed.
+
+    Triggers:
+    - LoggingEventHandler: Log failure
+    - AuditEventHandler: Record USER_LOGOUT_FAILED
+
+    Attributes:
+        user_id: User attempting logout.
+        reason: Failure reason.
+    """
+
+    user_id: UUID
+    reason: str
+
+
+# ═══════════════════════════════════════════════════════════════
+# Password Reset (Workflow 8)
+# ═══════════════════════════════════════════════════════════════
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordResetRequestAttempted(DomainEvent):
+    """Password reset request attempt initiated.
+
+    Triggers:
+    - LoggingEventHandler: Log attempt
+    - AuditEventHandler: Record PASSWORD_RESET_REQUEST_ATTEMPTED
+
+    Attributes:
+        email: Email address for reset request.
+    """
+
+    email: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordResetRequestSucceeded(DomainEvent):
+    """Password reset request completed (email sent).
+
+    Triggers:
+    - LoggingEventHandler: Log success
+    - AuditEventHandler: Record PASSWORD_RESET_REQUESTED
+    - EmailEventHandler: Send password reset email
+
+    Attributes:
+        user_id: User requesting reset.
+        email: User's email address.
+        reset_token: Password reset token (for email handler).
+    """
+
+    user_id: UUID
+    email: str
+    reset_token: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordResetRequestFailed(DomainEvent):
+    """Password reset request failed.
+
+    Note: This event is only logged internally. API always returns success
+    to prevent user enumeration.
+
+    Triggers:
+    - LoggingEventHandler: Log failure
+    - AuditEventHandler: Record PASSWORD_RESET_REQUEST_FAILED (internal only)
+
+    Attributes:
+        email: Email address attempted.
+        reason: Failure reason (e.g., "user_not_found").
+    """
+
+    email: str
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordResetConfirmAttempted(DomainEvent):
+    """Password reset confirmation attempt initiated.
+
+    Triggers:
+    - LoggingEventHandler: Log attempt
+    - AuditEventHandler: Record PASSWORD_RESET_CONFIRM_ATTEMPTED
+
+    Attributes:
+        token: Password reset token (truncated for security).
+    """
+
+    token: str  # First 8 chars only for logging
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordResetConfirmSucceeded(DomainEvent):
+    """Password reset confirmation completed (password updated).
+
+    Triggers:
+    - LoggingEventHandler: Log success
+    - AuditEventHandler: Record PASSWORD_RESET_COMPLETED
+    - EmailEventHandler: Send password changed notification
+    - SessionEventHandler: Revoke all sessions (force re-login)
+
+    Attributes:
+        user_id: User whose password was reset.
+        email: User's email address.
+    """
+
+    user_id: UUID
+    email: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordResetConfirmFailed(DomainEvent):
+    """Password reset confirmation failed.
+
+    Triggers:
+    - LoggingEventHandler: Log failure
+    - AuditEventHandler: Record PASSWORD_RESET_CONFIRM_FAILED
+
+    Attributes:
+        token: Password reset token (truncated for security).
+        reason: Failure reason (e.g., "token_expired", "token_not_found").
+    """
+
+    token: str  # First 8 chars only for logging
+    reason: str
+
+
+# ═══════════════════════════════════════════════════════════════
+# Provider Token Refresh (Workflow 9) - Placeholder for Phase 2
+# ═══════════════════════════════════════════════════════════════
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProviderTokenRefreshAttempted(DomainEvent):
+    """Provider token refresh attempt initiated."""
 
     user_id: UUID
     provider_id: UUID
@@ -291,8 +511,8 @@ class TokenRefreshAttempted(DomainEvent):
 
 
 @dataclass(frozen=True, kw_only=True)
-class TokenRefreshSucceeded(DomainEvent):
-    """Token refresh completed successfully."""
+class ProviderTokenRefreshSucceeded(DomainEvent):
+    """Provider token refresh completed successfully."""
 
     user_id: UUID
     provider_id: UUID
@@ -300,8 +520,8 @@ class TokenRefreshSucceeded(DomainEvent):
 
 
 @dataclass(frozen=True, kw_only=True)
-class TokenRefreshFailed(DomainEvent):
-    """Token refresh failed (user action required - reconnect provider)."""
+class ProviderTokenRefreshFailed(DomainEvent):
+    """Provider token refresh failed (user action required - reconnect provider)."""
 
     user_id: UUID
     provider_id: UUID

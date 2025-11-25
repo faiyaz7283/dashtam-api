@@ -14,7 +14,7 @@ Reference:
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Callable, Protocol
 from uuid import UUID
 
 
@@ -146,5 +146,28 @@ class RefreshTokenRepository(Protocol):
             user_id: User's unique identifier.
             reason: Reason for revocation (for audit trail).
                 Common values: "password_changed", "user_requested", "admin_action"
+        """
+        ...
+
+    async def find_by_token_verification(
+        self,
+        token: str,
+        verify_fn: Callable[[str, str], bool],
+    ) -> RefreshTokenData | None:
+        """Find refresh token by verifying against stored hashes.
+
+        Since bcrypt hashes are non-deterministic, we cannot look up by hash.
+        This method iterates through active tokens and verifies each one.
+
+        Args:
+            token: Plain refresh token from user request.
+            verify_fn: Function to verify token against hash (token, hash) -> bool.
+
+        Returns:
+            RefreshTokenData if found and verified, None otherwise.
+
+        Note:
+            For MVP this iterates all active tokens. For production scale,
+            consider adding a deterministic lookup identifier.
         """
         ...

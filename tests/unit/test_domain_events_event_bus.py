@@ -49,7 +49,9 @@ class TestInMemoryEventBusBasicFlow:
             handler_called = True
             received_event = event
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, test_handler)
@@ -78,7 +80,9 @@ class TestInMemoryEventBusBasicFlow:
         async def handler_3(event: DomainEvent) -> None:
             call_order.append("handler_3")
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, handler_1)
@@ -99,7 +103,9 @@ class TestInMemoryEventBusBasicFlow:
         mock_logger = MagicMock()
         event_bus = InMemoryEventBus(logger=mock_logger)
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act & Assert - Should not raise exception
         await event_bus.publish(event)
@@ -130,7 +136,9 @@ class TestInMemoryEventBusFailOpen:
         async def successful_handler_2(event: DomainEvent) -> None:
             successful_handlers.append("handler_2")
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, successful_handler_1)
@@ -168,7 +176,9 @@ class TestInMemoryEventBusFailOpen:
         async def successful_handler(event: DomainEvent) -> None:
             pass  # Success
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, failing_handler_1)
@@ -206,7 +216,9 @@ class TestInMemoryEventBusEventData:
             received_data["occurred_at"] = event.occurred_at
 
         user_id = uuid4()
-        event = UserRegistrationSucceeded(user_id=user_id, email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=user_id, email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, capture_handler)
@@ -279,7 +291,9 @@ class TestInMemoryEventBusAsyncSupport:
             await asyncio.sleep(0.01)  # Fast operation
             execution_order.append("fast_end")
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, slow_handler)
@@ -314,7 +328,9 @@ class TestInMemoryEventBusAsyncSupport:
             await asyncio.sleep(0.01)
             async_operation_completed = True
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, async_handler)
@@ -338,7 +354,9 @@ class TestInMemoryEventBusLogging:
         async def dummy_handler(event: DomainEvent) -> None:
             pass
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, dummy_handler)
@@ -362,7 +380,9 @@ class TestInMemoryEventBusLogging:
         async def failing_handler(event: DomainEvent) -> None:
             raise ValueError("Test error message")
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, failing_handler)
@@ -397,7 +417,9 @@ class TestInMemoryEventBusEdgeCases:
             nonlocal call_count
             call_count += 1
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act - Subscribe same handler twice
         event_bus.subscribe(UserRegistrationSucceeded, handler)
@@ -419,9 +441,15 @@ class TestInMemoryEventBusEdgeCases:
         async def handler(event: UserRegistrationSucceeded) -> None:
             received_emails.append(event.email)
 
-        event1 = UserRegistrationSucceeded(user_id=uuid4(), email="user1@example.com", verification_token="token1")
-        event2 = UserRegistrationSucceeded(user_id=uuid4(), email="user2@example.com", verification_token="token2")
-        event3 = UserRegistrationSucceeded(user_id=uuid4(), email="user3@example.com", verification_token="token3")
+        event1 = UserRegistrationSucceeded(
+            user_id=uuid4(), email="user1@example.com", verification_token="token1"
+        )
+        event2 = UserRegistrationSucceeded(
+            user_id=uuid4(), email="user2@example.com", verification_token="token2"
+        )
+        event3 = UserRegistrationSucceeded(
+            user_id=uuid4(), email="user3@example.com", verification_token="token3"
+        )
 
         # Act
         event_bus.subscribe(UserRegistrationSucceeded, handler)
@@ -446,7 +474,9 @@ class TestInMemoryEventBusEdgeCases:
         async def handler_with_return(event: DomainEvent) -> str:
             return "This return value should be ignored"
 
-        event = UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com", verification_token="test_token")
+        event = UserRegistrationSucceeded(
+            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+        )
 
         # Act & Assert - Should not raise exception
         event_bus.subscribe(UserRegistrationSucceeded, handler_with_return)

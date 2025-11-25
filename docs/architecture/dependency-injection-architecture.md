@@ -110,6 +110,11 @@ class RegisterUserHandler:
 - Request context (headers, query params)
 - Command/Query handlers (stateless per request)
 
+**Note on Auth Dependencies**: Authentication dependencies (`get_current_user`, `require_role`)
+use FastAPI-idiomatic `HTTPException` for auth failures instead of Result types. This is acceptable
+because auth is an HTTP concern, not business logic. See `docs/architecture/error-handling-architecture.md`
+"FastAPI-Idiomatic Exceptions" section.
+
 **Benefits**:
 
 - Automatic cleanup (FastAPI calls finally block)

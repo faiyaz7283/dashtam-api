@@ -24,9 +24,9 @@ from src.domain.events.auth_events import (
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
-    TokenRefreshAttempted,
-    TokenRefreshFailed,
-    TokenRefreshSucceeded,
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
@@ -245,17 +245,17 @@ class TestProviderConnectionEvents:
 
 
 @pytest.mark.unit
-class TestTokenRefreshEvents:
-    """Test Token Refresh workflow events (3-state pattern)."""
+class TestProviderTokenRefreshEvents:
+    """Test Provider Token Refresh workflow events (3-state pattern)."""
 
-    def test_token_refresh_attempted_creation(self):
-        """Test TokenRefreshAttempted event with all fields."""
+    def test_provider_token_refresh_attempted_creation(self):
+        """Test ProviderTokenRefreshAttempted event with all fields."""
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
         provider_id = UUID("87654321-4321-8765-4321-876543218765")
 
         # Act
-        event = TokenRefreshAttempted(
+        event = ProviderTokenRefreshAttempted(
             user_id=user_id, provider_id=provider_id, provider_name="schwab"
         )
 
@@ -264,14 +264,14 @@ class TestTokenRefreshEvents:
         assert event.provider_id == provider_id
         assert event.provider_name == "schwab"
 
-    def test_token_refresh_succeeded_creation(self):
-        """Test TokenRefreshSucceeded event with all fields."""
+    def test_provider_token_refresh_succeeded_creation(self):
+        """Test ProviderTokenRefreshSucceeded event with all fields."""
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
         provider_id = UUID("87654321-4321-8765-4321-876543218765")
 
         # Act
-        event = TokenRefreshSucceeded(
+        event = ProviderTokenRefreshSucceeded(
             user_id=user_id, provider_id=provider_id, provider_name="schwab"
         )
 
@@ -280,14 +280,14 @@ class TestTokenRefreshEvents:
         assert event.provider_id == provider_id
         assert event.provider_name == "schwab"
 
-    def test_token_refresh_failed_creation(self):
-        """Test TokenRefreshFailed event with all fields."""
+    def test_provider_token_refresh_failed_creation(self):
+        """Test ProviderTokenRefreshFailed event with all fields."""
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
         provider_id = UUID("87654321-4321-8765-4321-876543218765")
 
         # Act
-        event = TokenRefreshFailed(
+        event = ProviderTokenRefreshFailed(
             user_id=user_id,
             provider_id=provider_id,
             provider_name="schwab",
@@ -320,9 +320,9 @@ class TestEventNamingConvention:
         assert ProviderConnectionSucceeded.__name__ == "ProviderConnectionSucceeded"
         assert ProviderConnectionFailed.__name__ == "ProviderConnectionFailed"
 
-        assert TokenRefreshAttempted.__name__ == "TokenRefreshAttempted"
-        assert TokenRefreshSucceeded.__name__ == "TokenRefreshSucceeded"
-        assert TokenRefreshFailed.__name__ == "TokenRefreshFailed"
+        assert ProviderTokenRefreshAttempted.__name__ == "ProviderTokenRefreshAttempted"
+        assert ProviderTokenRefreshSucceeded.__name__ == "ProviderTokenRefreshSucceeded"
+        assert ProviderTokenRefreshFailed.__name__ == "ProviderTokenRefreshFailed"
 
 
 @pytest.mark.unit

@@ -133,3 +133,40 @@ class UserRepository(Protocol):
             ...     raise ConflictError("Email already exists")
         """
         ...
+
+    async def update_password(self, user_id: UUID, password_hash: str) -> None:
+        """Update user's password hash.
+
+        Atomic operation that only updates the password field.
+        Used for password reset and password change flows.
+
+        Args:
+            user_id: User's unique identifier.
+            password_hash: New bcrypt password hash.
+
+        Raises:
+            NotFoundError: If user doesn't exist.
+            DatabaseError: If database operation fails.
+
+        Example:
+            >>> await repo.update_password(user_id, new_hash)
+        """
+        ...
+
+    async def verify_email(self, user_id: UUID) -> None:
+        """Mark user's email as verified.
+
+        Atomic operation that sets is_verified=True.
+        Used for email verification flow.
+
+        Args:
+            user_id: User's unique identifier.
+
+        Raises:
+            NotFoundError: If user doesn't exist.
+            DatabaseError: If database operation fails.
+
+        Example:
+            >>> await repo.verify_email(user_id)
+        """
+        ...

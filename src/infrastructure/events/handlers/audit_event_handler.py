@@ -44,15 +44,19 @@ from typing import Any
 
 from src.domain.enums.audit_action import AuditAction
 from src.domain.events.auth_events import (
+    # Provider Connection Events
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
-    TokenRefreshAttempted,
-    TokenRefreshFailed,
-    TokenRefreshSucceeded,
+    # Provider Token Refresh Events (OAuth)
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
+    # User Password Change Events
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
+    # User Registration Events
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
@@ -411,17 +415,17 @@ class AuditEventHandler:
         )
 
     # =========================================================================
-    # Token Refresh Event Handlers
+    # Provider Token Refresh Event Handlers (OAuth)
     # =========================================================================
 
-    async def handle_token_refresh_attempted(
+    async def handle_provider_token_refresh_attempted(
         self,
-        event: TokenRefreshAttempted,
+        event: ProviderTokenRefreshAttempted,
     ) -> None:
-        """Record token refresh attempt audit (ATTEMPT).
+        """Record provider token refresh attempt audit (ATTEMPT).
 
         Args:
-            event: TokenRefreshAttempted event with provider details.
+            event: ProviderTokenRefreshAttempted event with provider details.
 
         Audit Record:
             - action: PROVIDER_TOKEN_REFRESH_ATTEMPTED
@@ -442,14 +446,14 @@ class AuditEventHandler:
             },
         )
 
-    async def handle_token_refresh_succeeded(
+    async def handle_provider_token_refresh_succeeded(
         self,
-        event: TokenRefreshSucceeded,
+        event: ProviderTokenRefreshSucceeded,
     ) -> None:
-        """Record successful token refresh audit (SUCCESS).
+        """Record successful provider token refresh audit (SUCCESS).
 
         Args:
-            event: TokenRefreshSucceeded event with provider details.
+            event: ProviderTokenRefreshSucceeded event with provider details.
 
         Audit Record:
             - action: PROVIDER_TOKEN_REFRESHED
@@ -470,14 +474,14 @@ class AuditEventHandler:
             },
         )
 
-    async def handle_token_refresh_failed(
+    async def handle_provider_token_refresh_failed(
         self,
-        event: TokenRefreshFailed,
+        event: ProviderTokenRefreshFailed,
     ) -> None:
-        """Record failed token refresh audit (FAILURE).
+        """Record failed provider token refresh audit (FAILURE).
 
         Args:
-            event: TokenRefreshFailed event with error details.
+            event: ProviderTokenRefreshFailed event with error details.
 
         Audit Record:
             - action: PROVIDER_TOKEN_REFRESH_FAILED

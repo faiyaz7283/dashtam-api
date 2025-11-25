@@ -33,15 +33,42 @@ Reference:
 """
 
 from src.domain.events.auth_events import (
+    # Auth Token Refresh Events (JWT rotation)
+    AuthTokenRefreshAttempted,
+    AuthTokenRefreshFailed,
+    AuthTokenRefreshSucceeded,
+    # Email Verification Events
+    EmailVerificationAttempted,
+    EmailVerificationFailed,
+    EmailVerificationSucceeded,
+    # Password Reset Events
+    PasswordResetConfirmAttempted,
+    PasswordResetConfirmFailed,
+    PasswordResetConfirmSucceeded,
+    PasswordResetRequestAttempted,
+    PasswordResetRequestFailed,
+    PasswordResetRequestSucceeded,
+    # Provider Connection Events
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
-    TokenRefreshAttempted,
-    TokenRefreshFailed,
-    TokenRefreshSucceeded,
+    # Provider Token Refresh Events (OAuth)
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
+    # User Login Events
+    UserLoginAttempted,
+    UserLoginFailed,
+    UserLoginSucceeded,
+    # User Logout Events
+    UserLogoutAttempted,
+    UserLogoutFailed,
+    UserLogoutSucceeded,
+    # User Password Change Events
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
+    # User Registration Events
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
@@ -254,56 +281,298 @@ class LoggingEventHandler:
         )
 
     # =========================================================================
-    # Token Refresh Event Handlers
+    # User Login Event Handlers
     # =========================================================================
 
-    async def handle_token_refresh_attempted(
+    async def handle_user_login_attempted(
         self,
-        event: TokenRefreshAttempted,
+        event: UserLoginAttempted,
     ) -> None:
-        """Log token refresh attempt (INFO level).
-
-        Args:
-            event: TokenRefreshAttempted event with provider details.
-        """
+        """Log user login attempt (INFO level)."""
         self._logger.info(
-            "token_refresh_attempted",
+            "user_login_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            email=event.email,
+        )
+
+    async def handle_user_login_succeeded(
+        self,
+        event: UserLoginSucceeded,
+    ) -> None:
+        """Log successful user login (INFO level)."""
+        self._logger.info(
+            "user_login_succeeded",
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
-            provider_id=str(event.provider_id),
-            provider_name=event.provider_name,
+            email=event.email,
+            session_id=str(event.session_id) if event.session_id else None,
         )
 
-    async def handle_token_refresh_succeeded(
+    async def handle_user_login_failed(
         self,
-        event: TokenRefreshSucceeded,
+        event: UserLoginFailed,
     ) -> None:
-        """Log successful token refresh (INFO level).
-
-        Args:
-            event: TokenRefreshSucceeded event with provider details.
-        """
-        self._logger.info(
-            "token_refresh_succeeded",
-            event_id=str(event.event_id),
-            occurred_at=event.occurred_at.isoformat(),
-            user_id=str(event.user_id),
-            provider_id=str(event.provider_id),
-            provider_name=event.provider_name,
-        )
-
-    async def handle_token_refresh_failed(
-        self,
-        event: TokenRefreshFailed,
-    ) -> None:
-        """Log failed token refresh (WARNING level).
-
-        Args:
-            event: TokenRefreshFailed event with error details.
-        """
+        """Log failed user login (WARNING level)."""
         self._logger.warning(
-            "token_refresh_failed",
+            "user_login_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            email=event.email,
+            reason=event.reason,
+            user_id=str(event.user_id) if event.user_id else None,
+        )
+
+    # =========================================================================
+    # User Logout Event Handlers
+    # =========================================================================
+
+    async def handle_user_logout_attempted(
+        self,
+        event: UserLogoutAttempted,
+    ) -> None:
+        """Log user logout attempt (INFO level)."""
+        self._logger.info(
+            "user_logout_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+        )
+
+    async def handle_user_logout_succeeded(
+        self,
+        event: UserLogoutSucceeded,
+    ) -> None:
+        """Log successful user logout (INFO level)."""
+        self._logger.info(
+            "user_logout_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            session_id=str(event.session_id) if event.session_id else None,
+        )
+
+    async def handle_user_logout_failed(
+        self,
+        event: UserLogoutFailed,
+    ) -> None:
+        """Log failed user logout (WARNING level)."""
+        self._logger.warning(
+            "user_logout_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            reason=event.reason,
+        )
+
+    # =========================================================================
+    # Email Verification Event Handlers
+    # =========================================================================
+
+    async def handle_email_verification_attempted(
+        self,
+        event: EmailVerificationAttempted,
+    ) -> None:
+        """Log email verification attempt (INFO level)."""
+        self._logger.info(
+            "email_verification_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            token=event.token,
+        )
+
+    async def handle_email_verification_succeeded(
+        self,
+        event: EmailVerificationSucceeded,
+    ) -> None:
+        """Log successful email verification (INFO level)."""
+        self._logger.info(
+            "email_verification_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            email=event.email,
+        )
+
+    async def handle_email_verification_failed(
+        self,
+        event: EmailVerificationFailed,
+    ) -> None:
+        """Log failed email verification (WARNING level)."""
+        self._logger.warning(
+            "email_verification_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            token=event.token,
+            reason=event.reason,
+        )
+
+    # =========================================================================
+    # Auth Token Refresh Event Handlers (JWT rotation)
+    # =========================================================================
+
+    async def handle_auth_token_refresh_attempted(
+        self,
+        event: AuthTokenRefreshAttempted,
+    ) -> None:
+        """Log auth token refresh attempt (INFO level)."""
+        self._logger.info(
+            "auth_token_refresh_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id) if event.user_id else None,
+        )
+
+    async def handle_auth_token_refresh_succeeded(
+        self,
+        event: AuthTokenRefreshSucceeded,
+    ) -> None:
+        """Log successful auth token refresh (INFO level)."""
+        self._logger.info(
+            "auth_token_refresh_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            session_id=str(event.session_id),
+        )
+
+    async def handle_auth_token_refresh_failed(
+        self,
+        event: AuthTokenRefreshFailed,
+    ) -> None:
+        """Log failed auth token refresh (WARNING level)."""
+        self._logger.warning(
+            "auth_token_refresh_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id) if event.user_id else None,
+            reason=event.reason,
+        )
+
+    # =========================================================================
+    # Password Reset Request Event Handlers
+    # =========================================================================
+
+    async def handle_password_reset_request_attempted(
+        self,
+        event: PasswordResetRequestAttempted,
+    ) -> None:
+        """Log password reset request attempt (INFO level)."""
+        self._logger.info(
+            "password_reset_request_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            email=event.email,
+        )
+
+    async def handle_password_reset_request_succeeded(
+        self,
+        event: PasswordResetRequestSucceeded,
+    ) -> None:
+        """Log successful password reset request (INFO level)."""
+        self._logger.info(
+            "password_reset_request_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            email=event.email,
+        )
+
+    async def handle_password_reset_request_failed(
+        self,
+        event: PasswordResetRequestFailed,
+    ) -> None:
+        """Log failed password reset request (WARNING level)."""
+        self._logger.warning(
+            "password_reset_request_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            email=event.email,
+            reason=event.reason,
+        )
+
+    # =========================================================================
+    # Password Reset Confirm Event Handlers
+    # =========================================================================
+
+    async def handle_password_reset_confirm_attempted(
+        self,
+        event: PasswordResetConfirmAttempted,
+    ) -> None:
+        """Log password reset confirm attempt (INFO level)."""
+        self._logger.info(
+            "password_reset_confirm_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            token=event.token,
+        )
+
+    async def handle_password_reset_confirm_succeeded(
+        self,
+        event: PasswordResetConfirmSucceeded,
+    ) -> None:
+        """Log successful password reset confirm (INFO level)."""
+        self._logger.info(
+            "password_reset_confirm_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            email=event.email,
+        )
+
+    async def handle_password_reset_confirm_failed(
+        self,
+        event: PasswordResetConfirmFailed,
+    ) -> None:
+        """Log failed password reset confirm (WARNING level)."""
+        self._logger.warning(
+            "password_reset_confirm_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            token=event.token,
+            reason=event.reason,
+        )
+
+    # =========================================================================
+    # Provider Token Refresh Event Handlers (OAuth)
+    # =========================================================================
+
+    async def handle_provider_token_refresh_attempted(
+        self,
+        event: ProviderTokenRefreshAttempted,
+    ) -> None:
+        """Log provider token refresh attempt (INFO level)."""
+        self._logger.info(
+            "provider_token_refresh_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            provider_id=str(event.provider_id),
+            provider_name=event.provider_name,
+        )
+
+    async def handle_provider_token_refresh_succeeded(
+        self,
+        event: ProviderTokenRefreshSucceeded,
+    ) -> None:
+        """Log successful provider token refresh (INFO level)."""
+        self._logger.info(
+            "provider_token_refresh_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            provider_id=str(event.provider_id),
+            provider_name=event.provider_name,
+        )
+
+    async def handle_provider_token_refresh_failed(
+        self,
+        event: ProviderTokenRefreshFailed,
+    ) -> None:
+        """Log failed provider token refresh (WARNING level)."""
+        self._logger.warning(
+            "provider_token_refresh_failed",
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),

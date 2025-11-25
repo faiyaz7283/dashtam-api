@@ -29,7 +29,7 @@ from src.domain.events.auth_events import (
     UserRegistrationSucceeded,
     UserPasswordChangeSucceeded,
     ProviderConnectionSucceeded,
-    TokenRefreshFailed,
+    ProviderTokenRefreshFailed,
 )
 from src.infrastructure.persistence.models.audit_log import AuditLog
 
@@ -156,13 +156,15 @@ class TestEventFlowEndToEnd:
             assert log.context["provider_name"] == "schwab"
 
     @pytest.mark.asyncio
-    async def test_token_refresh_failed_creates_audit_record(self, test_database):
-        """Test TokenRefreshFailed → audit record created."""
+    async def test_provider_token_refresh_failed_creates_audit_record(
+        self, test_database
+    ):
+        """Test ProviderTokenRefreshFailed → audit record created."""
         # Arrange
         event_bus = get_event_bus()
         user_id = uuid4()
         provider_id = uuid4()
-        event = TokenRefreshFailed(
+        event = ProviderTokenRefreshFailed(
             user_id=user_id,
             provider_id=provider_id,
             provider_name="schwab",

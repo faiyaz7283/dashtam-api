@@ -15,10 +15,10 @@ from src.domain.errors import SecretsError
 
 class BaseSecretsAdapter:
     """Base adapter with shared secrets functionality.
-    
+
     Provides shared implementation of get_secret_json() that delegates
     to the concrete adapter's get_secret() method.
-    
+
     Subclasses must implement:
         - get_secret(secret_path: str) -> Result[str, SecretsError]
         - refresh_cache() -> None
@@ -26,10 +26,10 @@ class BaseSecretsAdapter:
 
     def get_secret(self, secret_path: str) -> Result[str, SecretsError]:
         """Get secret value (must be implemented by subclass).
-        
+
         Args:
             secret_path: Path to secret.
-            
+
         Returns:
             Result with secret value or SecretsError.
         """
@@ -37,19 +37,19 @@ class BaseSecretsAdapter:
 
     def get_secret_json(self, secret_path: str) -> Result[dict[str, str], SecretsError]:
         """Get secret as parsed JSON dictionary.
-        
+
         Shared implementation that:
         1. Calls subclass's get_secret() to fetch value
         2. Parses JSON
         3. Returns parsed dict or error
-        
+
         Args:
             secret_path: Path to JSON-formatted secret.
-            
+
         Returns:
             Success(parsed_dict) if valid JSON.
             Failure(SecretsError) if not found, access denied, or invalid JSON.
-            
+
         Example:
             >>> adapter = EnvAdapter()  # or AWSAdapter()
             >>> result = adapter.get_secret_json("config/json")
@@ -73,7 +73,7 @@ class BaseSecretsAdapter:
 
     def refresh_cache(self) -> None:
         """Clear cache (must be implemented by subclass).
-        
+
         Implementation depends on adapter strategy:
         - EnvAdapter: no-op (env vars always fresh)
         - AWSAdapter: clear in-memory cache

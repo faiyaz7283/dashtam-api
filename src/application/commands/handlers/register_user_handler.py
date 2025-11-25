@@ -123,10 +123,10 @@ class RegisterUserHandler:
                         reason=RegistrationError.EMAIL_ALREADY_EXISTS,
                     )
                 )
-                return Failure(RegistrationError.EMAIL_ALREADY_EXISTS)
+                return Failure(error=RegistrationError.EMAIL_ALREADY_EXISTS)
 
             # Step 4: Hash password
-            password_hash = self._password_service.hash(cmd.password)
+            password_hash = self._password_service.hash_password(cmd.password)
 
             # Step 5: Create User entity
             user_id = uuid4()
@@ -167,7 +167,7 @@ class RegisterUserHandler:
             )
 
             # Step 9: Return Success
-            return Success(user_id)
+            return Success(value=user_id)
 
         except Exception as e:
             # Catch-all for database errors or unexpected issues
@@ -179,4 +179,4 @@ class RegisterUserHandler:
                     reason=f"{RegistrationError.DATABASE_ERROR}: {str(e)}",
                 )
             )
-            return Failure(f"{RegistrationError.DATABASE_ERROR}: {str(e)}")
+            return Failure(error=f"{RegistrationError.DATABASE_ERROR}: {str(e)}")

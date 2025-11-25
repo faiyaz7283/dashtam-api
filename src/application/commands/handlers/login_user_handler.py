@@ -142,7 +142,7 @@ class LoginUserHandler:
                 user_id=None,
             )
             # Use generic message to prevent user enumeration
-            return Failure(LoginError.INVALID_CREDENTIALS)
+            return Failure(error=LoginError.INVALID_CREDENTIALS)
 
         # Step 4: Check email verified
         if not user.is_verified:
@@ -151,7 +151,7 @@ class LoginUserHandler:
                 reason=LoginError.EMAIL_NOT_VERIFIED,
                 user_id=user.id,
             )
-            return Failure(LoginError.EMAIL_NOT_VERIFIED)
+            return Failure(error=LoginError.EMAIL_NOT_VERIFIED)
 
         # Step 5: Check account not locked
         if user.is_locked():
@@ -160,7 +160,7 @@ class LoginUserHandler:
                 reason=LoginError.ACCOUNT_LOCKED,
                 user_id=user.id,
             )
-            return Failure(LoginError.ACCOUNT_LOCKED)
+            return Failure(error=LoginError.ACCOUNT_LOCKED)
 
         # Check account active
         if not user.is_active:
@@ -169,10 +169,10 @@ class LoginUserHandler:
                 reason=LoginError.ACCOUNT_INACTIVE,
                 user_id=user.id,
             )
-            return Failure(LoginError.ACCOUNT_INACTIVE)
+            return Failure(error=LoginError.ACCOUNT_INACTIVE)
 
         # Step 6: Verify password
-        if not self._password_service.verify(cmd.password, user.password_hash):
+        if not self._password_service.verify_password(cmd.password, user.password_hash):
             # Increment failed login counter
             user.increment_failed_login()
             await self._user_repo.update(user)
@@ -182,7 +182,7 @@ class LoginUserHandler:
                 reason=LoginError.INVALID_CREDENTIALS,
                 user_id=user.id,
             )
-            return Failure(LoginError.INVALID_CREDENTIALS)
+            return Failure(error=LoginError.INVALID_CREDENTIALS)
 
         # Step 7: Reset failed login counter on success
         if user.failed_login_attempts > 0:
@@ -224,7 +224,7 @@ class LoginUserHandler:
 
         # Step 12: Return Success
         return Success(
-            LoginResponse(
+            value=LoginResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,
             )

@@ -26,21 +26,42 @@ Reference:
 """
 
 from src.domain.events.auth_events import (
+    # Auth Token Refresh Events (JWT rotation)
+    AuthTokenRefreshAttempted,
+    AuthTokenRefreshFailed,
+    AuthTokenRefreshSucceeded,
+    # Email Verification Events
     EmailVerificationAttempted,
     EmailVerificationFailed,
     EmailVerificationSucceeded,
+    # Password Reset Events
+    PasswordResetConfirmAttempted,
+    PasswordResetConfirmFailed,
+    PasswordResetConfirmSucceeded,
+    PasswordResetRequestAttempted,
+    PasswordResetRequestFailed,
+    PasswordResetRequestSucceeded,
+    # Provider Connection Events
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
-    TokenRefreshAttempted,
-    TokenRefreshFailed,
-    TokenRefreshSucceeded,
+    # Provider Token Refresh Events (OAuth)
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
+    # User Login Events
     UserLoginAttempted,
     UserLoginFailed,
     UserLoginSucceeded,
+    # User Logout Events
+    UserLogoutAttempted,
+    UserLogoutFailed,
+    UserLogoutSucceeded,
+    # User Password Change Events
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
+    # User Registration Events
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
@@ -58,10 +79,26 @@ __all__ = [
     "UserLoginAttempted",
     "UserLoginSucceeded",
     "UserLoginFailed",
+    # User Logout Events (3-state)
+    "UserLogoutAttempted",
+    "UserLogoutSucceeded",
+    "UserLogoutFailed",
     # Email Verification Events (3-state)
     "EmailVerificationAttempted",
     "EmailVerificationSucceeded",
     "EmailVerificationFailed",
+    # Auth Token Refresh Events (3-state)
+    "AuthTokenRefreshAttempted",
+    "AuthTokenRefreshSucceeded",
+    "AuthTokenRefreshFailed",
+    # Password Reset Request Events (3-state)
+    "PasswordResetRequestAttempted",
+    "PasswordResetRequestSucceeded",
+    "PasswordResetRequestFailed",
+    # Password Reset Confirm Events (3-state)
+    "PasswordResetConfirmAttempted",
+    "PasswordResetConfirmSucceeded",
+    "PasswordResetConfirmFailed",
     # User Password Change Events (3-state)
     "UserPasswordChangeAttempted",
     "UserPasswordChangeSucceeded",
@@ -70,8 +107,8 @@ __all__ = [
     "ProviderConnectionAttempted",
     "ProviderConnectionSucceeded",
     "ProviderConnectionFailed",
-    # Token Refresh Events (3-state)
-    "TokenRefreshAttempted",
-    "TokenRefreshSucceeded",
-    "TokenRefreshFailed",
+    # Provider Token Refresh Events (3-state)
+    "ProviderTokenRefreshAttempted",
+    "ProviderTokenRefreshSucceeded",
+    "ProviderTokenRefreshFailed",
 ]

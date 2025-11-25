@@ -30,9 +30,9 @@ from src.domain.events.auth_events import (
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
-    TokenRefreshAttempted,
-    TokenRefreshFailed,
-    TokenRefreshSucceeded,
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
@@ -292,55 +292,55 @@ class TestLoggingEventHandler:
         assert call_args[1]["reason"] == "access_denied"
 
     @pytest.mark.asyncio
-    async def test_token_refresh_attempted_logs_info(
+    async def test_provider_token_refresh_attempted_logs_info(
         self, mock_logger, sample_user_id, sample_provider_id
     ):
-        """Test TokenRefreshAttempted logged at INFO level."""
+        """Test ProviderTokenRefreshAttempted logged at INFO level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
-        event = TokenRefreshAttempted(
+        event = ProviderTokenRefreshAttempted(
             user_id=sample_user_id,
             provider_id=sample_provider_id,
             provider_name="schwab",
         )
 
         # Act
-        await handler.handle_token_refresh_attempted(event)
+        await handler.handle_provider_token_refresh_attempted(event)
 
         # Assert
         mock_logger.info.assert_called_once()
         call_args = mock_logger.info.call_args
-        assert call_args[0][0] == "token_refresh_attempted"
+        assert call_args[0][0] == "provider_token_refresh_attempted"
 
     @pytest.mark.asyncio
-    async def test_token_refresh_succeeded_logs_info(
+    async def test_provider_token_refresh_succeeded_logs_info(
         self, mock_logger, sample_user_id, sample_provider_id
     ):
-        """Test TokenRefreshSucceeded logged at INFO level."""
+        """Test ProviderTokenRefreshSucceeded logged at INFO level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
-        event = TokenRefreshSucceeded(
+        event = ProviderTokenRefreshSucceeded(
             user_id=sample_user_id,
             provider_id=sample_provider_id,
             provider_name="schwab",
         )
 
         # Act
-        await handler.handle_token_refresh_succeeded(event)
+        await handler.handle_provider_token_refresh_succeeded(event)
 
         # Assert
         mock_logger.info.assert_called_once()
         call_args = mock_logger.info.call_args
-        assert call_args[0][0] == "token_refresh_succeeded"
+        assert call_args[0][0] == "provider_token_refresh_succeeded"
 
     @pytest.mark.asyncio
-    async def test_token_refresh_failed_logs_warning(
+    async def test_provider_token_refresh_failed_logs_warning(
         self, mock_logger, sample_user_id, sample_provider_id
     ):
-        """Test TokenRefreshFailed logged at WARNING level."""
+        """Test ProviderTokenRefreshFailed logged at WARNING level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
-        event = TokenRefreshFailed(
+        event = ProviderTokenRefreshFailed(
             user_id=sample_user_id,
             provider_id=sample_provider_id,
             provider_name="schwab",
@@ -348,12 +348,12 @@ class TestLoggingEventHandler:
         )
 
         # Act
-        await handler.handle_token_refresh_failed(event)
+        await handler.handle_provider_token_refresh_failed(event)
 
         # Assert
         mock_logger.warning.assert_called_once()
         call_args = mock_logger.warning.call_args
-        assert call_args[0][0] == "token_refresh_failed"
+        assert call_args[0][0] == "provider_token_refresh_failed"
         assert call_args[1]["error_code"] == "invalid_grant"
 
 
@@ -520,13 +520,13 @@ class TestAuditEventHandler:
             assert call_kwargs["context"]["provider_name"] == "schwab"
 
     @pytest.mark.asyncio
-    async def test_token_refresh_failed_creates_audit(
+    async def test_provider_token_refresh_failed_creates_audit(
         self, mock_database, mock_event_bus, sample_user_id, sample_provider_id
     ):
-        """Test TokenRefreshFailed creates audit record."""
+        """Test ProviderTokenRefreshFailed creates audit record."""
         # Arrange
         handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
-        event = TokenRefreshFailed(
+        event = ProviderTokenRefreshFailed(
             user_id=sample_user_id,
             provider_id=sample_provider_id,
             provider_name="schwab",
@@ -541,7 +541,7 @@ class TestAuditEventHandler:
             mock_adapter_class.return_value = mock_adapter
 
             # Act
-            await handler.handle_token_refresh_failed(event)
+            await handler.handle_provider_token_refresh_failed(event)
 
             # Assert
             mock_adapter.record.assert_called_once()

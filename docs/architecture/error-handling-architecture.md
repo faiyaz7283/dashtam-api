@@ -90,6 +90,101 @@ class RegisterUserHandler:
 3. **Clear Boundaries**: Value objects are construction, services are business logic
 4. **Simple**: No need for complex Result-based factory methods on value objects
 
+### FastAPI-Idiomatic Exceptions (Presentation Layer)
+
+**IMPORTANT**: FastAPI dependencies in the presentation layer MAY raise `HTTPException` directly
+instead of returning Result types. This is the **FastAPI-idiomatic** approach and is acceptable
+for specific scenarios.
+
+**✅ HTTPException ALLOWED (FastAPI Dependencies)**:
+
+- **Authentication dependencies**: `get_current_user()`, `require_role()`
+- **Authorization checks**: Permission verification dependencies
+- **Request validation**: Path/query parameter validation dependencies
+- **Reason**: These are HTTP-specific concerns, not business logic
+
+**Why FastAPI-Idiomatic for Auth?**:
+
+1. **Standard pattern**: FastAPI's security docs use HTTPException for auth failures
+2. **No business logic**: Auth extraction is HTTP concern, not domain logic
+3. **Consistent response**: Auth failure is ALWAYS 401/403 - no endpoint-specific handling
+4. **Reduces boilerplate**: Avoids repetitive Result handling in every protected endpoint
+5. **Framework integration**: Works with FastAPI's OpenAPI schema generation
+
+**Example - Auth Dependency (HTTPException OK)**:
+
+```python
+# src/presentation/api/middleware/auth_dependencies.py
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+    token_service: TokenGenerationProtocol = Depends(get_token_service),
+) -> CurrentUser:
+    """Extract and validate JWT from Authorization header."""
+    result = token_service.validate_access_token(credentials.credentials)
+    
+    match result:
+        case Success(payload):
+            return CurrentUser(
+                user_id=UUID(payload["sub"]),
+                email=payload["email"],
+                roles=payload.get("roles", []),
+            )
+        case Failure(error):
+            # ✅ HTTPException OK - this is HTTP auth concern, not business logic
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=error.message,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+```
+
+**Example - Role Checking (HTTPException OK)**:
+
+```python
+def require_role(required_role: str):
+    """Dependency factory for role-based access control."""
+    async def role_checker(
+        current_user: CurrentUser = Depends(get_current_user),
+    ) -> CurrentUser:
+        if required_role not in current_user.roles:
+            # ✅ HTTPException OK - authorization is HTTP concern
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role '{required_role}' required",
+            )
+        return current_user
+    return role_checker
+```
+
+**Contrast with Business Logic (Result Required)**:
+
+```python
+# ❌ WRONG - Business logic should NOT raise HTTPException
+class UserService:
+    async def deactivate_user(self, user_id: UUID) -> None:
+        user = await self.users.find_by_id(user_id)
+        if not user:
+            raise HTTPException(404)  # ❌ Domain should return Result!
+
+# ✅ CORRECT - Business logic returns Result
+class UserService:
+    async def deactivate_user(self, user_id: UUID) -> Result[None, NotFoundError]:
+        user = await self.users.find_by_id(user_id)
+        if not user:
+            return Failure(NotFoundError(...))  # ✅ Railway-oriented
+        return Success(None)
+```
+
+**Decision Criteria** - Use HTTPException when ALL are true:
+
+1. Code is in presentation layer (`src/presentation/`)
+2. Concern is HTTP-specific (auth, headers, request validation)
+3. Error response is always the same (401 for auth, 403 for authz)
+4. No business logic involved (just extracting/validating HTTP data)
+
 ### Architectural Decisions
 
 - **ErrorCode Enums**: All error codes are enums (not strings)

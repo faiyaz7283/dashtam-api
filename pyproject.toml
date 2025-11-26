@@ -112,3 +112,10 @@ module = [
     "asyncpg.*",
 ]
 ignore_missing_imports = true
+
+# Test files: relax strict typing (common practice)
+# Test functions are simple, pytest fixtures are hard to annotate properly
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_untyped_decorators = false

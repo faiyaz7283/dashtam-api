@@ -139,7 +139,7 @@ async def redis_test_client():
     client = Redis(connection_pool=pool)
 
     # Verify connection
-    await client.ping()
+    await client.ping()  # type: ignore[misc]
 
     yield client
 
@@ -164,6 +164,23 @@ async def cache_adapter(redis_test_client):
     from src.infrastructure.cache.redis_adapter import RedisAdapter
 
     return RedisAdapter(redis_client=redis_test_client)
+
+
+@pytest_asyncio.fixture
+async def session_cache(cache_adapter):
+    """Provide a RedisSessionCache for each test.
+
+    Uses the cache_adapter fixture to ensure test isolation.
+    Each test gets a fresh session cache instance.
+
+    Usage:
+        async def test_something(session_cache):
+            await session_cache.set(session_data)
+            result = await session_cache.get(session_id)
+    """
+    from src.infrastructure.cache.session_cache import RedisSessionCache
+
+    return RedisSessionCache(redis_adapter=cache_adapter)
 
 
 @pytest_asyncio.fixture
@@ -253,8 +270,8 @@ def mock_container_dependencies():
     }
 
     # Configure default mock behaviors
-    mocks["cache"].get.return_value = Success(None)
-    mocks["cache"].set.return_value = Success(None)
+    mocks["cache"].get.return_value = Success(value=None)
+    mocks["cache"].set.return_value = Success(value=None)
     mocks["secrets"].get_secret.return_value = "mock-secret"
 
     # Patch container functions
@@ -298,8 +315,8 @@ def cleanup_tracker():
                     # Log but don't fail test on cleanup errors
                     print(f"Cleanup error: {e}")
 
-    tracker = CleanupTracker()
+    tracker = CleanupTracker()  # type: ignore[no-untyped-call]
     yield tracker
 
     # Run cleanup after test
-    asyncio.run(tracker.cleanup_all())
+    asyncio.run(tracker.cleanup_all())  # type: ignore[no-untyped-call]

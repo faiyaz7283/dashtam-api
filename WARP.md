@@ -4,9 +4,9 @@
 
 **Companion Documents**:
 
-- `~/starter/clean-slate-reference.md` - Architecture patterns and concepts
-- `~/starter/development-checklist.md` - Mandatory feature development checklist
-- `~/starter/dashtam-feature-roadmap.md` - Feature roadmap with dependencies
+- `~/references/starter/clean-slate-reference.md` - Architecture patterns and concepts
+- `~/references/starter/development-checklist.md` - Mandatory feature development checklist
+- `~/references/starter/dashtam-feature-roadmap.md` - Feature roadmap with dependencies
 
 ---
 
@@ -41,7 +41,7 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**Feature Roadmap**: See `~/starter/dashtam-feature-roadmap.md` for complete 32-feature plan across 6 phases.
+**Feature Roadmap**: See `~/references/starter/dashtam-feature-roadmap.md` for complete 32-feature plan across 6 phases.
 
 ---
 
@@ -73,7 +73,7 @@
 
 #### Phase 2-6: Domain, Application, Providers, API (Planning)
 
-See `~/starter/dashtam-feature-roadmap.md` for complete breakdown.
+See `~/references/starter/dashtam-feature-roadmap.md` for complete breakdown.
 
 **Total**: 32 features across 6 phases.
 
@@ -88,7 +88,7 @@ See `~/starter/dashtam-feature-roadmap.md` for complete breakdown.
 **Development approach**:
 
 - Feature-by-feature following roadmap dependencies
-- Each feature uses `~/starter/development-checklist.md` (mandatory)
+- Each feature uses `~/references/starter/development-checklist.md` (mandatory)
 - Pre-development approval required before coding
 - Test coverage ≥85% for each feature
 
@@ -176,7 +176,7 @@ class UserRepository:
 - Easy to swap implementations (Postgres → MongoDB)
 - Framework upgrades don't break domain
 
-**Reference**: See `~/starter/clean-slate-reference.md` for detailed hexagonal architecture guide.
+**Reference**: See `~/references/starter/clean-slate-reference.md` for detailed hexagonal architecture guide.
 
 ---
 
@@ -254,7 +254,7 @@ match create_user(email):
         return {"error": error.message}, 400
 ```
 
-**Reference**: See `~/starter/clean-slate-reference.md` Section 1 for complete Python patterns guide.
+**Reference**: See `~/references/starter/clean-slate-reference.md` Section 1 for complete Python patterns guide.
 
 ---
 
@@ -345,7 +345,7 @@ async def revoke_sessions(event: UserPasswordChanged):
     await token_service.revoke_all_sessions(event.user_id)
 ```
 
-**Reference**: See `~/starter/clean-slate-reference.md` Section 10 for domain events architecture.
+**Reference**: See `~/references/starter/clean-slate-reference.md` Section 10 for domain events architecture.
 
 ---
 
@@ -432,7 +432,7 @@ Only use when operation is genuinely an action, not a resource state change.
 
 **Reference**: See `docs/development/architecture/restful-api-design.md` for complete REST standards.
 
-**Enforcement**: See `~/starter/development-checklist.md` Section 18 (REST API Compliance) - mandatory verification.
+**Enforcement**: See `~/references/starter/development-checklist.md` Section 18 (REST API Compliance) - mandatory verification.
 
 ---
 
@@ -440,7 +440,7 @@ Only use when operation is genuinely an action, not a resource state change.
 
 ### 7. Feature Development Process
 
-**CRITICAL**: ALL feature development MUST follow `~/starter/development-checklist.md` workflow.
+**CRITICAL**: ALL feature development MUST follow `~/references/starter/development-checklist.md` workflow.
 
 **Two-Phase Process**:
 
@@ -528,7 +528,7 @@ DO NOT CODE without user approval.
 - `mark_todo_as_done` - Check off items as completed
 - `read_todos` - Check current progress
 
-**Reference**: See `~/starter/development-checklist.md` for complete 31-section checklist.
+**Reference**: See `~/references/starter/development-checklist.md` for complete 31-section checklist.
 
 ---
 
@@ -642,20 +642,20 @@ BREAKING CHANGE: Auth endpoint moved from /auth to /api/v1/auth"
 **Test Pyramid Approach**:
 
 ```text
-        ▲
-       ╱│╲
-      ╱ │ ╲     10% E2E (Smoke Tests)
-     ╱  │  ╲    - Complete user flows
-    ╱───┼───╲   - Registration → Login → Logout
-   ╱    │    ╲
-  ╱     │     ╲  20% Integration Tests
- ╱      │      ╲ - Database operations
-╱───────┼───────╲ - Service interactions
-        │
-        │        70% Unit Tests
-        │        - Domain entities
-        │        - Command/Query handlers
-        │        - Services (isolated)
+             ▲
+            ╱ ╲
+           ╱   ╲ 10% E2E (Smoke Tests)
+          ╱     ╲ - Complete user flows
+         ╱───────╲ - Registration → Login → Logout
+        ╱         ╲
+       ╱           ╲ 20% Integration Tests
+      ╱             ╲ - Database operations
+     ╱───────────────╲ - Service interactions
+    ╱                 ╲
+   ╱                   ╲ 70% Unit Tests
+  ╱                     ╲ - Domain entities
+ ╱                       ╲ - Command/Query handlers
+╱                         ╲ - Services (isolated)
 ```
 
 #### Unit Tests (70%)
@@ -766,7 +766,7 @@ make test-verify
 - Different ports (8001, 5433, 6380)
 - No port conflicts with dev environment
 
-**Reference**: See `~/starter/development-checklist.md` Section 10 (Testing) for comprehensive testing guide.
+**Reference**: See `~/references/starter/development-checklist.md` Section 10 (Testing) for comprehensive testing guide.
 
 ---
 
@@ -888,7 +888,7 @@ make test-down    # Stop test environment
 - Proper file ownership (appuser:appuser)
 - Health checks for all services
 
-**Reference**: See `~/starter/clean-slate-reference.md` Section 7 (Docker & Environments) for complete Docker architecture.
+**Reference**: See `~/references/starter/clean-slate-reference.md` Section 7 (Docker & Environments) for complete Docker architecture.
 
 ---
 
@@ -1010,7 +1010,7 @@ test-up: traefik-up
 
 **Result**: `make dev-up` automatically starts Traefik first (idempotent).
 
-**Reference**: See `~/starter/clean-slate-reference.md` Section 9 (Traefik Reverse Proxy) for detailed Traefik architecture.
+**Reference**: See `~/references/starter/clean-slate-reference.md` Section 9 (Traefik Reverse Proxy) for detailed Traefik architecture.
 
 ---
 
@@ -1104,7 +1104,7 @@ services:
     #   SECRET_KEY: hardcoded-value
 ```
 
-**Reference**: See `~/starter/clean-slate-reference.md` Section 8 (Secrets Management) for complete secrets architecture.
+**Reference**: See `~/references/starter/clean-slate-reference.md` Section 8 (Secrets Management) for complete secrets architecture.
 
 ---
 
@@ -1243,7 +1243,7 @@ await audit_service.record(
 
 **Retention**: 7 years minimum (PCI-DSS requirement)
 
-**Reference**: See `~/starter/clean-slate-reference.md` Section 11 (Logging & Audit) for complete logging architecture.
+**Reference**: See `~/references/starter/clean-slate-reference.md` Section 11 (Logging & Audit) for complete logging architecture.
 
 ---
 
@@ -1648,7 +1648,7 @@ Brief description of the feature and its purpose.
 
 ```markdown
 
-**Reference**: See `~/starter/clean-slate-reference.md` for comprehensive architecture documentation examples.
+**Reference**: See `~/references/starter/clean-slate-reference.md` for comprehensive architecture documentation examples.
 
 ---
 
@@ -1660,7 +1660,7 @@ Brief description of the feature and its purpose.
 
 #### Mandatory Checklist Workflow
 
-**Two-phase process** (from `~/starter/development-checklist.md`):
+**Two-phase process** (from `~/references/starter/development-checklist.md`):
 
 **Phase 1: Pre-Development (Planning & Approval)**
 
@@ -1688,7 +1688,7 @@ Brief description of the feature and its purpose.
 10. Final verification (all tests, docs, linting)
 11. Commit with conventional commits
 
-**Reference**: See `~/starter/development-checklist.md` for complete 31-section checklist.
+**Reference**: See `~/references/starter/development-checklist.md` for complete 31-section checklist.
 
 #### TODO List Management
 
@@ -1863,7 +1863,7 @@ async def create_user(
 
 **Process**:
 
-1. ✅ **ALWAYS use development checklist** (`~/starter/development-checklist.md`)
+1. ✅ **ALWAYS use development checklist** (`~/references/starter/development-checklist.md`)
 2. ✅ **Pre-development phase first** - Analyze → Plan → Present → Get approval
 3. ✅ **❌ NEVER code without user approval** of TODO list
 4. ✅ **Use TODO tools** - Track progress across long features
@@ -1902,16 +1902,3 @@ async def create_user(
 ---
 
 **Last Updated**: 2025-11-08  
-**Status**: ✅ Clean slate WARP.md COMPLETE (All 6 parts)  
-**Total Lines**: ~1,700 (43% reduction from 2,574 lines)
-
-**Changes from old WARP.md**:
-
-- ✅ Removed 800+ lines of duplicates (Feature Integration Checklist appeared twice)
-- ✅ Removed outdated Warp terminal bug workarounds (heredoc, quote escaping)
-- ✅ Removed old implementation patterns (ABC, old error handling)
-- ✅ Added references to all ~/starter/ documents
-- ✅ Reorganized into 6 logical parts
-- ✅ Focused on clean slate architecture (no legacy technical debt)
-- ✅ Emphasized mandatory checklist workflow
-- ✅ Updated all patterns to Python 3.13+ standards

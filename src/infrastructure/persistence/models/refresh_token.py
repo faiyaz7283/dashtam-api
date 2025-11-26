@@ -101,13 +101,12 @@ class RefreshToken(BaseMutableModel):
         comment="Bcrypt hashed refresh token (NEVER plaintext)",
     )
 
-    # Session relationship (F1.3 dependency - sessions table not yet created)
-    # TODO: Add FK constraint when sessions table is created in F1.3
+    # Session relationship (cascade delete when session deleted)
     session_id: Mapped[UUID] = mapped_column(
-        # ForeignKey("sessions.id", ondelete="CASCADE"),  # Uncomment in F1.3
+        ForeignKey("sessions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
-        comment="Session this token belongs to (FK constraint added in F1.3)",
+        comment="Session this token belongs to",
     )
 
     # Token expiration (30 days from creation)

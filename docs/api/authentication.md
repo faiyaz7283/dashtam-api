@@ -285,31 +285,38 @@ sequenceDiagram
     participant Client
     participant API
     participant DB
+    participant Cache
 
-    Note over Client,DB: Registration Flow
+    Note over Client,Cache: Registration Flow
     Client->>API: POST /users
     API->>DB: Create user (unverified)
     API->>Client: 201 + user data
     API-->>Client: Email with verification token
 
-    Note over Client,DB: Email Verification
+    Note over Client,Cache: Email Verification
     Client->>API: POST /email-verifications
     API->>DB: Mark email verified
     API->>Client: 201 + verified
 
-    Note over Client,DB: Login Flow
+    Note over Client,Cache: Login Flow (3-Handler Orchestration)
     Client->>API: POST /sessions
+    Note right of API: 1. AuthenticateUserHandler
     API->>DB: Verify credentials
-    API->>DB: Create refresh token
+    API->>API: Check email verified, account not locked
+    Note right of API: 2. CreateSessionHandler
+    API->>DB: Create session
+    API->>Cache: Cache session
+    Note right of API: 3. GenerateAuthTokensHandler
+    API->>DB: Store refresh token
     API->>Client: 201 + tokens
 
-    Note over Client,DB: Token Refresh
+    Note over Client,Cache: Token Refresh
     Client->>API: POST /tokens
     API->>DB: Validate refresh token
     API->>DB: Rotate refresh token
     API->>Client: 201 + new tokens
 
-    Note over Client,DB: Logout
+    Note over Client,Cache: Logout
     Client->>API: DELETE /sessions/current
     API->>DB: Revoke refresh token
     API->>Client: 204 No Content
@@ -344,4 +351,4 @@ All errors follow RFC 7807 Problem Details format:
 
 ---
 
-**Created**: 2025-11-25 | **Last Updated**: 2025-11-25
+**Created**: 2025-11-25 | **Last Updated**: 2025-11-26

@@ -21,6 +21,7 @@ Usage:
         return {"message": "anonymous"}
 """
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
@@ -90,17 +91,25 @@ async def get_current_user(
     result = token_service.validate_access_token(credentials.credentials)
 
     match result:
-        case Success(payload):
+        case Success(value=payload):
             # Extract user information from payload
             try:
+                # Cast values to expected types (payload is dict[str, str | int | list[str]])
+                sub = str(payload["sub"])
+                email = str(payload["email"])
+                roles_raw = payload.get("roles", ["user"])
+                roles = roles_raw if isinstance(roles_raw, list) else ["user"]
+                session_id_raw = payload.get("session_id")
+                session_id = UUID(str(session_id_raw)) if session_id_raw else None
+                jti_raw = payload.get("jti")
+                token_jti = str(jti_raw) if jti_raw else None
+
                 return CurrentUser(
-                    user_id=UUID(payload["sub"]),
-                    email=payload["email"],
-                    roles=payload.get("roles", ["user"]),
-                    session_id=UUID(payload["session_id"])
-                    if payload.get("session_id")
-                    else None,
-                    token_jti=payload.get("jti"),
+                    user_id=UUID(sub),
+                    email=email,
+                    roles=roles,
+                    session_id=session_id,
+                    token_jti=token_jti,
                 )
             except (KeyError, ValueError) as e:
                 raise HTTPException(
@@ -109,11 +118,11 @@ async def get_current_user(
                     headers={"WWW-Authenticate": "Bearer"},
                 ) from e
 
-        case Failure(error):
-            # Token invalid or expired
+        case Failure(error=error):
+            # Token invalid or expired - error is a string
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=error.message,
+                detail=error,
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -151,22 +160,32 @@ async def get_current_user_optional(
     result = token_service.validate_access_token(credentials.credentials)
 
     match result:
-        case Success(payload):
+        case Success(value=payload):
             try:
+                # Cast values to expected types (payload is dict[str, str | int | list[str]])
+                sub = str(payload["sub"])
+                email = str(payload["email"])
+                roles_raw = payload.get("roles", ["user"])
+                roles = roles_raw if isinstance(roles_raw, list) else ["user"]
+                session_id_raw = payload.get("session_id")
+                session_id = UUID(str(session_id_raw)) if session_id_raw else None
+                jti_raw = payload.get("jti")
+                token_jti = str(jti_raw) if jti_raw else None
+
                 return CurrentUser(
-                    user_id=UUID(payload["sub"]),
-                    email=payload["email"],
-                    roles=payload.get("roles", ["user"]),
-                    session_id=UUID(payload["session_id"])
-                    if payload.get("session_id")
-                    else None,
-                    token_jti=payload.get("jti"),
+                    user_id=UUID(sub),
+                    email=email,
+                    roles=roles,
+                    session_id=session_id,
+                    token_jti=token_jti,
                 )
             except (KeyError, ValueError):
                 return None
 
-        case Failure(_):
+        case Failure(error=_):
             return None
+
+    return None  # Explicit return for exhaustiveness
 
 
 async def get_current_active_user(
@@ -198,7 +217,9 @@ async def get_current_active_user(
     return current_user
 
 
-def require_role(required_role: str):
+def require_role(
+    required_role: str,
+) -> Callable[..., Awaitable[CurrentUser]]:
     """Create a dependency that requires a specific role.
 
     Factory function that creates a dependency checking for specific role.
@@ -235,7 +256,9 @@ def require_role(required_role: str):
     return role_checker
 
 
-def require_any_role(*required_roles: str):
+def require_any_role(
+    *required_roles: str,
+) -> Callable[..., Awaitable[CurrentUser]]:
     """Create a dependency that requires any of the specified roles.
 
     Args:

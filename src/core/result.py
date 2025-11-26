@@ -31,6 +31,12 @@ class Success(Generic[T]):
 
     Attributes:
         value: The successful result value.
+
+    Note:
+        Uses kw_only=True for explicit construction.
+        Pattern matching must use keyword syntax:
+            case Success(value=v):  # Correct
+            case Success(v):        # Error!
     """
 
     value: T
@@ -42,6 +48,12 @@ class Failure(Generic[E]):
 
     Attributes:
         error: The error that occurred.
+
+    Note:
+        Uses kw_only=True for explicit construction.
+        Pattern matching must use keyword syntax:
+            case Failure(error=e):  # Correct
+            case Failure(e):        # Error!
     """
 
     error: E

@@ -41,6 +41,14 @@ from src.domain.protocols.refresh_token_repository import (
 from src.domain.protocols.refresh_token_service_protocol import (
     RefreshTokenServiceProtocol,
 )
+from src.domain.protocols.session_cache import SessionCache
+from src.domain.protocols.session_enricher import (
+    DeviceEnricher,
+    DeviceEnrichmentResult,
+    LocationEnricher,
+    LocationEnrichmentResult,
+)
+from src.domain.protocols.session_repository import SessionData, SessionRepository
 from src.domain.protocols.user_repository import UserRepository
 
 __all__ = [
@@ -61,4 +69,12 @@ __all__ = [
     "RefreshTokenRepository",
     "RefreshTokenServiceProtocol",
     "UserRepository",
+    # Session protocols and DTOs
+    "DeviceEnricher",
+    "DeviceEnrichmentResult",
+    "LocationEnricher",
+    "LocationEnrichmentResult",
+    "SessionCache",
+    "SessionData",
+    "SessionRepository",
 ]

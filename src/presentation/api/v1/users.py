@@ -67,12 +67,12 @@ async def create_user(
 
     # Handle result
     match result:
-        case Success(user_id):
+        case Success(value=user_id):
             return UserCreateResponse(
                 id=user_id,
                 email=data.email,
             )
-        case Failure(error):
+        case Failure(error=error):
             # Determine status code based on error
             if "already registered" in error.lower():
                 status_code = status.HTTP_409_CONFLICT

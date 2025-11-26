@@ -66,6 +66,46 @@ if TYPE_CHECKING:
     from src.domain.protocols.secrets_protocol import SecretsProtocol
     from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
 
+    # Repository types
+    from src.infrastructure.persistence.repositories import UserRepository
+
+    # Handler types
+    from src.application.commands.handlers.register_user_handler import (
+        RegisterUserHandler,
+    )
+    from src.application.commands.handlers.authenticate_user_handler import (
+        AuthenticateUserHandler,
+    )
+    from src.application.commands.handlers.generate_auth_tokens_handler import (
+        GenerateAuthTokensHandler,
+    )
+    from src.application.commands.handlers.create_session_handler import (
+        CreateSessionHandler,
+    )
+    from src.application.commands.handlers.logout_user_handler import LogoutUserHandler
+    from src.application.commands.handlers.refresh_access_token_handler import (
+        RefreshAccessTokenHandler,
+    )
+    from src.application.commands.handlers.verify_email_handler import (
+        VerifyEmailHandler,
+    )
+    from src.application.commands.handlers.request_password_reset_handler import (
+        RequestPasswordResetHandler,
+    )
+    from src.application.commands.handlers.confirm_password_reset_handler import (
+        ConfirmPasswordResetHandler,
+    )
+    from src.application.commands.handlers.revoke_session_handler import (
+        RevokeSessionHandler,
+    )
+    from src.application.commands.handlers.revoke_all_sessions_handler import (
+        RevokeAllSessionsHandler,
+    )
+    from src.application.queries.handlers.list_sessions_handler import (
+        ListSessionsHandler,
+    )
+    from src.application.queries.handlers.get_session_handler import GetSessionHandler
+
 
 # ============================================================================
 # Application-Scoped Dependencies (Singletons)
@@ -738,7 +778,7 @@ def get_event_bus() -> "EventBusProtocol":  # noqa: F821
 
 async def get_user_repository(
     session: AsyncSession = Depends(get_db_session),
-):
+) -> "UserRepository":
     """Get user repository (request-scoped).
 
     Creates new repository instance per request with database session.
@@ -782,7 +822,7 @@ async def get_user_repository(
 
 async def get_register_user_handler(
     session: AsyncSession = Depends(get_db_session),
-):
+) -> "RegisterUserHandler":
     """Get RegisterUser command handler (request-scoped).
 
     Creates new handler instance per request with all required dependencies:
@@ -834,41 +874,103 @@ async def get_register_user_handler(
     )
 
 
-async def get_login_user_handler(
+async def get_authenticate_user_handler(
     session: AsyncSession = Depends(get_db_session),
-):
-    """Get LoginUser command handler (request-scoped).
+) -> "AuthenticateUserHandler":
+    """Get AuthenticateUser command handler (request-scoped).
+
+    Single responsibility: Verify user credentials.
+    Part of 3-handler login orchestration (authenticate → session → tokens).
 
     Returns:
-        LoginUserHandler instance.
+        AuthenticateUserHandler instance.
     """
-    from src.application.commands.handlers.login_user_handler import LoginUserHandler
-    from src.infrastructure.persistence.repositories import (
-        UserRepository,
-        RefreshTokenRepository,
+    from src.application.commands.handlers.authenticate_user_handler import (
+        AuthenticateUserHandler,
     )
-    from src.infrastructure.security.refresh_token_service import RefreshTokenService
+    from src.infrastructure.persistence.repositories import UserRepository
 
     user_repo = UserRepository(session=session)
-    refresh_token_repo = RefreshTokenRepository(session=session)
     password_service = get_password_service()
-    token_service = get_token_service()
-    refresh_token_service = RefreshTokenService()
     event_bus = get_event_bus()
 
-    return LoginUserHandler(
+    return AuthenticateUserHandler(
         user_repo=user_repo,
-        refresh_token_repo=refresh_token_repo,
         password_service=password_service,
+        event_bus=event_bus,
+    )
+
+
+async def get_generate_auth_tokens_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "GenerateAuthTokensHandler":
+    """Get GenerateAuthTokens command handler (request-scoped).
+
+    Single responsibility: Generate JWT + refresh token.
+    Part of 3-handler login orchestration (authenticate → session → tokens).
+
+    Returns:
+        GenerateAuthTokensHandler instance.
+    """
+    from src.application.commands.handlers.generate_auth_tokens_handler import (
+        GenerateAuthTokensHandler,
+    )
+    from src.infrastructure.persistence.repositories import RefreshTokenRepository
+    from src.infrastructure.security.refresh_token_service import RefreshTokenService
+
+    refresh_token_repo = RefreshTokenRepository(session=session)
+    token_service = get_token_service()
+    refresh_token_service = RefreshTokenService()
+
+    return GenerateAuthTokensHandler(
         token_service=token_service,
         refresh_token_service=refresh_token_service,
+        refresh_token_repo=refresh_token_repo,
+    )
+
+
+async def get_create_session_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "CreateSessionHandler":
+    """Get CreateSession command handler (request-scoped).
+
+    Single responsibility: Create session with device/location enrichment.
+    Part of 3-handler login orchestration (authenticate → session → tokens).
+
+    Returns:
+        CreateSessionHandler instance.
+    """
+    from src.application.commands.handlers.create_session_handler import (
+        CreateSessionHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        SessionRepository,
+        UserRepository,
+    )
+    from src.infrastructure.cache import RedisSessionCache
+    from src.infrastructure.enrichers.device_enricher import UserAgentDeviceEnricher
+    from src.infrastructure.enrichers.location_enricher import IPLocationEnricher
+
+    session_repo = SessionRepository(session=session)
+    user_repo = UserRepository(session=session)
+    session_cache = RedisSessionCache(redis_adapter=get_cache())
+    device_enricher = UserAgentDeviceEnricher()
+    location_enricher = IPLocationEnricher()
+    event_bus = get_event_bus()
+
+    return CreateSessionHandler(
+        session_repo=session_repo,
+        session_cache=session_cache,
+        user_repo=user_repo,
+        device_enricher=device_enricher,
+        location_enricher=location_enricher,
         event_bus=event_bus,
     )
 
 
 async def get_logout_user_handler(
     session: AsyncSession = Depends(get_db_session),
-):
+) -> "LogoutUserHandler":
     """Get LogoutUser command handler (request-scoped).
 
     Returns:
@@ -891,7 +993,7 @@ async def get_logout_user_handler(
 
 async def get_refresh_token_handler(
     session: AsyncSession = Depends(get_db_session),
-):
+) -> "RefreshAccessTokenHandler":
     """Get RefreshAccessToken command handler (request-scoped).
 
     Returns:
@@ -923,7 +1025,7 @@ async def get_refresh_token_handler(
 
 async def get_verify_email_handler(
     session: AsyncSession = Depends(get_db_session),
-):
+) -> "VerifyEmailHandler":
     """Get VerifyEmail command handler (request-scoped).
 
     Returns:
@@ -950,7 +1052,7 @@ async def get_verify_email_handler(
 
 async def get_request_password_reset_handler(
     session: AsyncSession = Depends(get_db_session),
-):
+) -> "RequestPasswordResetHandler":
     """Get RequestPasswordReset command handler (request-scoped).
 
     Returns:
@@ -979,13 +1081,13 @@ async def get_request_password_reset_handler(
         token_service=token_service,
         email_service=email_service,
         event_bus=event_bus,
-        verification_url_base=settings.app_url,
+        verification_url_base=settings.verification_url_base,
     )
 
 
 async def get_confirm_password_reset_handler(
     session: AsyncSession = Depends(get_db_session),
-):
+) -> "ConfirmPasswordResetHandler":
     """Get ConfirmPasswordReset command handler (request-scoped).
 
     Returns:
@@ -1013,5 +1115,101 @@ async def get_confirm_password_reset_handler(
         refresh_token_repo=refresh_token_repo,
         password_service=password_service,
         email_service=email_service,
+        event_bus=event_bus,
+    )
+
+
+# ============================================================================
+# Session Management Handler Factories
+# ============================================================================
+
+
+async def get_list_sessions_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListSessionsHandler":
+    """Get ListSessions query handler (request-scoped).
+
+    Returns:
+        ListSessionsHandler instance.
+    """
+    from src.application.queries.handlers.list_sessions_handler import (
+        ListSessionsHandler,
+    )
+    from src.infrastructure.persistence.repositories import SessionRepository
+
+    session_repo = SessionRepository(session=session)
+
+    return ListSessionsHandler(
+        session_repo=session_repo,
+    )
+
+
+async def get_get_session_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "GetSessionHandler":
+    """Get GetSession query handler (request-scoped).
+
+    Returns:
+        GetSessionHandler instance.
+    """
+    from src.application.queries.handlers.get_session_handler import GetSessionHandler
+    from src.infrastructure.persistence.repositories import SessionRepository
+    from src.infrastructure.cache import RedisSessionCache
+
+    session_repo = SessionRepository(session=session)
+    session_cache = RedisSessionCache(redis_adapter=get_cache())
+
+    return GetSessionHandler(
+        session_repo=session_repo,
+        session_cache=session_cache,
+    )
+
+
+async def get_revoke_session_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "RevokeSessionHandler":
+    """Get RevokeSession command handler (request-scoped).
+
+    Returns:
+        RevokeSessionHandler instance.
+    """
+    from src.application.commands.handlers.revoke_session_handler import (
+        RevokeSessionHandler,
+    )
+    from src.infrastructure.persistence.repositories import SessionRepository
+    from src.infrastructure.cache import RedisSessionCache
+
+    session_repo = SessionRepository(session=session)
+    session_cache = RedisSessionCache(redis_adapter=get_cache())
+    event_bus = get_event_bus()
+
+    return RevokeSessionHandler(
+        session_repo=session_repo,
+        session_cache=session_cache,
+        event_bus=event_bus,
+    )
+
+
+async def get_revoke_all_sessions_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "RevokeAllSessionsHandler":
+    """Get RevokeAllSessions command handler (request-scoped).
+
+    Returns:
+        RevokeAllSessionsHandler instance.
+    """
+    from src.application.commands.handlers.revoke_all_sessions_handler import (
+        RevokeAllSessionsHandler,
+    )
+    from src.infrastructure.persistence.repositories import SessionRepository
+    from src.infrastructure.cache import RedisSessionCache
+
+    session_repo = SessionRepository(session=session)
+    session_cache = RedisSessionCache(redis_adapter=get_cache())
+    event_bus = get_event_bus()
+
+    return RevokeAllSessionsHandler(
+        session_repo=session_repo,
+        session_cache=session_cache,
         event_bus=event_bus,
     )

@@ -40,32 +40,48 @@ class RegisterUser:
 
 
 @dataclass(frozen=True, kw_only=True)
-class LoginUser:
-    """Authenticate user and create session.
+class AuthenticateUser:
+    """Authenticate user credentials.
+
+    Single responsibility: Verify user credentials only.
+    Does NOT create sessions or generate tokens (CQRS separation).
 
     Validates credentials, checks email verification, checks account lockout.
-    Returns JWT access token + refresh token on success.
+    Returns AuthenticatedUser on success (user_id, email, roles).
 
     Attributes:
         email: User's email address (validated, normalized).
         password: User's password (plain text, validated strength).
-        ip_address: Client IP address (for audit, session tracking).
-        user_agent: Client user agent (for audit, session tracking).
 
     Example:
-        >>> command = LoginUser(
+        >>> command = AuthenticateUser(
         ...     email="user@example.com",
         ...     password="SecurePass123!",
-        ...     ip_address="192.168.1.1",
-        ...     user_agent="Mozilla/5.0...",
         ... )
         >>> result = await handler.handle(command)
+        >>> # Returns Success(AuthenticatedUser) or Failure(error)
     """
 
     email: Email
     password: Password
-    ip_address: str | None = None
-    user_agent: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class AuthenticatedUser:
+    """Response from successful authentication.
+
+    Contains user data needed for session creation and token generation.
+    This is a response DTO, not a command.
+
+    Attributes:
+        user_id: User's unique identifier.
+        email: User's email address (normalized).
+        roles: User's roles for authorization.
+    """
+
+    user_id: UUID
+    email: str
+    roles: list[str]
 
 
 @dataclass(frozen=True, kw_only=True)

@@ -29,15 +29,28 @@ from src.schemas.auth_schemas import (
     # Error response
     AuthErrorResponse,
 )
+from src.schemas.session_schemas import (
+    SessionListResponse,
+    SessionResponse,
+    SessionRevokeAllRequest,
+    SessionRevokeAllResponse,
+    SessionRevokeRequest,
+)
 
 __all__ = [
     # User
     "UserCreateRequest",
     "UserCreateResponse",
-    # Session
+    # Session (login/logout)
     "SessionCreateRequest",
     "SessionCreateResponse",
     "SessionDeleteRequest",
+    # Session management
+    "SessionListResponse",
+    "SessionResponse",
+    "SessionRevokeAllRequest",
+    "SessionRevokeAllResponse",
+    "SessionRevokeRequest",
     # Token
     "TokenCreateRequest",
     "TokenCreateResponse",

@@ -42,6 +42,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="An unexpected error occurred. Please contact support with the trace ID.",
         instance=str(request.url.path),
+        errors=None,
         trace_id=trace_id,
     )
 

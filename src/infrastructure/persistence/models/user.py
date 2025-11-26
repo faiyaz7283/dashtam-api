@@ -7,6 +7,10 @@ Security:
     - is_verified: Email verification required before login
     - failed_login_attempts: Track for account lockout
     - locked_until: Temporary account lockout after failed attempts
+
+Session Management:
+    - session_tier: Role-based tier determining default session limit
+    - max_sessions: Admin override for session limit (None = use tier default)
 """
 
 from datetime import datetime
@@ -40,6 +44,8 @@ class User(BaseMutableModel):
         is_active: Account active status (deactivated users cannot login)
         failed_login_attempts: Counter for failed logins (resets on success)
         locked_until: Timestamp until which account is locked (nullable)
+        session_tier: Role-based tier for session limits (basic, essential, plus, premium, pro)
+        max_sessions: Admin override for session limit (nullable, None = use tier default)
 
     Indexes:
         - idx_users_email: (email) for login queries
@@ -118,6 +124,24 @@ class User(BaseMutableModel):
         nullable=True,
         default=None,
         comment="Timestamp until which account is locked (15 min after 5 failures)",
+    )
+
+    # Session management (F1.3)
+    # Role-based tier determining default session limit
+    session_tier: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="basic",
+        index=True,
+        comment="Session tier (basic, essential, plus, premium, pro)",
+    )
+
+    # Admin override for session limit (None = use tier default)
+    max_sessions: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        default=None,
+        comment="Admin override for max sessions (null = use tier default)",
     )
 
     def __repr__(self) -> str:

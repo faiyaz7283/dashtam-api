@@ -69,6 +69,7 @@ class ErrorResponseBuilder:
             status=status_code,
             detail=error.message,
             instance=str(request.url.path),
+            errors=None,
             trace_id=trace_id,
         )
 

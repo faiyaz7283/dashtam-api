@@ -128,18 +128,20 @@ class JWTService:
             payload["session_id"] = str(session_id)
 
         # Generate JWT token
-        return jwt.encode(payload, self._secret_key, algorithm=self._algorithm)
+        # jwt.encode returns str in python-jose, but type hints say Any
+        token: str = jwt.encode(payload, self._secret_key, algorithm=self._algorithm)
+        return token
 
     def validate_access_token(
         self, token: str
-    ) -> Result[dict[str, str | int | list[str]], AuthenticationError]:
+    ) -> Result[dict[str, str | int | list[str]], str]:
         """Validate JWT access token and extract payload.
 
         Args:
             token: JWT access token string to validate.
 
         Returns:
-            Result with payload dict if valid, or AuthenticationError if invalid.
+            Result with payload dict if valid, or error string if invalid.
 
         Example:
             >>> service = JWTService(secret_key="x" * 32)
@@ -150,10 +152,10 @@ class JWTService:
             ... )
             >>> result = service.validate_access_token(token)
             >>> match result:
-            ...     case Success(payload):
+            ...     case Success(value=payload):
             ...         assert "sub" in payload
             ...         assert "email" in payload
-            ...     case Failure(error):
+            ...     case Failure(error=error):
             ...         pass
 
         Note:
@@ -167,17 +169,13 @@ class JWTService:
             # python-jose automatically validates:
             # - Signature (using secret_key)
             # - Expiration (exp claim)
-            payload = jwt.decode(token, self._secret_key, algorithms=[self._algorithm])
-
-            return Success(payload)
-
-        except JWTError as e:
-            # Token is invalid, expired, or malformed
-            # Convert to domain error (no exceptions in domain)
-            return Failure(
-                AuthenticationError(
-                    message="Invalid or expired token",
-                    error_code="INVALID_TOKEN",
-                    details={"reason": str(e)},
-                )
+            payload: dict[str, str | int | list[str]] = jwt.decode(
+                token, self._secret_key, algorithms=[self._algorithm]
             )
+
+            return Success(value=payload)
+
+        except JWTError:
+            # Token is invalid, expired, or malformed
+            # Return error constant (no exceptions in domain)
+            return Failure(error=AuthenticationError.INVALID_TOKEN)

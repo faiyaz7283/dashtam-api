@@ -21,7 +21,6 @@ from typing import Protocol
 from uuid import UUID
 
 from src.core.result import Result
-from src.domain.errors import AuthenticationError
 
 
 class TokenGenerationProtocol(Protocol):
@@ -47,9 +46,9 @@ class TokenGenerationProtocol(Protocol):
         # Validate access token
         result = self.token_service.validate_access_token(token)
         match result:
-            case Success(payload):
+            case Success(value=payload):
                 user_id = payload["sub"]
-            case Failure(error):
+            case Failure(error=error):
                 # Invalid or expired token
                 pass
     """
@@ -91,14 +90,14 @@ class TokenGenerationProtocol(Protocol):
 
     def validate_access_token(
         self, token: str
-    ) -> Result[dict[str, str | int | list[str]], AuthenticationError]:
+    ) -> Result[dict[str, str | int | list[str]], str]:
         """Validate JWT access token and extract payload.
 
         Args:
             token: JWT access token string to validate.
 
         Returns:
-            Result with payload dict if valid, or AuthenticationError if invalid.
+            Result with payload dict if valid, or error string if invalid.
 
             Payload structure:
                 {
@@ -114,10 +113,10 @@ class TokenGenerationProtocol(Protocol):
         Example:
             >>> result = service.validate_access_token(token)
             >>> match result:
-            ...     case Success(payload):
+            ...     case Success(value=payload):
             ...         user_id = UUID(payload["sub"])
             ...         email = payload["email"]
-            ...     case Failure(error):
+            ...     case Failure(error=error):
             ...         # Token invalid, expired, or malformed
             ...         return 401 Unauthorized
 

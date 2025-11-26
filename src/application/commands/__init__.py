@@ -8,21 +8,46 @@ to execute the command.
 """
 
 from src.application.commands.auth_commands import (
+    AuthenticateUser,
+    AuthenticatedUser,
     ConfirmPasswordReset,
-    LoginUser,
     LogoutUser,
-    RefreshToken,
+    RefreshAccessToken,
     RegisterUser,
     RequestPasswordReset,
     VerifyEmail,
 )
+from src.application.commands.session_commands import (
+    CreateSession,
+    LinkRefreshTokenToSession,
+    RecordProviderAccess,
+    RevokeAllUserSessions,
+    RevokeSession,
+    UpdateSessionActivity,
+)
+from src.application.commands.token_commands import (
+    AuthTokens,
+    GenerateAuthTokens,
+)
 
 __all__ = [
+    # Auth commands
+    "AuthenticateUser",
+    "AuthenticatedUser",
     "ConfirmPasswordReset",
-    "LoginUser",
     "LogoutUser",
-    "RefreshToken",
+    "RefreshAccessToken",
     "RegisterUser",
     "RequestPasswordReset",
     "VerifyEmail",
+    # Session commands
+    "CreateSession",
+    "LinkRefreshTokenToSession",
+    "RecordProviderAccess",
+    "RevokeAllUserSessions",
+    "RevokeSession",
+    "UpdateSessionActivity",
+    # Token commands
+    "AuthTokens",
+    "GenerateAuthTokens",
 ]

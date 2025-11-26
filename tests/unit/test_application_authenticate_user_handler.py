@@ -1,7 +1,7 @@
-"""Unit tests for LoginUserHandler.
+"""Unit tests for AuthenticateUserHandler.
 
 Tests cover:
-- Successful login (returns tokens)
+- Successful authentication (returns AuthenticatedUser)
 - Invalid credentials (user not found)
 - Invalid credentials (wrong password)
 - Email not verified
@@ -15,6 +15,9 @@ Architecture:
 - Mock repository protocols
 - Test handler logic, not persistence
 - Async tests (handler uses async repositories)
+
+Note: This handler ONLY authenticates. It does NOT generate tokens.
+Token generation is handled by GenerateAuthTokensHandler (CQRS separation).
 """
 
 from datetime import UTC, datetime, timedelta
@@ -23,11 +26,10 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.application.commands.auth_commands import LoginUser
-from src.application.commands.handlers.login_user_handler import (
-    LoginError,
-    LoginResponse,
-    LoginUserHandler,
+from src.application.commands.auth_commands import AuthenticateUser, AuthenticatedUser
+from src.application.commands.handlers.authenticate_user_handler import (
+    AuthenticationError,
+    AuthenticateUserHandler,
 )
 from src.core.result import Failure, Success
 from src.domain.entities.user import User
@@ -63,47 +65,30 @@ def create_mock_user(
 
 
 @pytest.mark.unit
-class TestLoginUserHandlerSuccess:
-    """Test successful login scenarios."""
+class TestAuthenticateUserHandlerSuccess:
+    """Test successful authentication scenarios."""
 
     @pytest.mark.asyncio
-    async def test_login_success_returns_login_response(self):
-        """Test successful login returns Success with LoginResponse."""
+    async def test_authentication_success_returns_authenticated_user(self):
+        """Test successful auth returns Success with AuthenticatedUser."""
         # Arrange
         mock_user = create_mock_user()
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
-
         mock_password_service = Mock()
         mock_password_service.verify_password.return_value = True
 
-        mock_token_service = Mock()
-        mock_token_service.generate_access_token.return_value = "access_token_123"
-
-        mock_refresh_token_service = Mock()
-        mock_refresh_token_service.generate_token.return_value = (
-            "refresh_token_456",
-            "hashed_refresh",
-        )
-        mock_refresh_token_service.calculate_expiration.return_value = datetime.now(
-            UTC
-        ) + timedelta(days=7)
-
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="SecurePass123!",
         )
@@ -113,46 +98,32 @@ class TestLoginUserHandlerSuccess:
 
         # Assert
         assert isinstance(result, Success)
-        assert isinstance(result.value, LoginResponse)
-        assert result.value.access_token == "access_token_123"
-        assert result.value.refresh_token == "refresh_token_456"
-        assert result.value.token_type == "bearer"
+        assert isinstance(result.value, AuthenticatedUser)
+        assert result.value.user_id == mock_user.id
+        assert result.value.email == mock_user.email
+        assert result.value.roles == ["user"]
 
     @pytest.mark.asyncio
-    async def test_login_success_verifies_password(self):
-        """Test login verifies password with password service."""
+    async def test_authentication_success_verifies_password(self):
+        """Test auth verifies password with password service."""
         # Arrange
         mock_user = create_mock_user(password_hash="stored_hash")
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
-
         mock_password_service = Mock()
         mock_password_service.verify_password.return_value = True
 
-        mock_token_service = Mock()
-        mock_token_service.generate_access_token.return_value = "token"
-
-        mock_refresh_token_service = Mock()
-        mock_refresh_token_service.generate_token.return_value = ("refresh", "hash")
-        mock_refresh_token_service.calculate_expiration.return_value = datetime.now(
-            UTC
-        ) + timedelta(days=7)
-
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="MyPassword123!",
         )
@@ -167,40 +138,26 @@ class TestLoginUserHandlerSuccess:
         )
 
     @pytest.mark.asyncio
-    async def test_login_success_resets_failed_login_counter(self):
-        """Test successful login resets failed login counter."""
+    async def test_authentication_success_resets_failed_login_counter(self):
+        """Test successful auth resets failed login counter."""
         # Arrange
         mock_user = create_mock_user(failed_login_attempts=3)
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
-
         mock_password_service = Mock()
         mock_password_service.verify_password.return_value = True
 
-        mock_token_service = Mock()
-        mock_token_service.generate_access_token.return_value = "token"
-
-        mock_refresh_token_service = Mock()
-        mock_refresh_token_service.generate_token.return_value = ("refresh", "hash")
-        mock_refresh_token_service.calculate_expiration.return_value = datetime.now(
-            UTC
-        ) + timedelta(days=7)
-
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="SecurePass123!",
         )
@@ -214,32 +171,26 @@ class TestLoginUserHandlerSuccess:
 
 
 @pytest.mark.unit
-class TestLoginUserHandlerFailure:
-    """Test login failure scenarios."""
+class TestAuthenticateUserHandlerFailure:
+    """Test authentication failure scenarios."""
 
     @pytest.mark.asyncio
-    async def test_login_fails_when_user_not_found(self):
-        """Test login fails with INVALID_CREDENTIALS when user doesn't exist."""
+    async def test_authentication_fails_when_user_not_found(self):
+        """Test auth fails with INVALID_CREDENTIALS when user doesn't exist."""
         # Arrange
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = None
 
-        mock_refresh_token_repo = AsyncMock()
         mock_password_service = Mock()
-        mock_token_service = Mock()
-        mock_refresh_token_service = Mock()
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="nonexistent@example.com",
             password="SecurePass123!",
         )
@@ -249,36 +200,29 @@ class TestLoginUserHandlerFailure:
 
         # Assert
         assert isinstance(result, Failure)
-        assert result.error == LoginError.INVALID_CREDENTIALS
+        assert result.error == AuthenticationError.INVALID_CREDENTIALS
 
     @pytest.mark.asyncio
-    async def test_login_fails_when_password_wrong(self):
-        """Test login fails with INVALID_CREDENTIALS on wrong password."""
+    async def test_authentication_fails_when_password_wrong(self):
+        """Test auth fails with INVALID_CREDENTIALS on wrong password."""
         # Arrange
         mock_user = create_mock_user()
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
-
         mock_password_service = Mock()
         mock_password_service.verify_password.return_value = False
 
-        mock_token_service = Mock()
-        mock_refresh_token_service = Mock()
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="WrongPassword123!",
         )
@@ -288,33 +232,27 @@ class TestLoginUserHandlerFailure:
 
         # Assert
         assert isinstance(result, Failure)
-        assert result.error == LoginError.INVALID_CREDENTIALS
+        assert result.error == AuthenticationError.INVALID_CREDENTIALS
 
     @pytest.mark.asyncio
-    async def test_login_fails_when_email_not_verified(self):
-        """Test login fails with EMAIL_NOT_VERIFIED for unverified accounts."""
+    async def test_authentication_fails_when_email_not_verified(self):
+        """Test auth fails with EMAIL_NOT_VERIFIED for unverified accounts."""
         # Arrange
         mock_user = create_mock_user(is_verified=False)
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
         mock_password_service = Mock()
-        mock_token_service = Mock()
-        mock_refresh_token_service = Mock()
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="SecurePass123!",
         )
@@ -324,11 +262,11 @@ class TestLoginUserHandlerFailure:
 
         # Assert
         assert isinstance(result, Failure)
-        assert result.error == LoginError.EMAIL_NOT_VERIFIED
+        assert result.error == AuthenticationError.EMAIL_NOT_VERIFIED
 
     @pytest.mark.asyncio
-    async def test_login_fails_when_account_locked(self):
-        """Test login fails with ACCOUNT_LOCKED for locked accounts."""
+    async def test_authentication_fails_when_account_locked(self):
+        """Test auth fails with ACCOUNT_LOCKED for locked accounts."""
         # Arrange
         future_time = datetime.now(UTC) + timedelta(hours=1)
         mock_user = create_mock_user(locked_until=future_time)
@@ -337,22 +275,16 @@ class TestLoginUserHandlerFailure:
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
         mock_password_service = Mock()
-        mock_token_service = Mock()
-        mock_refresh_token_service = Mock()
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="SecurePass123!",
         )
@@ -362,33 +294,27 @@ class TestLoginUserHandlerFailure:
 
         # Assert
         assert isinstance(result, Failure)
-        assert result.error == LoginError.ACCOUNT_LOCKED
+        assert result.error == AuthenticationError.ACCOUNT_LOCKED
 
     @pytest.mark.asyncio
-    async def test_login_fails_when_account_inactive(self):
-        """Test login fails with ACCOUNT_INACTIVE for deactivated accounts."""
+    async def test_authentication_fails_when_account_inactive(self):
+        """Test auth fails with ACCOUNT_INACTIVE for deactivated accounts."""
         # Arrange
         mock_user = create_mock_user(is_active=False)
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
         mock_password_service = Mock()
-        mock_token_service = Mock()
-        mock_refresh_token_service = Mock()
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="SecurePass123!",
         )
@@ -398,36 +324,29 @@ class TestLoginUserHandlerFailure:
 
         # Assert
         assert isinstance(result, Failure)
-        assert result.error == LoginError.ACCOUNT_INACTIVE
+        assert result.error == AuthenticationError.ACCOUNT_INACTIVE
 
     @pytest.mark.asyncio
-    async def test_login_increments_failed_counter_on_wrong_password(self):
-        """Test failed login increments failed_login_attempts counter."""
+    async def test_authentication_increments_failed_counter_on_wrong_password(self):
+        """Test failed auth increments failed_login_attempts counter."""
         # Arrange
         mock_user = create_mock_user()
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
-
         mock_password_service = Mock()
         mock_password_service.verify_password.return_value = False
 
-        mock_token_service = Mock()
-        mock_refresh_token_service = Mock()
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="WrongPassword123!",
         )
@@ -441,44 +360,30 @@ class TestLoginUserHandlerFailure:
 
 
 @pytest.mark.unit
-class TestLoginUserHandlerEvents:
-    """Test domain event publishing during login."""
+class TestAuthenticateUserHandlerEvents:
+    """Test domain event publishing during authentication."""
 
     @pytest.mark.asyncio
-    async def test_login_publishes_attempted_event(self):
-        """Test login always publishes ATTEMPTED event first."""
+    async def test_authentication_publishes_attempted_event(self):
+        """Test auth always publishes ATTEMPTED event first."""
         # Arrange
         mock_user = create_mock_user()
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
-
         mock_password_service = Mock()
         mock_password_service.verify_password.return_value = True
 
-        mock_token_service = Mock()
-        mock_token_service.generate_access_token.return_value = "token"
-
-        mock_refresh_token_service = Mock()
-        mock_refresh_token_service.generate_token.return_value = ("refresh", "hash")
-        mock_refresh_token_service.calculate_expiration.return_value = datetime.now(
-            UTC
-        ) + timedelta(days=7)
-
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="SecurePass123!",
         )
@@ -493,40 +398,26 @@ class TestLoginUserHandlerEvents:
         assert event.email == "test@example.com"
 
     @pytest.mark.asyncio
-    async def test_login_publishes_succeeded_event_on_success(self):
-        """Test successful login publishes SUCCEEDED event."""
+    async def test_authentication_publishes_succeeded_event_on_success(self):
+        """Test successful auth publishes SUCCEEDED event."""
         # Arrange
         mock_user = create_mock_user()
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = mock_user
 
-        mock_refresh_token_repo = AsyncMock()
-
         mock_password_service = Mock()
         mock_password_service.verify_password.return_value = True
 
-        mock_token_service = Mock()
-        mock_token_service.generate_access_token.return_value = "token"
-
-        mock_refresh_token_service = Mock()
-        mock_refresh_token_service.generate_token.return_value = ("refresh", "hash")
-        mock_refresh_token_service.calculate_expiration.return_value = datetime.now(
-            UTC
-        ) + timedelta(days=7)
-
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="test@example.com",
             password="SecurePass123!",
         )
@@ -541,28 +432,22 @@ class TestLoginUserHandlerEvents:
         assert event.user_id == mock_user.id
 
     @pytest.mark.asyncio
-    async def test_login_publishes_failed_event_on_failure(self):
-        """Test failed login publishes FAILED event."""
+    async def test_authentication_publishes_failed_event_on_failure(self):
+        """Test failed auth publishes FAILED event."""
         # Arrange
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = None
 
-        mock_refresh_token_repo = AsyncMock()
         mock_password_service = Mock()
-        mock_token_service = Mock()
-        mock_refresh_token_service = Mock()
         mock_event_bus = AsyncMock()
 
-        handler = LoginUserHandler(
+        handler = AuthenticateUserHandler(
             user_repo=mock_user_repo,
-            refresh_token_repo=mock_refresh_token_repo,
             password_service=mock_password_service,
-            token_service=mock_token_service,
-            refresh_token_service=mock_refresh_token_service,
             event_bus=mock_event_bus,
         )
 
-        command = LoginUser(
+        command = AuthenticateUser(
             email="nonexistent@example.com",
             password="SecurePass123!",
         )
@@ -574,4 +459,4 @@ class TestLoginUserHandlerEvents:
         second_call = mock_event_bus.publish.call_args_list[1]
         event = second_call[0][0]
         assert isinstance(event, UserLoginFailed)
-        assert event.reason == LoginError.INVALID_CREDENTIALS
+        assert event.reason == AuthenticationError.INVALID_CREDENTIALS

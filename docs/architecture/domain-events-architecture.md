@@ -310,6 +310,91 @@ async def publish(self, event: DomainEvent) -> None:
 | Command | Request | Imperative | `ChangePassword`          | Trigger operation   |
 | Event   | Fact    | Past       | `PasswordChangeAttempted` | Notify state change |
 
+### Decision 6: Operational Events (Non-Workflow)
+
+**Context**: Some events are needed for observability, security monitoring, or telemetry but don't represent critical workflows requiring the 3-state ATTEMPT → OUTCOME pattern.
+
+**Decision**: Support **Operational Events** that:
+
+- Do NOT follow 3-state pattern (single event, not attempted/succeeded/failed)
+- Are used for telemetry, monitoring, security tracking
+- Have lightweight handlers (logging, metrics, cache updates)
+- Do NOT trigger audit records (unless security-relevant)
+
+**Operational Event Categories**:
+
+1. **Activity Tracking**: High-frequency events for monitoring
+   - `SessionActivityUpdatedEvent` - Track session activity timestamps
+   - `ProviderSyncProgressEvent` - Track sync progress
+
+2. **Security Monitoring**: Events for anomaly detection
+   - `SuspiciousSessionActivityEvent` - Flag suspicious patterns
+   - `SessionLimitExceededEvent` - Track limit enforcement
+   - `IPAddressChangedEvent` - Track IP changes within session
+
+3. **Resource Access Tracking**: Audit-relevant access events
+   - `SessionProviderAccessEvent` - Track which providers accessed per session
+   - `SensitiveDataAccessedEvent` - Track PII/financial data access
+
+**Naming Convention**: `<Entity><What>Event` (single past-tense fact)
+
+- ✅ `SessionActivityUpdatedEvent` (activity was updated)
+- ✅ `SessionProviderAccessEvent` (provider was accessed)
+- ✅ `SuspiciousSessionActivityEvent` (suspicious activity detected)
+- ❌ `UpdateSessionActivity` (imperative - this is a command)
+
+**Implementation Pattern**:
+
+```python
+# Operational event - single state, no 3-state pattern
+@dataclass(frozen=True, kw_only=True, slots=True)
+class SessionActivityUpdatedEvent(DomainEvent):
+    """Emitted when session activity is updated.
+
+    Operational event for telemetry (not a workflow).
+    Handlers should be lightweight (<10ms).
+    """
+    session_id: UUID
+    user_id: UUID
+    ip_address: str | None = None
+    ip_changed: bool = False
+```
+
+**When to Use Operational Events** (vs Workflow Events):
+
+| Criteria | Workflow Event (3-state) | Operational Event (single) |
+|----------|--------------------------|----------------------------|
+| Business operation | ✅ Yes | ❌ No |
+| Requires audit trail | ✅ Yes (compliance) | ⚠️ Maybe (security only) |
+| Has multiple side effects | ✅ Yes (3+) | ❌ No (1-2) |
+| Can fail with user impact | ✅ Yes | ❌ No |
+| High frequency | ❌ Usually no | ✅ Often yes |
+| Examples | Login, Password Change | Activity tracking, Metrics |
+
+**Handler Requirements for Operational Events**:
+
+- **Lightweight**: Complete in <10ms (no database writes in critical path)
+- **Fail-silent**: Failures logged but never block business flow
+- **Async-safe**: Can be fire-and-forget
+- **No audit**: Unless explicitly security-relevant
+
+**Example: Session Management Operational Events**:
+
+```python
+# Session module operational events
+SessionActivityUpdatedEvent      # High-frequency activity tracking
+SessionProviderAccessEvent       # Provider access per session (audit)
+SuspiciousSessionActivityEvent   # Security anomaly detection
+SessionLimitExceededEvent        # Informational (limit enforcement)
+```
+
+**Why Not 3-State for These?**
+
+1. **No business operation to fail**: Activity update is observation, not operation
+2. **No user-facing outcome**: User doesn't care if activity tracking fails
+3. **High frequency**: 3-state would triple event volume unnecessarily
+4. **No audit requirement**: Compliance doesn't require ATTEMPT for observations
+
 ---
 
 ## Architecture Diagram

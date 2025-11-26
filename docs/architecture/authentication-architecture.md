@@ -74,7 +74,7 @@ Refresh Token (Opaque):
 - Used ONLY to get new access token
 ```
 
-### Token Lifecycle
+### Token Lifecycle (3-Handler Orchestration)
 
 ```text
 ┌─────────────┐
@@ -83,41 +83,61 @@ Refresh Token (Opaque):
        │ POST /api/v1/sessions
        │ email + password
        ↓
-┌─────────────────────────────┐
-│     Session Handler         │
-│  (Note: Login uses simple   │
-│   success pattern for MVP)  │
-│  1. Validate credentials    │
-│  2. Check email verified    │
-│  3. Generate JWT (15min)    │
-│  4. Generate refresh token  │
-│  5. Hash & store in DB      │
-│  6. Create session (F1.3)   │
-│  7. Emit event (success)    │
-└──────┬────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│  Presentation Layer (sessions.py)                  │
+│  Orchestrates 3 handlers (CQRS pattern):           │
+│                                                    │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ 1. AuthenticateUserHandler                  │   │
+│  │    - Verify credentials                     │   │
+│  │    - Check email verified                   │   │
+│  │    - Check account not locked               │   │
+│  │    - Emit UserLoginAttempted event          │   │
+│  │    - Emit UserLoginSucceeded/Failed event   │   │
+│  │    → Returns AuthenticatedUser (user_id,    │   │
+│  │      email, roles)                          │   │
+│  └─────────────────────────────────────────────┘   │
+│                      ↓                             │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ 2. CreateSessionHandler                     │   │
+│  │    - Enrich device info (user agent)        │   │
+│  │    - Enrich location (IP address)           │   │
+│  │    - Check session limit (may evict oldest) │   │
+│  │    - Create session in database             │   │
+│  │    - Cache session in Redis                 │   │
+│  │    - Emit SessionCreatedEvent               │   │
+│  │    → Returns session_id                     │   │
+│  └─────────────────────────────────────────────┘   │
+│                      ↓                             │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ 3. GenerateAuthTokensHandler                │   │
+│  │    - Generate JWT access token (15min)      │   │
+│  │    - Generate opaque refresh token          │   │
+│  │    - Hash & store refresh token in DB       │   │
+│  │    → Returns access_token, refresh_token    │   │
+│  └─────────────────────────────────────────────┘   │
+└──────┬─────────────────────────────────────────────┘
        │ 201 Created
        │ { access_token, refresh_token }
        ↓
 ┌─────────────┐
 │   Client    │ ← Stores tokens
 │  (uses JWT) │   Uses JWT for API requests
-└──────┬──────┘   
+└──────┬──────┘
        │ After 15min, JWT expires
        │ POST /api/v1/tokens
        │ { refresh_token }
        ↓
 ┌─────────────────────────────┐
 │  Token Refresh Handler      │
-│  (Note: Refresh uses simple │
-│   success pattern for MVP)  │
-│  1. Hash provided token     │
+│  1. Verify refresh token    │
 │  2. Lookup in database      │
 │  3. Validate not expired    │
 │  4. Validate not revoked    │
 │  5. Generate new JWT        │
 │  6. Rotate refresh token    │
 │  7. Emit event (success)    │
-└──────┬────────────────────────┘
+└──────┬──────────────────────┘
        │ 201 Created
        │ { access_token, refresh_token }
        ↓
@@ -125,6 +145,13 @@ Refresh Token (Opaque):
 │   Client    │ ← Receives new tokens
 └─────────────┘
 ```
+
+**Benefits of 3-Handler Pattern**:
+
+1. **Single Responsibility**: Each handler does ONE thing
+2. **Testability**: Test each handler in isolation
+3. **Reusability**: Can generate tokens without authenticating (OAuth flow)
+4. **CQRS Compliance**: Presentation layer orchestrates, handlers execute single commands
 
 ---
 
@@ -887,41 +914,67 @@ async def handle(self, cmd: RegisterUser) -> Result[UUID, Error]:
 
 ## 10. Session Management Integration
 
-### Session Creation on Login
+### Session Creation on Login (3-Handler Orchestration)
 
-**Login handler creates session** (F1.3 dependency):
+**Presentation layer orchestrates 3 handlers** (CQRS pattern):
 
 ```python
-async def handle(self, cmd: LoginUser) -> Result[LoginResponse, AuthError]:
-    # ... validate credentials ...
-    
-    # Create session (F1.3)
-    session = await self.session_service.create_session(
-        user_id=user.id,
-        device_info="Chrome on macOS",  # From DeviceEnricher
-        ip_address=cmd.ip_address,
-        user_agent=cmd.user_agent,
-        location="New York, US",  # From GeolocationEnricher
+# src/presentation/api/v1/sessions.py
+@router.post("/sessions", status_code=201)
+async def create_session(
+    request: Request,
+    data: SessionCreateRequest,
+    auth_handler: AuthenticateUserHandler = Depends(get_authenticate_user_handler),
+    session_handler: CreateSessionHandler = Depends(get_create_session_handler),
+    token_handler: GenerateAuthTokensHandler = Depends(get_generate_auth_tokens_handler),
+) -> SessionCreateResponse:
+    """Orchestrate login flow with 3 handlers."""
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+
+    # Step 1: Authenticate user credentials
+    auth_result = await auth_handler.handle(
+        AuthenticateUser(email=data.email, password=data.password)
     )
-    
-    # Generate tokens with session_id
-    access_token = self.jwt_service.generate_access_token(
-        user_id=user.id,
-        email=user.email,
-        roles=user.roles,
-        session_id=session.id,  # Include in JWT payload
+    if isinstance(auth_result, Failure):
+        raise appropriate_http_error(auth_result.error)
+
+    # Step 2: Create session with device/location enrichment
+    session_result = await session_handler.handle(
+        CreateSession(
+            user_id=auth_result.value.user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
     )
-    
-    refresh_token = self.token_service.generate_refresh_token(
-        user_id=user.id,
-        session_id=session.id,  # Tie to session
+    if isinstance(session_result, Failure):
+        raise appropriate_http_error(session_result.error)
+
+    # Step 3: Generate tokens
+    token_result = await token_handler.handle(
+        GenerateAuthTokens(
+            user_id=auth_result.value.user_id,
+            email=auth_result.value.email,
+            roles=auth_result.value.roles,
+            session_id=session_result.value.session_id,
+        )
     )
-    
-    return Success(LoginResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-    ))
+    if isinstance(token_result, Failure):
+        raise appropriate_http_error(token_result.error)
+
+    return SessionCreateResponse(
+        access_token=token_result.value.access_token,
+        refresh_token=token_result.value.refresh_token,
+    )
 ```
+
+**Handler responsibilities**:
+
+| Handler | Responsibility | Returns |
+| ------- | -------------- | ------- |
+| `AuthenticateUserHandler` | Verify credentials, check locks | `AuthenticatedUser` (user_id, email, roles) |
+| `CreateSessionHandler` | Device/location enrichment, session limits | `session_id` |
+| `GenerateAuthTokensHandler` | Generate JWT + refresh token | `AuthTokens` |
 
 ### Session Revocation on Password Change
 
@@ -1086,7 +1139,7 @@ async def handle(self, cmd: RefreshToken) -> Result[RefreshResponse, Error]:
 ### Resource Summary
 
 | Resource | Method | Endpoint | Description | Status |
-|----------|--------|----------|-------------|--------|
+| -------- | ------ | -------- | ----------- | ------ |
 | User | POST | `/api/v1/users` | Create user (register) | 201 |
 | Session | POST | `/api/v1/sessions` | Create session (login) | 201 |
 | Session | DELETE | `/api/v1/sessions/current` | Delete session (logout) | 204 |

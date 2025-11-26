@@ -145,9 +145,9 @@ async def create_password_reset(
 
     # Handle result
     match result:
-        case Success(_):
+        case Success(value=_):
             return PasswordResetCreateResponse()
-        case Failure(error):
+        case Failure(error=error):
             # Map error to appropriate status code
             error_mapping = {
                 "token_not_found": (status.HTTP_404_NOT_FOUND, "Token Not Found"),

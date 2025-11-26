@@ -37,6 +37,7 @@ from src.domain.events.auth_events import (
     AuthTokenRefreshSucceeded,
 )
 from src.domain.protocols import (
+    RefreshTokenData,
     RefreshTokenRepository,
     RefreshTokenServiceProtocol,
     TokenGenerationProtocol,
@@ -219,7 +220,9 @@ class RefreshAccessTokenHandler:
             )
         )
 
-    async def _find_valid_refresh_token(self, provided_token: str):
+    async def _find_valid_refresh_token(
+        self, provided_token: str
+    ) -> RefreshTokenData | None:
         """Find refresh token by verifying against stored hashes.
 
         Since bcrypt hashes are non-deterministic, we cannot simply hash

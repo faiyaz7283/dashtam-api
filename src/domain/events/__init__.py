@@ -67,6 +67,16 @@ from src.domain.events.auth_events import (
     UserRegistrationSucceeded,
 )
 from src.domain.events.base_event import DomainEvent
+from src.domain.events.session_events import (
+    AllSessionsRevokedEvent,
+    SessionActivityUpdatedEvent,
+    SessionCreatedEvent,
+    SessionEvictedEvent,
+    SessionLimitExceededEvent,
+    SessionProviderAccessEvent,
+    SessionRevokedEvent,
+    SuspiciousSessionActivityEvent,
+)
 
 __all__ = [
     # Base event
@@ -111,4 +121,13 @@ __all__ = [
     "ProviderTokenRefreshAttempted",
     "ProviderTokenRefreshSucceeded",
     "ProviderTokenRefreshFailed",
+    # Session Management Events
+    "AllSessionsRevokedEvent",
+    "SessionActivityUpdatedEvent",
+    "SessionCreatedEvent",
+    "SessionEvictedEvent",
+    "SessionLimitExceededEvent",
+    "SessionProviderAccessEvent",
+    "SessionRevokedEvent",
+    "SuspiciousSessionActivityEvent",
 ]

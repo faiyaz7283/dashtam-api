@@ -7,6 +7,7 @@ domain layer.
 Models Organization:
     - audit_log.py: Audit trail model (immutable)
     - user.py: User model
+    - session.py: Session model
     - refresh_token.py: Refresh token model
     - email_verification_token.py: Email verification token model
     - password_reset_token.py: Password reset token model
@@ -25,11 +26,13 @@ from src.infrastructure.persistence.models.password_reset_token import (
     PasswordResetToken,
 )
 from src.infrastructure.persistence.models.refresh_token import RefreshToken
+from src.infrastructure.persistence.models.session import Session
 from src.infrastructure.persistence.models.user import User
 
 __all__ = [
     "AuditLog",
     "User",
+    "Session",
     "RefreshToken",
     "EmailVerificationToken",
     "PasswordResetToken",

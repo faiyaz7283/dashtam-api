@@ -1,11 +1,29 @@
 """User domain entity for authentication.
 
 Pure business logic, no framework dependencies.
+
+Session Management:
+    - session_tier: Role-based tier determining default session limit
+    - max_sessions: Optional admin override for session limit
+    - get_max_sessions(): Returns effective session limit
 """
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
+
+# Session tier limits (default limits by tier)
+# None means unlimited sessions
+SESSION_TIER_LIMITS: dict[str, int | None] = {
+    "pro": None,  # Unlimited
+    "premium": 10,
+    "plus": 5,
+    "essential": 3,
+    "basic": 2,
+}
+
+# Default tier for new users
+DEFAULT_SESSION_TIER = "basic"
 
 
 @dataclass
@@ -31,6 +49,10 @@ class User:
         locked_until: Timestamp until which account is locked (None if not locked)
         created_at: Timestamp when user was created
         updated_at: Timestamp when user was last updated
+
+        Session Management:
+            session_tier: Role-based tier (basic, essential, plus, premium, pro)
+            max_sessions: Admin override for session limit (None = use tier default)
 
     Example:
         >>> user = User(
@@ -60,6 +82,10 @@ class User:
     locked_until: datetime | None
     created_at: datetime
     updated_at: datetime
+
+    # Session management (F1.3)
+    session_tier: str = DEFAULT_SESSION_TIER
+    max_sessions: int | None = None  # Admin override (None = use tier default)
 
     def is_locked(self) -> bool:
         """Check if account is currently locked due to failed login attempts.
@@ -140,3 +166,57 @@ class User:
             False
         """
         return self.is_verified and self.is_active and not self.is_locked()
+
+    def get_max_sessions(self) -> int | None:
+        """Get effective maximum sessions for this user.
+
+        Priority:
+        1. Admin override (max_sessions field) if set
+        2. Tier-based default from SESSION_TIER_LIMITS
+        3. Falls back to 'basic' tier if invalid tier
+
+        Returns:
+            int | None: Maximum sessions allowed (None = unlimited)
+
+        Example:
+            >>> user = User(..., session_tier="premium", max_sessions=None)
+            >>> user.get_max_sessions()
+            10
+            >>> user.max_sessions = 15  # Admin override
+            >>> user.get_max_sessions()
+            15
+            >>> user.session_tier = "ultimate"
+            >>> user.max_sessions = None
+            >>> user.get_max_sessions()
+            None  # Unlimited
+        """
+        # Admin override takes precedence
+        if self.max_sessions is not None:
+            return self.max_sessions
+
+        # Use tier-based default
+        return SESSION_TIER_LIMITS.get(
+            self.session_tier,
+            SESSION_TIER_LIMITS[DEFAULT_SESSION_TIER],  # Fallback
+        )
+
+    def can_create_session(self, current_session_count: int) -> bool:
+        """Check if user can create a new session.
+
+        Args:
+            current_session_count: Number of active sessions user currently has.
+
+        Returns:
+            bool: True if user can create new session, False if at limit.
+
+        Example:
+            >>> user = User(..., session_tier="basic")  # limit=2
+            >>> user.can_create_session(1)
+            True
+            >>> user.can_create_session(2)
+            False
+        """
+        max_sessions = self.get_max_sessions()
+        if max_sessions is None:
+            return True  # Unlimited
+        return current_session_count < max_sessions

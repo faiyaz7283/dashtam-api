@@ -71,14 +71,14 @@ async def create_tokens(
 
     # Handle result
     match result:
-        case Success(refresh_response):
+        case Success(value=refresh_response):
             return TokenCreateResponse(
                 access_token=refresh_response.access_token,
                 refresh_token=refresh_response.refresh_token,
                 token_type=refresh_response.token_type,
                 expires_in=refresh_response.expires_in,
             )
-        case Failure(error):
+        case Failure(error=error):
             # Map error to appropriate status code
             error_mapping = {
                 "token_invalid": (status.HTTP_400_BAD_REQUEST, "Invalid Token"),

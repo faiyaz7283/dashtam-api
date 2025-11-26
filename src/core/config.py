@@ -319,6 +319,7 @@ class Settings(BaseSettings):
             # API
             api_base_url=get_required("api/base_url"),
             callback_base_url=get_required("api/callback_base_url"),
+            verification_url_base=get_required("api/verification_url_base"),
             # CORS
             cors_origins=get_required("api/cors_origins"),
             # Providers (optional)

@@ -25,6 +25,8 @@ def _to_data(model: RefreshToken) -> RefreshTokenData:
         revoked_at=model.revoked_at,
         last_used_at=model.last_used_at,
         rotation_count=model.rotation_count,
+        token_version=model.token_version,
+        global_version_at_issuance=model.global_version_at_issuance,
     )
 
 
@@ -60,6 +62,9 @@ class RefreshTokenRepository:
         token_hash: str,
         session_id: UUID,
         expires_at: datetime,
+        *,
+        token_version: int = 1,
+        global_version_at_issuance: int = 1,
     ) -> RefreshTokenData:
         """Create new refresh token in database.
 
@@ -68,6 +73,8 @@ class RefreshTokenRepository:
             token_hash: Bcrypt hash of the refresh token.
             session_id: Associated session ID.
             expires_at: Token expiration timestamp.
+            token_version: Token version at issuance (for breach rotation).
+            global_version_at_issuance: Global min version when issued.
 
         Returns:
             Created RefreshTokenData.
@@ -77,6 +84,8 @@ class RefreshTokenRepository:
             token_hash=token_hash,
             session_id=session_id,
             expires_at=expires_at,
+            token_version=token_version,
+            global_version_at_issuance=global_version_at_issuance,
         )
         self.session.add(token_model)
         await self.session.commit()

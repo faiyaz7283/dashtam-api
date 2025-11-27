@@ -26,6 +26,7 @@ from src.infrastructure.persistence.models.password_reset_token import (
     PasswordResetToken,
 )
 from src.infrastructure.persistence.models.refresh_token import RefreshToken
+from src.infrastructure.persistence.models.security_config import SecurityConfig
 from src.infrastructure.persistence.models.session import Session
 from src.infrastructure.persistence.models.user import User
 
@@ -36,4 +37,5 @@ __all__ = [
     "RefreshToken",
     "EmailVerificationToken",
     "PasswordResetToken",
+    "SecurityConfig",
 ]

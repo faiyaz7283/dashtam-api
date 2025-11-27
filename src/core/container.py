@@ -106,6 +106,14 @@ if TYPE_CHECKING:
     )
     from src.application.queries.handlers.get_session_handler import GetSessionHandler
 
+    # Token rotation handlers
+    from src.application.commands.handlers.trigger_global_rotation_handler import (
+        TriggerGlobalTokenRotationHandler,
+    )
+    from src.application.commands.handlers.trigger_user_rotation_handler import (
+        TriggerUserTokenRotationHandler,
+    )
+
 
 # ============================================================================
 # Application-Scoped Dependencies (Singletons)
@@ -915,10 +923,14 @@ async def get_generate_auth_tokens_handler(
     from src.application.commands.handlers.generate_auth_tokens_handler import (
         GenerateAuthTokensHandler,
     )
-    from src.infrastructure.persistence.repositories import RefreshTokenRepository
+    from src.infrastructure.persistence.repositories import (
+        RefreshTokenRepository,
+        SecurityConfigRepository,
+    )
     from src.infrastructure.security.refresh_token_service import RefreshTokenService
 
     refresh_token_repo = RefreshTokenRepository(session=session)
+    security_config_repo = SecurityConfigRepository(session=session)
     token_service = get_token_service()
     refresh_token_service = RefreshTokenService()
 
@@ -926,6 +938,7 @@ async def get_generate_auth_tokens_handler(
         token_service=token_service,
         refresh_token_service=refresh_token_service,
         refresh_token_repo=refresh_token_repo,
+        security_config_repo=security_config_repo,
     )
 
 
@@ -1005,11 +1018,13 @@ async def get_refresh_token_handler(
     from src.infrastructure.persistence.repositories import (
         UserRepository,
         RefreshTokenRepository,
+        SecurityConfigRepository,
     )
     from src.infrastructure.security.refresh_token_service import RefreshTokenService
 
     user_repo = UserRepository(session=session)
     refresh_token_repo = RefreshTokenRepository(session=session)
+    security_config_repo = SecurityConfigRepository(session=session)
     token_service = get_token_service()
     refresh_token_service = RefreshTokenService()
     event_bus = get_event_bus()
@@ -1017,6 +1032,7 @@ async def get_refresh_token_handler(
     return RefreshAccessTokenHandler(
         user_repo=user_repo,
         refresh_token_repo=refresh_token_repo,
+        security_config_repo=security_config_repo,
         token_service=token_service,
         refresh_token_service=refresh_token_service,
         event_bus=event_bus,
@@ -1211,5 +1227,58 @@ async def get_revoke_all_sessions_handler(
     return RevokeAllSessionsHandler(
         session_repo=session_repo,
         session_cache=session_cache,
+        event_bus=event_bus,
+    )
+
+
+# ============================================================================
+# Token Rotation Handler Factories
+# ============================================================================
+
+
+async def get_trigger_global_rotation_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "TriggerGlobalTokenRotationHandler":
+    """Get TriggerGlobalTokenRotation command handler (request-scoped).
+
+    Admin-only operation for global token rotation.
+
+    Returns:
+        TriggerGlobalTokenRotationHandler instance.
+    """
+    from src.application.commands.handlers.trigger_global_rotation_handler import (
+        TriggerGlobalTokenRotationHandler,
+    )
+    from src.infrastructure.persistence.repositories import SecurityConfigRepository
+
+    security_config_repo = SecurityConfigRepository(session=session)
+    event_bus = get_event_bus()
+
+    return TriggerGlobalTokenRotationHandler(
+        security_config_repo=security_config_repo,
+        event_bus=event_bus,
+    )
+
+
+async def get_trigger_user_rotation_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "TriggerUserTokenRotationHandler":
+    """Get TriggerUserTokenRotation command handler (request-scoped).
+
+    Per-user token rotation (password change, log out everywhere).
+
+    Returns:
+        TriggerUserTokenRotationHandler instance.
+    """
+    from src.application.commands.handlers.trigger_user_rotation_handler import (
+        TriggerUserTokenRotationHandler,
+    )
+    from src.infrastructure.persistence.repositories import UserRepository
+
+    user_repo = UserRepository(session=session)
+    event_bus = get_event_bus()
+
+    return TriggerUserTokenRotationHandler(
+        user_repo=user_repo,
         event_bus=event_bus,
     )

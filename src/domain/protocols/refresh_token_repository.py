@@ -24,6 +24,10 @@ class RefreshTokenData:
 
     Used by protocol methods to return token data without
     exposing infrastructure model classes to domain/application layers.
+
+    Token Breach Rotation:
+        token_version: Version at time of creation (for validation)
+        global_version_at_issuance: Global min version when issued (for grace period)
     """
 
     id: UUID
@@ -34,6 +38,9 @@ class RefreshTokenData:
     revoked_at: datetime | None
     last_used_at: datetime | None
     rotation_count: int
+    # Token breach rotation fields
+    token_version: int = 1
+    global_version_at_issuance: int = 1
 
 
 class RefreshTokenRepository(Protocol):
@@ -58,6 +65,9 @@ class RefreshTokenRepository(Protocol):
         token_hash: str,
         session_id: UUID,
         expires_at: datetime,
+        *,
+        token_version: int = 1,
+        global_version_at_issuance: int = 1,
     ) -> RefreshTokenData:
         """Create new refresh token.
 
@@ -66,6 +76,8 @@ class RefreshTokenRepository(Protocol):
             token_hash: Bcrypt hash of the refresh token (never store plaintext).
             session_id: Associated session ID (F1.3 integration).
             expires_at: Token expiration timestamp (typically 30 days from now).
+            token_version: Token version at issuance (for breach rotation).
+            global_version_at_issuance: Global min version when issued (for grace period).
 
         Returns:
             Created RefreshTokenData with token info.

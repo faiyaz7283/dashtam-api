@@ -17,7 +17,11 @@ Architecture:
 
 from src.application.commands.token_commands import AuthTokens, GenerateAuthTokens
 from src.core.result import Result, Success
-from src.domain.protocols import RefreshTokenRepository, TokenGenerationProtocol
+from src.domain.protocols import (
+    RefreshTokenRepository,
+    SecurityConfigRepository,
+    TokenGenerationProtocol,
+)
 from src.domain.protocols.refresh_token_service_protocol import (
     RefreshTokenServiceProtocol,
 )
@@ -40,6 +44,7 @@ class GenerateAuthTokensHandler:
         token_service: TokenGenerationProtocol,
         refresh_token_service: RefreshTokenServiceProtocol,
         refresh_token_repo: RefreshTokenRepository,
+        security_config_repo: SecurityConfigRepository,
     ) -> None:
         """Initialize token generation handler with dependencies.
 
@@ -47,10 +52,12 @@ class GenerateAuthTokensHandler:
             token_service: JWT access token generation service.
             refresh_token_service: Opaque refresh token generation service.
             refresh_token_repo: Refresh token repository for persistence.
+            security_config_repo: Security config repository for token versioning.
         """
         self._token_service = token_service
         self._refresh_token_service = refresh_token_service
         self._refresh_token_repo = refresh_token_repo
+        self._security_config_repo = security_config_repo
 
     async def handle(self, cmd: GenerateAuthTokens) -> Result[AuthTokens, str]:
         """Handle auth token generation command.
@@ -78,15 +85,20 @@ class GenerateAuthTokensHandler:
         # Step 3: Calculate expiration
         expires_at = self._refresh_token_service.calculate_expiration()
 
-        # Step 4: Persist refresh token to database
+        # Step 4: Get current security config for token versioning
+        security_config = await self._security_config_repo.get_or_create_default()
+
+        # Step 5: Persist refresh token to database with version info
         await self._refresh_token_repo.save(
             user_id=cmd.user_id,
             token_hash=token_hash,
             session_id=cmd.session_id,
             expires_at=expires_at,
+            token_version=security_config.global_min_token_version,
+            global_version_at_issuance=security_config.global_min_token_version,
         )
 
-        # Step 5: Return tokens
+        # Step 6: Return tokens
         return Success(
             value=AuthTokens(
                 access_token=access_token,

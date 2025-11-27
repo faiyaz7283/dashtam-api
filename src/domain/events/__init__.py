@@ -34,6 +34,10 @@ from src.domain.events.auth_events import (
     EmailVerificationAttempted,
     EmailVerificationFailed,
     EmailVerificationSucceeded,
+    # Global Token Rotation Events (3-state)
+    GlobalTokenRotationAttempted,
+    GlobalTokenRotationFailed,
+    GlobalTokenRotationSucceeded,
     # Password Reset Events
     PasswordResetConfirmAttempted,
     PasswordResetConfirmFailed,
@@ -49,6 +53,8 @@ from src.domain.events.auth_events import (
     ProviderTokenRefreshAttempted,
     ProviderTokenRefreshFailed,
     ProviderTokenRefreshSucceeded,
+    # Token Rejection Event (Security Monitoring)
+    TokenRejectedDueToRotation,
     # User Login Events
     UserLoginAttempted,
     UserLoginFailed,
@@ -65,6 +71,10 @@ from src.domain.events.auth_events import (
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
+    # User Token Rotation Events (3-state)
+    UserTokenRotationAttempted,
+    UserTokenRotationFailed,
+    UserTokenRotationSucceeded,
 )
 from src.domain.events.base_event import DomainEvent
 from src.domain.events.session_events import (
@@ -121,6 +131,16 @@ __all__ = [
     "ProviderTokenRefreshAttempted",
     "ProviderTokenRefreshSucceeded",
     "ProviderTokenRefreshFailed",
+    # Global Token Rotation Events (3-state)
+    "GlobalTokenRotationAttempted",
+    "GlobalTokenRotationSucceeded",
+    "GlobalTokenRotationFailed",
+    # User Token Rotation Events (3-state)
+    "UserTokenRotationAttempted",
+    "UserTokenRotationSucceeded",
+    "UserTokenRotationFailed",
+    # Token Rejection Event (Security Monitoring)
+    "TokenRejectedDueToRotation",
     # Session Management Events
     "AllSessionsRevokedEvent",
     "SessionActivityUpdatedEvent",

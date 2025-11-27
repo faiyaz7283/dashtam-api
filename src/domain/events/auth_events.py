@@ -527,3 +527,164 @@ class ProviderTokenRefreshFailed(DomainEvent):
     provider_id: UUID
     provider_name: str
     error_code: str
+
+
+# ═══════════════════════════════════════════════════════════════
+# Global Token Rotation (Workflow 10)
+# ═══════════════════════════════════════════════════════════════
+
+
+@dataclass(frozen=True, kw_only=True)
+class GlobalTokenRotationAttempted(DomainEvent):
+    """Global token rotation attempt initiated.
+
+    Triggers:
+    - LoggingEventHandler: Log attempt
+    - AuditEventHandler: Record GLOBAL_TOKEN_ROTATION_ATTEMPTED
+
+    Attributes:
+        triggered_by: Who triggered rotation (admin user ID or "system").
+        reason: Why rotation is being triggered.
+    """
+
+    triggered_by: str  # User ID or "system"
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class GlobalTokenRotationSucceeded(DomainEvent):
+    """Global token rotation completed successfully.
+
+    Triggers:
+    - LoggingEventHandler: Log success
+    - AuditEventHandler: Record GLOBAL_TOKEN_ROTATION_SUCCEEDED
+
+    Attributes:
+        triggered_by: Who triggered rotation (admin user ID or "system").
+        previous_version: Previous global minimum token version.
+        new_version: New global minimum token version.
+        reason: Why rotation was triggered.
+        grace_period_seconds: Grace period before full enforcement.
+    """
+
+    triggered_by: str  # User ID or "system"
+    previous_version: int
+    new_version: int
+    reason: str
+    grace_period_seconds: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class GlobalTokenRotationFailed(DomainEvent):
+    """Global token rotation failed.
+
+    Triggers:
+    - LoggingEventHandler: Log failure
+    - AuditEventHandler: Record GLOBAL_TOKEN_ROTATION_FAILED
+
+    Attributes:
+        triggered_by: Who triggered rotation (admin user ID or "system").
+        reason: Original reason for rotation attempt.
+        failure_reason: Why rotation failed (e.g., "config_not_found").
+    """
+
+    triggered_by: str  # User ID or "system"
+    reason: str
+    failure_reason: str
+
+
+# ═══════════════════════════════════════════════════════════════
+# Per-User Token Rotation (Workflow 11)
+# ═══════════════════════════════════════════════════════════════
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserTokenRotationAttempted(DomainEvent):
+    """Per-user token rotation attempt initiated.
+
+    Triggers:
+    - LoggingEventHandler: Log attempt
+    - AuditEventHandler: Record USER_TOKEN_ROTATION_ATTEMPTED
+
+    Attributes:
+        user_id: User whose tokens are being rotated.
+        triggered_by: Who triggered rotation (user_id, admin_id, or "system").
+        reason: Why rotation is being triggered.
+    """
+
+    user_id: UUID
+    triggered_by: str  # User ID, admin ID, or "system"
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserTokenRotationSucceeded(DomainEvent):
+    """Per-user token rotation completed successfully.
+
+    Triggers:
+    - LoggingEventHandler: Log success
+    - AuditEventHandler: Record USER_TOKEN_ROTATION_SUCCEEDED
+
+    Attributes:
+        user_id: User whose tokens were rotated.
+        triggered_by: Who triggered rotation (user_id, admin_id, or "system").
+        previous_version: Previous user minimum token version.
+        new_version: New user minimum token version.
+        reason: Why rotation was triggered.
+    """
+
+    user_id: UUID
+    triggered_by: str  # User ID, admin ID, or "system"
+    previous_version: int
+    new_version: int
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserTokenRotationFailed(DomainEvent):
+    """Per-user token rotation failed.
+
+    Triggers:
+    - LoggingEventHandler: Log failure
+    - AuditEventHandler: Record USER_TOKEN_ROTATION_FAILED
+
+    Attributes:
+        user_id: User whose tokens were being rotated.
+        triggered_by: Who triggered rotation (user_id, admin_id, or "system").
+        reason: Original reason for rotation attempt.
+        failure_reason: Why rotation failed (e.g., "user_not_found").
+    """
+
+    user_id: UUID
+    triggered_by: str  # User ID, admin ID, or "system"
+    reason: str
+    failure_reason: str
+
+
+# ═══════════════════════════════════════════════════════════════
+# Token Version Validation (Security Monitoring)
+# ═══════════════════════════════════════════════════════════════
+
+
+@dataclass(frozen=True, kw_only=True)
+class TokenRejectedDueToRotation(DomainEvent):
+    """Token rejected because it failed version validation.
+
+    This is a security monitoring event, not a user workflow.
+    Emitted during token refresh when version check fails.
+
+    Triggers:
+    - LoggingEventHandler: Log rejection (security monitoring)
+    - AuditEventHandler: Record TOKEN_REJECTED_VERSION_MISMATCH
+
+    Attributes:
+        user_id: User whose token was rejected (if known).
+        token_version: Version of the rejected token.
+        required_version: Minimum version required.
+        rejection_reason: Why token was rejected (global_rotation, user_rotation).
+    """
+
+    user_id: UUID | None
+    token_version: int
+    required_version: int
+    rejection_reason: str

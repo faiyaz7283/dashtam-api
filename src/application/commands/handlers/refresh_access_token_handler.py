@@ -35,11 +35,13 @@ from src.domain.events.auth_events import (
     AuthTokenRefreshAttempted,
     AuthTokenRefreshFailed,
     AuthTokenRefreshSucceeded,
+    TokenRejectedDueToRotation,
 )
 from src.domain.protocols import (
     RefreshTokenData,
     RefreshTokenRepository,
     RefreshTokenServiceProtocol,
+    SecurityConfigRepository,
     TokenGenerationProtocol,
     UserRepository,
 )
@@ -52,6 +54,7 @@ class RefreshError:
     TOKEN_INVALID = "token_invalid"
     TOKEN_EXPIRED = "token_expired"
     TOKEN_REVOKED = "token_revoked"
+    TOKEN_VERSION_REJECTED = "token_version_rejected"
     USER_NOT_FOUND = "user_not_found"
     USER_INACTIVE = "user_inactive"
 
@@ -84,6 +87,7 @@ class RefreshAccessTokenHandler:
         self,
         user_repo: UserRepository,
         refresh_token_repo: RefreshTokenRepository,
+        security_config_repo: SecurityConfigRepository,
         token_service: TokenGenerationProtocol,
         refresh_token_service: RefreshTokenServiceProtocol,
         event_bus: EventBusProtocol,
@@ -93,12 +97,14 @@ class RefreshAccessTokenHandler:
         Args:
             user_repo: User repository for persistence.
             refresh_token_repo: Refresh token repository for persistence.
+            security_config_repo: Security config repository for version check.
             token_service: JWT token generation service.
             refresh_token_service: Refresh token generation/verification service.
             event_bus: Event bus for publishing domain events.
         """
         self._user_repo = user_repo
         self._refresh_token_repo = refresh_token_repo
+        self._security_config_repo = security_config_repo
         self._token_service = token_service
         self._refresh_token_service = refresh_token_service
         self._event_bus = event_bus
@@ -163,7 +169,7 @@ class RefreshAccessTokenHandler:
         # Step 6: Get user from database
         user = await self._user_repo.find_by_id(token_data.user_id)
 
-        # Step 7: Verify user exists and is active
+        # Step 7: Verify user exists
         if user is None:
             await self._publish_failed_event(
                 user_id=token_data.user_id,
@@ -171,6 +177,46 @@ class RefreshAccessTokenHandler:
             )
             return Failure(error=RefreshError.USER_NOT_FOUND)
 
+        # Step 7b: Verify token version meets requirements (breach rotation check)
+        security_config = await self._security_config_repo.get_or_create_default()
+        required_version = max(
+            security_config.global_min_token_version,
+            user.min_token_version,
+        )
+
+        if token_data.token_version < required_version:
+            # Check grace period
+            now = datetime.now(UTC)
+            within_grace = security_config.is_within_grace_period(now)
+
+            # During grace period, allow tokens that were valid at issuance
+            if (
+                not within_grace
+                or token_data.global_version_at_issuance < required_version - 1
+            ):
+                # Emit security monitoring event
+                await self._event_bus.publish(
+                    TokenRejectedDueToRotation(
+                        event_id=uuid4(),
+                        occurred_at=now,
+                        user_id=user.id,
+                        token_version=token_data.token_version,
+                        required_version=required_version,
+                        rejection_reason=(
+                            "global_rotation"
+                            if security_config.global_min_token_version
+                            > token_data.token_version
+                            else "user_rotation"
+                        ),
+                    )
+                )
+                await self._publish_failed_event(
+                    user_id=user.id,
+                    reason=RefreshError.TOKEN_VERSION_REJECTED,
+                )
+                return Failure(error=RefreshError.TOKEN_VERSION_REJECTED)
+
+        # Step 7c: Verify user is active
         if not user.is_active:
             await self._publish_failed_event(
                 user_id=user.id,
@@ -193,13 +239,15 @@ class RefreshAccessTokenHandler:
         # Generate new refresh token
         new_refresh_token, new_token_hash = self._refresh_token_service.generate_token()
 
-        # Save new refresh token with same session_id
+        # Save new refresh token with same session_id and current version
         new_expires_at = self._refresh_token_service.calculate_expiration()
         await self._refresh_token_repo.save(
             user_id=user.id,
             token_hash=new_token_hash,
             session_id=token_data.session_id,
             expires_at=new_expires_at,
+            token_version=security_config.global_min_token_version,
+            global_version_at_issuance=security_config.global_min_token_version,
         )
 
         # Step 10: Emit SUCCEEDED event

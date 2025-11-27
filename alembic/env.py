@@ -34,6 +34,8 @@ from src.infrastructure.persistence.models.password_reset_token import (  # noqa
     PasswordResetToken,
 )
 from src.infrastructure.persistence.models.refresh_token import RefreshToken  # noqa: F401
+from src.infrastructure.persistence.models.security_config import SecurityConfig  # noqa: F401
+from src.infrastructure.persistence.models.session import Session  # noqa: F401
 from src.infrastructure.persistence.models.user import User  # noqa: F401
 
 # Add model's MetaData for autogenerate

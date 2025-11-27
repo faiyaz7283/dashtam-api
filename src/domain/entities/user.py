@@ -6,6 +6,10 @@ Session Management:
     - session_tier: Role-based tier determining default session limit
     - max_sessions: Optional admin override for session limit
     - get_max_sessions(): Returns effective session limit
+
+Token Breach Rotation:
+    - min_token_version: Per-user minimum acceptable token version
+    - Increment to invalidate all user's tokens (password change, security event)
 """
 
 from dataclasses import dataclass
@@ -54,6 +58,9 @@ class User:
             session_tier: Role-based tier (basic, essential, plus, premium, pro)
             max_sessions: Admin override for session limit (None = use tier default)
 
+        Token Breach Rotation:
+            min_token_version: Per-user minimum token version (increment to invalidate tokens)
+
     Example:
         >>> user = User(
         ...     id=uuid4(),
@@ -86,6 +93,9 @@ class User:
     # Session management (F1.3)
     session_tier: str = DEFAULT_SESSION_TIER
     max_sessions: int | None = None  # Admin override (None = use tier default)
+
+    # Token breach rotation
+    min_token_version: int = 1  # Increment to invalidate all user's tokens
 
     def is_locked(self) -> bool:
         """Check if account is currently locked due to failed login attempts.

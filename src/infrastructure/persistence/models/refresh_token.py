@@ -7,6 +7,11 @@ Security:
     - expires_at: 30 days from creation
     - revoked_at: Immediate revocation (logout, password change, theft detection)
     - rotation_count: Track token rotations for security monitoring
+
+Token Breach Rotation:
+    - token_version: Version at time of token creation (must meet minimum requirements)
+    - global_version_at_issuance: Global version when token was issued
+      Validation: token_version >= max(global_min_token_version, user.min_token_version)
 """
 
 from datetime import datetime
@@ -49,6 +54,8 @@ class RefreshToken(BaseMutableModel):
         revoked_reason: Why token was revoked (logout, password_change, theft)
         last_used_at: Timestamp when token last used (for monitoring)
         rotation_count: Number of times token has been rotated
+        token_version: Token version at issuance (for breach rotation)
+        global_version_at_issuance: Global version when token was issued
 
     Indexes:
         - idx_refresh_tokens_user_id: (user_id) for user's active tokens
@@ -142,6 +149,24 @@ class RefreshToken(BaseMutableModel):
         nullable=False,
         default=0,
         comment="Number of times token has been rotated (security monitoring)",
+    )
+
+    # Token breach rotation
+    # Token version at issuance (must meet minimum requirements)
+    token_version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        index=True,
+        comment="Token version at issuance (must be >= required minimum)",
+    )
+
+    # Global version when token was issued (snapshot for grace period)
+    global_version_at_issuance: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        comment="Global min version when token was issued (for grace period)",
     )
 
     # Composite index for cleanup queries (expired and revoked tokens)

@@ -112,6 +112,7 @@ class UserRepository:
         user_model.failed_login_attempts = user.failed_login_attempts
         user_model.locked_until = user.locked_until
         user_model.updated_at = user.updated_at
+        user_model.min_token_version = user.min_token_version
 
         await self.session.commit()
         await self.session.refresh(user_model)
@@ -198,6 +199,7 @@ class UserRepository:
             locked_until=user_model.locked_until,
             created_at=user_model.created_at,
             updated_at=user_model.updated_at,
+            min_token_version=user_model.min_token_version,
         )
 
     def _to_model(self, user: User) -> UserModel:
@@ -219,4 +221,5 @@ class UserRepository:
             locked_until=user.locked_until,
             created_at=user.created_at,
             updated_at=user.updated_at,
+            min_token_version=user.min_token_version,
         )

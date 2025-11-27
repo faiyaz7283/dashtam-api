@@ -10,10 +10,16 @@ Resources:
     /api/v1/email-verifications    - Email verification
     /api/v1/password-reset-tokens  - Password reset token requests
     /api/v1/password-resets        - Password reset execution
+
+Admin Resources:
+    /api/v1/admin/security/rotations     - Global token rotation
+    /api/v1/admin/security/config        - Security configuration
+    /api/v1/admin/users/{id}/rotations   - Per-user token rotation
 """
 
 from fastapi import APIRouter
 
+from src.presentation.api.v1.admin import admin_router
 from src.presentation.api.v1.email_verifications import (
     router as email_verifications_router,
 )
@@ -36,6 +42,9 @@ v1_router.include_router(email_verifications_router)
 v1_router.include_router(password_reset_tokens_router)
 v1_router.include_router(password_resets_router)
 
+# Include admin routers
+v1_router.include_router(admin_router)
+
 # Export individual routers for testing
 __all__ = [
     "v1_router",
@@ -45,4 +54,5 @@ __all__ = [
     "email_verifications_router",
     "password_reset_tokens_router",
     "password_resets_router",
+    "admin_router",
 ]

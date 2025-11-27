@@ -41,6 +41,7 @@ from src.domain.protocols.refresh_token_repository import (
 from src.domain.protocols.refresh_token_service_protocol import (
     RefreshTokenServiceProtocol,
 )
+from src.domain.protocols.security_config_repository import SecurityConfigRepository
 from src.domain.protocols.session_cache import SessionCache
 from src.domain.protocols.session_enricher import (
     DeviceEnricher,
@@ -68,6 +69,7 @@ __all__ = [
     "RefreshTokenData",
     "RefreshTokenRepository",
     "RefreshTokenServiceProtocol",
+    "SecurityConfigRepository",
     "UserRepository",
     # Session protocols and DTOs
     "DeviceEnricher",

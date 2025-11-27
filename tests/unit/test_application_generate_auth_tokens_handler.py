@@ -28,6 +28,22 @@ from src.application.commands.handlers.generate_auth_tokens_handler import (
 )
 from src.application.commands.token_commands import AuthTokens, GenerateAuthTokens
 from src.core.result import Success
+from src.domain.entities.security_config import SecurityConfig
+
+
+def _create_mock_security_config_repo() -> AsyncMock:
+    """Create a mock security config repository with default behavior."""
+    mock_repo = AsyncMock()
+    mock_repo.get_or_create_default.return_value = SecurityConfig(
+        id=1,
+        global_min_token_version=1,
+        grace_period_seconds=300,
+        last_rotation_at=None,
+        last_rotation_reason=None,
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    return mock_repo
 
 
 @pytest.mark.unit
@@ -54,11 +70,13 @@ class TestGenerateAuthTokensHandlerSuccess:
         ) + timedelta(days=30)
 
         mock_refresh_token_repo = AsyncMock()
+        mock_security_config_repo = _create_mock_security_config_repo()
 
         handler = GenerateAuthTokensHandler(
             token_service=mock_token_service,
             refresh_token_service=mock_refresh_token_service,
             refresh_token_repo=mock_refresh_token_repo,
+            security_config_repo=mock_security_config_repo,
         )
 
         command = GenerateAuthTokens(
@@ -96,11 +114,13 @@ class TestGenerateAuthTokensHandlerSuccess:
         ) + timedelta(days=30)
 
         mock_refresh_token_repo = AsyncMock()
+        mock_security_config_repo = _create_mock_security_config_repo()
 
         handler = GenerateAuthTokensHandler(
             token_service=mock_token_service,
             refresh_token_service=mock_refresh_token_service,
             refresh_token_repo=mock_refresh_token_repo,
+            security_config_repo=mock_security_config_repo,
         )
 
         command = GenerateAuthTokens(
@@ -138,11 +158,13 @@ class TestGenerateAuthTokensHandlerSuccess:
         ) + timedelta(days=30)
 
         mock_refresh_token_repo = AsyncMock()
+        mock_security_config_repo = _create_mock_security_config_repo()
 
         handler = GenerateAuthTokensHandler(
             token_service=mock_token_service,
             refresh_token_service=mock_refresh_token_service,
             refresh_token_repo=mock_refresh_token_repo,
+            security_config_repo=mock_security_config_repo,
         )
 
         command = GenerateAuthTokens(
@@ -178,11 +200,13 @@ class TestGenerateAuthTokensHandlerSuccess:
         mock_refresh_token_service.calculate_expiration.return_value = expires_at
 
         mock_refresh_token_repo = AsyncMock()
+        mock_security_config_repo = _create_mock_security_config_repo()
 
         handler = GenerateAuthTokensHandler(
             token_service=mock_token_service,
             refresh_token_service=mock_refresh_token_service,
             refresh_token_repo=mock_refresh_token_repo,
+            security_config_repo=mock_security_config_repo,
         )
 
         command = GenerateAuthTokens(
@@ -195,12 +219,14 @@ class TestGenerateAuthTokensHandlerSuccess:
         # Act
         await handler.handle(command)
 
-        # Assert
+        # Assert - Now includes version fields
         mock_refresh_token_repo.save.assert_called_once_with(
             user_id=user_id,
             token_hash="hashed_token_value",
             session_id=session_id,
             expires_at=expires_at,
+            token_version=1,
+            global_version_at_issuance=1,
         )
 
     @pytest.mark.asyncio
@@ -221,11 +247,13 @@ class TestGenerateAuthTokensHandlerSuccess:
         ) + timedelta(days=30)
 
         mock_refresh_token_repo = AsyncMock()
+        mock_security_config_repo = _create_mock_security_config_repo()
 
         handler = GenerateAuthTokensHandler(
             token_service=mock_token_service,
             refresh_token_service=mock_refresh_token_service,
             refresh_token_repo=mock_refresh_token_repo,
+            security_config_repo=mock_security_config_repo,
         )
 
         command = GenerateAuthTokens(
@@ -268,11 +296,13 @@ class TestGenerateAuthTokensHandlerTokenContent:
         ) + timedelta(days=30)
 
         mock_refresh_token_repo = AsyncMock()
+        mock_security_config_repo = _create_mock_security_config_repo()
 
         handler = GenerateAuthTokensHandler(
             token_service=mock_token_service,
             refresh_token_service=mock_refresh_token_service,
             refresh_token_repo=mock_refresh_token_repo,
+            security_config_repo=mock_security_config_repo,
         )
 
         command = GenerateAuthTokens(
@@ -308,11 +338,13 @@ class TestGenerateAuthTokensHandlerTokenContent:
         ) + timedelta(days=30)
 
         mock_refresh_token_repo = AsyncMock()
+        mock_security_config_repo = _create_mock_security_config_repo()
 
         handler = GenerateAuthTokensHandler(
             token_service=mock_token_service,
             refresh_token_service=mock_refresh_token_service,
             refresh_token_repo=mock_refresh_token_repo,
+            security_config_repo=mock_security_config_repo,
         )
 
         command = GenerateAuthTokens(

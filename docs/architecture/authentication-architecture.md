@@ -1358,6 +1358,26 @@ Response (201 Created):
 
 ---
 
+## 12. Token Breach Rotation
+
+For emergency mass token invalidation (security incidents, database breaches), Dashtam implements version-based token rotation.
+
+**Key Capabilities:**
+
+- **Global rotation**: Invalidate ALL tokens system-wide
+- **Per-user rotation**: Invalidate only a specific user's tokens
+- **Grace period**: Gradual rollout to prevent mass logout disruption
+
+**Token Validation Rule:**
+
+```text
+token_version >= max(global_min_token_version, user.min_token_version)
+```
+
+**Reference**: See `docs/architecture/token-breach-rotation-architecture.md` for complete implementation details.
+
+---
+
 ## Summary
 
 ### Key Design Decisions

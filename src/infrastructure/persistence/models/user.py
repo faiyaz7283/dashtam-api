@@ -11,6 +11,10 @@ Security:
 Session Management:
     - session_tier: Role-based tier determining default session limit
     - max_sessions: Admin override for session limit (None = use tier default)
+
+Token Breach Rotation:
+    - min_token_version: Per-user minimum acceptable token version
+      Increment to invalidate all user's tokens (password change, security event)
 """
 
 from datetime import datetime
@@ -46,6 +50,7 @@ class User(BaseMutableModel):
         locked_until: Timestamp until which account is locked (nullable)
         session_tier: Role-based tier for session limits (basic, essential, plus, premium, pro)
         max_sessions: Admin override for session limit (nullable, None = use tier default)
+        min_token_version: Per-user minimum token version (increment to invalidate user's tokens)
 
     Indexes:
         - idx_users_email: (email) for login queries
@@ -142,6 +147,16 @@ class User(BaseMutableModel):
         nullable=True,
         default=None,
         comment="Admin override for max sessions (null = use tier default)",
+    )
+
+    # Token breach rotation
+    # Per-user minimum token version (increment to invalidate all user's tokens)
+    min_token_version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        index=True,
+        comment="Per-user minimum token version (increment on password change, security event)",
     )
 
     def __repr__(self) -> str:

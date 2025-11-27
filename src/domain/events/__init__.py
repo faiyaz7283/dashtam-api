@@ -76,6 +76,16 @@ from src.domain.events.auth_events import (
     UserTokenRotationFailed,
     UserTokenRotationSucceeded,
 )
+from src.domain.events.authorization_events import (
+    # Role Assignment Events (3-state)
+    RoleAssignmentAttempted,
+    RoleAssignmentFailed,
+    RoleAssignmentSucceeded,
+    # Role Revocation Events (3-state)
+    RoleRevocationAttempted,
+    RoleRevocationFailed,
+    RoleRevocationSucceeded,
+)
 from src.domain.events.base_event import DomainEvent
 from src.domain.events.session_events import (
     AllSessionsRevokedEvent,
@@ -141,6 +151,14 @@ __all__ = [
     "UserTokenRotationFailed",
     # Token Rejection Event (Security Monitoring)
     "TokenRejectedDueToRotation",
+    # Role Assignment Events (3-state)
+    "RoleAssignmentAttempted",
+    "RoleAssignmentSucceeded",
+    "RoleAssignmentFailed",
+    # Role Revocation Events (3-state)
+    "RoleRevocationAttempted",
+    "RoleRevocationSucceeded",
+    "RoleRevocationFailed",
     # Session Management Events
     "AllSessionsRevokedEvent",
     "SessionActivityUpdatedEvent",

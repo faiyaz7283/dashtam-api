@@ -5,10 +5,14 @@ This module configures Alembic to work with async database operations.
 
 import asyncio
 from logging.config import fileConfig
+from typing import TYPE_CHECKING
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncEngine
 
 from alembic import context
 from src.core.config import settings
@@ -26,17 +30,19 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Import all models here for autogenerate support
 # This ensures Alembic can detect schema changes
-from src.infrastructure.persistence.models.audit_log import AuditLog  # noqa: F401
-from src.infrastructure.persistence.models.email_verification_token import (  # noqa: F401
+# Note: E402 suppressed because imports must come after config setup
+from src.infrastructure.persistence.models.audit_log import AuditLog  # noqa: E402, F401
+from src.infrastructure.persistence.models.email_verification_token import (  # noqa: E402, F401
     EmailVerificationToken,
 )
-from src.infrastructure.persistence.models.password_reset_token import (  # noqa: F401
+from src.infrastructure.persistence.models.password_reset_token import (  # noqa: E402, F401
     PasswordResetToken,
 )
-from src.infrastructure.persistence.models.refresh_token import RefreshToken  # noqa: F401
-from src.infrastructure.persistence.models.security_config import SecurityConfig  # noqa: F401
-from src.infrastructure.persistence.models.session import Session  # noqa: F401
-from src.infrastructure.persistence.models.user import User  # noqa: F401
+from src.infrastructure.persistence.models.refresh_token import RefreshToken  # noqa: E402, F401
+from src.infrastructure.persistence.models.security_config import SecurityConfig  # noqa: E402, F401
+from src.infrastructure.persistence.models.session import Session  # noqa: E402, F401
+from src.infrastructure.persistence.models.casbin_rule import CasbinRule  # noqa: E402, F401
+from src.infrastructure.persistence.models.user import User  # noqa: E402, F401
 
 # Add model's MetaData for autogenerate
 target_metadata = BaseModel.metadata
@@ -76,6 +82,7 @@ async def run_async_migrations() -> None:
     """Run migrations in async mode.
 
     Creates an async engine and runs migrations asynchronously.
+    After migrations, runs idempotent database seeders.
     """
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
@@ -86,7 +93,40 @@ async def run_async_migrations() -> None:
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
 
+    # Run seeders after migrations complete
+    await _run_seeders(connectable)
+
     await connectable.dispose()
+
+
+async def _run_seeders(engine: "AsyncEngine") -> None:
+    """Execute idempotent seeders after migrations.
+
+    Seeders populate required bootstrap data (roles, permissions, config).
+    All seeders are idempotent - safe to run on every migration.
+
+    Args:
+        engine: Async database engine.
+    """
+    import os
+    import sys
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.orm import sessionmaker
+
+    # Add alembic directory to path for local seeds import
+    alembic_dir = os.path.dirname(__file__)
+    if alembic_dir not in sys.path:
+        sys.path.insert(0, alembic_dir)
+
+    from seeds import run_all_seeders  # noqa: E402
+
+    # Create async session
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session() as session:
+        await run_all_seeders(session)
+        await session.commit()
 
 
 def run_migrations_online() -> None:

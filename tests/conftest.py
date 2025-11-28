@@ -283,6 +283,102 @@ def mock_container_dependencies():
                 yield mocks
 
 
+# =============================================================================
+# Reusable Mock Fixtures
+# =============================================================================
+# These mock fixtures are used across unit and integration tests.
+# They provide consistent mock behavior for cross-cutting concerns.
+
+
+@pytest.fixture
+def mock_logger():
+    """Provide a mock logger for testing.
+
+    Returns a Mock object with standard logging methods (info, debug, error, warning).
+    Use this when testing components that require a logger dependency.
+
+    Usage:
+        def test_something(mock_logger):
+            service = MyService(logger=mock_logger)
+            service.do_something()
+            mock_logger.info.assert_called_once()
+    """
+    from unittest.mock import Mock
+
+    logger = Mock()
+    logger.info = Mock()
+    logger.debug = Mock()
+    logger.error = Mock()
+    logger.warning = Mock()
+    return logger
+
+
+@pytest_asyncio.fixture
+async def mock_audit():
+    """Provide a mock audit service for testing.
+
+    Returns an AsyncMock with standard audit methods.
+    Use this when testing components that record audit logs.
+
+    Usage:
+        async def test_something(mock_audit):
+            service = MyService(audit=mock_audit)
+            await service.do_something()
+            mock_audit.record.assert_called_once()
+    """
+    from unittest.mock import AsyncMock
+
+    audit = AsyncMock()
+    audit.record = AsyncMock(return_value=None)
+    return audit
+
+
+@pytest_asyncio.fixture
+async def mock_event_bus():
+    """Provide a mock event bus for testing.
+
+    Returns an AsyncMock with standard event bus methods.
+    Use this when testing components that publish domain events.
+
+    Usage:
+        async def test_something(mock_event_bus):
+            service = MyService(event_bus=mock_event_bus)
+            await service.do_something()
+            mock_event_bus.publish.assert_called()
+    """
+    from unittest.mock import AsyncMock
+
+    event_bus = AsyncMock()
+    event_bus.publish = AsyncMock(return_value=None)
+    event_bus.subscribe = AsyncMock(return_value=None)
+    return event_bus
+
+
+@pytest_asyncio.fixture
+async def mock_cache():
+    """Provide a mock cache for testing.
+
+    Returns an AsyncMock with standard cache methods.
+    Use this when testing components that use caching but don't need real Redis.
+
+    For tests that need real Redis, use `cache_adapter` fixture instead.
+
+    Usage:
+        async def test_something(mock_cache):
+            service = MyService(cache=mock_cache)
+            await service.do_something()
+            mock_cache.set.assert_called()
+    """
+    from unittest.mock import AsyncMock
+
+    cache = AsyncMock()
+    cache.get = AsyncMock(return_value=None)  # Cache miss by default
+    cache.set = AsyncMock(return_value=None)
+    cache.delete = AsyncMock(return_value=None)
+    cache.delete_pattern = AsyncMock(return_value=None)
+    return cache
+
+
 # Test data cleanup tracker
 @pytest.fixture
 def cleanup_tracker():

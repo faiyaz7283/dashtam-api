@@ -9,7 +9,11 @@ Created as part of F0.2 (Docker & Environment Setup) to establish a
 functional development environment with Traefik routing.
 
 Updated in F0.3 (Configuration Management) to use Pydantic Settings.
+Updated in F1.1b (User Authorization) to add Casbin enforcer initialization.
 """
+
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -19,7 +23,32 @@ from src.presentation.api.middleware.trace_middleware import TraceMiddleware
 from src.presentation.api.v1 import v1_router
 from src.presentation.api.v1.errors import register_exception_handlers
 
-# Initialize FastAPI application with settings
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan context manager.
+
+    Handles startup and shutdown events:
+    - Startup: Initialize Casbin enforcer, load policies
+    - Shutdown: Cleanup resources (future)
+
+    Args:
+        app: FastAPI application instance.
+
+    Yields:
+        None during application lifetime.
+    """
+    # Startup: Initialize Casbin enforcer
+    from src.core.container import init_enforcer
+
+    await init_enforcer()
+
+    yield
+
+    # Shutdown: Cleanup (future: close connections, etc.)
+
+
+# Initialize FastAPI application with settings and lifespan
 app = FastAPI(
     title=settings.app_name,
     description="Secure financial data aggregation platform",
@@ -27,6 +56,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     debug=settings.debug,
+    lifespan=lifespan,
 )
 
 # Wire trace middleware (request correlation)

@@ -17,6 +17,7 @@ Usage:
 
 # Service protocols
 from src.domain.protocols.audit_protocol import AuditProtocol
+from src.domain.protocols.authorization_protocol import AuthorizationProtocol
 from src.domain.protocols.cache_protocol import CacheEntry, CacheProtocol
 from src.domain.protocols.email_service_protocol import EmailServiceProtocol
 from src.domain.protocols.password_hashing_protocol import PasswordHashingProtocol
@@ -55,6 +56,7 @@ from src.domain.protocols.user_repository import UserRepository
 __all__ = [
     # Service protocols
     "AuditProtocol",
+    "AuthorizationProtocol",
     "CacheEntry",
     "CacheProtocol",
     "EmailServiceProtocol",

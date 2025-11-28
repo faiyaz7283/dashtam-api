@@ -6,11 +6,13 @@ domain layer.
 
 Models Organization:
     - audit_log.py: Audit trail model (immutable)
+    - casbin_rule.py: Casbin RBAC policy storage
     - user.py: User model
     - session.py: Session model
     - refresh_token.py: Refresh token model
     - email_verification_token.py: Email verification token model
     - password_reset_token.py: Password reset token model
+    - security_config.py: Token breach rotation config (singleton)
 
 Note:
     Domain entities (dataclasses) live in src/domain/entities/
@@ -19,6 +21,7 @@ Note:
 """
 
 from src.infrastructure.persistence.models.audit_log import AuditLog
+from src.infrastructure.persistence.models.casbin_rule import CasbinRule
 from src.infrastructure.persistence.models.email_verification_token import (
     EmailVerificationToken,
 )
@@ -32,6 +35,7 @@ from src.infrastructure.persistence.models.user import User
 
 __all__ = [
     "AuditLog",
+    "CasbinRule",
     "User",
     "Session",
     "RefreshToken",

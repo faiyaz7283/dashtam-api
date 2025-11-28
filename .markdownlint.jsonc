@@ -16,7 +16,7 @@
   
   // Keep other important rules enabled
   "MD032": true,  // Blank lines around lists
-  "MD060": true,  // Table column alignment
+  "MD060": false, // Table column alignment - disabled, renders fine
   
   // Default: all other rules enabled
   "default": true

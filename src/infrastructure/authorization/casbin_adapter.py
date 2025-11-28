@@ -21,6 +21,7 @@ from uuid import UUID
 
 import casbin
 
+from src.core.result import Success
 from src.domain.enums import AuditAction
 from src.domain.events import (
     RoleAssignmentAttempted,
@@ -113,9 +114,9 @@ class CasbinAdapter:
         cache_key = f"{CACHE_PREFIX}:{user_id}:{resource}:{action}"
 
         # 1. Check cache first
-        cached = await self._cache.get(cache_key)
-        if cached is not None:
-            allowed = cached == "1"
+        cache_result = await self._cache.get(cache_key)
+        if isinstance(cache_result, Success) and cache_result.value is not None:
+            allowed = cache_result.value == "1"
             self._logger.debug(
                 "authorization_cache_hit",
                 user_id=str(user_id),
@@ -126,17 +127,18 @@ class CasbinAdapter:
             return allowed
 
         # 2. Check with Casbin enforcer
+        # Note: enforce() is synchronous in Casbin, even with AsyncEnforcer
         user_str = str(user_id)
         try:
-            allowed = await self._enforcer.enforce(user_str, resource, action)
+            allowed = self._enforcer.enforce(user_str, resource, action)
         except Exception as e:
             # Fail closed on errors
             self._logger.error(
                 "authorization_check_error",
+                error=e,
                 user_id=user_str,
                 resource=resource,
                 action=action,
-                error=str(e),
             )
             allowed = False
 
@@ -148,7 +150,9 @@ class CasbinAdapter:
         )
 
         # 4. Audit the check
-        audit_action = AuditAction.ACCESS_GRANTED if allowed else AuditAction.ACCESS_DENIED
+        audit_action = (
+            AuditAction.ACCESS_GRANTED if allowed else AuditAction.ACCESS_DENIED
+        )
         await self._audit.record(
             action=audit_action,
             resource_type="authorization",
@@ -191,8 +195,8 @@ class CasbinAdapter:
         except Exception as e:
             self._logger.error(
                 "get_roles_error",
+                error=e,
                 user_id=user_str,
-                error=str(e),
             )
             return []
 
@@ -210,13 +214,14 @@ class CasbinAdapter:
         """
         user_str = str(user_id)
         try:
-            return await self._enforcer.has_role_for_user(user_str, role)
+            result = await self._enforcer.has_role_for_user(user_str, role)
+            return bool(result)
         except Exception as e:
             self._logger.error(
                 "has_role_error",
+                error=e,
                 user_id=user_str,
                 role=role,
-                error=str(e),
             )
             return False
 
@@ -269,9 +274,9 @@ class CasbinAdapter:
         except Exception as e:
             self._logger.error(
                 "assign_role_error",
+                error=e,
                 user_id=user_str,
                 role=role,
-                error=str(e),
             )
             await self._event_bus.publish(
                 RoleAssignmentFailed(
@@ -356,9 +361,9 @@ class CasbinAdapter:
         except Exception as e:
             self._logger.error(
                 "revoke_role_error",
+                error=e,
                 user_id=user_str,
                 role=role,
-                error=str(e),
             )
             await self._event_bus.publish(
                 RoleRevocationFailed(
@@ -411,8 +416,8 @@ class CasbinAdapter:
         except Exception as e:
             self._logger.error(
                 "get_permissions_error",
+                error=e,
                 role=role,
-                error=str(e),
             )
             return []
 

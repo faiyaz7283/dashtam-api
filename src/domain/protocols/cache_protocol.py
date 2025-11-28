@@ -326,3 +326,23 @@ class CacheProtocol(Protocol):
                     logger.error("Cache health check failed")
         """
         ...
+
+    async def delete_pattern(self, pattern: str) -> Result[int, DomainError]:
+        """Delete all keys matching pattern.
+
+        Args:
+            pattern: Glob-style pattern (e.g., "authz:user123:*").
+
+        Returns:
+            Result with number of keys deleted, or CacheError.
+
+        Example:
+            result = await cache.delete_pattern("session:user123:*")
+            match result:
+                case Success(count):
+                    logger.info(f"Deleted {count} keys")
+                case Failure(_):
+                    # Fail open
+                    pass
+        """
+        ...

@@ -310,12 +310,8 @@ class TestEventTimestamps:
                 assigned_by=admin_id,
                 reason="test",
             ),
-            RoleRevocationAttempted(
-                user_id=user_id, role="admin", revoked_by=admin_id
-            ),
-            RoleRevocationSucceeded(
-                user_id=user_id, role="admin", revoked_by=admin_id
-            ),
+            RoleRevocationAttempted(user_id=user_id, role="admin", revoked_by=admin_id),
+            RoleRevocationSucceeded(user_id=user_id, role="admin", revoked_by=admin_id),
             RoleRevocationFailed(
                 user_id=user_id,
                 role="admin",

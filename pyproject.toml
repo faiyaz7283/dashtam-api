@@ -112,6 +112,8 @@ module = [
     "alembic.*",
     "sqlalchemy.*",
     "asyncpg.*",
+    "casbin",
+    "casbin_async_sqlalchemy_adapter",
 ]
 ignore_missing_imports = true
 

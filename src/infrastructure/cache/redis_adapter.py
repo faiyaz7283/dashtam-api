@@ -433,3 +433,45 @@ class RedisAdapter:
                     details={"error": str(e), "type": type(e).__name__},
                 )
             )
+
+    async def delete_pattern(self, pattern: str) -> Result[int, CacheError]:
+        """Delete all keys matching pattern.
+
+        Uses Redis SCAN to find matching keys and DELETE to remove them.
+        This is safer than KEYS + DELETE for large datasets.
+
+        Args:
+            pattern: Glob-style pattern (e.g., "authz:user123:*").
+
+        Returns:
+            Result with number of keys deleted, or CacheError.
+        """
+        try:
+            deleted_count = 0
+            # Use SCAN to iterate keys matching pattern (safer than KEYS)
+            async for key in self._redis.scan_iter(match=pattern):
+                await self._redis.delete(key)
+                deleted_count += 1
+            return Success(value=deleted_count)
+        except RedisError as e:
+            return Failure(
+                error=CacheError(
+                    code=ErrorCode.VALIDATION_FAILED,
+                    infrastructure_code=InfrastructureErrorCode.CACHE_DELETE_ERROR,
+                    message=f"Failed to delete keys matching pattern '{pattern}'",
+                    details={"pattern": pattern, "error": str(e)},
+                )
+            )
+        except Exception as e:
+            return Failure(
+                error=CacheError(
+                    code=ErrorCode.VALIDATION_FAILED,
+                    infrastructure_code=InfrastructureErrorCode.CACHE_DELETE_ERROR,
+                    message=f"Unexpected error deleting keys matching '{pattern}'",
+                    details={
+                        "pattern": pattern,
+                        "error": str(e),
+                        "type": type(e).__name__,
+                    },
+                )
+            )

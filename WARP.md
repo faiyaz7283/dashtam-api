@@ -1,12 +1,10 @@
 # Dashtam Project Rules and Context
 
-**Purpose**: AI agent rules, architectural standards, and development workflow for Dashtam clean slate development.
+**Purpose**: Single source of truth for AI agents - architectural standards, development workflow, and project context.
 
-**Companion Documents**:
+**External Reference**:
 
-- `~/references/starter/clean-slate-reference.md` - Architecture patterns and concepts
-- `~/references/starter/development-checklist.md` - Mandatory feature development checklist
-- `~/references/starter/dashtam-feature-roadmap.md` - Feature roadmap with dependencies
+- `~/references/starter/dashtam-feature-roadmap.md` - Feature roadmap with Phase 2-6 implementation details
 
 ---
 
@@ -41,67 +39,70 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**Feature Roadmap**: See `~/references/starter/dashtam-feature-roadmap.md` for complete 32-feature plan across 6 phases.
+**v1.0 Release Milestone**: Phases 0-5 (32 features), Phase 6+ deferred to future releases.
 
 ---
 
 ### 2. Current Status
 
-#### Phase 0: Foundation (Planning)
+#### Phase 0: Foundation ✅ COMPLETED (11/11 features)
 
-**Infrastructure features planned** (11 features):
+**Audit**: 2025-11-18 | **PRs**: #58-70
 
-1. ⏳ **F0.1**: Project Structure Setup - Hexagonal architecture directories
-2. ⏳ **F0.2**: Docker & Environment Setup - Multi-environment (dev/test/ci)
-3. ⏳ **F0.3**: Configuration Management - Pydantic Settings
-4. ⏳ **F0.4**: Database Setup - PostgreSQL + Alembic migrations
-5. ⏳ **F0.5**: Redis Cache - Async Redis client
-6. ⏳ **F0.6**: Traefik Reverse Proxy - Domain-based routing, zero port conflicts
-7. ⏳ **F0.7**: Secrets Management - Multi-tier (local .env → AWS Secrets Manager)
-8. ⏳ **F0.8**: Structured Logging - Console (dev) → CloudWatch (prod)
-9. ⏳ **F0.9**: Audit Trail - Immutable PostgreSQL (PCI-DSS, SOC 2, GDPR)
-10. ⏳ **F0.10**: Domain Events - In-memory event bus (pragmatic DDD)
-11. ⏳ **F0.11**: Error Handling - RFC 7807, Result types
+| Feature | Description | PR |
+|---------|-------------|-----|
+| F0.1 | Project Structure Setup | #58 |
+| F0.2 | Docker & Environment Setup | #59 |
+| F0.3 | Configuration Management | #60 |
+| F0.4 | Database Setup (PostgreSQL + Alembic) | #61 |
+| F0.5 | Cache Setup (Redis) | #62 |
+| F0.6 | Traefik Reverse Proxy | #62 |
+| F0.7 | Secrets Management | #64 |
+| F0.8 | Structured Logging | #65 |
+| F0.9 | Audit Trail (+ F0.9.1, F0.9.2, F0.9.3) | #63-69 |
+| F0.10 | Domain Events | commit 0707cd6 |
+| F0.11 | Error Handling (RFC 7807) | #70 |
 
-#### Phase 1: Core Infrastructure (Planning)
+#### Phase 1: Core Infrastructure ✅ COMPLETED (5/5 features)
 
-**Authentication & security features planned** (3 features):
+**Audit**: 2025-11-28 | **PRs**: #71-78 | **Tests**: 735 passed, 17 skipped | **Coverage**: 87%
 
-1. ⏳ **F1.1**: User Authentication - JWT + opaque refresh tokens
-2. ⏳ **F1.2**: Rate Limiting - Token bucket with Redis
-3. ⏳ **F1.3**: Session Management - Multi-device tracking, revocation
+| Feature | Description | PR |
+|---------|-------------|-----|
+| F1.1 | User Authentication (JWT + opaque refresh) | #71-74 |
+| F1.1b | Authorization (Casbin RBAC) | #77 |
+| F1.2 | Rate Limiting (Token Bucket) | #78 |
+| F1.3 | Session Management (multi-device) | #75 |
+| F1.3b | Token Breach Rotation (hybrid versioning) | #76 |
 
-#### Phase 2-6: Domain, Application, Providers, API (Planning)
+**Phase 1 Infrastructure Established**:
 
-See `~/references/starter/dashtam-feature-roadmap.md` for complete breakdown.
+- ✅ JWT authentication with opaque refresh tokens
+- ✅ Role-based authorization (Casbin RBAC: admin > user > readonly)
+- ✅ Token bucket rate limiting with Redis Lua scripts
+- ✅ Multi-device session tracking with metadata enrichment
+- ✅ Emergency token invalidation (global + per-user)
+- ✅ Email verification blocks login (enforced)
+- ✅ Account lockout after 5 failed attempts
+- ✅ Bcrypt password hashing (12 rounds)
 
-**Total**: 32 features across 6 phases.
+**Architecture Cleanup**: ✅ COMPLETED
 
-#### What's Next
+- All protocols consolidated under `src/domain/protocols/`
+- Application layer imports only from domain
+- No re-exports across module boundaries
 
-**Immediate priorities**:
+#### Phase 2-6: Pending
 
-1. Complete Phase 0 infrastructure (11 features)
-2. Implement Phase 1 authentication (3 features)
-3. Begin Phase 2 domain models (providers, accounts, transactions)
+**What's Next**: Phase 2 - Domain Layer (Provider, Account, Transaction entities)
 
-**Development approach**:
+See `~/references/starter/dashtam-feature-roadmap.md` for:
 
-- Feature-by-feature following roadmap dependencies
-- Each feature uses `~/references/starter/development-checklist.md` (mandatory)
-- Pre-development approval required before coding
-- Test coverage ≥85% for each feature
-
-#### Known Gaps
-
-**No legacy code debt** - This is a clean slate project, starting fresh.
-
-**Integration tracking**: See `docs/reviews/integration-status.md` once implementation begins for:
-
-- Rate limiting coverage per endpoint
-- Session metadata tracking
-- Authorization controls
-- Cross-cutting concern integration
+- Phase 2: Domain Layer (F2.1-F2.3) - Provider, Account, Transaction entities
+- Phase 3: Application Layer (F3.1-F3.6) - Repositories, Commands, Queries
+- Phase 4: Provider Integration (F4.1-F4.3) - Schwab OAuth, APIs
+- Phase 5: API Endpoints (F5.1-F5.3) - RESTful endpoints
+- Phase 6: Advanced Features (F6.1-F6.4) - Plaid, Background Jobs, Analytics
 
 ---
 
@@ -158,25 +159,19 @@ See `~/references/starter/dashtam-feature-roadmap.md` for complete breakdown.
 **Ports & Adapters**:
 
 ```python
-# Domain defines PORT (protocol)
+# Domain defines PORT (protocol) - src/domain/protocols/
 class UserRepository(Protocol):
     async def find_by_email(self, email: str) -> User | None: ...
     async def save(self, user: User) -> None: ...
 
-# Infrastructure implements ADAPTER
-class UserRepository:
+# Infrastructure implements ADAPTER - src/infrastructure/persistence/
+class PostgresUserRepository:  # No inheritance!
     async def find_by_email(self, email: str) -> User | None:
         # Database logic here
         ...
 ```
 
-**Benefits**:
-
-- Domain logic testable without database
-- Easy to swap implementations (Postgres → MongoDB)
-- Framework upgrades don't break domain
-
-**Reference**: See `~/references/starter/clean-slate-reference.md` for detailed hexagonal architecture guide.
+**Protocol Location**: ALL protocols go in `src/domain/protocols/` (consolidated, no separate `domain/repositories/`).
 
 ---
 
@@ -201,19 +196,11 @@ class RedisCache:  # No inheritance!
 
 # ❌ WRONG: Don't use ABC for new interfaces
 from abc import ABC, abstractmethod
-
 class CacheBackend(ABC):  # Don't do this
     @abstractmethod
     async def get(self, key: str) -> str | None:
         pass
 ```
-
-**Why Protocol?**
-
-- Structural typing (duck typing with type safety)
-- No inheritance required
-- No name collision issues
-- More Pythonic, easier testing
 
 #### Type Hints Everywhere
 
@@ -254,7 +241,48 @@ match create_user(email):
         return {"error": error.message}, 400
 ```
 
-**Reference**: See `~/references/starter/clean-slate-reference.md` Section 1 for complete Python patterns guide.
+#### Annotated Types (Centralized Validation)
+
+**File Structure**:
+
+```text
+src/domain/
+├── types.py          # Annotated types (Email, Password, Money, etc.)
+└── validators.py     # Validation functions (reusable)
+```
+
+```python
+# src/domain/validators.py
+def validate_email(v: str) -> str:
+    """Validate email format."""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(pattern, v):
+        raise ValueError(f"Invalid email format: {v}")
+    return v.lower()
+
+# src/domain/types.py
+from typing import Annotated
+from pydantic import Field, AfterValidator
+
+Email = Annotated[
+    str,
+    Field(min_length=5, max_length=255),
+    AfterValidator(validate_email)
+]
+
+Password = Annotated[
+    str,
+    Field(min_length=12, max_length=128),
+    AfterValidator(validate_strong_password)
+]
+
+# Usage everywhere - validation included automatically
+class UserCreate(BaseModel):
+    email: Email
+    password: Password
+```
+
+**Benefits**: Single source of truth, consistent validation, easy updates.
 
 ---
 
@@ -273,10 +301,8 @@ class RegisterUser:
     password: str
     # Represents user INTENT
 
-# Handler changes state
 class RegisterUserHandler:
     async def handle(self, cmd: RegisterUser) -> Result[UUID, Error]:
-        # Validation + business logic
         user = User(email=cmd.email, ...)
         await self.users.save(user)
         return Success(user.id)
@@ -290,70 +316,183 @@ class GetUser:
     user_id: UUID
     # Represents data NEED
 
-# Handler reads data (no state changes)
 class GetUserHandler:
     async def handle(self, query: GetUser) -> Result[User, Error]:
         return await self.users.find_by_id(query.user_id)
 ```
 
-**Benefits**:
+#### Domain Events (3-State ATTEMPT → OUTCOME Pattern)
 
-- Clear separation of concerns
-- Queries can be cached aggressively
-- Commands have validation + business logic
-- Easier to test and reason about
+**CRITICAL**: All critical workflows use 3-state pattern for audit semantic accuracy.
 
-#### Domain Events (Pragmatic DDD)
+**Pattern**:
 
-**Use events ONLY for critical workflows** that have side effects.
+1. `*Attempted` - Before business logic (audit: ATTEMPTED)
+2. `*Succeeded` - After successful commit (audit: outcome)
+3. `*Failed` - After failure (audit: FAILED)
 
-**Critical workflows** (emit events):
-
-- `UserRegistered` → Send verification email, log, audit
-- `UserPasswordChanged` → Invalidate sessions, send email, log, audit
-- `ProviderConnected` → Fetch initial data, log, audit
-- `TokenRefreshFailed` → Alert user, log, audit
-
-**Non-critical** (no events):
-
-- Simple reads (view account, view transactions)
-- Single-step operations without side effects
-
-**Event naming**: Past tense (`UserPasswordChanged`, NOT `ChangeUserPassword`)
-
-**Example**:
+**Example Events**:
 
 ```python
-# Domain service emits event
-await event_bus.publish(UserPasswordChanged(
-    event_id=uuid4(),
-    occurred_at=datetime.now(UTC),
-    user_id=user_id,
-))
+# Authentication events (12 total)
+UserRegistrationAttempted, UserRegistrationSucceeded, UserRegistrationFailed
+UserLoginAttempted, UserLoginSucceeded, UserLoginFailed
+UserPasswordChangeAttempted, UserPasswordChangeSucceeded, UserPasswordChangeFailed
+TokenRefreshAttempted, TokenRefreshSucceeded, TokenRefreshFailed
 
-# Multiple handlers react
-@event_bus.subscribe(UserPasswordChanged)
-async def log_password_change(event: UserPasswordChanged):
-    logger.info("Password changed", user_id=event.user_id)
-
-@event_bus.subscribe(UserPasswordChanged)
-async def audit_password_change(event: UserPasswordChanged):
-    await audit.record(PASSWORD_CHANGED, user_id=event.user_id)
-
-@event_bus.subscribe(UserPasswordChanged)
-async def revoke_sessions(event: UserPasswordChanged):
-    await token_service.revoke_all_sessions(event.user_id)
+# Provider events (Phase 2+)
+ProviderConnectionAttempted, ProviderConnectionSucceeded, ProviderConnectionFailed
+ProviderTokenRefreshAttempted, ProviderTokenRefreshSucceeded, ProviderTokenRefreshFailed
 ```
 
-**Reference**: See `~/references/starter/clean-slate-reference.md` Section 10 for domain events architecture.
+**Event Definition**:
+
+```python
+@dataclass(frozen=True, kw_only=True)
+class UserRegistrationSucceeded(DomainEvent):
+    """Emitted after successful user registration."""
+    user_id: UUID
+    email: str
+```
+
+**Event Handlers** (multiple per event):
+
+- `LoggingEventHandler` - Logs all events (INFO/WARNING)
+- `AuditEventHandler` - Creates audit records
+- `EmailEventHandler` - Sends notifications (SUCCEEDED only)
+- `SessionEventHandler` - Manages sessions (password change, etc.)
+
+**When to Use Events**:
+
+- ✅ **Critical workflows**: 3+ side effects OR requires ATTEMPT → OUTCOME audit (17 workflows total: 7 auth, 4 provider, 3 data, 3 admin)
+- ✅ **Operational events**: Single-state observability/monitoring (activity tracking, security monitoring) - NOT 3-state pattern
+- ❌ **NOT for** simple reads or single-step operations
+
+**Reference**: `docs/architecture/domain-events-architecture.md`
 
 ---
 
-### 6. API Design (REST Compliance)
+### 6. File and Directory Structure
 
-**CRITICAL**: 100% RESTful compliance is NON-NEGOTIABLE for all API endpoints.
+**Core Principle**: Hexagonal layers with protocol consolidation and flat test/docs structure.
 
-**Current Status**: ✅ 10/10 REST Compliance Score (verified 2025-10-05)
+#### Layer Structure
+
+```text
+src/
+├── core/               # Shared kernel (Result, errors, config, container)
+├── domain/             # Business logic (DEPENDS ON NOTHING)
+│   ├── entities/
+│   ├── value_objects/
+│   ├── protocols/      # ALL protocols here (repositories, services, etc.)
+│   ├── events/
+│   ├── enums/
+│   ├── errors/
+│   ├── types.py        # Annotated types
+│   └── validators.py   # Validation functions
+├── application/        # Use cases (commands, queries, event handlers)
+├── infrastructure/     # Adapters (implements domain protocols)
+│   ├── persistence/
+│   ├── external/
+│   └── providers/
+├── presentation/       # API endpoints (FastAPI routers)
+└── schemas/            # Request/response schemas
+
+tests/              # Flat structure with naming patterns
+├── unit/           # test_<layer>_<component>.py
+├── integration/    # test_<component>_<technology>.py
+├── api/            # test_<domain>_endpoints.py
+└── smoke/          # test_<feature>_flow.py
+
+docs/               # Flat structure with naming patterns
+├── architecture/   # domain-events-architecture.md, etc.
+├── api/            # auth-login.md, providers-oauth-flow.md
+└── guides/         # import-guidelines.md, etc.
+```
+
+#### Naming Conventions (PEP 8)
+
+- **Python files**: `snake_case.py` matching class name (`user_repository.py` → `UserRepository`)
+- **Python classes**: `PascalCase` (`RegisterUserHandler`)
+- **Python directories**: `snake_case/` (`auth_strategies/`)
+- **Documentation**: `kebab-case.md` (`oauth-flow.md`)
+- **Test files**: Pattern-based naming (see test structure above)
+- **Config files**: `kebab-case.yml` (`docker-compose.dev.yml`)
+
+#### Protocol Consolidation (CRITICAL)
+
+ALL protocols in `src/domain/protocols/` - NO separate `domain/repositories/` directory:
+
+- `user_repository.py`, `cache_protocol.py`, `event_bus_protocol.py`, etc.
+- Domain exports from single location
+- Infrastructure imports protocols, implements without inheritance
+
+#### Flat Structure for Tests and Docs
+
+**Tests**: NO nested subdirectories within `unit/`, `integration/`, `api/`, `smoke/`. Use file naming patterns for organization.
+
+**Docs**: NO nested subdirectories within `architecture/`, `api/`, `guides/`. Use `kebab-case-with-context.md` naming.
+
+**Reference**: `docs/architecture/directory-structure.md`
+
+---
+
+### 8. Dependency Injection (Centralized Container)
+
+**Core Principle**: All dependencies managed through `src/core/container.py` using two-tier pattern.
+
+#### Two-Tier Pattern
+
+**Application-Scoped** (singletons with `@lru_cache()`):
+
+- `get_cache()` → `CacheProtocol` (Redis connection pool)
+- `get_secrets()` → `SecretsProtocol` (env/AWS adapter)
+- `get_database()` → `Database` (connection pool)
+- `get_event_bus()` → `EventBusProtocol` (in-memory/RabbitMQ)
+
+**Request-Scoped** (per-request with `yield`):
+
+- `get_db_session()` → `AsyncSession` (new transaction per request)
+- Handler factories (create new instances per request)
+
+#### Protocol-First Pattern
+
+Container returns **protocol types**, creates **concrete implementations**:
+
+```python
+# ✅ Container returns protocol
+def get_user_repository(session: AsyncSession) -> UserRepository:
+    from src.infrastructure.persistence.repositories.user_repository import (
+        UserRepository as UserRepositoryImpl
+    )
+    return UserRepositoryImpl(session=session)
+
+# ✅ Handler depends on protocol
+class RegisterUserHandler:
+    def __init__(self, user_repo: UserRepository):  # Protocol, not impl
+        self._user_repo = user_repo
+```
+
+#### Layer-Specific Usage
+
+- **Domain layer**: NO container imports (pure)
+- **Application layer**: Use container directly (`cache = get_cache()`)
+- **Infrastructure layer**: Can use container for dependencies
+- **Presentation layer**: Use FastAPI `Depends()` for ALL dependencies
+
+#### Testing
+
+- **Unit tests**: Mock container functions (`patch("src.core.container.get_cache")`)
+- **Integration tests**: Create fresh instances directly (bypass container)
+- **API tests**: Use `app.dependency_overrides` for test dependencies
+
+**Reference**: `docs/architecture/dependency-injection-architecture.md`
+
+---
+
+### 9. API Design (REST Compliance)
+
+**CRITICAL**: 100% RESTful compliance is NON-NEGOTIABLE. NO controller-style exceptions.
 
 #### Resource-Oriented URLs (Mandatory)
 
@@ -361,6 +500,8 @@ async def revoke_sessions(event: UserPasswordChanged):
 ✅ CORRECT (nouns):
 /users
 /users/{id}
+/sessions              # Login = POST /sessions (creates session)
+/tokens                # Refresh = POST /tokens (creates token)
 /providers
 /providers/{id}
 /accounts
@@ -370,23 +511,33 @@ async def revoke_sessions(event: UserPasswordChanged):
 /createUser
 /getAccounts
 /loginUser
+/auth/login            # Controller-style - NOT allowed
 /token-rotation
-/user-registration
+/providers/{id}/refresh
 ```
 
-**Rule**: URLs represent resources (nouns), NEVER actions (verbs).
+**How to Model Actions as Resources**:
 
-#### Proper HTTP Methods
+| Action | Resource Endpoint | HTTP Method |
+|--------|-------------------|-------------|
+| Login | `POST /sessions` | 201 Created |
+| Logout | `DELETE /sessions/current` | 204 No Content |
+| Token refresh | `POST /tokens` | 201 Created |
+| Email verification | `POST /email-verifications` | 201 Created |
+| Password reset request | `POST /password-reset-tokens` | 201 Created |
+| Provider token refresh | `POST /providers/{id}/token-refreshes` | 201 Created |
 
-- **GET**: Retrieve resources (safe, idempotent)
+#### HTTP Methods & Status Codes
+
+**Methods**:
+
+- **GET**: Retrieve (safe, idempotent)
 - **POST**: Create new resources (returns 201 Created)
 - **PATCH**: Partial update (returns 200 OK)
 - **PUT**: Complete replacement (returns 200 OK)
 - **DELETE**: Remove resources (returns 204 No Content)
 
-NEVER use GET for operations with side effects.
-
-#### Standard HTTP Status Codes
+**Status Codes**:
 
 - **200**: Success (GET, PATCH, PUT)
 - **201**: Created (POST)
@@ -396,6 +547,7 @@ NEVER use GET for operations with side effects.
 - **403**: Forbidden (no permission)
 - **404**: Not Found
 - **409**: Conflict (duplicate resource)
+- **429**: Too Many Requests (rate limited)
 - **500**: Internal Server Error
 
 #### Schema Separation (Mandatory)
@@ -421,120 +573,103 @@ async def create_user(data: dict):  # No!
     ...
 ```
 
-#### Acceptable Exceptions
-
-**Controller-style actions** (document justification):
-
-- `POST /auth/login` - Login is an action, not a resource creation
-- `POST /providers/{id}/refresh` - Token refresh is an action
-
-Only use when operation is genuinely an action, not a resource state change.
-
-**Reference**: See `docs/development/architecture/restful-api-design.md` for complete REST standards.
-
-**Enforcement**: See `~/references/starter/development-checklist.md` Section 18 (REST API Compliance) - mandatory verification.
-
 ---
 
 ## Part 3: Development Workflow
 
-### 7. Feature Development Process
+### 10. Feature Development Process
 
-**CRITICAL**: ALL feature development MUST follow `~/references/starter/development-checklist.md` workflow.
+**CRITICAL**: ALL feature development follows this two-phase process.
 
-**Two-Phase Process**:
+#### Pre-Development Phase (Planning)
 
-#### Pre-Development Phase (Planning & Approval)
+**Before coding, complete these steps**:
 
-**Sections 1-7 of checklist**:
+**Step 0: Create Feature Branch** (MANDATORY FIRST)
 
-1. **Feature Understanding** - Read requirements, success criteria, dependencies
-2. **Architecture Analysis** - Hexagonal layer placement, CQRS patterns
-3. **REST API Compliance** - Resource URLs, HTTP methods, status codes
-4. **SOLID Principles** - Single responsibility, dependency inversion
-5. **Database Schema** - Migrations, relationships, indexes
-6. **Security & Compliance** - Secrets, encryption, PCI-DSS
-7. **Implementation Plan & Approval** ← STOP HERE
-
-**Create TODO list**:
-
-```markdown
-## Implementation Plan
-
-**Feature**: User Authentication
-
-**TODO List**:
-
-- [ ] Phase 1: Database Schema
-  - [ ] Create User model (domain/entities/user.py)
-  - [ ] Create Alembic migration
-  - [ ] Apply migration in dev environment
-- [ ] Phase 2: Domain Layer
-  - [ ] Create UserRepository protocol
-  - [ ] Create User entity with validation
-  - [ ] Create domain events (UserRegistered)
-- [ ] Phase 3: Application Layer
-  - [ ] Create RegisterUser command
-  - [ ] Create RegisterUserHandler
-  - [ ] Wire up event handlers
-- [ ] Phase 4: Infrastructure Layer
-  - [ ] Implement UserRepository
-  - [ ] Implement email service adapter
-- [ ] Phase 5: Presentation Layer
-  - [ ] Create UserCreate schema
-  - [ ] Create POST /users endpoint
-  - [ ] Add validation
-- [ ] Phase 6: Testing
-  - [ ] Unit tests (domain, handlers)
-  - [ ] Integration tests (database, events)
-  - [ ] API tests (endpoint)
-- [ ] Phase 7: Documentation
-  - [ ] Update API documentation
-  - [ ] Update architecture docs
-  - [ ] Create API flow guide
-
-**Dependencies**: None (foundational feature)
-**Estimated Effort**: Multiple phases
-**Success Criteria**: User can register with email/password
+```bash
+git checkout development
+git pull origin development
+git checkout -b feature/<feature-name>  # e.g., feature/user-authentication
 ```
 
-**Present plan to user**:
-> "Here's my implementation plan with TODO list. Does this approach look good?"
+**Step 1: Feature Understanding**:
 
-**Wait for approval**: User says "looks good", "approved", "go ahead"
+- [ ] Requirements understood (what to build)
+- [ ] Success criteria identified (how to know it's done)
+- [ ] Dependencies identified (existing code touched)
 
-DO NOT CODE without user approval.
+**Step 2: Architecture Analysis**:
 
-#### Development Phase (Implementation & Verification)
+- [ ] Identified architectural layer(s): core, domain, application, infrastructure, presentation
+- [ ] No business logic in wrong layer (API layer is thin)
+- [ ] No framework imports in domain layer
 
-**Sections 8-31 of checklist** - Work through TODO list:
+**Step 3: REST API Compliance** (if API changes)
 
-**Key sections**:
+- [ ] Resource-oriented URLs (nouns, NOT verbs)
+- [ ] Proper HTTP methods and status codes
+- [ ] Schemas in `src/schemas/` (not inline)
 
-- **Section 8**: Implementation Execution (follow TODO list)
-- **Section 9**: Code Quality (lint, format)
-- **Section 10**: Testing (unit, integration, API)
-- **Section 17**: Documentation Quality (markdown linting, MkDocs)
-- **Section 18**: REST API Compliance (mandatory verification)
-- **Section 25**: Environment Configuration (update all .env.example files)
-- **Section 30**: Final Verification (all tests pass, docs build clean)
-- **Section 31**: Git Commit & Push
+**Step 4: Database Design** (if applicable)
 
-**Continuous verification**: Test and verify as you implement each phase.
+- [ ] Alembic migration needed
+- [ ] Repository protocol in `domain/protocols/`
+- [ ] Entity ↔ Model separation
 
-**Tools for workflow**:
+**Step 5: Testing Strategy**:
 
-- `create_todo_list` - Create TODO list during planning
-- `mark_todo_as_done` - Check off items as completed
-- `read_todos` - Check current progress
+- [ ] Domain layer: Unit tests (95%+ coverage)
+- [ ] Application layer: Unit tests with mocked repos (90%+)
+- [ ] Infrastructure layer: Integration tests ONLY (70%+)
+- [ ] Presentation layer: API tests (85%+)
 
-**Reference**: See `~/references/starter/development-checklist.md` for complete 31-section checklist.
+**Step 6: Create TODO List & Get Approval**:
+
+- [ ] TODO list created with implementation phases
+- [ ] Plan presented to user
+- [ ] **USER APPROVAL RECEIVED** ✅
+
+**DO NOT CODE without user approval.**
+
+#### Development Phase (Implementation)
+
+**After approval, implement following the TODO list**:
+
+**Implementation Checklist**:
+
+- [ ] **File naming**: `snake_case.py`, classes `PascalCase`
+- [ ] **Type hints**: All parameters and return types
+- [ ] **Protocol over ABC**: No inheritance for interfaces
+- [ ] **Result types**: Domain returns `Result[T, E]`, no exceptions
+- [ ] **Google-style docstrings**: All public functions
+- [ ] **DRY principle**: No code duplication (extract at 2nd occurrence)
+
+**Testing Checklist**:
+
+- [ ] Unit tests for domain/application logic
+- [ ] Integration tests for infrastructure adapters
+- [ ] API tests for endpoints
+- [ ] All tests pass: `make test`
+- [ ] Coverage ≥85%
+
+**Quality Checklist**:
+
+- [ ] Lint passes: `make lint`
+- [ ] Format applied: `make format`
+- [ ] Type check passes: mypy
+- [ ] Markdown linted: `make lint-md FILE="path"` (if docs changed)
+- [ ] MkDocs builds: `make docs-build` (zero warnings)
+
+**Commit Checklist**:
+
+- [ ] Conventional commit format: `feat(scope): description`
+- [ ] Reference issues: "Closes #42"
+- [ ] PR created to `development` branch
 
 ---
 
-### 8. Git Workflow (Git Flow)
-
-**Dashtam uses Git Flow** - Industry-standard branching model.
+### 11. Git Workflow (Git Flow)
 
 #### Branch Structure
 
@@ -550,231 +685,104 @@ DO NOT CODE without user approval.
 - `release/*` - Release preparation (from development)
 - `hotfix/*` - Emergency production fixes (from main)
 
-#### Feature Development Workflow
-
-```bash
-# 1. Start new feature
-git checkout development
-git pull origin development
-git checkout -b feature/user-authentication
-
-# 2. Develop (commit frequently)
-git add src/domain/entities/user.py
-git commit -m "feat(domain): add User entity with email validation"
-
-# 3. Push to remote
-git push -u origin feature/user-authentication
-
-# 4. Create Pull Request
-# Via GitHub UI: feature/user-authentication → development
-
-# 5. After approval & CI passes, merge to development
-# Delete feature branch after merge
-```
-
-#### Commit Message Convention (Conventional Commits)
+#### Commit Convention (Conventional Commits)
 
 **Format**: `<type>(<scope>): <subject>`
 
 **Types**:
 
-- `feat:` - New features (bumps MINOR version)
-- `fix:` - Bug fixes (bumps PATCH version)
+- `feat:` - New features
+- `fix:` - Bug fixes
 - `docs:` - Documentation only
-- `refactor:` - Code restructuring (no feature change)
+- `refactor:` - Code restructuring
 - `test:` - Test additions/changes
 - `chore:` - Maintenance, dependencies
 - `perf:` - Performance improvements
 - `ci:` - CI/CD changes
 
-**Breaking Changes**: Use `BREAKING CHANGE:` in footer or `!` after type
+**Examples**:
 
 ```bash
-# Good commits
 git commit -m "feat(auth): add JWT authentication"
 git commit -m "fix(api): handle token expiration correctly"
 git commit -m "docs(api): update endpoint documentation"
 git commit -m "test(integration): add user registration tests"
-
-# Breaking change
-git commit -m "feat(api)!: change authentication endpoint structure
-
-BREAKING CHANGE: Auth endpoint moved from /auth to /api/v1/auth"
 ```
 
-**Rules**:
-
-- Present tense ("add" not "added")
-- Imperative mood ("move" not "moves")
-- Subject under 72 characters
-- Reference issues: "Closes #42"
-
-#### Branch Protection Requirements
+#### Branch Protection
 
 **Both `main` and `development` are protected**:
 
-✅ **Required Status Checks**:
-
-- `Test Suite / Run Tests` - All tests pass
-- `Code Quality / lint` - Linting passes
-- Branches up to date before merge
-
-✅ **Required Reviews**:
-
-- At least 1 approval required
-- Dismiss stale reviews on new commits
-- Require conversation resolution
-
-✅ **Restrictions**:
-
-- No direct commits (PR required)
-- No force pushes
-- No branch deletion
-
-**Reference**: See `docs/development/guides/git-workflow.md` for detailed Git Flow guide.
+- ✅ Required: All CI checks passing
+- ✅ Required: At least 1 approval
+- ✅ Required: Conversations resolved
+- ❌ No direct commits (PR required)
+- ❌ No force pushes
 
 ---
 
-### 9. Testing Strategy
+### 12. Testing Strategy
 
 **Target Coverage**: 85%+ overall, 95%+ for critical components
 
-**Test Pyramid Approach**:
+**Test Pyramid**:
 
 ```text
-             ▲
-            ╱ ╲
-           ╱   ╲ 10% E2E (Smoke Tests)
-          ╱     ╲ - Complete user flows
-         ╱───────╲ - Registration → Login → Logout
-        ╱         ╲
-       ╱           ╲ 20% Integration Tests
-      ╱             ╲ - Database operations
-     ╱───────────────╲ - Service interactions
-    ╱                 ╲
-   ╱                   ╲ 70% Unit Tests
-  ╱                     ╲ - Domain entities
- ╱                       ╲ - Command/Query handlers
-╱                         ╲ - Services (isolated)
+           ▲
+          ╱ ╲ 10% E2E (Smoke Tests)
+         ╱───╲ - Complete user flows
+        ╱     ╲
+       ╱       ╲ 20% Integration Tests
+      ╱─────────╲ - Database, Redis operations
+     ╱           ╲
+    ╱             ╲ 70% Unit Tests
+   ╱───────────────╲ - Domain entities, handlers
 ```
 
-#### Unit Tests (70%)
+**By Layer**:
 
-**Test in isolation** - Mock all dependencies.
+| Layer | Test Type | What to Test | Coverage |
+|-------|-----------|--------------|----------|
+| Domain | Unit | Entities, value objects, business logic | 95%+ |
+| Application | Unit | Command/query handlers (mocked repos) | 90%+ |
+| Infrastructure | Integration | Database ops, cache, external APIs | 70%+ |
+| Presentation | API | Endpoints, auth, rate limiting | 85%+ |
 
-```python
-# tests/unit/domain/test_user.py
-def test_user_validates_email():
-    # No database, no external services
-    result = User.create(email="invalid", password="secure123")
-    assert isinstance(result, Failure)
-    assert "Invalid email" in result.error.message
+**Test File Naming** (flat structure):
+
+```text
+tests/
+├── unit/
+│   ├── test_domain_user_entity.py
+│   ├── test_application_register_handler.py
+│   └── test_core_config.py
+├── integration/
+│   ├── test_database_postgres.py
+│   └── test_cache_redis.py
+├── api/
+│   └── test_auth_endpoints.py
+└── smoke/
+    └── test_user_registration_flow.py
 ```
 
-**What to test**:
-
-- Domain entities and value objects
-- Command/Query handlers (with mocked repos)
-- Services (with mocked dependencies)
-- Protocols implementations
-- Validation logic
-
-#### Integration Tests (20%)
-
-**Test interactions** - Real database, mocked external APIs.
-
-```python
-# tests/integration/infrastructure/test_user_repository.py
-async def test_user_repository_saves_and_retrieves(db_session):
-    # Real PostgreSQL database
-    repo = UserRepository(db_session)
-    user = User(email="test@example.com", ...)
-    
-    await repo.save(user)
-    found = await repo.find_by_email("test@example.com")
-    
-    assert found is not None
-    assert found.id == user.id
-```
-
-**What to test**:
-
-- Database operations (queries, relationships)
-- Repository implementations
-- Service-to-service interactions
-- Event bus publishing/subscribing
-- Cache operations
-
-#### API Tests (E2E - 10%)
-
-**Test complete flows** - Real HTTP requests, real database.
-
-```python
-# tests/api/test_auth.py
-async def test_user_registration_flow(client):
-    # Complete flow: register → verify → login
-    response = client.post("/api/v1/users", json={
-        "email": "test@example.com",
-        "password": "SecurePass123!"
-    })
-    assert response.status_code == 201
-    
-    # Extract verification token from logs
-    # ... verify email ...
-    
-    # Login
-    response = client.post("/api/v1/auth/login", json={
-        "email": "test@example.com",
-        "password": "SecurePass123!"
-    })
-    assert response.status_code == 200
-    assert "access_token" in response.json()
-```
-
-**What to test**:
-
-- Critical user journeys
-- Authentication flows
-- Provider onboarding
-- Error handling (validation, 404, 401)
-
-#### Running Tests
-
-**All tests in Docker** - NEVER run tests on host machine.
+**Running Tests**:
 
 ```bash
-# All tests with coverage
-make test
-
-# Unit tests only
-make test-unit
-
-# Integration tests only
-make test-integration
-
-# Smoke tests (E2E)
-make test-smoke
-
-# Quick verification
-make test-verify
+make test              # All tests with coverage
+make test-unit         # Unit tests only
+make test-integration  # Integration tests only
+make test-smoke        # E2E smoke tests
 ```
 
-**Test Environment**: Isolated Docker Compose (`compose/docker-compose.test.yml`)
-
-- Separate database (dashtam-test-postgres)
-- Separate Redis (dashtam-test-redis)
-- Different ports (8001, 5433, 6380)
-- No port conflicts with dev environment
-
-**Reference**: See `~/references/starter/development-checklist.md` Section 10 (Testing) for comprehensive testing guide.
+**IMPORTANT**: All tests run in Docker. NEVER run tests on host machine.
 
 ---
 
 ## Part 4: Infrastructure & Deployment
 
-### 10. Docker & Environments
+### 13. Docker & Environments
 
-**CRITICAL**: ALL development, testing, and execution MUST be done in Docker containers.
+**CRITICAL**: ALL development, testing, and execution in Docker containers.
 
 **Directory Structure**:
 
@@ -783,356 +791,113 @@ compose/
 ├── docker-compose.traefik.yml    # Traefik reverse proxy
 ├── docker-compose.dev.yml        # Development environment
 ├── docker-compose.test.yml       # Test environment
-├── docker-compose.ci.yml         # CI/CD environment
-└── docker-compose.prod.yml       # Production template
+└── docker-compose.ci.yml         # CI/CD environment
 
 env/
-├── .env.example                  # Production template
 ├── .env.dev.example              # Development template
 ├── .env.test.example             # Test template
 └── .env.ci.example               # CI template
-
-docker/
-├── Dockerfile                    # Multi-stage build
-└── .dockerignore                 # Exclude patterns
 ```
 
-#### Development Environment
+**Environments**:
 
-**Start development**:
+| Environment | Domain | Database Port | Redis Port |
+|-------------|--------|---------------|------------|
+| Development | `https://dashtam.local` | 5432 | 6379 |
+| Test | `https://test.dashtam.local` | 5433 | 6380 |
+| CI | Internal only | Internal | Internal |
+
+**Commands**:
 
 ```bash
-make dev-up       # Starts dev services (depends on traefik-up)
+make dev-up       # Start development (auto-starts Traefik)
 make dev-logs     # View logs
-make dev-shell    # Open shell in app container
-make dev-restart  # Restart environment
-make dev-rebuild  # Rebuild from scratch (no cache)
-```
+make dev-shell    # Shell in app container
+make dev-down     # Stop development
 
-**Services**:
-
-- `dashtam-dev-app` - FastAPI application (port 8000)
-- `dashtam-dev-postgres` - PostgreSQL 17.6 (port 5432 internal, 5432 host)
-- `dashtam-dev-redis` - Redis 8.2.1 (port 6379 internal, 6379 host)
-
-**Access**:
-
-- API: `https://dashtam.local` (via Traefik)
-- Database: `localhost:5432` (direct access for debugging)
-- Redis: `localhost:6379`
-
-**Environment variables**: `env/.env.dev`
-
-#### Test Environment
-
-**Isolated from dev** - No port conflicts.
-
-**Start tests**:
-
-```bash
-make test-up      # Start test services
-make test         # Run all tests with coverage
-make test-unit    # Unit tests only
-make test-integration  # Integration tests only
-make test-smoke   # E2E smoke tests
+make test-up      # Start test environment
+make test         # Run all tests
 make test-down    # Stop test environment
 ```
 
-**Services**:
-
-- `dashtam-test-app` - Test application (port 8001)
-- `dashtam-test-postgres` - Test database (port 5433)
-- `dashtam-test-redis` - Test Redis (port 6380)
-
-**Access**:
-
-- API: `https://test.dashtam.local` (via Traefik)
-- Database: `localhost:5433`
-- Redis: `localhost:6380`
-
-**Environment variables**: `env/.env.test`
-
-#### CI Environment
-
-**GitHub Actions** - Automated testing on every push.
-
-**Services** (internal only, no exposed ports):
-
-- `dashtam-ci-app` - CI application
-- `dashtam-ci-postgres` - CI database
-- `dashtam-ci-redis` - CI Redis
-
-**Workflow** (`.github/workflows/ci.yml`):
-
-1. Start services: `docker compose -f compose/docker-compose.ci.yml up -d`
-2. Run tests: `docker compose exec app uv run pytest ...`
-3. Upload coverage to Codecov
-4. Stop services: `docker compose down`
-
-**Environment variables**: `env/.env.ci`
-
-#### Multi-Stage Dockerfile
-
-**Stages** (optimized for build speed):
-
-1. **base** - Python 3.13 + UV
-2. **development** - Dev dependencies + debugging tools
-3. **builder** - Compile dependencies (production)
-4. **production** - Minimal runtime image
-
-**Key features**:
-
-- Non-root user (`appuser`, UID 1000)
-- UV 0.8.22 for fast package management
-- `uv sync --frozen` for deterministic builds
-- Proper file ownership (appuser:appuser)
-- Health checks for all services
-
-**Reference**: See `~/references/starter/clean-slate-reference.md` Section 7 (Docker & Environments) for complete Docker architecture.
-
 ---
 
-### 11. Traefik Reverse Proxy
+### 14. Traefik Reverse Proxy
 
-**Purpose**: Unified domain-based routing, automatic SSL, no port management.
+**Purpose**: Domain-based routing, automatic SSL, no port conflicts.
 
 **Benefits**:
 
-- ✅ No port collisions (dev/test/ci on same machine)
+- ✅ No port collisions (dev/test on same machine)
 - ✅ Domain routing (`dashtam.local`, `test.dashtam.local`)
 - ✅ Automatic SSL with mkcert (wildcard `*.dashtam.local`)
 - ✅ Production-like setup in development
-- ✅ Easy to add more services
 
-#### Traefik Setup
-
-**Start Traefik** (once per machine):
+**Setup**:
 
 ```bash
-make traefik-up    # Starts Traefik container
-make traefik-down  # Stops Traefik
+make traefik-up   # Start Traefik (once per machine)
+make certs        # Generate SSL certificates (once)
 ```
 
-**Traefik creates network**: `traefik-public` (bridge network)
-
-**Services connect**: Dev/test/ci compose files reference network as `external: true`
-
-#### Domain Routing (Labels)
-
-**Development app** (`compose/docker-compose.dev.yml`):
+**Service Labels** (in docker-compose):
 
 ```yaml
 services:
   app:
     labels:
-
       - "traefik.enable=true"
       - "traefik.http.routers.dashtam-dev.rule=Host(`dashtam.local`)"
       - "traefik.http.routers.dashtam-dev.entrypoints=websecure"
       - "traefik.http.routers.dashtam-dev.tls=true"
       - "traefik.http.services.dashtam-dev.loadbalancer.server.port=8000"
-
-    networks:
-
-      - traefik-public
-      - dashtam-dev-network
-
 ```
-
-**Test app** (`compose/docker-compose.test.yml`):
-
-```yaml
-services:
-  app:
-    labels:
-
-      - "traefik.http.routers.dashtam-test.rule=Host(`test.dashtam.local`)"
-
-      # ... same pattern ...
-```
-
-**Result**: No port numbers needed!
-
-- Dev: `https://dashtam.local`
-- Test: `https://test.dashtam.local`
-
-#### SSL Certificates (mkcert)
-
-**Generate wildcard certificate** (once per machine):
-
-```bash
-make certs    # Creates certs/*.dashtam.local.pem
-```
-
-**Traefik configuration** (`compose/docker-compose.traefik.yml`):
-
-```yaml
-services:
-  traefik:
-    volumes:
-
-      - ./certs:/certs:ro
-
-    command:
-
-      - "--providers.file.filename=/certs/traefik-tls.yml"
-
-```
-
-**TLS config** (`certs/traefik-tls.yml`):
-
-```yaml
-tls:
-  certificates:
-
-    - certFile: /certs/_wildcard.dashtam.local.pem
-
-      keyFile: /certs/_wildcard.dashtam.local-key.pem
-```
-
-**Benefits**: Browser trusts certificates (no warnings)
-
-#### Makefile Dependency Pattern
-
-**Industry standard**: Dev depends on Traefik.
-
-```makefile
-# Makefile
-traefik-up:
-    docker compose -f compose/docker-compose.traefik.yml up -d
-
-dev-up: traefik-up
-    docker compose -f compose/docker-compose.dev.yml up -d
-
-test-up: traefik-up
-    docker compose -f compose/docker-compose.test.yml up -d
-```
-
-**Result**: `make dev-up` automatically starts Traefik first (idempotent).
-
-**Reference**: See `~/references/starter/clean-slate-reference.md` Section 9 (Traefik Reverse Proxy) for detailed Traefik architecture.
 
 ---
 
-### 12. Secrets Management
+### 15. Secrets Management
 
-**Hexagonal pattern** - Secrets abstraction with multiple backends.
+**Hexagonal Pattern**: Protocol + multiple adapters.
 
 **CRITICAL**: NEVER hardcode secrets in code or Docker Compose files.
 
-#### Secrets Architecture
-
-**Domain defines port** (protocol):
+**Architecture**:
 
 ```python
-# src/domain/ports/secrets.py
-class SecretsProvider(Protocol):
+# Domain defines PORT
+class SecretsProtocol(Protocol):
     async def get_secret(self, key: str) -> str | None: ...
-    async def set_secret(self, key: str, value: str) -> None: ...
+
+# Infrastructure implements ADAPTERS
+class EnvAdapter:        # Development: .env files
+class AWSAdapter:        # Production: AWS Secrets Manager
 ```
 
-**Infrastructure implements adapters**:
+**Environment-Specific**:
 
-```python
-# Development: Environment variables
-class EnvSecretsProvider:
-    async def get_secret(self, key: str) -> str | None:
-        return os.getenv(key)
+| Environment | Backend | Source |
+|-------------|---------|--------|
+| Development | `env` | `.env.dev` file |
+| Test | `env` | `.env.test` file |
+| Production | `aws` | AWS Secrets Manager |
 
-# Production: AWS Secrets Manager
-class AWSSecretsProvider:
-    async def get_secret(self, key: str) -> str | None:
-        return await self.client.get_secret_value(SecretId=key)
-
-# Production: HashiCorp Vault
-class VaultSecretsProvider:
-    async def get_secret(self, key: str) -> str | None:
-        return await self.client.read_secret(key)
-```
-
-**Dependency injection**:
-
-```python
-# src/core/container.py
-def get_secrets_provider() -> SecretsProvider:
-    if settings.ENVIRONMENT == "production":
-        return AWSSecretsProvider()
-    return EnvSecretsProvider()
-```
-
-#### Environment-Specific Secrets
-
-**Development** (`env/.env.dev`):
-
-```bash
-SECRET_KEY=dev-secret-key-change-in-production
-DATABASE_PASSWORD=postgres
-SCHWAB_API_KEY=your-schwab-key-here
-SCHWAB_API_SECRET=your-schwab-secret-here
-```
-
-**Production** (AWS Secrets Manager):
-
-```bash
-# No .env file in production!
-# Secrets fetched from AWS Secrets Manager
-AWS_SECRETS_MANAGER_REGION=us-east-1
-SECRETS_PREFIX=dashtam/production/
-```
-
-**Test** (`env/.env.test`):
-
-```bash
-SECRET_KEY=test-secret-key
-DATABASE_PASSWORD=postgres
-# API keys mocked in tests
-```
-
-#### Secrets in Docker Compose
-
-**Use `env_file`** (NOT hardcoded values):
+**Docker Compose** (use `env_file`, NOT hardcoded):
 
 ```yaml
 services:
   app:
     env_file:
-
       - ../env/.env.dev
-
-    # ❌ WRONG: Don't hardcode secrets
-    # environment:
-    #   SECRET_KEY: hardcoded-value
+    # ❌ WRONG: environment: SECRET_KEY: hardcoded-value
 ```
-
-**Reference**: See `~/references/starter/clean-slate-reference.md` Section 8 (Secrets Management) for complete secrets architecture.
 
 ---
 
-### 13. Logging & Audit
+### 16. Logging & Audit
 
 #### Structured Logging
 
 **Use `structlog`** - JSON structured logs.
-
-**Configuration**:
-
-```python
-import structlog
-
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer(),
-    ],
-)
-
-logger = structlog.get_logger()
-```
-
-**Usage**:
 
 ```python
 logger.info(
@@ -1141,571 +906,296 @@ logger.info(
     email=user.email,
     ip_address=request.client.host,
 )
-
-logger.error(
-    "token_refresh_failed",
-    user_id=str(user_id),
-    provider="schwab",
-    error_code="invalid_grant",
-)
 ```
 
-**Output** (JSON):
+**Output**:
 
 ```json
 {
   "event": "user_registered",
-  "user_id": "123e4567-e89b-12d3-a456-426614174000",
-  "email": "user@example.com",
-  "ip_address": "192.168.1.1",
+  "user_id": "123e4567-...",
   "timestamp": "2025-11-08T04:00:00Z",
-  "level": "info",
-  "logger": "auth"
+  "level": "info"
 }
 ```
 
-**Benefits**: Easy to parse, search, and analyze (CloudWatch Insights, ELK stack).
+**Security**: NEVER log passwords, tokens, API keys, SSNs.
 
 #### Audit Trail (PCI-DSS Compliance)
 
-**Database audit model**:
+**ATTEMPT → OUTCOME Pattern**:
 
 ```python
-# src/domain/entities/audit.py
-class AuditLog:
+# Step 1: Record ATTEMPT (before business logic)
+await audit.record(action=AuditAction.USER_REGISTRATION_ATTEMPTED, ...)
+
+# Step 2: Execute business logic
+session.add(user)
+await session.commit()  # User NOW exists
+
+# Step 3: Record OUTCOME (after commit)
+await audit.record(action=AuditAction.USER_REGISTERED, ...)
+
+# If failure:
+await audit.record(action=AuditAction.USER_REGISTRATION_FAILED, ...)
+```
+
+**Critical**: Audit records go to separate session (persists even if business transaction fails).
+
+**Retention**: 7 years minimum (PCI-DSS requirement).
+
+---
+
+### 17. Authentication & Security (Phase 1 Infrastructure)
+
+#### JWT + Opaque Refresh Tokens
+
+**Strategy**:
+
+- **Access Token**: JWT (short-lived, 15 min)
+- **Refresh Token**: Opaque (long-lived, 30 days, bcrypt hashed)
+
+**Token Flow**:
+
+```text
+1. Login → POST /sessions → Returns access_token + refresh_token
+2. API Call → Authorization: Bearer {access_token}
+3. Token Refresh → POST /tokens → Returns new access_token + refresh_token
+4. Logout → DELETE /sessions/current → Revokes refresh token
+```
+
+**Security Features**:
+
+- Email verification required before login
+- Account lockout after 5 failed attempts
+- Bcrypt password hashing (12 rounds)
+- Refresh token rotation on use
+
+#### Session Management (Multi-Device)
+
+**Session Metadata**:
+
+```python
+@dataclass
+class Session:
     id: UUID
-    user_id: UUID | None
-    action: str
-    resource_type: str
-    resource_id: str | None
-    ip_address: str | None
-    user_agent: str | None
-    metadata: dict[str, Any]
+    user_id: UUID
+    device_info: str          # "Chrome on macOS"
+    ip_address: str
+    location: str | None      # "New York, US"
     created_at: datetime
+    last_activity: datetime
+    is_revoked: bool
+    refresh_token_hash: str
+    token_rotation_count: int
 ```
 
-**Audit service**:
+**Operations**:
+
+- `GET /sessions` - List all sessions for user
+- `DELETE /sessions/{id}` - Revoke specific session
+- `DELETE /sessions` - Revoke all sessions except current
+
+#### Token Breach Rotation (Hybrid Versioning)
+
+**Emergency invalidation with hybrid versioning**:
 
 ```python
-# src/application/services/audit_service.py
-class AuditService:
-    async def record(
-        self,
-        action: str,
-        resource_type: str,
-        user_id: UUID | None = None,
-        resource_id: str | None = None,
-        ip_address: str | None = None,
-        metadata: dict | None = None,
-    ) -> None:
-        audit_log = AuditLog(
-            user_id=user_id,
-            action=action,
-            resource_type=resource_type,
-            resource_id=resource_id,
-            ip_address=ip_address,
-            metadata=metadata or {},
-            created_at=datetime.now(UTC),
-        )
-        await self.audit_repo.save(audit_log)
+# Global rotation (all users)
+POST /api/v1/admin/security/rotations
+# Increments global_min_token_version
+
+# Per-user rotation
+POST /api/v1/admin/users/{user_id}/rotations
+# Increments user.min_token_version
+
+# Token validation
+token_version >= max(global_min_token_version, user.min_token_version)
 ```
 
-**Usage** (critical actions):
+**Grace Period**: Configurable (default 5 min) for gradual rotation.
+
+#### Authorization (Casbin RBAC)
+
+**Role Hierarchy**: `admin > user > readonly`
+
+**Permissions** (15 across 5 resources):
+
+- `users:*`, `sessions:*`, `providers:*`, `accounts:*`, `transactions:*`
+
+**FastAPI Dependencies**:
 
 ```python
-await audit_service.record(
-    action="PASSWORD_CHANGED",
-    resource_type="user",
-    user_id=user_id,
-    ip_address=ip_address,
-    metadata={"method": "self_service"},
-)
+@router.get("/admin/users")
+async def list_users(
+    _: None = Depends(require_role(UserRole.ADMIN))
+):
+    ...
 
-await audit_service.record(
-    action="PROVIDER_CONNECTED",
-    resource_type="provider",
-    user_id=user_id,
-    resource_id=str(provider_id),
-    ip_address=ip_address,
-    metadata={"provider_name": "schwab"},
-)
+@router.delete("/providers/{id}")
+async def delete_provider(
+    _: None = Depends(require_permission(Permission.PROVIDERS_DELETE))
+):
+    ...
 ```
 
-**Audit everything**:
+#### Rate Limiting (Token Bucket)
 
-- Authentication events (login, logout, failed attempts)
-- Password changes
-- Provider connections/disconnections
-- Token refresh/rotation
-- Account access
-- Transaction queries
-- Admin actions
+**Algorithm**: Token bucket with Redis Lua scripts (atomic, no race conditions).
 
-**Retention**: 7 years minimum (PCI-DSS requirement)
+**Configuration**:
 
-**Reference**: See `~/references/starter/clean-slate-reference.md` Section 11 (Logging & Audit) for complete logging architecture.
+```python
+RATE_LIMIT_RULES = {
+    "POST /sessions": RateLimitRule(capacity=5, refill_rate=1/60),      # 5/min
+    "POST /users": RateLimitRule(capacity=10, refill_rate=1/60),        # 10/min
+    "default": RateLimitRule(capacity=100, refill_rate=100/60),         # 100/min
+}
+```
+
+**Response Headers** (RFC 6585):
+
+```text
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1699488000
+Retry-After: 60  (only on 429)
+```
+
+**Fail-Open**: Never blocks if Redis fails.
 
 ---
 
 ## Part 5: Documentation Standards
 
-### 14. Documentation Quality
+### 18. Documentation Quality
 
-**CRITICAL**: All documentation must follow checklist Section 17 (Documentation Quality).
+**CRITICAL**: All documentation must pass quality checks before commit.
 
 #### Markdown Linting (Mandatory)
 
-**NEVER commit markdown without linting first.**
+```bash
+# Lint markdown file
+make lint-md FILE="docs/architecture/new-doc.md"
 
-**Workflow**:
+# Lint markdown file directory
+make lint-md DIR="docs/"
+
+# Must return zero violations before commit
+```
+
+**Common Violations**:
+
+- **MD022**: Add blank line before AND after headings
+- **MD032**: Add blank line before AND after lists
+- **MD031**: Add blank line before AND after code blocks
+- **MD040**: Add language identifier to code blocks
+
+#### MkDocs Documentation
 
 ```bash
-# 1. Create/edit markdown file
-vim docs/development/guides/new-guide.md
-
-# 2. Lint immediately
-make lint-md FILE="docs/development/guides/new-guide.md"
-
-# 3. Fix all violations
-# ... edit file ...
-
-# 4. Re-lint until clean (exit code 0)
-make lint-md FILE="docs/development/guides/new-guide.md"
-# ✅ Output: no errors
-
-# 5. Now safe to commit
-git add docs/development/guides/new-guide.md
-git commit -m "docs(guides): add new development guide"
+make docs-serve   # Live preview (http://localhost:8000)
+make docs-build   # Must pass with ZERO warnings
 ```
 
-**Common violations to avoid**:
+**Deployment**: Automatic via GitHub Actions to `https://faiyaz7283.github.io/Dashtam/`
 
-- **MD022**: Headings without blank lines → Add blank line before AND after headings
-- **MD032**: Lists without blank lines → Add blank line before AND after lists
-- **MD031**: Code blocks without blank lines → Add blank line before AND after code blocks
-- **MD040**: Code blocks without language → Add language identifier: \`\`\`bash, \`\`\`python
-- **MD036**: Bold text instead of heading → Use `###` heading instead of `**bold**`
+#### Document Structure
 
-#### MkDocs Documentation System
-
-**ALL documentation served via MkDocs** - Deployed to GitHub Pages.
-
-**Live preview**:
-
-```bash
-make docs-serve     # Start server with hot reload (http://localhost:8000)
-make docs-restart   # Restart with cache clear
-make docs-stop      # Stop server
-```
-
-**Build documentation**:
-
-```bash
-make docs-build     # Must pass with ZERO warnings (--strict mode)
-```
-
-**Deployment**:
-
-- Automatic via GitHub Actions on push to `development` branch
-- URL: `https://faiyaz7283.github.io/Dashtam/`
-
-**MkDocs structure** (`mkdocs.yml`):
-
-```yaml
-site_name: Dashtam Documentation
-theme:
-  name: material
-nav:
-
-  - Home: index.md
-  - Getting Started: setup/quickstart.md
-  - Development:
-    - Guides: development/guides/
-    - Architecture: development/architecture/
-    - Infrastructure: development/infrastructure/
-  - API Reference: reference/
-
-```
-
-**Benefits**:
-
-- Professional documentation site
-- Auto-generated API reference from docstrings
-- Full-text search
-- Responsive design
-- Version control
-
-#### Documentation Checklist (Section 17)
-
-**Mandatory verification before commit**:
-
-- [ ] Markdown linted (`make lint-md FILE="path"`) - ZERO violations
-- [ ] MkDocs builds cleanly (`make docs-build`) - ZERO warnings
-- [ ] All internal links work (no broken references)
-- [ ] Code examples are correct and tested
-- [ ] Mermaid diagrams render properly
-- [ ] No placeholder text ([TODO], [FIXME])
-- [ ] Proper metadata at bottom (Created, Last Updated, Status)
-
-**Reference**: See checklist Section 17 for complete documentation quality standards.
+- **One topic per document**
+- **Size soft limits**: Architecture docs ≤2000 lines, others ≤1000 lines
+- **Mermaid diagrams** for all flows (NO image files)
+- **ONLY Metadata at bottom**: `**Created**: YYYY-MM-DD | **Last Updated**: YYYY-MM-DD`
 
 ---
 
-### 15. API Documentation
+### 19. API Documentation
 
-**Manual testing flows** - Step-by-step guides for testing API endpoints.
+**Location**: `docs/api/`
 
-#### API Flow Structure
-
-**Location**: `docs/api-flows/`
-
-**Organized by domain** (NOT HTTP verb):
+**Structure**:
 
 ```text
-docs/api-flows/
-├── auth/
-│   ├── registration.md           # User registration flow
-│   ├── login.md                  # Login flow
-│   └── password-reset.md         # Password reset flow
-├── providers/
-│   ├── onboarding.md             # Provider connection flow
-│   └── token-refresh.md          # Token refresh flow
-└── accounts/
-    └── account-sync.md           # Account data sync flow
+docs/api/
+├── auth-registration.md     # User registration flow
+├── auth-login.md            # Login flow
+├── auth-password-reset.md   # Password reset flow
+├── providers-oauth-flow.md  # Provider OAuth flow
+└── accounts-account-sync.md # Account sync flow
 ```
 
-#### Flow Contents
+**Each Flow Includes**:
 
-**Each flow must include**:
-
-1. **Purpose** - What this flow accomplishes
-2. **Prerequisites** - What must be set up first
-3. **Step-by-step commands** - curl commands with variables
-4. **Expected responses** - Response snippets (not full responses)
-5. **Cleanup** (if applicable) - How to clean up test data
-6. **Troubleshooting** - Common issues and solutions
-
-**Example flow** (`docs/api-flows/auth/registration.md`):
-
-```markdown
-# User Registration Flow
-
-## Purpose
-Complete user registration with email verification.
-
-## Prerequisites
-
-- Development environment running (`make dev-up`)
-- `curl` or `httpie` installed
-
-## Step 1: Register User
-
-```bash
-
-export BASE_URL="https://dashtam.local"
-export EMAIL="test@example.com"
-
-curl -k -X POST "$BASE_URL/api/v1/users" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "'$EMAIL'",
-    "password": "SecurePass123!"
-  }'
-```
-
-**Expected Response** (201 Created):
-
-```json
-{
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "email": "test@example.com",
-  "is_verified": false
-}
-
-```
-
-## Step 2: Extract Verification Token
-
-```bash
-
-# Check application logs
-make dev-logs | grep "verification_token"
-
-# Extract token
-export VERIFICATION_TOKEN="abc123def456"
-
-```
-
-## Step 3: Verify Email
-
-```bash
-
-curl -k -X POST "$BASE_URL/api/v1/auth/verify" \
-  -H "Content-Type: application/json" \
-  -d '{"token": "'$VERIFICATION_TOKEN'"}'
-```
-
-**Expected Response** (200 OK):
-
-```json
-{
-  "message": "Email verified successfully"
-}
-
-```
-
-## Troubleshooting
-
-**Issue**: 400 "Invalid email"
-
-- Check email format
-- Ensure email doesn't already exist
-
-**Issue**: 404 "Verification token not found"
-
-- Check token was copied correctly
-- Token may have expired (24 hours)
-
-```markdown
-
-#### API Flow Rules
-
-**When creating/modifying API endpoints**:
-
-1. ✅ **Create/update corresponding flow** in `docs/api-flows/`
-2. ✅ **Use environment variables** - NEVER inline real secrets
-3. ✅ **Use `curl -k`** for self-signed certificates in development
-4. ✅ **Include cleanup steps** when flow creates persistent data
-5. ✅ **Test flow end-to-end** against dev HTTPS before committing
-6. ✅ **Update `docs/index.md`** navigation if structure changed
-
-**When deleting endpoints**:
-
-- Delete or deprecate related flow
-- Add pointer to replacement (if any)
+1. Purpose
+2. Prerequisites
+3. Step-by-step curl commands
+4. Expected responses
+5. Troubleshooting
 
 ---
 
-### 16. Architecture Documentation
+### 20. Architecture Documentation
 
-**When to document architecture decisions**:
+**Location**: `docs/architecture/`
 
-#### Always Document
+**When to Document**:
 
-- **New architectural patterns** (CQRS, event bus, repository pattern)
-- **Technology choices** (Why PostgreSQL? Why Redis? Why FastAPI?)
-- **Security decisions** (Encryption approach, token strategy)
-- **Major refactors** (Changing from ABC to Protocol)
-- **Infrastructure changes** (Adding Traefik, changing Docker setup)
+- New architectural patterns
+- Technology choices
+- Security decisions
+- Major refactors
+- Infrastructure changes
 
-#### Use Mermaid Diagrams (Mandatory)
+**Use Mermaid Diagrams**:
 
-**ALL diagrams MUST use Mermaid syntax** - NO image files.
-
-**Flowcharts** (process flows):
-
-````text
 ```mermaid
-
-flowchart TD
-    A[User registers] --> B{Email valid?}
-    B -->|Yes| C[Create user]
-    B -->|No| D[Return 400]
-    C --> E[Send verification email]
-    E --> F[Return 201]
-```
-
-````text
-
-**Sequence diagrams** (API interactions):
-
-````markdown
-```mermaid
-
 sequenceDiagram
     participant User
     participant API
     participant Database
-    participant Email
-    
     User->>API: POST /users
     API->>Database: Save user
     Database-->>API: User created
-    API->>Email: Send verification
     API-->>User: 201 Created
-
 ```
-````
-
-**Entity relationship diagrams** (database schema):
-
-````markdown
-```mermaid
-
-erDiagram
-    USER ||--o{ PROVIDER : connects
-    USER {
-        uuid id PK
-        string email
-        bool is_verified
-    }
-    PROVIDER {
-        uuid id PK
-        uuid user_id FK
-        string name
-    }
-
-```
-````
-
-**Class diagrams** (architecture layers):
-
-````markdown
-```mermaid
-
-classDiagram
-    class UserRepository {
-        <<Protocol>>
-        +find_by_email(email) User
-        +save(user) None
-    }
-    class UserRepositoryImpl {
-        +find_by_email(email) User
-        +save(user) None
-    }
-    UserRepository <|.. UserRepositoryImpl
-
-```
-````
-
-### Architecture Document Template
-
-**Location**: `docs/development/architecture/`
-
-**Structure**:
-
-```markdown
-# [Feature] Architecture
-
-## Overview
-Brief description of the feature and its purpose.
-
-## Design Decisions
-
-### Decision 1: [Choice]
-**Context**: Why this decision was needed
-**Options**: Alternatives considered
-**Decision**: What was chosen
-**Rationale**: Why this option was best
-**Consequences**: Trade-offs and implications
-
-## Architecture Diagram
-
-```mermaid
-
-[Appropriate diagram type]
-
-```
-
-## Component Details
-
-### Domain Layer
-
-[Entities, value objects, protocols]
-
-### Application Layer
-
-[Commands, queries, handlers]
-
-### Infrastructure Layer
-
-[Adapters, implementations]
-
-## Integration Points
-
-[How this feature integrates with others]
-
-## Security Considerations
-
-[Security implications and mitigations]
-
-## Testing Strategy
-
-[How to test this architecture]
-
-## Future Enhancements
-
-[Planned improvements]
-
----
-
-## Metadata
-
-- **Created**: 2025-11-08
-- **Last Updated**: 2025-11-08
-- **Status**: Complete
-- **Author**: Development Team
-
-```markdown
-
-**Reference**: See `~/references/starter/clean-slate-reference.md` for comprehensive architecture documentation examples.
 
 ---
 
 ## Part 6: AI Agent Instructions
 
-### 17. AI Agent Workflow
+### 21. AI Agent Workflow
 
-**CRITICAL**: AI agents MUST follow the development checklist workflow for ALL features.
+**CRITICAL**: AI agents MUST follow the development workflow for ALL features.
 
-#### Mandatory Checklist Workflow
+#### Mandatory Process
 
-**Two-phase process** (from `~/references/starter/development-checklist.md`):
+**Phase 1: Pre-Development**:
 
-**Phase 1: Pre-Development (Planning & Approval)**
+1. Create feature branch FIRST (`git checkout -b feature/<name>`)
+2. Analyze architecture placement (which layers?)
+3. Verify REST compliance (if API changes)
+4. Plan testing strategy
+5. **Create TODO list**
+6. **Present plan and WAIT for approval**
+7. **❌ DO NOT CODE without approval**
 
-1. Read feature requirements thoroughly
-2. Analyze architecture placement (hexagonal layers, CQRS)
-3. Verify REST API compliance (resource URLs, HTTP methods)
-4. Check SOLID principles
-5. Plan database schema (if needed)
-6. Review security requirements
-7. **Create TODO list** with phased implementation plan
-8. **Present plan to user** and wait for approval
-9. **❌ DO NOT CODE without user approval**
+**Phase 2: Development**:
 
-**Phase 2: Development (Implementation & Verification)**
-
-1. Work through TODO list systematically
+1. Implement following TODO list
 2. Use `mark_todo_as_done` as you complete items
 3. Test continuously (unit → integration → API)
-4. Verify code quality (`make lint`, `make format`)
-5. Lint markdown (`make lint-md`) if docs changed
-6. Verify MkDocs builds (`make docs-build`) with zero warnings
-7. Run all tests (`make test`) - must pass
-8. Verify REST compliance (Section 18 of checklist)
-9. Update environment configs (all .env.example files)
-10. Final verification (all tests, docs, linting)
-11. Commit with conventional commits
-
-**Reference**: See `~/references/starter/development-checklist.md` for complete 31-section checklist.
+4. Run quality checks (`make lint`, `make test`)
+5. Commit with conventional commits
+6. **NEVER commit without user request**
 
 #### TODO List Management
-
-**Use built-in TODO tools**:
 
 ```python
 # Create TODO list during planning
 create_todo_list([
-    {
-        "title": "Phase 1: Database Schema",
-        "details": "Create User model, migration, apply in dev"
-    },
-    {
-        "title": "Phase 2: Domain Layer",
-        "details": "UserRepository protocol, User entity, domain events"
-    },
-    # ... more phases ...
+    {"title": "Phase 1: Database Schema", "details": "..."},
+    {"title": "Phase 2: Domain Layer", "details": "..."},
+    ...
 ])
 
 # Mark items complete as you go
@@ -1715,38 +1205,17 @@ mark_todo_as_done(["todo-id-1", "todo-id-2"])
 read_todos()
 ```
 
-**Benefits**:
+#### Architecture Verification
 
-- Track progress across long features
-- Resume after interruptions
-- Clear completion status
+**Before implementing, verify**:
 
-### Tool Best Practices
+- [ ] Domain layer has NO framework imports
+- [ ] All protocols in `src/domain/protocols/`
+- [ ] Repositories return domain entities (not models)
+- [ ] Commands/queries are immutable dataclasses
+- [ ] Events use past tense naming
 
-**File operations**:
-
-```python
-# ✅ CORRECT: Use proper tools
-create_file("/path/to/new/file.py", content)  # Create new files
-edit_files([{...}])                            # Edit existing files
-read_files([{"path": "/path/to/file.py"}])    # Read before editing
-
-# ✅ CORRECT: Batch operations when possible
-read_files([
-    {"path": "src/domain/entities/user.py"},
-    {"path": "src/application/commands/register_user.py"},
-    {"path": "src/infrastructure/repositories/user_repository.py"},
-])
-```
-
-**Why these tools?**
-
-- `create_file`: Handles files of ANY size (tested 1000+ lines)
-- `edit_files`: Surgical edits with search/replace
-- `read_files`: Batch reads for efficiency
-- No size limitations, no quote escaping issues
-
-#### Common Architecture Mistakes (Avoid)
+#### Common Mistakes to Avoid
 
 **❌ Wrong layer placement**:
 
@@ -1754,26 +1223,21 @@ read_files([
 # WRONG: Business logic in API layer
 @router.post("/users")
 async def create_user(data: UserCreate):
-    # ❌ Don't validate in router
-    if not is_valid_email(data.email):
+    if not is_valid_email(data.email):  # ❌ Validation in router
         raise HTTPException(400)
-    # ❌ Don't save directly in router
-    await session.execute(insert(User).values(...))
+    await session.execute(...)  # ❌ Database in router
 ```
 
 **✅ Correct layer placement**:
 
 ```python
-# CORRECT: Router dispatches to handler
+# Router dispatches to handler
 @router.post("/users", status_code=201)
 async def create_user(
     data: UserCreate,
-    handler: RegisterUserHandler = Depends(),
+    handler: RegisterUserHandler = Depends(get_register_handler),
 ) -> UserResponse:
-    result = await handler.handle(RegisterUser(
-        email=data.email,
-        password=data.password,
-    ))
+    result = await handler.handle(RegisterUser(email=data.email, ...))
     match result:
         case Success(user_id):
             return UserResponse(id=user_id, ...)
@@ -1781,81 +1245,127 @@ async def create_user(
             raise HTTPException(400, detail=error.message)
 ```
 
-**❌ Skipping user approval**:
+**❌ Other mistakes**:
 
-- Always present TODO list and wait for "approved", "looks good", "go ahead"
-- Never jump straight to coding after analysis
+- Skipping user approval before coding
+- Not testing incrementally
+- Forgetting REST compliance verification
+- Committing without running tests
+- Using ABC instead of Protocol
 
-**❌ Not testing incrementally**:
+---
 
-- Test after each phase (not just at the end)
-- Run `make test` frequently during development
-- Catch errors early
+## Part 7: Quick Reference
 
-**❌ Forgetting REST compliance**:
+### 22. Development Checklist Summary
 
-- Every API endpoint must pass REST compliance check
-- Resource URLs (nouns), proper HTTP methods, standard status codes
-- No inline schemas in routers
+**Pre-Development** (Get Approval First):
 
-**❌ Skipping documentation**:
+- [ ] Feature branch created (`feature/<name>`)
+- [ ] Architecture layer(s) identified
+- [ ] REST compliance verified (if API)
+- [ ] Testing strategy planned
+- [ ] TODO list created
+- [ ] **User approval received**
 
-- Update docs as you code (not after)
-- Lint markdown before commit
-- Verify MkDocs builds cleanly
+**During Development**:
 
-#### Architecture Best Practices
+- [ ] Type hints on all functions
+- [ ] Google-style docstrings
+- [ ] DRY principle (no duplication)
+- [ ] Unit tests for domain/application
+- [ ] Integration tests for infrastructure
+- [ ] API tests for endpoints
 
-**✅ Domain depends on nothing**:
+**Before Commit**:
 
-```python
-# ✅ Domain layer - NO imports from infrastructure/application
-from typing import Protocol
-from uuid import UUID
+- [ ] `make lint` passes
+- [ ] `make format` applied
+- [ ] `make test` passes (all tests)
+- [ ] Coverage ≥85%
+- [ ] `make lint-md` passes (if docs changed)
+- [ ] `make docs-build` passes (zero warnings)
+- [ ] Conventional commit message
 
-class UserRepository(Protocol):
-    async def save(self, user: User) -> None: ...
+---
 
-class User:
-    # Pure business logic, no framework dependencies
-    ...
+### 23. DRY Principle Quick Guide
+
+**Rule**: Extract at 2nd occurrence (not 3rd).
+
+#### Types of Redundancy
+
+1. **Within-file**: Same code block repeated → Extract to helper function
+2. **Cross-file**: Similar logic in multiple files → Extract to shared utility
+3. **Test**: Repeated setup → Extract to pytest fixture
+4. **Configuration**: Hardcoded values → Move to Settings
+
+#### Red Flags (Immediate Extraction)
+
+- ❌ Same dict structure 2+ times
+- ❌ Same validation logic in multiple places
+- ❌ Identical try/except blocks
+- ❌ Copy-pasted test setup
+- ❌ Hardcoded config values
+
+#### Extraction Locations
+
+| Type | Location |
+|------|----------|
+| Domain helpers | `src/domain/services/` or `src/domain/utils.py` |
+| Application helpers | `src/application/services/` |
+| Infrastructure helpers | `src/infrastructure/utils.py` |
+| Test helpers | `tests/conftest.py` |
+| Validation | `src/domain/validators.py` |
+
+#### Verification
+
+```bash
+# Find duplicate patterns
+grep -r "patch.dict(os.environ" tests/  # Test env duplicates
+grep -r "if not is_valid" src/           # Validation duplicates
 ```
 
-**✅ Use Result types** (no exceptions in domain):
+---
 
-```python
-from core.result import Result, Success, Failure
+### 24. Key Technical Decisions
 
-def create_user(email: str) -> Result[User, ValidationError]:
-    if not is_valid_email(email):
-        return Failure(ValidationError("Invalid email"))
-    return Success(user)
-```
+#### Why Hexagonal Architecture?
 
-**✅ Protocol over ABC**:
+- **Testability**: Domain testable without database/APIs
+- **Flexibility**: Swap implementations without touching business logic
+- **Maintainability**: Clear boundaries, explicit dependencies
+- **Longevity**: Framework-agnostic domain survives upgrades
 
-```python
-# ✅ Use Protocol (structural typing)
-class CacheProtocol(Protocol):
-    async def get(self, key: str) -> str | None: ...
+#### Why CQRS?
 
-# ❌ Don't use ABC for new code
-class CacheBackend(ABC):  # Don't do this
-    ...
-```
+- **Performance**: Optimize reads separately from writes
+- **Clarity**: Explicit user intent (commands) vs data needs (queries)
+- **Caching**: Aggressive query caching without invalidation complexity
 
-**✅ Proper dependency injection**:
+#### Why Protocol Over ABC?
 
-```python
-# ✅ Inject dependencies via FastAPI Depends
-@router.post("/users")
-async def create_user(
-    data: UserCreate,
-    handler: RegisterUserHandler = Depends(get_register_handler),
-    ip_address: str | None = Depends(get_client_ip),
-):
-    ...
-```
+- **Pythonic**: Structural typing (duck typing with safety)
+- **Flexible**: No inheritance required, easier testing
+- **Modern**: Python 3.8+ feature, type checkers understand
+
+#### Why Result Types?
+
+- **Explicit**: Errors are part of return type (no hidden exceptions)
+- **Safe**: Force error handling at compile time
+- **Railway**: Clear success/failure paths
+
+#### Why UV Over pip?
+
+- **Speed**: 10-100x faster dependency resolution
+- **Modern**: Built-in virtual environment, project management
+- **Reliable**: Deterministic builds with `uv.lock`
+
+#### Why Shared Traefik Infrastructure?
+
+- **Multi-Project**: Single reverse proxy serves all development projects
+- **Zero Port Conflicts**: Domain-based routing eliminates collision issues
+- **Production-Like**: Dev environment mirrors production routing
 
 ---
 
@@ -1863,42 +1373,32 @@ async def create_user(
 
 **Process**:
 
-1. ✅ **ALWAYS use development checklist** (`~/references/starter/development-checklist.md`)
-2. ✅ **Pre-development phase first** - Analyze → Plan → Present → Get approval
-3. ✅ **❌ NEVER code without user approval** of TODO list
-4. ✅ **Use TODO tools** - Track progress across long features
-5. ✅ **Test incrementally** - After each phase, not just at end
-6. ✅ **Verify continuously** - Lint, test, build docs as you go
+1. ✅ Create feature branch FIRST
+2. ✅ Pre-development phase: Analyze → Plan → Present → Get approval
+3. ✅ **NEVER code without user approval** of TODO list
+4. ✅ Test incrementally (after each phase)
+5. ✅ **NEVER commit without user request**
 
 **Architecture**:
 
-1. ✅ **Hexagonal architecture** - Domain depends on nothing
-2. ✅ **CQRS pattern** - Separate commands (write) from queries (read)
-3. ✅ **Protocol over ABC** - Use Python 3.13+ Protocol (structural typing)
-4. ✅ **Result types** - Domain returns Result, no exceptions
-5. ✅ **REST compliance** - 100% RESTful (10/10 score, non-negotiable)
+1. ✅ Hexagonal architecture - Domain depends on nothing
+2. ✅ CQRS pattern - Separate commands from queries
+3. ✅ Protocol over ABC - Structural typing
+4. ✅ Result types - Domain returns Result, no exceptions
+5. ✅ REST compliance - 100% RESTful (no controller-style endpoints)
 
 **Quality**:
 
-1. ✅ **All tests pass** - `make test` before commit
-2. ✅ **Code quality** - `make lint`, `make format`
-3. ✅ **Markdown linting** - `make lint-md` (zero violations)
-4. ✅ **MkDocs builds** - `make docs-build` (zero warnings)
-5. ✅ **Conventional commits** - `feat:`, `fix:`, `docs:` format
+1. ✅ All tests pass: `make test`
+2. ✅ Code quality: `make lint`, `make format`
+3. ✅ Markdown linting: `make lint-md` (zero violations)
+4. ✅ MkDocs builds: `make docs-build` (zero warnings)
+5. ✅ Conventional commits: `feat:`, `fix:`, `docs:` format
 
-**Documentation**:
+**External Reference**:
 
-1. ✅ **API flows** - Create/update manual testing guides
-2. ✅ **Architecture docs** - Document design decisions with Mermaid diagrams
-3. ✅ **Mermaid diagrams** - NEVER use image files
-4. ✅ **Update as you code** - Not as an afterthought
-
-**Tools**:
-
-1. ✅ **Use proper tools** - `create_file`, `edit_files`, `read_files`
-2. ✅ **Batch operations** - Read/edit multiple files when possible
-3. ✅ **TODO management** - `create_todo_list`, `mark_todo_as_done`, `read_todos`
+- `~/references/starter/dashtam-feature-roadmap.md` - Phase 2-6 implementation details
 
 ---
 
-**Last Updated**: 2025-11-08  
+**Last Updated**: 2025-11-30

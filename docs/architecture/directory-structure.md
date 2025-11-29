@@ -817,11 +817,11 @@ class AuditError(DomainError):  # Inherits base fields
 ✅ **Industry Standard**: Mirrors Django, FastAPI error organization  
 ✅ **DDD Compliant**: Domain errors separate from infrastructure errors
 
----
-
-**Related Documentation**:
+### Related Documentation
 
 - [Import Guidelines](../guides/import-guidelines.md)
 - [Dependency Injection Architecture](dependency-injection-architecture.md)
 
-**Created**: 2025-11-08 | **Last Updated**: 2025-11-25
+---
+
+**Created**: 2025-11-08 | **Last Updated**: 2025-11-29

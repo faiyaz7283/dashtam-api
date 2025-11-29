@@ -106,6 +106,7 @@ async def adapter(redis_client, test_rules, mock_event_bus, mock_logger):
 class TestAdapterFullFlow:
     """Tests for complete rate limit flow."""
 
+    @pytest.mark.asyncio
     async def test_first_request_allowed(self, adapter, clean_keys) -> None:
         """First request should be allowed."""
         result = await adapter.is_allowed(
@@ -117,6 +118,7 @@ class TestAdapterFullFlow:
         assert result.value.allowed is True
         assert result.value.remaining == 4  # 5 - 1
 
+    @pytest.mark.asyncio
     async def test_multiple_requests_consume_tokens(self, adapter, clean_keys) -> None:
         """Multiple requests should consume tokens."""
         identifier = "192.168.1.100"
@@ -128,6 +130,7 @@ class TestAdapterFullFlow:
             )
             assert result.value.remaining == expected_remaining
 
+    @pytest.mark.asyncio
     async def test_rate_limit_exceeded(self, adapter, clean_keys) -> None:
         """Should deny request when rate limit exceeded."""
         identifier = "192.168.1.200"
@@ -149,6 +152,7 @@ class TestAdapterFullFlow:
         assert result.value.retry_after > 0
         assert result.value.remaining == 0
 
+    @pytest.mark.asyncio
     async def test_different_identifiers_isolated(self, adapter, clean_keys) -> None:
         """Different identifiers should have separate buckets."""
         # Exhaust bucket for IP 1
@@ -172,6 +176,7 @@ class TestAdapterFullFlow:
         )
         assert result2.value.allowed is True
 
+    @pytest.mark.asyncio
     async def test_different_endpoints_isolated(self, adapter, clean_keys) -> None:
         """Different endpoints should have separate buckets."""
         user_id = "user-123"
@@ -202,6 +207,7 @@ class TestAdapterFullFlow:
 class TestAdapterWithCost:
     """Tests for variable cost operations."""
 
+    @pytest.mark.asyncio
     async def test_high_cost_operation(self, adapter, clean_keys) -> None:
         """High cost operations should consume more tokens."""
         user_id = "user-cost-test"
@@ -232,6 +238,7 @@ class TestAdapterWithCost:
 class TestAdapterEventPublishing:
     """Tests for event publishing integration."""
 
+    @pytest.mark.asyncio
     async def test_events_published_on_allowed(
         self, adapter, mock_event_bus, clean_keys
     ) -> None:
@@ -250,6 +257,7 @@ class TestAdapterEventPublishing:
         assert "RateLimitCheckAttempted" in event_names
         assert "RateLimitCheckAllowed" in event_names
 
+    @pytest.mark.asyncio
     async def test_events_published_on_denied(
         self, adapter, mock_event_bus, clean_keys
     ) -> None:
@@ -280,6 +288,7 @@ class TestAdapterEventPublishing:
 class TestAdapterReset:
     """Tests for rate limit reset."""
 
+    @pytest.mark.asyncio
     async def test_reset_restores_bucket(self, adapter, clean_keys) -> None:
         """Reset should restore bucket to full capacity."""
         identifier = "192.168.1.99"
@@ -318,6 +327,7 @@ class TestAdapterReset:
 class TestAdapterGetRemaining:
     """Tests for get_remaining method."""
 
+    @pytest.mark.asyncio
     async def test_get_remaining_accurate(self, adapter, clean_keys) -> None:
         """get_remaining should return accurate count."""
         identifier = "user-remaining"

@@ -61,6 +61,7 @@ def test_rule():
 class TestRedisStorageCheckAndConsume:
     """Tests for check_and_consume method."""
 
+    @pytest.mark.asyncio
     async def test_first_request_allowed(self, storage, test_rule, clean_keys) -> None:
         """First request should be allowed with full bucket."""
         result = await storage.check_and_consume(
@@ -74,6 +75,7 @@ class TestRedisStorageCheckAndConsume:
         assert retry_after == 0.0
         assert remaining == 4  # 5 - 1 = 4
 
+    @pytest.mark.asyncio
     async def test_consecutive_requests_consume_tokens(
         self, storage, test_rule, clean_keys
     ) -> None:
@@ -92,6 +94,7 @@ class TestRedisStorageCheckAndConsume:
         result3 = await storage.check_and_consume(key_base=key, rule=test_rule)
         assert result3.value[2] == 2
 
+    @pytest.mark.asyncio
     async def test_bucket_exhaustion_denies_request(
         self, storage, test_rule, clean_keys
     ) -> None:
@@ -113,6 +116,7 @@ class TestRedisStorageCheckAndConsume:
         assert retry_after > 0
         assert remaining == 0
 
+    @pytest.mark.asyncio
     async def test_retry_after_calculation(self, storage, clean_keys) -> None:
         """Should calculate correct retry_after seconds."""
         # Rule: 5 tokens, 5/min refill = 1 token every 12 seconds
@@ -134,6 +138,7 @@ class TestRedisStorageCheckAndConsume:
         # Should be around 12 seconds (1 token at 5/min)
         assert 10 <= retry_after <= 14
 
+    @pytest.mark.asyncio
     async def test_custom_cost(self, storage, clean_keys) -> None:
         """Should consume multiple tokens for higher cost operations."""
         rule = RateLimitRule(
@@ -151,6 +156,7 @@ class TestRedisStorageCheckAndConsume:
         result2 = await storage.check_and_consume(key_base=key, rule=rule, cost=5)
         assert result2.value[2] == 2  # 7 - 5 = 2
 
+    @pytest.mark.asyncio
     async def test_token_refill_over_time(self, storage, clean_keys) -> None:
         """Should refill tokens based on elapsed time."""
         # Rule: 5 tokens, 60/min refill = 1 token per second
@@ -175,6 +181,7 @@ class TestRedisStorageCheckAndConsume:
         assert allowed is True
         assert remaining == 2  # Had 0, refilled 3, consumed 1 = 2
 
+    @pytest.mark.asyncio
     async def test_bucket_caps_at_max_tokens(
         self, storage, test_rule, clean_keys
     ) -> None:
@@ -200,6 +207,7 @@ class TestRedisStorageCheckAndConsume:
 class TestRedisStorageGetRemaining:
     """Tests for get_remaining method."""
 
+    @pytest.mark.asyncio
     async def test_get_remaining_full_bucket(
         self, storage, test_rule, clean_keys
     ) -> None:
@@ -213,6 +221,7 @@ class TestRedisStorageGetRemaining:
         # New bucket starts full
         assert result.value == 5
 
+    @pytest.mark.asyncio
     async def test_get_remaining_after_consumption(
         self, storage, test_rule, clean_keys
     ) -> None:
@@ -226,6 +235,7 @@ class TestRedisStorageGetRemaining:
         result = await storage.get_remaining(key_base=key, rule=test_rule)
         assert result.value == 3
 
+    @pytest.mark.asyncio
     async def test_get_remaining_does_not_consume(
         self, storage, test_rule, clean_keys
     ) -> None:
@@ -242,6 +252,7 @@ class TestRedisStorageGetRemaining:
 class TestRedisStorageReset:
     """Tests for reset method."""
 
+    @pytest.mark.asyncio
     async def test_reset_restores_full_bucket(
         self, storage, test_rule, clean_keys
     ) -> None:
@@ -271,6 +282,7 @@ class TestRedisStorageReset:
 class TestRedisStorageFailOpen:
     """Tests for fail-open behavior."""
 
+    @pytest.mark.asyncio
     async def test_check_and_consume_returns_success_always(
         self, storage, test_rule, clean_keys
     ) -> None:

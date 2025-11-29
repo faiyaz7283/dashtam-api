@@ -103,6 +103,7 @@ def adapter(mock_storage, test_rules, mock_event_bus, mock_logger):
 class TestTokenBucketAdapterKeyConstruction:
     """Tests for Redis key construction based on scope."""
 
+    @pytest.mark.asyncio
     async def test_ip_scope_key(self, adapter, mock_storage) -> None:
         """Should construct key with IP scope format."""
         await adapter.is_allowed(
@@ -115,6 +116,7 @@ class TestTokenBucketAdapterKeyConstruction:
         key_base = call_args.kwargs["key_base"]
         assert key_base == "rate_limit:ip:192.168.1.1:POST /api/v1/sessions"
 
+    @pytest.mark.asyncio
     async def test_user_scope_key(self, adapter, mock_storage) -> None:
         """Should construct key with USER scope format."""
         user_id = "user-123"
@@ -127,6 +129,7 @@ class TestTokenBucketAdapterKeyConstruction:
         key_base = call_args.kwargs["key_base"]
         assert key_base == f"rate_limit:user:{user_id}:GET /api/v1/accounts"
 
+    @pytest.mark.asyncio
     async def test_user_provider_scope_key(self, adapter, mock_storage) -> None:
         """Should construct key with USER_PROVIDER scope format."""
         identifier = "user-123:provider-456"
@@ -139,6 +142,7 @@ class TestTokenBucketAdapterKeyConstruction:
         key_base = call_args.kwargs["key_base"]
         assert "rate_limit:user_provider:" in key_base
 
+    @pytest.mark.asyncio
     async def test_global_scope_key(self, adapter, mock_storage) -> None:
         """Should construct key with GLOBAL scope format (no identifier)."""
         await adapter.is_allowed(
@@ -154,6 +158,7 @@ class TestTokenBucketAdapterKeyConstruction:
 class TestTokenBucketAdapterRuleLookup:
     """Tests for rule lookup behavior."""
 
+    @pytest.mark.asyncio
     async def test_unconfigured_endpoint_allowed(self, adapter) -> None:
         """Unconfigured endpoints should be allowed (fail-open)."""
         result = await adapter.is_allowed(
@@ -164,6 +169,7 @@ class TestTokenBucketAdapterRuleLookup:
         assert isinstance(result, Success)
         assert result.value.allowed is True
 
+    @pytest.mark.asyncio
     async def test_disabled_rule_allowed(self, adapter) -> None:
         """Disabled rules should allow all requests."""
         result = await adapter.is_allowed(
@@ -176,6 +182,7 @@ class TestTokenBucketAdapterRuleLookup:
         # Should return max_tokens as remaining
         assert result.value.remaining == 5
 
+    @pytest.mark.asyncio
     async def test_enabled_rule_checks_storage(self, adapter, mock_storage) -> None:
         """Enabled rules should check storage."""
         await adapter.is_allowed(
@@ -189,6 +196,7 @@ class TestTokenBucketAdapterRuleLookup:
 class TestTokenBucketAdapterIsAllowed:
     """Tests for is_allowed method."""
 
+    @pytest.mark.asyncio
     async def test_allowed_returns_success(self, adapter) -> None:
         """Should return Success with allowed=True when tokens available."""
         result = await adapter.is_allowed(
@@ -200,6 +208,7 @@ class TestTokenBucketAdapterIsAllowed:
         assert result.value.allowed is True
         assert result.value.retry_after == 0.0
 
+    @pytest.mark.asyncio
     async def test_denied_returns_success_with_retry_after(
         self, adapter, mock_storage
     ) -> None:
@@ -216,6 +225,7 @@ class TestTokenBucketAdapterIsAllowed:
         assert result.value.retry_after == 12.5
         assert result.value.remaining == 0
 
+    @pytest.mark.asyncio
     async def test_custom_cost(self, adapter, mock_storage) -> None:
         """Should pass custom cost to storage."""
         await adapter.is_allowed(
@@ -227,6 +237,7 @@ class TestTokenBucketAdapterIsAllowed:
         call_args = mock_storage.check_and_consume.call_args
         assert call_args.kwargs["cost"] == 5
 
+    @pytest.mark.asyncio
     async def test_result_includes_limit_and_reset(self, adapter) -> None:
         """Result should include limit and reset_seconds from rule."""
         result = await adapter.is_allowed(
@@ -241,6 +252,7 @@ class TestTokenBucketAdapterIsAllowed:
 class TestTokenBucketAdapterEventPublishing:
     """Tests for domain event publishing."""
 
+    @pytest.mark.asyncio
     async def test_publishes_attempted_event(self, adapter, mock_event_bus) -> None:
         """Should publish RateLimitCheckAttempted event."""
         await adapter.is_allowed(
@@ -254,6 +266,7 @@ class TestTokenBucketAdapterEventPublishing:
         first_event = calls[0][0][0]
         assert first_event.__class__.__name__ == "RateLimitCheckAttempted"
 
+    @pytest.mark.asyncio
     async def test_publishes_allowed_event_on_success(
         self, adapter, mock_event_bus
     ) -> None:
@@ -268,6 +281,7 @@ class TestTokenBucketAdapterEventPublishing:
         event_names = [c[0][0].__class__.__name__ for c in calls]
         assert "RateLimitCheckAllowed" in event_names
 
+    @pytest.mark.asyncio
     async def test_publishes_denied_event_on_rate_limit(
         self, adapter, mock_storage, mock_event_bus
     ) -> None:
@@ -287,6 +301,7 @@ class TestTokenBucketAdapterEventPublishing:
 class TestTokenBucketAdapterFailOpen:
     """Tests for fail-open behavior."""
 
+    @pytest.mark.asyncio
     async def test_storage_failure_returns_allowed(self, adapter, mock_storage) -> None:
         """Should return allowed=True if storage fails."""
         from src.core.enums import ErrorCode
@@ -308,6 +323,7 @@ class TestTokenBucketAdapterFailOpen:
         assert isinstance(result, Success)
         assert result.value.allowed is True
 
+    @pytest.mark.asyncio
     async def test_event_publish_failure_continues(
         self, adapter, mock_event_bus
     ) -> None:
@@ -326,6 +342,7 @@ class TestTokenBucketAdapterFailOpen:
 class TestTokenBucketAdapterGetRemaining:
     """Tests for get_remaining method."""
 
+    @pytest.mark.asyncio
     async def test_returns_remaining_tokens(self, adapter, mock_storage) -> None:
         """Should return remaining tokens from storage."""
         mock_storage.get_remaining.return_value = Success(value=3)
@@ -338,6 +355,7 @@ class TestTokenBucketAdapterGetRemaining:
         assert isinstance(result, Success)
         assert result.value == 3
 
+    @pytest.mark.asyncio
     async def test_unconfigured_endpoint_returns_zero(self, adapter) -> None:
         """Unconfigured endpoints should return 0."""
         result = await adapter.get_remaining(
@@ -352,6 +370,7 @@ class TestTokenBucketAdapterGetRemaining:
 class TestTokenBucketAdapterReset:
     """Tests for reset method."""
 
+    @pytest.mark.asyncio
     async def test_reset_calls_storage(self, adapter, mock_storage) -> None:
         """Should call storage reset."""
         result = await adapter.reset(
@@ -362,6 +381,7 @@ class TestTokenBucketAdapterReset:
         assert isinstance(result, Success)
         mock_storage.reset.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_reset_unconfigured_endpoint_succeeds(self, adapter) -> None:
         """Reset for unconfigured endpoint should succeed (nothing to reset)."""
         result = await adapter.reset(

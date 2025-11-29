@@ -703,3 +703,42 @@ class AuditAction(str, Enum):
         - transaction_count: Number of transactions viewed
         - date_range: Date range of transactions
     """
+
+    # =========================================================================
+    # Rate Limit Events (Security - Abuse Prevention)
+    # =========================================================================
+    # Pattern: ATTEMPTED → (ALLOWED | DENIED)
+    # These events track rate limit enforcement for security monitoring.
+
+    RATE_LIMIT_CHECK_ATTEMPTED = "rate_limit_check_attempted"
+    """Rate limit check was initiated.
+
+    Context should include:
+        - endpoint: Endpoint being rate limited
+        - identifier: Rate limit identifier (IP, user_id)
+        - scope: Rate limit scope (ip, user, user_provider, global)
+        - cost: Token cost for operation
+    """
+
+    RATE_LIMIT_CHECK_ALLOWED = "rate_limit_check_allowed"
+    """Request was allowed by rate limiter (SUCCESS).
+
+    Context should include:
+        - endpoint: Endpoint accessed
+        - identifier: Rate limit identifier
+        - scope: Rate limit scope
+        - remaining_tokens: Tokens remaining in bucket
+        - execution_time_ms: Rate limit check duration
+    """
+
+    RATE_LIMIT_CHECK_DENIED = "rate_limit_check_denied"
+    """Request was denied by rate limiter (security event).
+
+    Context should include:
+        - endpoint: Endpoint that was rate limited
+        - identifier: Rate limit identifier (IP, user_id)
+        - scope: Rate limit scope (ip, user, user_provider, global)
+        - retry_after: Seconds until retry allowed
+        - limit: Maximum tokens (bucket capacity)
+        - remaining: Current tokens (should be 0)
+    """

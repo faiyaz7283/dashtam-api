@@ -51,6 +51,7 @@ from src.domain.protocols.session_enricher import (
     LocationEnrichmentResult,
 )
 from src.domain.protocols.session_repository import SessionData, SessionRepository
+from src.domain.protocols.rate_limit_protocol import RateLimitProtocol
 from src.domain.protocols.user_repository import UserRepository
 
 __all__ = [
@@ -81,4 +82,6 @@ __all__ = [
     "SessionCache",
     "SessionData",
     "SessionRepository",
+    # Rate Limit protocol
+    "RateLimitProtocol",
 ]

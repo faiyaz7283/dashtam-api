@@ -69,3 +69,7 @@ class ErrorCode(Enum):
     # Audit trail errors
     AUDIT_RECORD_FAILED = "audit_record_failed"
     AUDIT_QUERY_FAILED = "audit_query_failed"
+
+    # Rate limit errors
+    RATE_LIMIT_CHECK_FAILED = "rate_limit_check_failed"
+    RATE_LIMIT_RESET_FAILED = "rate_limit_reset_failed"

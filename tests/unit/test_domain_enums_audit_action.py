@@ -41,10 +41,10 @@ class TestAuditActionEnumValues:
             assert not value.endswith("_")
 
     def test_enum_has_expected_count(self):
-        """Test enum has all 71 expected actions."""
-        # Based on actual enum: 71 audit actions with ATTEMPT/OUTCOME pattern
-        # (19 auth + 13 authz + 10 data + 14 admin + 12 provider + 3 system)
-        assert len(list(AuditAction)) == 71
+        """Test enum has all 74 expected actions."""
+        # Based on actual enum: 74 audit actions with ATTEMPT/OUTCOME pattern
+        # (19 auth + 13 authz + 10 data + 14 admin + 12 provider + 3 system + 3 rate limit)
+        assert len(list(AuditAction)) == 74
 
     def test_enum_membership(self):
         """Test enum membership checks work correctly."""

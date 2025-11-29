@@ -8,6 +8,7 @@ Usage:
 
 from src.domain.errors.audit_error import AuditError
 from src.domain.errors.authentication_error import AuthenticationError
+from src.domain.errors.rate_limit_error import RateLimitError
 from src.domain.errors.secrets_error import SecretsError
 
-__all__ = ["AuditError", "AuthenticationError", "SecretsError"]
+__all__ = ["AuditError", "AuthenticationError", "RateLimitError", "SecretsError"]

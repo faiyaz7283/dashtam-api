@@ -9,8 +9,8 @@ Reference:
 
 import logging
 
-from user_agents import parse as parse_user_agent  # type: ignore[import-untyped]
-from user_agents.parsers import UserAgent  # type: ignore[import-untyped]
+from user_agents import parse as parse_user_agent
+from user_agents.parsers import UserAgent
 
 from src.domain.protocols.session_enricher import DeviceEnrichmentResult
 

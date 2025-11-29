@@ -87,6 +87,11 @@ from src.domain.events.authorization_events import (
     RoleRevocationSucceeded,
 )
 from src.domain.events.base_event import DomainEvent
+from src.domain.events.rate_limit_events import (
+    RateLimitCheckAllowed,
+    RateLimitCheckAttempted,
+    RateLimitCheckDenied,
+)
 from src.domain.events.session_events import (
     AllSessionsRevokedEvent,
     SessionActivityUpdatedEvent,
@@ -159,6 +164,10 @@ __all__ = [
     "RoleRevocationAttempted",
     "RoleRevocationSucceeded",
     "RoleRevocationFailed",
+    # Rate Limit Check Events (3-state)
+    "RateLimitCheckAttempted",
+    "RateLimitCheckAllowed",
+    "RateLimitCheckDenied",
     # Session Management Events
     "AllSessionsRevokedEvent",
     "SessionActivityUpdatedEvent",

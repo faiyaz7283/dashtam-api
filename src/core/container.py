@@ -63,6 +63,7 @@ if TYPE_CHECKING:
     from src.domain.protocols.event_bus_protocol import EventBusProtocol
     from src.domain.protocols.logger_protocol import LoggerProtocol
     from src.domain.protocols.password_hashing_protocol import PasswordHashingProtocol
+    from src.domain.protocols.rate_limit_protocol import RateLimitProtocol
     from src.domain.protocols.secrets_protocol import SecretsProtocol
     from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
     from src.domain.protocols.authorization_protocol import AuthorizationProtocol
@@ -528,6 +529,87 @@ def get_email_service() -> "EmailProtocol":
     else:
         # Development, testing, CI: Use stub
         return StubEmailService(logger=get_logger())
+
+
+# ============================================================================
+# Rate Limiting (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_rate_limit() -> "RateLimitProtocol":
+    """Get rate limiter singleton (app-scoped).
+
+    Creates TokenBucketAdapter with:
+    - RedisStorage for atomic token bucket operations
+    - Centralized rules configuration from RATE_LIMIT_RULES
+    - Event bus for domain event publishing
+    - Logger for structured logging
+
+    Fail-Open Design:
+        All rate limit operations return allowed=True on infrastructure
+        failures. Rate limiting should NEVER cause denial of service.
+
+    Returns:
+        Rate limiter implementing RateLimitProtocol.
+
+    Usage:
+        # Application Layer (direct use)
+        rate_limit = get_rate_limit()
+        result = await rate_limit.is_allowed(
+            endpoint="POST /api/v1/sessions",
+            identifier="192.168.1.1",
+        )
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        from src.domain.protocols import RateLimitProtocol
+
+        @router.post("/login")
+        async def login(
+            rate_limit: RateLimitProtocol = Depends(get_rate_limit)
+        ):
+            result = await rate_limit.is_allowed(...)
+
+    Reference:
+        - docs/architecture/rate-limit-architecture.md
+    """
+    # Import here to avoid circular dependency
+    from redis.asyncio import ConnectionPool, Redis
+
+    from src.infrastructure.rate_limit import (
+        RATE_LIMIT_RULES,
+        RedisStorage,
+        TokenBucketAdapter,
+    )
+
+    # Create Redis client with same connection pool settings as cache
+    # (separate pool for rate limiting to avoid interference)
+    pool = ConnectionPool.from_url(
+        settings.redis_url,
+        max_connections=20,  # Fewer connections than cache (rate limit is simpler)
+        decode_responses=False,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        retry_on_timeout=True,
+        socket_keepalive=True,
+        socket_keepalive_options={
+            1: 1,  # TCP_KEEPIDLE
+            2: 1,  # TCP_KEEPINTVL
+            3: 5,  # TCP_KEEPCNT
+        },
+    )
+    redis_client = Redis(connection_pool=pool)
+
+    # Create storage and adapter
+    storage = RedisStorage(redis_client=redis_client)
+
+    return TokenBucketAdapter(
+        storage=storage,
+        rules=RATE_LIMIT_RULES,
+        event_bus=get_event_bus(),
+        logger=get_logger(),
+    )
 
 
 # ============================================================================

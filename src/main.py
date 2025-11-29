@@ -19,6 +19,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from src.core.config import settings
+from src.presentation.api.middleware.rate_limit_middleware import RateLimitMiddleware
 from src.presentation.api.middleware.trace_middleware import TraceMiddleware
 from src.presentation.api.v1 import v1_router
 from src.presentation.api.v1.errors import register_exception_handlers
@@ -59,8 +60,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Wire trace middleware (request correlation)
+# Wire middleware (order matters: last added = first executed)
+# 1. TraceMiddleware: Adds X-Trace-Id for request correlation
+# 2. RateLimitMiddleware: Applies rate limiting (needs trace_id for logging)
 app.add_middleware(TraceMiddleware)
+app.add_middleware(RateLimitMiddleware)
 
 # Register global exception handlers (RFC 7807 error responses)
 register_exception_handlers(app)

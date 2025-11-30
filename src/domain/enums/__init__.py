@@ -15,6 +15,7 @@ Available Enums:
     - Action: Actions on resources (read, write)
 """
 
+from src.domain.enums.account_type import AccountType
 from src.domain.enums.audit_action import AuditAction
 from src.domain.enums.connection_status import ConnectionStatus
 from src.domain.enums.credential_type import CredentialType
@@ -23,6 +24,7 @@ from src.domain.enums.rate_limit_scope import RateLimitScope
 from src.domain.enums.user_role import UserRole
 
 __all__ = [
+    "AccountType",
     "AuditAction",
     "ConnectionStatus",
     "CredentialType",

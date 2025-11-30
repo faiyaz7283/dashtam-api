@@ -43,13 +43,58 @@ while maintaining proper error propagation and user-friendly HTTP responses.
 @dataclass(frozen=True)
 class Email:
     value: str
-    
+
     def __post_init__(self):
         try:
             validate_email(self.value)
         except EmailNotValidError as e:
             raise ValueError(f"Invalid email: {e}")  # ✅ OK in __post_init__
 ```
+
+**✅ Exceptions ALLOWED (Value Object Arithmetic/Operations)**:
+
+- **Mathematical Operations**: Value objects with arithmetic operations (e.g., `Money`) can raise
+  exceptions when operations are semantically invalid (e.g., adding different currencies)
+- **Reason**: These operations are analogous to Python's built-in type operations (e.g., `str + int`
+  raises `TypeError`). The operation cannot produce a valid result, so fail-fast is appropriate.
+- **Pattern**: Raise `ValueError` subclass, caught at application layer
+- **NOT Business Logic**: Currency mismatch is a type-level constraint, not a business rule
+
+**Example - Value Object Arithmetic (Exceptions OK)**:
+
+```python
+@dataclass(frozen=True)
+class Money:
+    amount: Decimal
+    currency: str
+
+    def __add__(self, other: "Money") -> "Money":
+        if self.currency != other.currency:
+            # ✅ OK - analogous to Python's built-in type errors
+            raise CurrencyMismatchError(
+                f"Cannot add {self.currency} to {other.currency}"
+            )
+        return Money(amount=self.amount + other.amount, currency=self.currency)
+
+class CurrencyMismatchError(ValueError):
+    """Raised when arithmetic involves incompatible currencies."""
+    pass
+```
+
+**Why NOT Result Types for Value Object Operations?**:
+
+1. **Pythonic**: Follows Python's convention for type-incompatible operations
+2. **Ergonomic**: Enables natural syntax (`total = balance - fee`) instead of
+   `(balance - fee).unwrap()`
+3. **Mathematical**: Arithmetic should look like arithmetic, not error handling
+4. **Clear Boundary**: Type constraints (currency match) ≠ business rules (sufficient balance)
+
+**Decision Criteria - Use Exceptions in Value Objects when ALL are true**:
+
+1. Operation is type-level validation (not business logic)
+2. Failure indicates programmer error or invalid data combination
+3. Result type would make API unergonomic (e.g., breaking arithmetic operators)
+4. Exception is `ValueError` or subclass thereof
 
 **Example - Domain Service (Must use Result)**:
 
@@ -1098,4 +1143,4 @@ layers.
 
 ---
 
-**Created**: 2025-11-11 | **Last Updated**: 2025-11-12
+**Created**: 2025-11-11 | **Last Updated**: 2025-11-30

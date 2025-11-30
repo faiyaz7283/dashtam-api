@@ -44,14 +44,6 @@ from typing import Any
 
 from src.domain.enums.audit_action import AuditAction
 from src.domain.events.auth_events import (
-    # Provider Connection Events
-    ProviderConnectionAttempted,
-    ProviderConnectionFailed,
-    ProviderConnectionSucceeded,
-    # Provider Token Refresh Events (OAuth)
-    ProviderTokenRefreshAttempted,
-    ProviderTokenRefreshFailed,
-    ProviderTokenRefreshSucceeded,
     # User Password Change Events
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
@@ -60,6 +52,16 @@ from src.domain.events.auth_events import (
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
+)
+from src.domain.events.provider_events import (
+    # Provider Connection Events
+    ProviderConnectionAttempted,
+    ProviderConnectionFailed,
+    ProviderConnectionSucceeded,
+    # Provider Token Refresh Events (OAuth)
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
 )
 from src.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from src.infrastructure.persistence.database import Database
@@ -339,23 +341,22 @@ class AuditEventHandler:
         """Record provider connection attempt audit (ATTEMPT).
 
         Args:
-            event: ProviderConnectionAttempted event with provider name.
+            event: ProviderConnectionAttempted event with provider slug.
 
         Audit Record:
             - action: PROVIDER_CONNECTION_ATTEMPTED
             - user_id: UUID of user attempting connection
             - resource_type: "provider"
-            - context: {provider_name, connection_method: "oauth"}
+            - context: {provider_slug, provider_id}
         """
         await self._create_audit_record(
             action=AuditAction.PROVIDER_CONNECTION_ATTEMPTED,
             user_id=event.user_id,
             resource_type="provider",
-            resource_id=None,  # Provider not created yet
+            resource_id=event.provider_id,
             context={
                 "event_id": str(event.event_id),
-                "provider_name": event.provider_name,
-                "connection_method": "oauth",
+                "provider_slug": event.provider_slug,
             },
         )
 
@@ -372,18 +373,18 @@ class AuditEventHandler:
             - action: PROVIDER_CONNECTED
             - user_id: UUID of user who connected provider
             - resource_type: "provider"
-            - resource_id: provider_id
-            - context: {provider_name, connection_method: "oauth"}
+            - resource_id: connection_id
+            - context: {provider_slug, connection_id}
         """
         await self._create_audit_record(
             action=AuditAction.PROVIDER_CONNECTED,
             user_id=event.user_id,
             resource_type="provider",
-            resource_id=event.provider_id,  # UUID, not string
+            resource_id=event.connection_id,
             context={
                 "event_id": str(event.event_id),
-                "provider_name": event.provider_name,
-                "connection_method": "oauth",
+                "provider_id": str(event.provider_id),
+                "provider_slug": event.provider_slug,
             },
         )
 
@@ -400,16 +401,16 @@ class AuditEventHandler:
             - action: PROVIDER_CONNECTION_FAILED
             - user_id: UUID of user whose connection failed
             - resource_type: "provider"
-            - context: {provider_name, reason}
+            - context: {provider_slug, reason}
         """
         await self._create_audit_record(
             action=AuditAction.PROVIDER_CONNECTION_FAILED,
             user_id=event.user_id,
             resource_type="provider",
-            resource_id=None,  # Provider not created
+            resource_id=event.provider_id,
             context={
                 "event_id": str(event.event_id),
-                "provider_name": event.provider_name,
+                "provider_slug": event.provider_slug,
                 "reason": event.reason,
             },
         )
@@ -431,18 +432,18 @@ class AuditEventHandler:
             - action: PROVIDER_TOKEN_REFRESH_ATTEMPTED
             - user_id: UUID of user whose token is being refreshed
             - resource_type: "token"
-            - resource_id: provider_id
-            - context: {provider_name, token_type: "access"}
+            - resource_id: connection_id
+            - context: {provider_slug, connection_id}
         """
         await self._create_audit_record(
             action=AuditAction.PROVIDER_TOKEN_REFRESH_ATTEMPTED,
             user_id=event.user_id,
             resource_type="token",
-            resource_id=event.provider_id,  # UUID, not string
+            resource_id=event.connection_id,
             context={
                 "event_id": str(event.event_id),
-                "provider_name": event.provider_name,
-                "token_type": "access",
+                "provider_id": str(event.provider_id),
+                "provider_slug": event.provider_slug,
             },
         )
 
@@ -459,18 +460,18 @@ class AuditEventHandler:
             - action: PROVIDER_TOKEN_REFRESHED
             - user_id: UUID of user whose token was refreshed
             - resource_type: "token"
-            - resource_id: provider_id
-            - context: {provider_name, token_type: "access"}
+            - resource_id: connection_id
+            - context: {provider_slug, connection_id}
         """
         await self._create_audit_record(
             action=AuditAction.PROVIDER_TOKEN_REFRESHED,
             user_id=event.user_id,
             resource_type="token",
-            resource_id=event.provider_id,  # UUID, not string
+            resource_id=event.connection_id,
             context={
                 "event_id": str(event.event_id),
-                "provider_name": event.provider_name,
-                "token_type": "access",
+                "provider_id": str(event.provider_id),
+                "provider_slug": event.provider_slug,
             },
         )
 
@@ -487,17 +488,19 @@ class AuditEventHandler:
             - action: PROVIDER_TOKEN_REFRESH_FAILED
             - user_id: UUID of user whose token refresh failed
             - resource_type: "token"
-            - resource_id: provider_id
-            - context: {provider_name, error_code}
+            - resource_id: connection_id
+            - context: {provider_slug, reason, needs_user_action}
         """
         await self._create_audit_record(
             action=AuditAction.PROVIDER_TOKEN_REFRESH_FAILED,
             user_id=event.user_id,
             resource_type="token",
-            resource_id=event.provider_id,  # UUID, not string
+            resource_id=event.connection_id,
             context={
                 "event_id": str(event.event_id),
-                "provider_name": event.provider_name,
-                "error_code": event.error_code,
+                "provider_id": str(event.provider_id),
+                "provider_slug": event.provider_slug,
+                "reason": event.reason,
+                "needs_user_action": event.needs_user_action,
             },
         )

@@ -21,18 +21,20 @@ from uuid import UUID
 import pytest
 
 from src.domain.events.auth_events import (
-    ProviderConnectionAttempted,
-    ProviderConnectionFailed,
-    ProviderConnectionSucceeded,
-    ProviderTokenRefreshAttempted,
-    ProviderTokenRefreshFailed,
-    ProviderTokenRefreshSucceeded,
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
+)
+from src.domain.events.provider_events import (
+    ProviderConnectionAttempted,
+    ProviderConnectionFailed,
+    ProviderConnectionSucceeded,
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
 )
 from src.domain.events.base_event import DomainEvent
 
@@ -199,48 +201,59 @@ class TestProviderConnectionEvents:
         """Test ProviderConnectionAttempted event with all fields."""
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
+        provider_id = UUID("87654321-4321-8765-4321-876543218765")
 
         # Act
         event = ProviderConnectionAttempted(
             user_id=user_id,
-            provider_name="schwab",
+            provider_id=provider_id,
+            provider_slug="schwab",
         )
 
         # Assert
         assert event.user_id == user_id
-        assert event.provider_name == "schwab"
+        assert event.provider_id == provider_id
+        assert event.provider_slug == "schwab"
 
     def test_provider_connection_succeeded_creation(self):
         """Test ProviderConnectionSucceeded event with all fields."""
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
         provider_id = UUID("87654321-4321-8765-4321-876543218765")
+        connection_id = UUID("11111111-1111-1111-1111-111111111111")
 
         # Act
         event = ProviderConnectionSucceeded(
-            user_id=user_id, provider_id=provider_id, provider_name="schwab"
+            user_id=user_id,
+            connection_id=connection_id,
+            provider_id=provider_id,
+            provider_slug="schwab",
         )
 
         # Assert
         assert event.user_id == user_id
+        assert event.connection_id == connection_id
         assert event.provider_id == provider_id
-        assert event.provider_name == "schwab"
+        assert event.provider_slug == "schwab"
 
     def test_provider_connection_failed_creation(self):
         """Test ProviderConnectionFailed event with all fields."""
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
+        provider_id = UUID("87654321-4321-8765-4321-876543218765")
 
         # Act
         event = ProviderConnectionFailed(
             user_id=user_id,
-            provider_name="schwab",
+            provider_id=provider_id,
+            provider_slug="schwab",
             reason="access_denied",
         )
 
         # Assert
         assert event.user_id == user_id
-        assert event.provider_name == "schwab"
+        assert event.provider_id == provider_id
+        assert event.provider_slug == "schwab"
         assert event.reason == "access_denied"
 
 
@@ -253,52 +266,67 @@ class TestProviderTokenRefreshEvents:
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
         provider_id = UUID("87654321-4321-8765-4321-876543218765")
+        connection_id = UUID("11111111-1111-1111-1111-111111111111")
 
         # Act
         event = ProviderTokenRefreshAttempted(
-            user_id=user_id, provider_id=provider_id, provider_name="schwab"
+            user_id=user_id,
+            connection_id=connection_id,
+            provider_id=provider_id,
+            provider_slug="schwab",
         )
 
         # Assert
         assert event.user_id == user_id
+        assert event.connection_id == connection_id
         assert event.provider_id == provider_id
-        assert event.provider_name == "schwab"
+        assert event.provider_slug == "schwab"
 
     def test_provider_token_refresh_succeeded_creation(self):
         """Test ProviderTokenRefreshSucceeded event with all fields."""
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
         provider_id = UUID("87654321-4321-8765-4321-876543218765")
+        connection_id = UUID("11111111-1111-1111-1111-111111111111")
 
         # Act
         event = ProviderTokenRefreshSucceeded(
-            user_id=user_id, provider_id=provider_id, provider_name="schwab"
+            user_id=user_id,
+            connection_id=connection_id,
+            provider_id=provider_id,
+            provider_slug="schwab",
         )
 
         # Assert
         assert event.user_id == user_id
+        assert event.connection_id == connection_id
         assert event.provider_id == provider_id
-        assert event.provider_name == "schwab"
+        assert event.provider_slug == "schwab"
 
     def test_provider_token_refresh_failed_creation(self):
         """Test ProviderTokenRefreshFailed event with all fields."""
         # Arrange
         user_id = UUID("12345678-1234-5678-1234-567812345678")
         provider_id = UUID("87654321-4321-8765-4321-876543218765")
+        connection_id = UUID("11111111-1111-1111-1111-111111111111")
 
         # Act
         event = ProviderTokenRefreshFailed(
             user_id=user_id,
+            connection_id=connection_id,
             provider_id=provider_id,
-            provider_name="schwab",
-            error_code="invalid_grant",
+            provider_slug="schwab",
+            reason="invalid_grant",
+            needs_user_action=True,
         )
 
         # Assert
         assert event.user_id == user_id
+        assert event.connection_id == connection_id
         assert event.provider_id == provider_id
-        assert event.provider_name == "schwab"
-        assert event.error_code == "invalid_grant"
+        assert event.provider_slug == "schwab"
+        assert event.reason == "invalid_grant"
+        assert event.needs_user_action is True
 
 
 @pytest.mark.unit

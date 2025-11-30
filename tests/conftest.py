@@ -11,7 +11,11 @@ This configuration ensures:
 import pytest
 import asyncio
 import pytest_asyncio
+from datetime import UTC, datetime, timedelta
 from redis.asyncio import Redis, ConnectionPool
+
+from src.domain.enums.credential_type import CredentialType
+from src.domain.value_objects.provider_credentials import ProviderCredentials
 
 
 # Configure pytest-asyncio
@@ -46,6 +50,50 @@ def event_loop(event_loop_policy):
         loop.close()
     except Exception:
         pass  # Loop might already be closed
+
+
+# Test helper functions for domain entities
+# Sentinel for "use default expiration"
+_DEFAULT_EXPIRY = object()
+
+
+def create_credentials(
+    encrypted_data: bytes = b"encrypted_token_data",
+    credential_type: CredentialType = CredentialType.OAUTH2,
+    expires_at: datetime | None | object = _DEFAULT_EXPIRY,
+) -> ProviderCredentials:
+    """Helper to create ProviderCredentials for testing.
+
+    Args:
+        encrypted_data: Encrypted credential data (default: test data).
+        credential_type: Type of credential (default: OAuth2).
+        expires_at: Expiration time.
+            - Default: 1 hour from now
+            - None: Never expires
+            - datetime: Specific expiration time
+
+    Returns:
+        ProviderCredentials instance for testing.
+
+    Usage:
+        # Default (OAuth2, expires in 1 hour)
+        creds = create_credentials()
+
+        # Never expires (explicit None)
+        creds = create_credentials(expires_at=None)
+
+        # Custom expiration
+        creds = create_credentials(expires_at=datetime.now(UTC) + timedelta(days=1))
+    """
+    # Set default expiration if not provided
+    if expires_at is _DEFAULT_EXPIRY:
+        expires_at = datetime.now(UTC) + timedelta(hours=1)
+
+    return ProviderCredentials(
+        encrypted_data=encrypted_data,
+        credential_type=credential_type,
+        expires_at=expires_at,  # type: ignore[arg-type]
+    )
 
 
 # Pytest markers for different test types

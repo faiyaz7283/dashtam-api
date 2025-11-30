@@ -246,38 +246,7 @@ class UserPasswordChangeFailed(DomainEvent):
 
 
 # ═══════════════════════════════════════════════════════════════
-# Provider Connection (Workflow 5) - Placeholder for Phase 2
-# ═══════════════════════════════════════════════════════════════
-
-
-@dataclass(frozen=True, kw_only=True)
-class ProviderConnectionAttempted(DomainEvent):
-    """Provider connection attempt initiated (OAuth flow started)."""
-
-    user_id: UUID
-    provider_name: str
-
-
-@dataclass(frozen=True, kw_only=True)
-class ProviderConnectionSucceeded(DomainEvent):
-    """Provider connected successfully (OAuth completed, tokens saved)."""
-
-    user_id: UUID
-    provider_id: UUID
-    provider_name: str
-
-
-@dataclass(frozen=True, kw_only=True)
-class ProviderConnectionFailed(DomainEvent):
-    """Provider connection failed (OAuth failed, API error)."""
-
-    user_id: UUID
-    provider_name: str
-    reason: str
-
-
-# ═══════════════════════════════════════════════════════════════
-# Auth Token Refresh (Workflow 6) - JWT/Refresh Token Rotation
+# Auth Token Refresh (Workflow 5) - JWT/Refresh Token Rotation
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -497,40 +466,7 @@ class PasswordResetConfirmFailed(DomainEvent):
 
 
 # ═══════════════════════════════════════════════════════════════
-# Provider Token Refresh (Workflow 9) - Placeholder for Phase 2
-# ═══════════════════════════════════════════════════════════════
-
-
-@dataclass(frozen=True, kw_only=True)
-class ProviderTokenRefreshAttempted(DomainEvent):
-    """Provider token refresh attempt initiated."""
-
-    user_id: UUID
-    provider_id: UUID
-    provider_name: str
-
-
-@dataclass(frozen=True, kw_only=True)
-class ProviderTokenRefreshSucceeded(DomainEvent):
-    """Provider token refresh completed successfully."""
-
-    user_id: UUID
-    provider_id: UUID
-    provider_name: str
-
-
-@dataclass(frozen=True, kw_only=True)
-class ProviderTokenRefreshFailed(DomainEvent):
-    """Provider token refresh failed (user action required - reconnect provider)."""
-
-    user_id: UUID
-    provider_id: UUID
-    provider_name: str
-    error_code: str
-
-
-# ═══════════════════════════════════════════════════════════════
-# Global Token Rotation (Workflow 10)
+# Global Token Rotation (Workflow 8)
 # ═══════════════════════════════════════════════════════════════
 
 

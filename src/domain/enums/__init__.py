@@ -16,8 +16,18 @@ Available Enums:
 """
 
 from src.domain.enums.audit_action import AuditAction
+from src.domain.enums.connection_status import ConnectionStatus
+from src.domain.enums.credential_type import CredentialType
 from src.domain.enums.permission import Action, Resource
 from src.domain.enums.rate_limit_scope import RateLimitScope
 from src.domain.enums.user_role import UserRole
 
-__all__ = ["AuditAction", "RateLimitScope", "UserRole", "Resource", "Action"]
+__all__ = [
+    "AuditAction",
+    "ConnectionStatus",
+    "CredentialType",
+    "RateLimitScope",
+    "UserRole",
+    "Resource",
+    "Action",
+]

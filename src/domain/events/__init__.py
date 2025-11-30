@@ -45,14 +45,6 @@ from src.domain.events.auth_events import (
     PasswordResetRequestAttempted,
     PasswordResetRequestFailed,
     PasswordResetRequestSucceeded,
-    # Provider Connection Events
-    ProviderConnectionAttempted,
-    ProviderConnectionFailed,
-    ProviderConnectionSucceeded,
-    # Provider Token Refresh Events (OAuth)
-    ProviderTokenRefreshAttempted,
-    ProviderTokenRefreshFailed,
-    ProviderTokenRefreshSucceeded,
     # Token Rejection Event (Security Monitoring)
     TokenRejectedDueToRotation,
     # User Login Events
@@ -87,6 +79,20 @@ from src.domain.events.authorization_events import (
     RoleRevocationSucceeded,
 )
 from src.domain.events.base_event import DomainEvent
+from src.domain.events.provider_events import (
+    # Provider Connection Events (3-state)
+    ProviderConnectionAttempted,
+    ProviderConnectionFailed,
+    ProviderConnectionSucceeded,
+    # Provider Disconnection Events (3-state)
+    ProviderDisconnectionAttempted,
+    ProviderDisconnectionFailed,
+    ProviderDisconnectionSucceeded,
+    # Provider Token Refresh Events (3-state)
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
+)
 from src.domain.events.rate_limit_events import (
     RateLimitCheckAllowed,
     RateLimitCheckAttempted,
@@ -142,6 +148,10 @@ __all__ = [
     "ProviderConnectionAttempted",
     "ProviderConnectionSucceeded",
     "ProviderConnectionFailed",
+    # Provider Disconnection Events (3-state)
+    "ProviderDisconnectionAttempted",
+    "ProviderDisconnectionSucceeded",
+    "ProviderDisconnectionFailed",
     # Provider Token Refresh Events (3-state)
     "ProviderTokenRefreshAttempted",
     "ProviderTokenRefreshSucceeded",

@@ -51,6 +51,7 @@ from src.domain.protocols.session_enricher import (
     LocationEnrichmentResult,
 )
 from src.domain.protocols.session_repository import SessionData, SessionRepository
+from src.domain.protocols.account_repository import AccountRepository
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
@@ -68,6 +69,7 @@ __all__ = [
     "PasswordResetTokenServiceProtocol",
     "TokenGenerationProtocol",
     # Repository protocols
+    "AccountRepository",
     "EmailVerificationTokenData",
     "EmailVerificationTokenRepository",
     "PasswordResetTokenData",

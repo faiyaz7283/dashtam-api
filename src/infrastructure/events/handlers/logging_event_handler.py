@@ -48,14 +48,6 @@ from src.domain.events.auth_events import (
     PasswordResetRequestAttempted,
     PasswordResetRequestFailed,
     PasswordResetRequestSucceeded,
-    # Provider Connection Events
-    ProviderConnectionAttempted,
-    ProviderConnectionFailed,
-    ProviderConnectionSucceeded,
-    # Provider Token Refresh Events (OAuth)
-    ProviderTokenRefreshAttempted,
-    ProviderTokenRefreshFailed,
-    ProviderTokenRefreshSucceeded,
     # User Login Events
     UserLoginAttempted,
     UserLoginFailed,
@@ -72,6 +64,16 @@ from src.domain.events.auth_events import (
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
+)
+from src.domain.events.provider_events import (
+    # Provider Connection Events
+    ProviderConnectionAttempted,
+    ProviderConnectionFailed,
+    ProviderConnectionSucceeded,
+    # Provider Token Refresh Events (OAuth)
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
 )
 from src.domain.protocols.logger_protocol import LoggerProtocol
 
@@ -234,14 +236,15 @@ class LoggingEventHandler:
         """Log provider connection attempt (INFO level).
 
         Args:
-            event: ProviderConnectionAttempted event with provider name.
+            event: ProviderConnectionAttempted event with provider slug.
         """
         self._logger.info(
             "provider_connection_attempted",
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
-            provider_name=event.provider_name,
+            provider_id=str(event.provider_id),
+            provider_slug=event.provider_slug,
         )
 
     async def handle_provider_connection_succeeded(
@@ -258,8 +261,9 @@ class LoggingEventHandler:
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
             provider_id=str(event.provider_id),
-            provider_name=event.provider_name,
+            provider_slug=event.provider_slug,
         )
 
     async def handle_provider_connection_failed(
@@ -276,7 +280,8 @@ class LoggingEventHandler:
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
-            provider_name=event.provider_name,
+            provider_id=str(event.provider_id),
+            provider_slug=event.provider_slug,
             reason=event.reason,
         )
 
@@ -548,8 +553,9 @@ class LoggingEventHandler:
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
             provider_id=str(event.provider_id),
-            provider_name=event.provider_name,
+            provider_slug=event.provider_slug,
         )
 
     async def handle_provider_token_refresh_succeeded(
@@ -562,8 +568,9 @@ class LoggingEventHandler:
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
             provider_id=str(event.provider_id),
-            provider_name=event.provider_name,
+            provider_slug=event.provider_slug,
         )
 
     async def handle_provider_token_refresh_failed(
@@ -576,7 +583,9 @@ class LoggingEventHandler:
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
             provider_id=str(event.provider_id),
-            provider_name=event.provider_name,
-            error_code=event.error_code,
+            provider_slug=event.provider_slug,
+            reason=event.reason,
+            needs_user_action=event.needs_user_action,
         )

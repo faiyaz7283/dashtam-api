@@ -114,6 +114,8 @@ module = [
     "asyncpg.*",
     "casbin",
     "casbin_async_sqlalchemy_adapter",
+    "user_agents",
+    "user_agents.*",
 ]
 ignore_missing_imports = true
 

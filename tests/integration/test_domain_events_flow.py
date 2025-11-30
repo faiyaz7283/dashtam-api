@@ -28,6 +28,8 @@ from src.domain.enums.audit_action import AuditAction
 from src.domain.events.auth_events import (
     UserRegistrationSucceeded,
     UserPasswordChangeSucceeded,
+)
+from src.domain.events.provider_events import (
     ProviderConnectionSucceeded,
     ProviderTokenRefreshFailed,
 )
@@ -133,8 +135,12 @@ class TestEventFlowEndToEnd:
         event_bus = get_event_bus()
         user_id = uuid4()
         provider_id = uuid4()
+        connection_id = uuid4()
         event = ProviderConnectionSucceeded(
-            user_id=user_id, provider_id=provider_id, provider_name="schwab"
+            user_id=user_id,
+            connection_id=connection_id,
+            provider_id=provider_id,
+            provider_slug="schwab",
         )
 
         # Act - Pass session to avoid "Event loop is closed" error
@@ -152,8 +158,8 @@ class TestEventFlowEndToEnd:
             assert log.action == AuditAction.PROVIDER_CONNECTED
             assert log.user_id == user_id
             assert log.resource_type == "provider"
-            assert log.resource_id == provider_id  # UUID, not string
-            assert log.context["provider_name"] == "schwab"
+            assert log.resource_id == connection_id  # Connection ID, not provider ID
+            assert log.context["provider_slug"] == "schwab"
 
     @pytest.mark.asyncio
     async def test_provider_token_refresh_failed_creates_audit_record(
@@ -164,11 +170,14 @@ class TestEventFlowEndToEnd:
         event_bus = get_event_bus()
         user_id = uuid4()
         provider_id = uuid4()
+        connection_id = uuid4()
         event = ProviderTokenRefreshFailed(
             user_id=user_id,
+            connection_id=connection_id,
             provider_id=provider_id,
-            provider_name="schwab",
-            error_code="invalid_grant",
+            provider_slug="schwab",
+            reason="invalid_grant",
+            needs_user_action=True,
         )
 
         # Act - Pass session to avoid "Event loop is closed" error
@@ -186,7 +195,7 @@ class TestEventFlowEndToEnd:
             assert log.action == AuditAction.PROVIDER_TOKEN_REFRESH_FAILED
             assert log.user_id == user_id
             assert log.resource_type == "token"
-            assert log.context["error_code"] == "invalid_grant"
+            assert log.context["reason"] == "invalid_grant"
 
 
 @pytest.mark.integration
@@ -215,9 +224,13 @@ class TestMultipleEventsSequence:
                 session=session,
             )
             provider_id = uuid4()
+            connection_id = uuid4()
             await event_bus.publish(
                 ProviderConnectionSucceeded(
-                    user_id=user_id, provider_id=provider_id, provider_name="schwab"
+                    user_id=user_id,
+                    connection_id=connection_id,
+                    provider_id=provider_id,
+                    provider_slug="schwab",
                 ),
                 session=session,
             )
@@ -376,14 +389,16 @@ class TestEventDataIntegrity:
         event_bus = get_event_bus()
         user_id = uuid4()
         provider_id = uuid4()
+        connection_id = uuid4()
         timestamp = datetime.now(UTC)
 
         event = ProviderConnectionSucceeded(
             event_id=uuid4(),  # Explicit event_id
             occurred_at=timestamp,  # Explicit timestamp
             user_id=user_id,
+            connection_id=connection_id,
             provider_id=provider_id,
-            provider_name="schwab",
+            provider_slug="schwab",
         )
 
         # Act - Pass session to avoid "Event loop is closed" error
@@ -398,9 +413,9 @@ class TestEventDataIntegrity:
 
             assert log is not None
             assert log.user_id == user_id
-            assert log.resource_id == provider_id  # UUID, not string
+            assert log.resource_id == connection_id  # Connection ID, not provider ID
             assert log.context["event_id"] == str(event.event_id)
-            assert log.context["provider_name"] == "schwab"
+            assert log.context["provider_slug"] == "schwab"
             # Timestamp preserved (within 1 second tolerance for test timing)
             assert abs((log.created_at - timestamp).total_seconds()) < 1
 

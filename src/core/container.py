@@ -713,6 +713,8 @@ def get_event_bus() -> "EventBusProtocol":  # noqa: F821
         UserPasswordChangeAttempted,
         UserPasswordChangeSucceeded,
         UserPasswordChangeFailed,
+    )
+    from src.domain.events.provider_events import (
         ProviderConnectionAttempted,
         ProviderConnectionSucceeded,
         ProviderConnectionFailed,

@@ -27,18 +27,20 @@ import pytest
 
 from src.domain.enums.audit_action import AuditAction
 from src.domain.events.auth_events import (
-    ProviderConnectionAttempted,
-    ProviderConnectionFailed,
-    ProviderConnectionSucceeded,
-    ProviderTokenRefreshAttempted,
-    ProviderTokenRefreshFailed,
-    ProviderTokenRefreshSucceeded,
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
     UserPasswordChangeSucceeded,
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
+)
+from src.domain.events.provider_events import (
+    ProviderConnectionAttempted,
+    ProviderConnectionFailed,
+    ProviderConnectionSucceeded,
+    ProviderTokenRefreshAttempted,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
 )
 from src.infrastructure.events.handlers.audit_event_handler import AuditEventHandler
 from src.infrastructure.events.handlers.email_event_handler import EmailEventHandler
@@ -93,6 +95,12 @@ def sample_user_id() -> UUID:
 def sample_provider_id() -> UUID:
     """Sample provider UUID for tests."""
     return UUID("87654321-4321-8765-4321-876543218765")
+
+
+@pytest.fixture
+def sample_connection_id() -> UUID:
+    """Sample connection UUID for tests."""
+    return UUID("11111111-1111-1111-1111-111111111111")
 
 
 # =============================================================================
@@ -229,13 +237,15 @@ class TestLoggingEventHandler:
 
     @pytest.mark.asyncio
     async def test_provider_connection_attempted_logs_info(
-        self, mock_logger, sample_user_id
+        self, mock_logger, sample_user_id, sample_provider_id
     ):
         """Test ProviderConnectionAttempted logged at INFO level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = ProviderConnectionAttempted(
-            user_id=sample_user_id, provider_name="schwab"
+            user_id=sample_user_id,
+            provider_id=sample_provider_id,
+            provider_slug="schwab",
         )
 
         # Act
@@ -245,19 +255,20 @@ class TestLoggingEventHandler:
         mock_logger.info.assert_called_once()
         call_args = mock_logger.info.call_args
         assert call_args[0][0] == "provider_connection_attempted"
-        assert call_args[1]["provider_name"] == "schwab"
+        assert call_args[1]["provider_slug"] == "schwab"
 
     @pytest.mark.asyncio
     async def test_provider_connection_succeeded_logs_info(
-        self, mock_logger, sample_user_id, sample_provider_id
+        self, mock_logger, sample_user_id, sample_provider_id, sample_connection_id
     ):
         """Test ProviderConnectionSucceeded logged at INFO level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = ProviderConnectionSucceeded(
             user_id=sample_user_id,
+            connection_id=sample_connection_id,
             provider_id=sample_provider_id,
-            provider_name="schwab",
+            provider_slug="schwab",
         )
 
         # Act
@@ -267,18 +278,19 @@ class TestLoggingEventHandler:
         mock_logger.info.assert_called_once()
         call_args = mock_logger.info.call_args
         assert call_args[0][0] == "provider_connection_succeeded"
-        assert call_args[1]["provider_id"] == str(sample_provider_id)
+        assert call_args[1]["connection_id"] == str(sample_connection_id)
 
     @pytest.mark.asyncio
     async def test_provider_connection_failed_logs_warning(
-        self, mock_logger, sample_user_id
+        self, mock_logger, sample_user_id, sample_provider_id
     ):
         """Test ProviderConnectionFailed logged at WARNING level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = ProviderConnectionFailed(
             user_id=sample_user_id,
-            provider_name="schwab",
+            provider_id=sample_provider_id,
+            provider_slug="schwab",
             reason="access_denied",
         )
 
@@ -293,15 +305,16 @@ class TestLoggingEventHandler:
 
     @pytest.mark.asyncio
     async def test_provider_token_refresh_attempted_logs_info(
-        self, mock_logger, sample_user_id, sample_provider_id
+        self, mock_logger, sample_user_id, sample_provider_id, sample_connection_id
     ):
         """Test ProviderTokenRefreshAttempted logged at INFO level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = ProviderTokenRefreshAttempted(
             user_id=sample_user_id,
+            connection_id=sample_connection_id,
             provider_id=sample_provider_id,
-            provider_name="schwab",
+            provider_slug="schwab",
         )
 
         # Act
@@ -314,15 +327,16 @@ class TestLoggingEventHandler:
 
     @pytest.mark.asyncio
     async def test_provider_token_refresh_succeeded_logs_info(
-        self, mock_logger, sample_user_id, sample_provider_id
+        self, mock_logger, sample_user_id, sample_provider_id, sample_connection_id
     ):
         """Test ProviderTokenRefreshSucceeded logged at INFO level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = ProviderTokenRefreshSucceeded(
             user_id=sample_user_id,
+            connection_id=sample_connection_id,
             provider_id=sample_provider_id,
-            provider_name="schwab",
+            provider_slug="schwab",
         )
 
         # Act
@@ -335,16 +349,18 @@ class TestLoggingEventHandler:
 
     @pytest.mark.asyncio
     async def test_provider_token_refresh_failed_logs_warning(
-        self, mock_logger, sample_user_id, sample_provider_id
+        self, mock_logger, sample_user_id, sample_provider_id, sample_connection_id
     ):
         """Test ProviderTokenRefreshFailed logged at WARNING level."""
         # Arrange
         handler = LoggingEventHandler(logger=mock_logger)
         event = ProviderTokenRefreshFailed(
             user_id=sample_user_id,
+            connection_id=sample_connection_id,
             provider_id=sample_provider_id,
-            provider_name="schwab",
-            error_code="invalid_grant",
+            provider_slug="schwab",
+            reason="invalid_grant",
+            needs_user_action=True,
         )
 
         # Act
@@ -354,7 +370,7 @@ class TestLoggingEventHandler:
         mock_logger.warning.assert_called_once()
         call_args = mock_logger.warning.call_args
         assert call_args[0][0] == "provider_token_refresh_failed"
-        assert call_args[1]["error_code"] == "invalid_grant"
+        assert call_args[1]["reason"] == "invalid_grant"
 
 
 # =============================================================================
@@ -490,15 +506,21 @@ class TestAuditEventHandler:
 
     @pytest.mark.asyncio
     async def test_provider_connection_succeeded_creates_audit(
-        self, mock_database, mock_event_bus, sample_user_id, sample_provider_id
+        self,
+        mock_database,
+        mock_event_bus,
+        sample_user_id,
+        sample_provider_id,
+        sample_connection_id,
     ):
         """Test ProviderConnectionSucceeded creates audit record."""
         # Arrange
         handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = ProviderConnectionSucceeded(
             user_id=sample_user_id,
+            connection_id=sample_connection_id,
             provider_id=sample_provider_id,
-            provider_name="schwab",
+            provider_slug="schwab",
         )
 
         # Mock PostgresAuditAdapter
@@ -516,21 +538,28 @@ class TestAuditEventHandler:
             call_kwargs = mock_adapter.record.call_args[1]
             assert call_kwargs["action"] == AuditAction.PROVIDER_CONNECTED
             assert call_kwargs["user_id"] == sample_user_id
-            assert call_kwargs["resource_id"] == sample_provider_id  # UUID, not string
-            assert call_kwargs["context"]["provider_name"] == "schwab"
+            assert call_kwargs["resource_id"] == sample_connection_id  # Connection ID
+            assert call_kwargs["context"]["provider_slug"] == "schwab"
 
     @pytest.mark.asyncio
     async def test_provider_token_refresh_failed_creates_audit(
-        self, mock_database, mock_event_bus, sample_user_id, sample_provider_id
+        self,
+        mock_database,
+        mock_event_bus,
+        sample_user_id,
+        sample_provider_id,
+        sample_connection_id,
     ):
         """Test ProviderTokenRefreshFailed creates audit record."""
         # Arrange
         handler = AuditEventHandler(database=mock_database, event_bus=mock_event_bus)
         event = ProviderTokenRefreshFailed(
             user_id=sample_user_id,
+            connection_id=sample_connection_id,
             provider_id=sample_provider_id,
-            provider_name="schwab",
-            error_code="invalid_grant",
+            provider_slug="schwab",
+            reason="invalid_grant",
+            needs_user_action=True,
         )
 
         # Mock PostgresAuditAdapter
@@ -548,7 +577,7 @@ class TestAuditEventHandler:
             call_kwargs = mock_adapter.record.call_args[1]
             assert call_kwargs["action"] == AuditAction.PROVIDER_TOKEN_REFRESH_FAILED
             assert call_kwargs["user_id"] == sample_user_id
-            assert call_kwargs["context"]["error_code"] == "invalid_grant"
+            assert call_kwargs["context"]["reason"] == "invalid_grant"
 
 
 # =============================================================================

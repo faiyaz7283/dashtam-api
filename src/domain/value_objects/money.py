@@ -31,37 +31,39 @@ from typing import Self
 
 # ISO 4217 currency codes - common currencies supported
 # Expand as needed for international accounts
-VALID_CURRENCIES: frozenset[str] = frozenset({
-    # Major currencies
-    "USD",  # US Dollar
-    "EUR",  # Euro
-    "GBP",  # British Pound
-    "JPY",  # Japanese Yen
-    "CHF",  # Swiss Franc
-    "CAD",  # Canadian Dollar
-    "AUD",  # Australian Dollar
-    "NZD",  # New Zealand Dollar
-    # Asian currencies
-    "CNY",  # Chinese Yuan
-    "HKD",  # Hong Kong Dollar
-    "SGD",  # Singapore Dollar
-    "KRW",  # South Korean Won
-    "INR",  # Indian Rupee
-    "TWD",  # Taiwan Dollar
-    # European currencies
-    "SEK",  # Swedish Krona
-    "NOK",  # Norwegian Krone
-    "DKK",  # Danish Krone
-    "PLN",  # Polish Zloty
-    "CZK",  # Czech Koruna
-    # Americas
-    "MXN",  # Mexican Peso
-    "BRL",  # Brazilian Real
-    # Other
-    "ZAR",  # South African Rand
-    "RUB",  # Russian Ruble
-    "TRY",  # Turkish Lira
-})
+VALID_CURRENCIES: frozenset[str] = frozenset(
+    {
+        # Major currencies
+        "USD",  # US Dollar
+        "EUR",  # Euro
+        "GBP",  # British Pound
+        "JPY",  # Japanese Yen
+        "CHF",  # Swiss Franc
+        "CAD",  # Canadian Dollar
+        "AUD",  # Australian Dollar
+        "NZD",  # New Zealand Dollar
+        # Asian currencies
+        "CNY",  # Chinese Yuan
+        "HKD",  # Hong Kong Dollar
+        "SGD",  # Singapore Dollar
+        "KRW",  # South Korean Won
+        "INR",  # Indian Rupee
+        "TWD",  # Taiwan Dollar
+        # European currencies
+        "SEK",  # Swedish Krona
+        "NOK",  # Norwegian Krone
+        "DKK",  # Danish Krone
+        "PLN",  # Polish Zloty
+        "CZK",  # Czech Koruna
+        # Americas
+        "MXN",  # Mexican Peso
+        "BRL",  # Brazilian Real
+        # Other
+        "ZAR",  # South African Rand
+        "RUB",  # Russian Ruble
+        "TRY",  # Turkish Lira
+    }
+)
 
 
 class CurrencyMismatchError(ValueError):

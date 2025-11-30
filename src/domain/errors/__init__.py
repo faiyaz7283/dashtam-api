@@ -12,6 +12,7 @@ from src.domain.errors.authentication_error import AuthenticationError
 from src.domain.errors.provider_connection_error import ProviderConnectionError
 from src.domain.errors.rate_limit_error import RateLimitError
 from src.domain.errors.secrets_error import SecretsError
+from src.domain.errors.transaction_error import TransactionError
 
 __all__ = [
     "AccountError",
@@ -20,4 +21,5 @@ __all__ = [
     "ProviderConnectionError",
     "RateLimitError",
     "SecretsError",
+    "TransactionError",
 ]

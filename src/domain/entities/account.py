@@ -300,7 +300,10 @@ class Account:
                 f"account currency ({self.currency})"
             )
 
-        if available_balance is not None and available_balance.currency != self.currency:
+        if (
+            available_balance is not None
+            and available_balance.currency != self.currency
+        ):
             return Failure(
                 error=f"Available balance currency ({available_balance.currency}) "
                 f"must match account currency ({self.currency})"

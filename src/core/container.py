@@ -147,6 +147,14 @@ if TYPE_CHECKING:
         ListAccountsByConnectionHandler,
         ListAccountsByUserHandler,
     )
+    from src.application.queries.handlers.get_transaction_handler import (
+        GetTransactionHandler,
+    )
+    from src.application.queries.handlers.list_transactions_handler import (
+        ListTransactionsByAccountHandler,
+        ListTransactionsByDateRangeHandler,
+        ListSecurityTransactionsHandler,
+    )
 
 
 # ============================================================================
@@ -1774,6 +1782,155 @@ async def get_list_accounts_by_user_handler(
 
     return ListAccountsByUserHandler(
         account_repo=account_repo,
+    )
+
+
+# ============================================================================
+# Transaction Query Handler Factories (Request-Scoped)
+# ============================================================================
+
+
+async def get_get_transaction_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "GetTransactionHandler":
+    """Get GetTransaction query handler (request-scoped).
+
+    Creates handler with:
+    - TransactionRepository (request-scoped)
+    - AccountRepository (request-scoped for ownership chain)
+    - ProviderConnectionRepository (request-scoped for ownership verification)
+
+    Returns:
+        GetTransactionHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.get_transaction_handler import (
+        GetTransactionHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+        TransactionRepository,
+    )
+
+    transaction_repo = TransactionRepository(session=session)
+    account_repo = AccountRepository(session=session)
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return GetTransactionHandler(
+        transaction_repo=transaction_repo,
+        account_repo=account_repo,
+        connection_repo=connection_repo,
+    )
+
+
+async def get_list_transactions_by_account_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListTransactionsByAccountHandler":
+    """Get ListTransactionsByAccount query handler (request-scoped).
+
+    Creates handler with:
+    - TransactionRepository (request-scoped)
+    - AccountRepository (request-scoped for ownership chain)
+    - ProviderConnectionRepository (request-scoped for ownership verification)
+
+    Returns:
+        ListTransactionsByAccountHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.list_transactions_handler import (
+        ListTransactionsByAccountHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+        TransactionRepository,
+    )
+
+    transaction_repo = TransactionRepository(session=session)
+    account_repo = AccountRepository(session=session)
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return ListTransactionsByAccountHandler(
+        transaction_repo=transaction_repo,
+        account_repo=account_repo,
+        connection_repo=connection_repo,
+    )
+
+
+async def get_list_transactions_by_date_range_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListTransactionsByDateRangeHandler":
+    """Get ListTransactionsByDateRange query handler (request-scoped).
+
+    Creates handler with:
+    - TransactionRepository (request-scoped)
+    - AccountRepository (request-scoped for ownership chain)
+    - ProviderConnectionRepository (request-scoped for ownership verification)
+
+    Returns:
+        ListTransactionsByDateRangeHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.list_transactions_handler import (
+        ListTransactionsByDateRangeHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+        TransactionRepository,
+    )
+
+    transaction_repo = TransactionRepository(session=session)
+    account_repo = AccountRepository(session=session)
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return ListTransactionsByDateRangeHandler(
+        transaction_repo=transaction_repo,
+        account_repo=account_repo,
+        connection_repo=connection_repo,
+    )
+
+
+async def get_list_security_transactions_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListSecurityTransactionsHandler":
+    """Get ListSecurityTransactions query handler (request-scoped).
+
+    Creates handler with:
+    - TransactionRepository (request-scoped)
+    - AccountRepository (request-scoped for ownership chain)
+    - ProviderConnectionRepository (request-scoped for ownership verification)
+
+    Returns:
+        ListSecurityTransactionsHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.list_transactions_handler import (
+        ListSecurityTransactionsHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+        TransactionRepository,
+    )
+
+    transaction_repo = TransactionRepository(session=session)
+    account_repo = AccountRepository(session=session)
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return ListSecurityTransactionsHandler(
+        transaction_repo=transaction_repo,
+        account_repo=account_repo,
+        connection_repo=connection_repo,
     )
 
 

@@ -11,9 +11,10 @@ Reference:
 from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
+from uuid_extensions import uuid7
 
 from src.application.queries.account_queries import GetAccount
 from src.application.queries.handlers.get_account_handler import (
@@ -39,25 +40,25 @@ from src.domain.value_objects.provider_credentials import ProviderCredentials
 @pytest.fixture
 def user_id() -> UUID:
     """User ID for ownership verification."""
-    return uuid4()
+    return uuid7()
 
 
 @pytest.fixture
 def other_user_id() -> UUID:
     """Different user ID for ownership failure tests."""
-    return uuid4()
+    return uuid7()
 
 
 @pytest.fixture
 def connection_id() -> UUID:
     """Provider connection ID."""
-    return uuid4()
+    return uuid7()
 
 
 @pytest.fixture
 def account_id() -> UUID:
     """Account ID."""
-    return uuid4()
+    return uuid7()
 
 
 @pytest.fixture
@@ -110,7 +111,7 @@ def mock_connection(user_id: UUID, connection_id: UUID) -> ProviderConnection:
     return ProviderConnection(
         id=connection_id,
         user_id=user_id,
-        provider_id=uuid4(),
+        provider_id=uuid7(),
         provider_slug="schwab",
         status=ConnectionStatus.ACTIVE,
         credentials=ProviderCredentials(
@@ -387,7 +388,7 @@ async def test_get_account_not_owned_by_user(
     other_connection = ProviderConnection(
         id=connection_id,
         user_id=other_user_id,  # Different user!
-        provider_id=uuid4(),
+        provider_id=uuid7(),
         provider_slug="schwab",
         status=ConnectionStatus.ACTIVE,
         credentials=ProviderCredentials(

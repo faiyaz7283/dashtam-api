@@ -11,9 +11,10 @@ Reference:
 from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
+from uuid_extensions import uuid7
 
 from src.application.queries.account_queries import (
     ListAccountsByConnection,
@@ -44,19 +45,19 @@ from src.domain.value_objects.provider_credentials import ProviderCredentials
 @pytest.fixture
 def user_id() -> UUID:
     """User ID for ownership verification."""
-    return uuid4()
+    return uuid7()
 
 
 @pytest.fixture
 def other_user_id() -> UUID:
     """Different user ID for ownership failure tests."""
-    return uuid4()
+    return uuid7()
 
 
 @pytest.fixture
 def connection_id() -> UUID:
     """Provider connection ID."""
-    return uuid4()
+    return uuid7()
 
 
 @pytest.fixture
@@ -77,7 +78,7 @@ def mock_connection(user_id: UUID, connection_id: UUID) -> ProviderConnection:
     return ProviderConnection(
         id=connection_id,
         user_id=user_id,
-        provider_id=uuid4(),
+        provider_id=uuid7(),
         provider_slug="schwab",
         status=ConnectionStatus.ACTIVE,
         credentials=ProviderCredentials(
@@ -97,7 +98,7 @@ def mock_accounts(connection_id: UUID) -> list[Account]:
     """List of mock Account entities (3 accounts, mixed currencies)."""
     return [
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-account-1",
             account_number_masked="****1234",
@@ -112,7 +113,7 @@ def mock_accounts(connection_id: UUID) -> list[Account]:
             updated_at=datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC),
         ),
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-account-2",
             account_number_masked="****5678",
@@ -127,7 +128,7 @@ def mock_accounts(connection_id: UUID) -> list[Account]:
             updated_at=datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC),
         ),
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-account-3",
             account_number_masked="****9012",
@@ -224,7 +225,7 @@ async def test_list_accounts_by_connection_active_only(
     # Arrange
     active_accounts = [
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-active",
             account_number_masked="****1111",
@@ -303,7 +304,7 @@ async def test_list_accounts_by_connection_mixed_active_inactive(
     # Arrange
     accounts = [
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-active",
             account_number_masked="****1111",
@@ -318,7 +319,7 @@ async def test_list_accounts_by_connection_mixed_active_inactive(
             updated_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
         ),
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-inactive",
             account_number_masked="****2222",
@@ -385,7 +386,7 @@ async def test_list_accounts_by_connection_not_owned_by_user(
     other_connection = ProviderConnection(
         id=connection_id,
         user_id=other_user_id,  # Different user!
-        provider_id=uuid4(),
+        provider_id=uuid7(),
         provider_slug="schwab",
         status=ConnectionStatus.ACTIVE,
         credentials=ProviderCredentials(
@@ -472,7 +473,7 @@ async def test_list_accounts_by_user_active_only(
     # Arrange
     active_accounts = [
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-active",
             account_number_masked="****1111",
@@ -517,7 +518,7 @@ async def test_list_accounts_by_user_filter_by_account_type(
     # Arrange
     ira_accounts = [
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-ira",
             account_number_masked="****5555",
@@ -612,7 +613,7 @@ async def test_list_accounts_by_user_mixed_active_inactive(
     # Arrange
     accounts = [
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-active",
             account_number_masked="****1111",
@@ -627,7 +628,7 @@ async def test_list_accounts_by_user_mixed_active_inactive(
             updated_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
         ),
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-inactive-1",
             account_number_masked="****2222",
@@ -642,7 +643,7 @@ async def test_list_accounts_by_user_mixed_active_inactive(
             updated_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
         ),
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-inactive-2",
             account_number_masked="****3333",
@@ -682,7 +683,7 @@ async def test_list_accounts_by_user_multi_currency_aggregation(
     # Arrange
     accounts = [
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-usd-1",
             account_number_masked="****1111",
@@ -697,7 +698,7 @@ async def test_list_accounts_by_user_multi_currency_aggregation(
             updated_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
         ),
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-usd-2",
             account_number_masked="****2222",
@@ -712,7 +713,7 @@ async def test_list_accounts_by_user_multi_currency_aggregation(
             updated_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
         ),
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-eur-1",
             account_number_masked="****3333",
@@ -727,7 +728,7 @@ async def test_list_accounts_by_user_multi_currency_aggregation(
             updated_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
         ),
         Account(
-            id=uuid4(),
+            id=uuid7(),
             connection_id=connection_id,
             provider_account_id="test-gbp-1",
             account_number_masked="****4444",

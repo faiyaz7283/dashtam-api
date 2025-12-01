@@ -17,6 +17,12 @@ from src.application.queries.account_queries import (
     ListAccountsByConnection,
     ListAccountsByUser,
 )
+from src.application.queries.transaction_queries import (
+    GetTransaction,
+    ListSecurityTransactions,
+    ListTransactionsByAccount,
+    ListTransactionsByDateRange,
+)
 
 __all__ = [
     # Session queries
@@ -29,4 +35,9 @@ __all__ = [
     "GetAccount",
     "ListAccountsByConnection",
     "ListAccountsByUser",
+    # Transaction queries (F3.6)
+    "GetTransaction",
+    "ListTransactionsByAccount",
+    "ListTransactionsByDateRange",
+    "ListSecurityTransactions",
 ]

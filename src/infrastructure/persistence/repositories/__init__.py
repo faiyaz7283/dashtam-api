@@ -4,6 +4,9 @@ This package contains concrete implementations of repository protocols
 defined in the domain layer.
 """
 
+from src.infrastructure.persistence.repositories.account_repository import (
+    AccountRepository,
+)
 from src.infrastructure.persistence.repositories.email_verification_token_repository import (
     EmailVerificationTokenRepository,
 )
@@ -25,6 +28,7 @@ from src.infrastructure.persistence.repositories.session_repository import (
 from src.infrastructure.persistence.repositories.user_repository import UserRepository
 
 __all__ = [
+    "AccountRepository",
     "EmailVerificationTokenRepository",
     "PasswordResetTokenRepository",
     "ProviderConnectionRepository",

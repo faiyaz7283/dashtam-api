@@ -43,6 +43,10 @@ from src.infrastructure.persistence.models.security_config import SecurityConfig
 from src.infrastructure.persistence.models.session import Session  # noqa: E402, F401
 from src.infrastructure.persistence.models.casbin_rule import CasbinRule  # noqa: E402, F401
 from src.infrastructure.persistence.models.user import User  # noqa: E402, F401
+from src.infrastructure.persistence.models.provider_connection import (  # noqa: E402, F401
+    ProviderConnection,
+)
+from src.infrastructure.persistence.models.account import Account  # noqa: E402, F401
 
 # Add model's MetaData for autogenerate
 target_metadata = BaseModel.metadata

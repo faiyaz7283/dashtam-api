@@ -76,6 +76,7 @@ if TYPE_CHECKING:
     from src.infrastructure.persistence.repositories import (
         ProviderConnectionRepository,
     )
+    from src.infrastructure.persistence.repositories import AccountRepository
 
     # Handler types
     from src.application.commands.handlers.register_user_handler import (
@@ -961,6 +962,45 @@ async def get_provider_connection_repository(
     )
 
     return ProviderConnectionRepository(session=session)
+
+
+async def get_account_repository(
+    session: AsyncSession = Depends(get_db_session),
+) -> "AccountRepository":
+    """Get account repository (request-scoped).
+
+    Creates new repository instance per request with database session.
+    Repository provides CRUD operations for Account domain entities.
+
+    Args:
+        session: Database session for request duration.
+            Injected via Depends(get_db_session).
+
+    Returns:
+        AccountRepository instance.
+
+    Usage:
+        # Application Layer (command handlers)
+        from src.core.container import get_account_repository
+        account_repo = await anext(get_account_repository())
+        account = await repo.find_by_id(account_id)
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        from src.infrastructure.persistence.repositories import AccountRepository
+
+        @router.get("/accounts/{id}")
+        async def get_account(
+            account_repo: AccountRepository = Depends(get_account_repository)
+        ):
+            return await account_repo.find_by_id(id)
+
+    Reference:
+        - docs/architecture/repository-pattern.md
+    """
+    from src.infrastructure.persistence.repositories import AccountRepository
+
+    return AccountRepository(session=session)
 
 
 # ============================================================================

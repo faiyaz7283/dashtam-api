@@ -29,6 +29,11 @@ from src.application.commands.token_commands import (
     AuthTokens,
     GenerateAuthTokens,
 )
+from src.application.commands.provider_commands import (
+    ConnectProvider,
+    DisconnectProvider,
+    RefreshProviderTokens,
+)
 
 __all__ = [
     # Auth commands
@@ -50,4 +55,8 @@ __all__ = [
     # Token commands
     "AuthTokens",
     "GenerateAuthTokens",
+    # Provider commands (F3.4)
+    "ConnectProvider",
+    "DisconnectProvider",
+    "RefreshProviderTokens",
 ]

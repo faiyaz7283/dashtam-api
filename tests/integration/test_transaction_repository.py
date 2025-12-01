@@ -69,13 +69,13 @@ def create_test_transaction(
     provider_metadata=None,
 ) -> Transaction:
     """Create a test Transaction with default values.
-    
+
     Uses sentinel value _NOT_PROVIDED to distinguish between:
     - Parameter not provided → use default (e.g., quantity=10 for TRADE)
     - Parameter explicitly None → keep None (e.g., quantity=None for TRANSFER)
     """
     now = datetime.now(UTC)
-    
+
     # Defaults for TRADE transactions
     if amount is _NOT_PROVIDED:
         amount = Money(Decimal("-1050.00"), currency)
@@ -91,7 +91,7 @@ def create_test_transaction(
         unit_price = Money(Decimal("105.00"), currency)
     if commission is _NOT_PROVIDED:
         commission = None  # Optional field
-    
+
     if transaction_date is None:
         transaction_date = date.today()
     if provider_transaction_id is None:

@@ -312,7 +312,9 @@ class TestProviderConnectionRepositoryFindByUserId:
         connections = []
         for i, status in enumerate(statuses):
             # ACTIVE status requires credentials at creation time (domain validation)
-            credentials = create_test_credentials() if status == ConnectionStatus.ACTIVE else None
+            credentials = (
+                create_test_credentials() if status == ConnectionStatus.ACTIVE else None
+            )
             conn = create_test_connection(
                 user_id=user_id,
                 provider_slug=f"provider_{i}",
@@ -459,7 +461,9 @@ class TestProviderConnectionRepositoryFindActiveByUser:
         assert connections[0].provider_slug == "active_provider"
 
     @pytest.mark.asyncio
-    async def test_find_active_by_user_returns_empty_when_no_active(self, test_database):
+    async def test_find_active_by_user_returns_empty_when_no_active(
+        self, test_database
+    ):
         """Test find_active_by_user returns empty when no active connections."""
         # Arrange
         async with test_database.get_session() as session:
@@ -530,7 +534,8 @@ class TestProviderConnectionRepositoryFindExpiringSoon:
             all_connections = await repo.find_expiring_soon(minutes=30)
             # Filter to only our test connections
             our_connections = [
-                c for c in all_connections
+                c
+                for c in all_connections
                 if c.provider_slug in (expiring_slug, not_expiring_slug)
             ]
 

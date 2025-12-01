@@ -32,6 +32,9 @@ from src.infrastructure.persistence.models.provider_connection import (
     ProviderConnection as ProviderConnectionModel,
 )
 from src.infrastructure.persistence.models.account import Account as AccountModel
+from src.infrastructure.persistence.models.transaction import (
+    Transaction as TransactionModel,
+)
 from src.infrastructure.persistence.models.refresh_token import RefreshToken
 from src.infrastructure.persistence.models.security_config import SecurityConfig
 from src.infrastructure.persistence.models.session import Session
@@ -48,4 +51,5 @@ __all__ = [
     "PasswordResetToken",
     "ProviderConnectionModel",
     "SecurityConfig",
+    "TransactionModel",
 ]

@@ -77,6 +77,7 @@ if TYPE_CHECKING:
         ProviderConnectionRepository,
     )
     from src.infrastructure.persistence.repositories import AccountRepository
+    from src.infrastructure.persistence.repositories import TransactionRepository
 
     # Handler types
     from src.application.commands.handlers.register_user_handler import (
@@ -1001,6 +1002,45 @@ async def get_account_repository(
     from src.infrastructure.persistence.repositories import AccountRepository
 
     return AccountRepository(session=session)
+
+
+async def get_transaction_repository(
+    session: AsyncSession = Depends(get_db_session),
+) -> "TransactionRepository":
+    """Get transaction repository (request-scoped).
+
+    Creates new repository instance per request with database session.
+    Repository provides CRUD operations for Transaction domain entities.
+
+    Args:
+        session: Database session for request duration.
+            Injected via Depends(get_db_session).
+
+    Returns:
+        TransactionRepository instance.
+
+    Usage:
+        # Application Layer (command handlers)
+        from src.core.container import get_transaction_repository
+        tx_repo = await anext(get_transaction_repository())
+        transactions = await tx_repo.find_by_account_id(account_id)
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        from src.infrastructure.persistence.repositories import TransactionRepository
+
+        @router.get("/transactions")
+        async def list_transactions(
+            tx_repo: TransactionRepository = Depends(get_transaction_repository)
+        ):
+            return await tx_repo.find_by_account_id(account_id, limit=50)
+
+    Reference:
+        - docs/architecture/repository-pattern.md
+    """
+    from src.infrastructure.persistence.repositories import TransactionRepository
+
+    return TransactionRepository(session=session)
 
 
 # ============================================================================

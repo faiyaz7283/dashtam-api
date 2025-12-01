@@ -47,6 +47,7 @@ from src.infrastructure.persistence.models.provider_connection import (  # noqa:
     ProviderConnection,
 )
 from src.infrastructure.persistence.models.account import Account  # noqa: E402, F401
+from src.infrastructure.persistence.models.transaction import Transaction  # noqa: E402, F401
 
 # Add model's MetaData for autogenerate
 target_metadata = BaseModel.metadata

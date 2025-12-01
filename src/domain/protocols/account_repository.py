@@ -8,10 +8,13 @@ Reference:
 """
 
 from datetime import timedelta
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 
 from src.domain.entities.account import Account
+
+if TYPE_CHECKING:
+    from src.domain.enums.account_type import AccountType
 
 
 class AccountRepository(Protocol):
@@ -56,7 +59,9 @@ class AccountRepository(Protocol):
         """
         ...
 
-    async def find_by_connection_id(self, connection_id: UUID) -> list[Account]:
+    async def find_by_connection_id(
+        self, connection_id: UUID, active_only: bool = False
+    ) -> list[Account]:
         """Find all accounts for a provider connection.
 
         A connection can have multiple accounts (e.g., IRA and brokerage
@@ -64,6 +69,7 @@ class AccountRepository(Protocol):
 
         Args:
             connection_id: ProviderConnection's unique identifier.
+            active_only: If True, return only active accounts. Default False.
 
         Returns:
             List of accounts (empty if none found).
@@ -72,16 +78,24 @@ class AccountRepository(Protocol):
             >>> accounts = await repo.find_by_connection_id(connection_id)
             >>> for account in accounts:
             ...     print(f"{account.name}: {account.balance}")
+            >>> active = await repo.find_by_connection_id(connection_id, active_only=True)
         """
         ...
 
-    async def find_by_user_id(self, user_id: UUID) -> list[Account]:
+    async def find_by_user_id(
+        self,
+        user_id: UUID,
+        active_only: bool = False,
+        account_type: "AccountType | None" = None,
+    ) -> list[Account]:
         """Find all accounts across all connections for a user.
 
         Aggregates accounts from all provider connections.
 
         Args:
             user_id: User's unique identifier.
+            active_only: If True, return only active accounts. Default False.
+            account_type: Optional filter by account type (e.g., AccountType.IRA).
 
         Returns:
             List of accounts (empty if none found).
@@ -89,6 +103,7 @@ class AccountRepository(Protocol):
         Example:
             >>> all_accounts = await repo.find_by_user_id(user_id)
             >>> total = sum(a.balance.amount for a in all_accounts if a.currency == "USD")
+            >>> iras = await repo.find_by_user_id(user_id, account_type=AccountType.IRA)
         """
         ...
 

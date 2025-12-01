@@ -67,7 +67,9 @@ class AccountRepository:
 
         return self._to_domain(model)
 
-    async def find_by_connection_id(self, connection_id: UUID) -> list[Account]:
+    async def find_by_connection_id(
+        self, connection_id: UUID, active_only: bool = False
+    ) -> list[Account]:
         """Find all accounts for a provider connection.
 
         A connection can have multiple accounts (e.g., IRA and brokerage
@@ -75,17 +77,25 @@ class AccountRepository:
 
         Args:
             connection_id: ProviderConnection's unique identifier.
+            active_only: If True, return only active accounts. Default False.
 
         Returns:
             List of accounts (empty if none found).
         """
         stmt = select(AccountModel).where(AccountModel.connection_id == connection_id)
+        if active_only:
+            stmt = stmt.where(AccountModel.is_active == True)  # noqa: E712
         result = await self.session.execute(stmt)
         models = result.scalars().all()
 
         return [self._to_domain(model) for model in models]
 
-    async def find_by_user_id(self, user_id: UUID) -> list[Account]:
+    async def find_by_user_id(
+        self,
+        user_id: UUID,
+        active_only: bool = False,
+        account_type: AccountType | None = None,
+    ) -> list[Account]:
         """Find all accounts across all connections for a user.
 
         Aggregates accounts from all provider connections by joining
@@ -93,6 +103,8 @@ class AccountRepository:
 
         Args:
             user_id: User's unique identifier.
+            active_only: If True, return only active accounts. Default False.
+            account_type: Optional filter by account type.
 
         Returns:
             List of accounts (empty if none found).
@@ -102,6 +114,10 @@ class AccountRepository:
             .join(ProviderConnectionModel)
             .where(ProviderConnectionModel.user_id == user_id)
         )
+        if active_only:
+            stmt = stmt.where(AccountModel.is_active == True)  # noqa: E712
+        if account_type is not None:
+            stmt = stmt.where(AccountModel.account_type == account_type)
         result = await self.session.execute(stmt)
         models = result.scalars().all()
 

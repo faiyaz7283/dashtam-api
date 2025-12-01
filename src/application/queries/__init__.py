@@ -12,6 +12,11 @@ from src.application.queries.provider_queries import (
     GetProviderConnection,
     ListProviderConnections,
 )
+from src.application.queries.account_queries import (
+    GetAccount,
+    ListAccountsByConnection,
+    ListAccountsByUser,
+)
 
 __all__ = [
     # Session queries
@@ -20,4 +25,8 @@ __all__ = [
     # Provider queries (F3.4)
     "GetProviderConnection",
     "ListProviderConnections",
+    # Account queries (F3.5)
+    "GetAccount",
+    "ListAccountsByConnection",
+    "ListAccountsByUser",
 ]

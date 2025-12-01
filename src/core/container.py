@@ -140,6 +140,13 @@ if TYPE_CHECKING:
     from src.application.queries.handlers.list_providers_handler import (
         ListProviderConnectionsHandler,
     )
+    from src.application.queries.handlers.get_account_handler import (
+        GetAccountHandler,
+    )
+    from src.application.queries.handlers.list_accounts_handler import (
+        ListAccountsByConnectionHandler,
+        ListAccountsByUserHandler,
+    )
 
 
 # ============================================================================
@@ -1672,6 +1679,101 @@ async def get_list_provider_connections_handler(
 
     return ListProviderConnectionsHandler(
         connection_repo=connection_repo,
+    )
+
+
+# ============================================================================
+# Account Query Handler Factories (Request-Scoped)
+# ============================================================================
+
+
+async def get_get_account_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "GetAccountHandler":
+    """Get GetAccount query handler (request-scoped).
+
+    Creates handler with:
+    - AccountRepository (request-scoped)
+    - ProviderConnectionRepository (request-scoped for ownership verification)
+
+    Returns:
+        GetAccountHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.get_account_handler import (
+        GetAccountHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+    )
+
+    account_repo = AccountRepository(session=session)
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return GetAccountHandler(
+        account_repo=account_repo,
+        connection_repo=connection_repo,
+    )
+
+
+async def get_list_accounts_by_connection_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListAccountsByConnectionHandler":
+    """Get ListAccountsByConnection query handler (request-scoped).
+
+    Creates handler with:
+    - AccountRepository (request-scoped)
+    - ProviderConnectionRepository (request-scoped for ownership verification)
+
+    Returns:
+        ListAccountsByConnectionHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.list_accounts_handler import (
+        ListAccountsByConnectionHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+    )
+
+    account_repo = AccountRepository(session=session)
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return ListAccountsByConnectionHandler(
+        account_repo=account_repo,
+        connection_repo=connection_repo,
+    )
+
+
+async def get_list_accounts_by_user_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListAccountsByUserHandler":
+    """Get ListAccountsByUser query handler (request-scoped).
+
+    Creates handler with:
+    - AccountRepository (request-scoped)
+
+    Returns:
+        ListAccountsByUserHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.list_accounts_handler import (
+        ListAccountsByUserHandler,
+    )
+    from src.infrastructure.persistence.repositories import AccountRepository
+
+    account_repo = AccountRepository(session=session)
+
+    return ListAccountsByUserHandler(
+        account_repo=account_repo,
     )
 
 

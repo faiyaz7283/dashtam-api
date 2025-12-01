@@ -481,7 +481,7 @@ async def test_user_registration_creates_audit_record(test_database):
     # Act
     await event_bus.publish(
         UserRegistrationSucceeded(
-            user_id=uuid4(),
+            user_id=uuid7(),
             email="test@example.com"
         )
     )

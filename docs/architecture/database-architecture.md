@@ -156,7 +156,7 @@ class ChangePasswordHandler:
         
         # Emit domain event (triggers audit, logging, notifications)
         await self.event_bus.publish(UserPasswordChanged(
-            event_id=uuid4(),
+            event_id=uuid7(),
             occurred_at=datetime.now(UTC),
             user_id=user.id,
         ))
@@ -567,7 +567,7 @@ async def create_user(
 ```python
 # src/infrastructure/persistence/base.py
 from datetime import datetime, timezone
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -588,7 +588,7 @@ class Base(DeclarativeBase):
     id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=uuid4,
+        default=uuid7,
         nullable=False,
     )
     

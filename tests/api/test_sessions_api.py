@@ -20,7 +20,7 @@ Note:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 from fastapi import FastAPI, Request, status
@@ -130,7 +130,7 @@ def test_app():
         return {
             "sessions": [
                 {
-                    "id": str(uuid4()),
+                    "id": str(uuid7()),
                     "device_info": "Chrome on macOS",
                     "ip_address": "192.168.1.1",
                     "location": "New York, US",
@@ -389,14 +389,14 @@ class TestGetSession:
 
     def test_get_session_unauthorized(self, client):
         """Test getting session without token returns 401."""
-        session_id = str(uuid4())
+        session_id = str(uuid7())
         response = client.get(f"/api/v1/sessions/{session_id}")
 
         assert response.status_code == 401
 
     def test_get_session_success(self, client):
         """Test successful session retrieval returns 200."""
-        session_id = str(uuid4())
+        session_id = str(uuid7())
         response = client.get(
             f"/api/v1/sessions/{session_id}",
             headers={"Authorization": "Bearer mock_token"},
@@ -430,14 +430,14 @@ class TestRevokeSession:
 
     def test_revoke_session_unauthorized(self, client):
         """Test revoking session without token returns 401."""
-        session_id = str(uuid4())
+        session_id = str(uuid7())
         response = client.delete(f"/api/v1/sessions/{session_id}")
 
         assert response.status_code == 401
 
     def test_revoke_session_success(self, client):
         """Test successful session revocation returns 204."""
-        session_id = str(uuid4())
+        session_id = str(uuid7())
         response = client.delete(
             f"/api/v1/sessions/{session_id}",
             headers={"Authorization": "Bearer mock_token"},
@@ -519,7 +519,7 @@ class TestSessionResponseFormats:
 
     def test_session_response_includes_all_fields(self, client):
         """Test session response includes all expected fields."""
-        session_id = str(uuid4())
+        session_id = str(uuid7())
         response = client.get(
             f"/api/v1/sessions/{session_id}",
             headers={"Authorization": "Bearer mock_token"},

@@ -21,7 +21,8 @@ or generate tokens (CQRS separation).
 
 from dataclasses import dataclass
 from unittest.mock import AsyncMock, Mock
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -44,7 +45,7 @@ def create_mock_user(
 ) -> Mock:
     """Create a mock User entity for testing."""
     mock_user = Mock(spec=User)
-    mock_user.id = user_id or uuid4()
+    mock_user.id = user_id or uuid7()
     mock_user.session_tier = session_tier
     mock_user.max_sessions = max_sessions
     mock_user.get_max_sessions.return_value = max_sessions
@@ -57,8 +58,8 @@ def create_mock_session_data(
 ) -> Mock:
     """Create a mock SessionData for testing."""
     mock_session = Mock(spec=SessionData)
-    mock_session.id = session_id or uuid4()
-    mock_session.user_id = user_id or uuid4()
+    mock_session.id = session_id or uuid7()
+    mock_session.user_id = user_id or uuid7()
     mock_session.device_info = "Chrome on Windows"
     mock_session.is_revoked = False
     mock_session.revoked_at = None
@@ -88,7 +89,7 @@ class TestCreateSessionHandlerSuccess:
     async def test_create_session_returns_response(self):
         """Test successful session creation returns Success with response."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=None)
 
         mock_session_repo = AsyncMock()
@@ -138,7 +139,7 @@ class TestCreateSessionHandlerSuccess:
     async def test_create_session_enriches_device_info(self):
         """Test session creation enriches device info from user agent."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=None)
         user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0"
 
@@ -183,7 +184,7 @@ class TestCreateSessionHandlerSuccess:
     async def test_create_session_enriches_location(self):
         """Test session creation enriches location from IP address."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=None)
         ip_address = "8.8.8.8"
 
@@ -228,7 +229,7 @@ class TestCreateSessionHandlerSuccess:
     async def test_create_session_saves_to_database(self):
         """Test session is persisted to database."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=None)
 
         mock_session_repo = AsyncMock()
@@ -273,7 +274,7 @@ class TestCreateSessionHandlerSuccess:
     async def test_create_session_caches_session(self):
         """Test session is cached in Redis."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=None)
 
         mock_session_repo = AsyncMock()
@@ -340,7 +341,7 @@ class TestCreateSessionHandlerFailure:
         )
 
         command = CreateSession(
-            user_id=uuid4(),
+            user_id=uuid7(),
             ip_address="192.168.1.1",
             user_agent="Chrome",
         )
@@ -361,7 +362,7 @@ class TestCreateSessionHandlerSessionLimit:
     async def test_create_session_evicts_oldest_when_at_limit(self):
         """Test oldest session is evicted when user is at session limit."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=3)
         oldest_session = create_mock_session_data(user_id=user_id)
 
@@ -410,7 +411,7 @@ class TestCreateSessionHandlerSessionLimit:
     async def test_create_session_does_not_evict_when_under_limit(self):
         """Test no eviction when user is under session limit."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=3)
 
         mock_session_repo = AsyncMock()
@@ -454,7 +455,7 @@ class TestCreateSessionHandlerSessionLimit:
     async def test_create_session_no_limit_for_unlimited_tier(self):
         """Test users with unlimited tier have no session limit."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(
             user_id=user_id, session_tier="unlimited", max_sessions=None
         )
@@ -503,7 +504,7 @@ class TestCreateSessionHandlerEvents:
     async def test_create_session_publishes_created_event(self):
         """Test session creation publishes SessionCreatedEvent."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=None)
 
         mock_session_repo = AsyncMock()
@@ -555,7 +556,7 @@ class TestCreateSessionHandlerEvents:
     async def test_create_session_publishes_evicted_event_on_eviction(self):
         """Test session eviction publishes SessionEvictedEvent."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = create_mock_user(user_id=user_id, max_sessions=3)
         oldest_session = create_mock_session_data(user_id=user_id)
 

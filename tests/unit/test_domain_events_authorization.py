@@ -10,7 +10,8 @@ Reference:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -32,13 +33,13 @@ from src.domain.events import (
 @pytest.fixture
 def user_id() -> UUID:
     """Test user ID."""
-    return uuid4()
+    return uuid7()
 
 
 @pytest.fixture
 def admin_id() -> UUID:
     """Test admin user ID."""
-    return uuid4()
+    return uuid7()
 
 
 # =============================================================================

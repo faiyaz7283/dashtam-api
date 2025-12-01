@@ -18,7 +18,8 @@ Architecture:
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from src.application.commands.session_commands import CreateSession
 from src.core.result import Failure, Result, Success
@@ -135,7 +136,7 @@ class CreateSessionHandler:
                     return Failure(error=CreateSessionError.EVICTION_FAILED)
 
         # Step 5: Create session
-        session_id = uuid4()
+        session_id = uuid7()
         now = datetime.now(UTC)
         expires_at = cmd.expires_at or (
             now + timedelta(days=DEFAULT_SESSION_LIFETIME_DAYS)
@@ -167,7 +168,7 @@ class CreateSessionHandler:
         # Step 8: Publish event
         await self._event_bus.publish(
             SessionCreatedEvent(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=now,
                 session_id=session_id,
                 user_id=cmd.user_id,
@@ -220,7 +221,7 @@ class CreateSessionHandler:
         # Publish eviction event
         await self._event_bus.publish(
             SessionEvictedEvent(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=now,
                 session_id=oldest.id,
                 user_id=user_id,

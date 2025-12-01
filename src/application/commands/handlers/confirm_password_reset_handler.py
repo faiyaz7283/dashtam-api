@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import ConfirmPasswordReset
 from src.core.result import Failure, Result, Success
@@ -125,7 +125,7 @@ class ConfirmPasswordResetHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             PasswordResetConfirmAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 token=cmd.token[:8] + "..." if len(cmd.token) > 8 else cmd.token,
             )
@@ -186,7 +186,7 @@ class ConfirmPasswordResetHandler:
         # Step 11: Emit SUCCEEDED event
         await self._event_bus.publish(
             PasswordResetConfirmSucceeded(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 email=user.email,
@@ -209,7 +209,7 @@ class ConfirmPasswordResetHandler:
         """
         await self._event_bus.publish(
             PasswordResetConfirmFailed(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 token=token[:8] + "..." if len(token) > 8 else token,
                 reason=reason,

@@ -11,7 +11,7 @@ Architecture:
 """
 
 from unittest.mock import AsyncMock, Mock
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -42,8 +42,8 @@ def create_mock_session_data(
 ):
     """Create a mock SessionData for testing."""
     mock = Mock(spec=SessionData)
-    mock.id = session_id or uuid4()
-    mock.user_id = user_id or uuid4()
+    mock.id = session_id or uuid7()
+    mock.user_id = user_id or uuid7()
     mock.device_info = device_info
     mock.is_revoked = is_revoked
     mock.revoked_at = None
@@ -58,8 +58,8 @@ class TestRevokeSessionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_session_returns_success(self):
         """Test successful revocation returns Success with session_id."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(session_id=session_id, user_id=user_id)
 
         mock_repo = AsyncMock()
@@ -88,8 +88,8 @@ class TestRevokeSessionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_session_marks_session_revoked(self):
         """Test revocation marks session as revoked."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(session_id=session_id, user_id=user_id)
 
         mock_repo = AsyncMock()
@@ -119,8 +119,8 @@ class TestRevokeSessionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_session_removes_from_cache(self):
         """Test revocation removes session from cache."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(session_id=session_id, user_id=user_id)
 
         mock_repo = AsyncMock()
@@ -149,8 +149,8 @@ class TestRevokeSessionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_session_publishes_event(self):
         """Test revocation publishes SessionRevokedEvent."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(
             session_id=session_id,
             user_id=user_id,
@@ -206,8 +206,8 @@ class TestRevokeSessionHandlerFailure:
         )
 
         command = RevokeSession(
-            session_id=uuid4(),
-            user_id=uuid4(),
+            session_id=uuid7(),
+            user_id=uuid7(),
             reason="user_logout",
         )
 
@@ -219,9 +219,9 @@ class TestRevokeSessionHandlerFailure:
     @pytest.mark.asyncio
     async def test_revoke_session_returns_not_owner(self):
         """Test revocation fails with NOT_OWNER when user doesn't own session."""
-        owner_id = uuid4()
-        other_user_id = uuid4()
-        session_id = uuid4()
+        owner_id = uuid7()
+        other_user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(session_id=session_id, user_id=owner_id)
 
         mock_repo = AsyncMock()
@@ -250,8 +250,8 @@ class TestRevokeSessionHandlerFailure:
     @pytest.mark.asyncio
     async def test_revoke_session_returns_already_revoked(self):
         """Test revocation fails with ALREADY_REVOKED for revoked session."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(
             session_id=session_id, user_id=user_id, is_revoked=True
         )
@@ -287,7 +287,7 @@ class TestRevokeAllSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_all_sessions_returns_count(self):
         """Test bulk revocation returns count of revoked sessions."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         mock_repo = AsyncMock()
         mock_repo.revoke_all_for_user.return_value = 5
@@ -314,7 +314,7 @@ class TestRevokeAllSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_all_sessions_clears_cache(self):
         """Test bulk revocation clears all user sessions from cache."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         mock_repo = AsyncMock()
         mock_repo.revoke_all_for_user.return_value = 3
@@ -340,7 +340,7 @@ class TestRevokeAllSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_all_sessions_publishes_event(self):
         """Test bulk revocation publishes AllSessionsRevokedEvent."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         mock_repo = AsyncMock()
         mock_repo.revoke_all_for_user.return_value = 3
@@ -371,8 +371,8 @@ class TestRevokeAllSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_all_sessions_with_except_session_id(self):
         """Test bulk revocation excludes current session."""
-        user_id = uuid4()
-        current_session_id = uuid4()
+        user_id = uuid7()
+        current_session_id = uuid7()
         excluded_session = create_mock_session_data(
             session_id=current_session_id, user_id=user_id, is_revoked=False
         )
@@ -407,8 +407,8 @@ class TestRevokeAllSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_all_sessions_re_caches_excluded_session(self):
         """Test excluded session is re-cached after bulk clear."""
-        user_id = uuid4()
-        current_session_id = uuid4()
+        user_id = uuid7()
+        current_session_id = uuid7()
         excluded_session = create_mock_session_data(
             session_id=current_session_id, user_id=user_id, is_revoked=False
         )
@@ -441,7 +441,7 @@ class TestRevokeAllSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_revoke_all_sessions_returns_zero_when_no_sessions(self):
         """Test bulk revocation returns zero when no sessions to revoke."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         mock_repo = AsyncMock()
         mock_repo.revoke_all_for_user.return_value = 0

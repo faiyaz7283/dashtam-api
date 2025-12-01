@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 from typing import Awaitable, Callable
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -44,7 +44,7 @@ class TraceMiddleware(BaseHTTPMiddleware):
         Returns:
             Response: Response with X-Trace-Id header added.
         """
-        trace_id = request.headers.get("X-Trace-Id") or str(uuid4())
+        trace_id = request.headers.get("X-Trace-Id") or str(uuid7())
         trace_id_context.set(trace_id)
         try:
             response = await call_next(request)

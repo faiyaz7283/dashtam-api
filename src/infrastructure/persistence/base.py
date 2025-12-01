@@ -39,7 +39,8 @@ works across different databases.
 
 from datetime import datetime
 from typing import Any
-from uuid import UUID as PythonUUID, uuid4
+from uuid import UUID as PythonUUID
+from uuid_extensions import uuid7
 
 from sqlalchemy import DateTime, Uuid, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -77,7 +78,7 @@ class BaseModel(DeclarativeBase):
     id: Mapped[PythonUUID] = mapped_column(
         Uuid,  # SQLAlchemy's generic UUID type
         primary_key=True,
-        default=uuid4,
+        default=uuid7,
         nullable=False,
     )
 

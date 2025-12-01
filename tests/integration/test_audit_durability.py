@@ -17,7 +17,7 @@ Usage:
     pytest tests/integration/test_audit_durability.py -v
 """
 
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 from sqlalchemy import select
@@ -43,7 +43,7 @@ async def test_audit_persists_when_business_transaction_fails(
 
     Compliance: PCI-DSS 10.2.4, SOC 2 CC6.1
     """
-    user_id = uuid4()
+    user_id = uuid7()
 
     # Create separate sessions (simulates real-world setup)
     async with test_database.get_session() as business_session:
@@ -54,7 +54,7 @@ async def test_audit_persists_when_business_transaction_fails(
                 action=AuditAction.USER_LOGIN_SUCCESS,
                 user_id=user_id,
                 resource_type="session",
-                resource_id=uuid4(),
+                resource_id=uuid7(),
                 ip_address="192.168.1.1",
                 context={"test": "durability"},
             )
@@ -95,7 +95,7 @@ async def test_audit_persists_on_constraint_violation(
 
     Compliance: PCI-DSS 10.2.4 (failed access attempts MUST be logged)
     """
-    user_id = uuid4()
+    user_id = uuid7()
 
     # Separate sessions for audit and business logic
     async with test_database.get_session() as audit_session:
@@ -105,7 +105,7 @@ async def test_audit_persists_on_constraint_violation(
             action=AuditAction.PROVIDER_CONNECTED,
             user_id=user_id,
             resource_type="provider",
-            resource_id=uuid4(),
+            resource_id=uuid7(),
             ip_address="10.0.0.1",
             context={"provider": "schwab", "status": "attempt"},
         )
@@ -145,9 +145,9 @@ async def test_multiple_audits_persist_independently(
 
     Compliance: SOC 2 CC6.1 (comprehensive activity logging)
     """
-    user_id_1 = uuid4()
-    user_id_2 = uuid4()
-    user_id_3 = uuid4()
+    user_id_1 = uuid7()
+    user_id_2 = uuid7()
+    user_id_3 = uuid7()
 
     # Record first audit (separate session)
     async with test_database.get_session() as audit_session_1:
@@ -219,8 +219,8 @@ async def test_audit_session_commits_immediately(
 
     Compliance: GDPR Article 30 (audit must be complete even if operation fails)
     """
-    user_id = uuid4()
-    resource_id = uuid4()
+    user_id = uuid7()
+    resource_id = uuid7()
 
     # Open business session but DON'T commit yet
     async with test_database.get_session() as business_session:

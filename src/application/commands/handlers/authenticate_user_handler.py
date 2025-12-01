@@ -27,7 +27,8 @@ Architecture:
 """
 
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import AuthenticateUser, AuthenticatedUser
 from src.core.result import Failure, Result, Success
@@ -97,7 +98,7 @@ class AuthenticateUserHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             UserLoginAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 email=cmd.email,
             )
@@ -165,7 +166,7 @@ class AuthenticateUserHandler:
         # Note: session_id is no longer emitted here - session creation is separate
         await self._event_bus.publish(
             UserLoginSucceeded(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 email=user.email,
@@ -196,7 +197,7 @@ class AuthenticateUserHandler:
         """
         await self._event_bus.publish(
             UserLoginFailed(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 email=email,
                 reason=reason,

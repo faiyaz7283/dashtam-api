@@ -18,7 +18,7 @@ Architecture:
 """
 
 from datetime import datetime, UTC
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 from sqlalchemy import select
@@ -75,7 +75,7 @@ class TestEventFlowEndToEnd:
         """Test UserRegistrationSucceeded → audit record created."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
+        user_id = uuid7()
         event = UserRegistrationSucceeded(
             user_id=user_id,
             email="integration@example.com",
@@ -106,7 +106,7 @@ class TestEventFlowEndToEnd:
         """Test UserPasswordChangeSucceeded → audit record created."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
+        user_id = uuid7()
         event = UserPasswordChangeSucceeded(user_id=user_id, initiated_by="user")
 
         # Act - Pass session to avoid "Event loop is closed" error
@@ -133,9 +133,9 @@ class TestEventFlowEndToEnd:
         """Test ProviderConnectionSucceeded → audit record created."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
-        provider_id = uuid4()
-        connection_id = uuid4()
+        user_id = uuid7()
+        provider_id = uuid7()
+        connection_id = uuid7()
         event = ProviderConnectionSucceeded(
             user_id=user_id,
             connection_id=connection_id,
@@ -168,9 +168,9 @@ class TestEventFlowEndToEnd:
         """Test ProviderTokenRefreshFailed → audit record created."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
-        provider_id = uuid4()
-        connection_id = uuid4()
+        user_id = uuid7()
+        provider_id = uuid7()
+        connection_id = uuid7()
         event = ProviderTokenRefreshFailed(
             user_id=user_id,
             connection_id=connection_id,
@@ -207,7 +207,7 @@ class TestMultipleEventsSequence:
         """Test publishing multiple events creates separate audit records."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Act - Publish 3 different events (pass session to each)
         async with test_database.get_session() as session:
@@ -223,8 +223,8 @@ class TestMultipleEventsSequence:
                 UserPasswordChangeSucceeded(user_id=user_id, initiated_by="user"),
                 session=session,
             )
-            provider_id = uuid4()
-            connection_id = uuid4()
+            provider_id = uuid7()
+            connection_id = uuid7()
             await event_bus.publish(
                 ProviderConnectionSucceeded(
                     user_id=user_id,
@@ -257,7 +257,7 @@ class TestMultipleEventsSequence:
         """Test same event type published multiple times creates multiple records."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Act - Publish same event 3 times with different data (pass session)
         async with test_database.get_session() as session:
@@ -270,7 +270,7 @@ class TestMultipleEventsSequence:
                 session=session,
             )
 
-            user_id_2 = uuid4()
+            user_id_2 = uuid7()
             await event_bus.publish(
                 UserRegistrationSucceeded(
                     user_id=user_id_2,
@@ -280,7 +280,7 @@ class TestMultipleEventsSequence:
                 session=session,
             )
 
-            user_id_3 = uuid4()
+            user_id_3 = uuid7()
             await event_bus.publish(
                 UserRegistrationSucceeded(
                     user_id=user_id_3,
@@ -319,7 +319,7 @@ class TestHandlerExecutionOrder:
         """
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
+        user_id = uuid7()
         event = UserRegistrationSucceeded(
             user_id=user_id,
             email="concurrent@example.com",
@@ -362,7 +362,7 @@ class TestFailOpenBehaviorWithRealInfrastructure:
         """
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
+        user_id = uuid7()
         event = UserRegistrationSucceeded(
             user_id=user_id,
             email="failopen@example.com",
@@ -387,13 +387,13 @@ class TestEventDataIntegrity:
         """Test event fields are preserved correctly in audit record."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
-        provider_id = uuid4()
-        connection_id = uuid4()
+        user_id = uuid7()
+        provider_id = uuid7()
+        connection_id = uuid7()
         timestamp = datetime.now(UTC)
 
         event = ProviderConnectionSucceeded(
-            event_id=uuid4(),  # Explicit event_id
+            event_id=uuid7(),  # Explicit event_id
             occurred_at=timestamp,  # Explicit timestamp
             user_id=user_id,
             connection_id=connection_id,
@@ -424,7 +424,7 @@ class TestEventDataIntegrity:
         """Test events with optional fields (None values) handled correctly."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
+        user_id = uuid7()
 
         # UserPasswordChangeSucceeded doesn't have ip_address (unlike ATTEMPTED)
         event = UserPasswordChangeSucceeded(user_id=user_id, initiated_by="admin")

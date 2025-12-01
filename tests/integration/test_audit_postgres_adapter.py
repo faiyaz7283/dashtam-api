@@ -17,7 +17,7 @@ Architecture:
 """
 
 from datetime import datetime, timedelta, UTC
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 from sqlalchemy import select, update, delete
@@ -36,8 +36,8 @@ class TestPostgresAuditAdapterRecord:
     async def test_record_creates_audit_log_in_database(self, test_database):
         """Test record() creates audit log in PostgreSQL."""
         # Arrange
-        user_id = uuid4()
-        resource_id = uuid4()
+        user_id = uuid7()
+        resource_id = uuid7()
 
         # Act: Record audit log (commits independently)
         async with test_database.get_session() as audit_session:
@@ -74,7 +74,7 @@ class TestPostgresAuditAdapterRecord:
     async def test_record_with_none_context(self, test_database):
         """Test record() handles None context correctly."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Act: Record with None context
         async with test_database.get_session() as audit_session:
@@ -99,7 +99,7 @@ class TestPostgresAuditAdapterRecord:
     async def test_record_with_complex_context(self, test_database):
         """Test record() handles complex nested JSONB context."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         complex_context = {
             "authentication": {
                 "method": "oauth",
@@ -149,7 +149,7 @@ class TestPostgresAuditAdapterRecord:
     async def test_record_multiple_logs(self, test_database):
         """Test recording multiple audit logs."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Act: Record 3 audit logs (each commits independently)
         for i in range(3):
@@ -184,7 +184,7 @@ class TestPostgresAuditAdapterImmutability:
         (no savepoints). The PostgreSQL RULE blocks updates at the connection level.
         """
         # Arrange: Create audit log
-        user_id = uuid4()
+        user_id = uuid7()
 
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
@@ -218,7 +218,7 @@ class TestPostgresAuditAdapterImmutability:
     async def test_cannot_delete_audit_log(self, test_database):
         """Test DELETE operations are blocked by PostgreSQL RULES."""
         # Arrange: Create audit log
-        user_id = uuid4()
+        user_id = uuid7()
 
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
@@ -258,7 +258,7 @@ class TestPostgresAuditAdapterQuery:
     async def test_query_returns_all_logs_for_user(self, test_database):
         """Test query() retrieves all logs for a user."""
         # Arrange: Create 3 logs for user
-        user_id = uuid4()
+        user_id = uuid7()
 
         for i in range(3):
             async with test_database.get_session() as audit_session:
@@ -289,7 +289,7 @@ class TestPostgresAuditAdapterQuery:
     async def test_query_filter_by_action(self, test_database):
         """Test query() filters by action type."""
         # Arrange: Create different action types
-        user_id = uuid4()
+        user_id = uuid7()
 
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
@@ -330,7 +330,7 @@ class TestPostgresAuditAdapterQuery:
     async def test_query_filter_by_resource_type(self, test_database):
         """Test query() filters by resource_type."""
         # Arrange: Create different resource types
-        user_id = uuid4()
+        user_id = uuid7()
 
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
@@ -371,7 +371,7 @@ class TestPostgresAuditAdapterQuery:
     async def test_query_pagination(self, test_database):
         """Test query() pagination with limit and offset."""
         # Arrange: Create 10 logs
-        user_id = uuid4()
+        user_id = uuid7()
 
         for i in range(10):
             async with test_database.get_session() as audit_session:
@@ -406,7 +406,7 @@ class TestPostgresAuditAdapterQuery:
     async def test_query_date_range_filter(self, test_database):
         """Test query() filters by date range."""
         # Arrange: Create logs at different times (simulated)
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Create 3 logs (will have similar timestamps in test)
         for i in range(3):
@@ -442,7 +442,7 @@ class TestPostgresAuditAdapterQuery:
         # Act: Query for non-existent user
         async with test_database.get_session() as query_session:
             adapter = PostgresAuditAdapter(session=query_session)
-            result = await adapter.query(user_id=uuid4())
+            result = await adapter.query(user_id=uuid7())
 
             # Assert
             assert isinstance(result, Success)
@@ -452,8 +452,8 @@ class TestPostgresAuditAdapterQuery:
     async def test_query_converts_uuids_to_strings(self, test_database):
         """Test query() converts UUID fields to strings."""
         # Arrange
-        user_id = uuid4()
-        resource_id = uuid4()
+        user_id = uuid7()
+        resource_id = uuid7()
 
         async with test_database.get_session() as audit_session:
             adapter = PostgresAuditAdapter(session=audit_session)
@@ -479,8 +479,8 @@ class TestPostgresAuditAdapterQuery:
             assert isinstance(log["resource_id"], str)
 
             # Can convert back to UUID
-            assert uuid4().__class__(log["id"])
-            assert uuid4().__class__(log["user_id"])
+            assert uuid7().__class__(log["id"])
+            assert uuid7().__class__(log["user_id"])
 
 
 @pytest.mark.integration
@@ -491,7 +491,7 @@ class TestPostgresAuditAdapterEdgeCases:
     async def test_query_with_multiple_filters(self, test_database):
         """Test query() with all filters combined."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Create mix of logs
         async with test_database.get_session() as audit_session:
@@ -584,7 +584,7 @@ class TestPostgresAuditAdapterEdgeCases:
             result = await adapter.record(
                 action=AuditAction.USER_LOGIN_SUCCESS,
                 resource_type="session",
-                user_id=uuid4(),
+                user_id=uuid7(),
                 user_agent=long_user_agent,
             )
 
@@ -599,7 +599,7 @@ class TestPostgresAuditAdapterEdgeCases:
         This test verifies that multiple audit records persist correctly.
         """
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Act: Record via separate sessions (mirrors production)
         async with test_database.get_session() as audit_session1:

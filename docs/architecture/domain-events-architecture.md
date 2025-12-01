@@ -62,7 +62,7 @@ async def change_password(cmd: ChangePassword):
 async def change_password(cmd: ChangePassword):
     # Event 1: ATTEMPT
     await event_bus.publish(PasswordChangeAttempted(
-        event_id=uuid4(),
+        event_id=uuid7(),
         occurred_at=datetime.now(UTC),
         user_id=cmd.user_id,
     ))
@@ -74,7 +74,7 @@ async def change_password(cmd: ChangePassword):
         
         # Event 2: SUCCESS
         await event_bus.publish(PasswordChangeSucceeded(
-            event_id=uuid4(),
+            event_id=uuid7(),
             occurred_at=datetime.now(UTC),
             user_id=user.id,
             initiated_by=cmd.initiated_by,
@@ -83,7 +83,7 @@ async def change_password(cmd: ChangePassword):
     except Exception as e:
         # Event 3: FAILURE
         await event_bus.publish(PasswordChangeFailed(
-            event_id=uuid4(),
+            event_id=uuid7(),
             occurred_at=datetime.now(UTC),
             user_id=cmd.user_id,
             reason=str(e),
@@ -1694,7 +1694,7 @@ def get_event_bus() -> EventBusProtocol:
 
 ```python
 """Change password command handler (example of event-driven pattern)."""
-from uuid import uuid4
+from uuid_extensions import uuid7
 from datetime import datetime, UTC
 from src.application.commands.change_password import ChangePassword
 from src.domain.protocols.user_repository import UserRepository
@@ -1750,7 +1750,7 @@ class ChangePasswordHandler:
         # Event 1: ATTEMPTED
         # ═══════════════════════════════════════════════════════════
         await self.event_bus.publish(UserPasswordChangeAttempted(
-            event_id=uuid4(),
+            event_id=uuid7(),
             occurred_at=datetime.now(UTC),
             user_id=cmd.user_id,
         ))
@@ -1779,7 +1779,7 @@ class ChangePasswordHandler:
                         # Event 2: SUCCEEDED
                         # ═══════════════════════════════════════════
                         await self.event_bus.publish(UserPasswordChangeSucceeded(
-                            event_id=uuid4(),
+                            event_id=uuid7(),
                             occurred_at=datetime.now(UTC),
                             user_id=user.id,
                             initiated_by=cmd.initiated_by,
@@ -1796,7 +1796,7 @@ class ChangePasswordHandler:
                         # Event 3: FAILED (database error)
                         # ═══════════════════════════════════════════
                         await self.event_bus.publish(UserPasswordChangeFailed(
-                            event_id=uuid4(),
+                            event_id=uuid7(),
                             occurred_at=datetime.now(UTC),
                             user_id=cmd.user_id,
                             reason=f"database_error: {error}",
@@ -1811,7 +1811,7 @@ class ChangePasswordHandler:
                 # Event 3: FAILED (user not found)
                 # ═══════════════════════════════════════════════════
                 await self.event_bus.publish(UserPasswordChangeFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     user_id=cmd.user_id,
                     reason="user_not_found",

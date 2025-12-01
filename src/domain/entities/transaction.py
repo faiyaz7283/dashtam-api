@@ -64,10 +64,10 @@ class Transaction:
         updated_at: Timestamp of last sync update.
 
     Example:
-        >>> from uuid import uuid4
+        >>> from uuid_extensions import uuid7
         >>> # Stock purchase
         >>> transaction = Transaction(
-        ...     id=uuid4(),
+        ...     id=uuid7(),
         ...     account_id=account_id,
         ...     provider_transaction_id="schwab-12345",
         ...     transaction_type=TransactionType.TRADE,

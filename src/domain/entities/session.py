@@ -63,12 +63,12 @@ class Session:
             providers_accessed: List of providers accessed in this session.
 
     Example:
-        >>> from uuid import uuid4
+        >>> from uuid_extensions import uuid7
         >>> from datetime import datetime, UTC, timedelta
         >>>
         >>> session = Session(
-        ...     id=uuid4(),
-        ...     user_id=uuid4(),
+        ...     id=uuid7(),
+        ...     user_id=uuid7(),
         ...     device_info="Chrome on macOS",
         ...     ip_address="192.168.1.1",
         ...     expires_at=datetime.now(UTC) + timedelta(days=30),
@@ -126,7 +126,7 @@ class Session:
             True if session is active, False otherwise.
 
         Example:
-            >>> session = Session(id=uuid4(), user_id=uuid4())
+            >>> session = Session(id=uuid7(), user_id=uuid7())
             >>> session.is_active()
             True
             >>> session.revoke("test")
@@ -154,7 +154,7 @@ class Session:
                 - "security_concern": Suspicious activity detected
 
         Example:
-            >>> session = Session(id=uuid4(), user_id=uuid4())
+            >>> session = Session(id=uuid7(), user_id=uuid7())
             >>> session.revoke("user_logout")
             >>> session.is_revoked
             True
@@ -177,7 +177,7 @@ class Session:
                 different from stored IP, triggers IP change tracking.
 
         Example:
-            >>> session = Session(id=uuid4(), user_id=uuid4(), ip_address="1.1.1.1")
+            >>> session = Session(id=uuid7(), user_id=uuid7(), ip_address="1.1.1.1")
             >>> session.update_activity(ip_address="2.2.2.2")
             >>> session.last_ip_address
             '2.2.2.2'
@@ -200,7 +200,7 @@ class Session:
             provider_name: Provider that was accessed (e.g., "schwab", "fidelity").
 
         Example:
-            >>> session = Session(id=uuid4(), user_id=uuid4())
+            >>> session = Session(id=uuid7(), user_id=uuid7())
             >>> session.record_provider_access("schwab")
             >>> session.last_provider_accessed
             'schwab'
@@ -224,7 +224,7 @@ class Session:
         - IP changes from different geolocations
 
         Example:
-            >>> session = Session(id=uuid4(), user_id=uuid4())
+            >>> session = Session(id=uuid7(), user_id=uuid7())
             >>> session.suspicious_activity_count
             0
             >>> session.increment_suspicious_activity()
@@ -242,7 +242,7 @@ class Session:
         - Extended session duration
 
         Example:
-            >>> session = Session(id=uuid4(), user_id=uuid4())
+            >>> session = Session(id=uuid7(), user_id=uuid7())
             >>> session.is_trusted
             False
             >>> session.mark_as_trusted()

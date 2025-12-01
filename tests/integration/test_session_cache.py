@@ -16,7 +16,7 @@ Reference:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -38,8 +38,8 @@ def create_test_session_data(  # type: ignore[no-untyped-def]
     """Create test SessionData with sensible defaults."""
     now = datetime.now(UTC)
     return SessionData(
-        id=session_id or uuid4(),
-        user_id=user_id or uuid4(),
+        id=session_id or uuid7(),
+        user_id=user_id or uuid7(),
         device_info=device_info,
         user_agent=user_agent,
         ip_address=ip_address,
@@ -85,7 +85,7 @@ class TestSessionCacheGetSet:
     @pytest.mark.asyncio
     async def test_get_nonexistent_session_returns_none(self, session_cache):
         """Test getting a session that doesn't exist returns None."""
-        result = await session_cache.get(uuid4())
+        result = await session_cache.get(uuid7())
         assert result is None
 
     @pytest.mark.asyncio
@@ -127,7 +127,7 @@ class TestSessionCacheGetSet:
     async def test_set_session_adds_to_user_index(self, session_cache):
         """Test that set() adds session to user's session index."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         session_data = create_test_session_data(user_id=user_id)
 
         # Act
@@ -142,10 +142,10 @@ class TestSessionCacheGetSet:
         """Test all SessionData fields are properly serialized/deserialized."""
         # Arrange - session with all fields populated
         now = datetime.now(UTC)
-        refresh_token_id = uuid4()
+        refresh_token_id = uuid7()
         session_data = SessionData(
-            id=uuid4(),
-            user_id=uuid4(),
+            id=uuid7(),
+            user_id=uuid7(),
             device_info="Safari on macOS",
             user_agent="Mozilla/5.0 Safari/605.1.15",
             ip_address="10.0.0.1",
@@ -211,14 +211,14 @@ class TestSessionCacheDelete:
     @pytest.mark.asyncio
     async def test_delete_nonexistent_session_returns_false(self, session_cache):
         """Test deleting nonexistent session returns False."""
-        result = await session_cache.delete(uuid4())
+        result = await session_cache.delete(uuid7())
         assert result is False
 
     @pytest.mark.asyncio
     async def test_delete_all_for_user(self, session_cache):
         """Test deleting all sessions for a user."""
         # Arrange - create multiple sessions for same user
-        user_id = uuid4()
+        user_id = uuid7()
         session1 = create_test_session_data(user_id=user_id)
         session2 = create_test_session_data(user_id=user_id)
         session3 = create_test_session_data(user_id=user_id)
@@ -250,7 +250,7 @@ class TestSessionCacheDelete:
     @pytest.mark.asyncio
     async def test_delete_all_for_user_with_no_sessions(self, session_cache):
         """Test delete_all_for_user with user having no sessions."""
-        result = await session_cache.delete_all_for_user(uuid4())
+        result = await session_cache.delete_all_for_user(uuid7())
         assert result == 0
 
 
@@ -274,7 +274,7 @@ class TestSessionCacheExists:
     @pytest.mark.asyncio
     async def test_exists_returns_false_for_nonexistent_session(self, session_cache):
         """Test exists returns False for non-cached session."""
-        result = await session_cache.exists(uuid4())
+        result = await session_cache.exists(uuid7())
         assert result is False
 
 
@@ -286,7 +286,7 @@ class TestSessionCacheUserIndex:
     async def test_get_user_session_ids_returns_all_sessions(self, session_cache):
         """Test getting all session IDs for a user."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         session1 = create_test_session_data(user_id=user_id)
         session2 = create_test_session_data(user_id=user_id)
 
@@ -306,15 +306,15 @@ class TestSessionCacheUserIndex:
         self, session_cache
     ):
         """Test getting session IDs for user with no sessions."""
-        result = await session_cache.get_user_session_ids(uuid4())
+        result = await session_cache.get_user_session_ids(uuid7())
         assert result == []
 
     @pytest.mark.asyncio
     async def test_add_user_session(self, session_cache):
         """Test adding session to user index directly."""
         # Arrange
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
 
         # Act
         await session_cache.add_user_session(user_id, session_id)
@@ -327,8 +327,8 @@ class TestSessionCacheUserIndex:
     async def test_add_user_session_idempotent(self, session_cache):
         """Test adding same session twice doesn't duplicate."""
         # Arrange
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
 
         # Act - add twice
         await session_cache.add_user_session(user_id, session_id)
@@ -343,9 +343,9 @@ class TestSessionCacheUserIndex:
     async def test_remove_user_session(self, session_cache):
         """Test removing session from user index."""
         # Arrange
-        user_id = uuid4()
-        session_id1 = uuid4()
-        session_id2 = uuid4()
+        user_id = uuid7()
+        session_id1 = uuid7()
+        session_id2 = uuid7()
 
         await session_cache.add_user_session(user_id, session_id1)
         await session_cache.add_user_session(user_id, session_id2)
@@ -362,8 +362,8 @@ class TestSessionCacheUserIndex:
     async def test_remove_last_user_session_clears_index(self, session_cache):
         """Test removing last session clears the user index key."""
         # Arrange
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         await session_cache.add_user_session(user_id, session_id)
 
         # Act
@@ -377,9 +377,9 @@ class TestSessionCacheUserIndex:
     async def test_remove_nonexistent_session_from_user_index(self, session_cache):
         """Test removing non-existent session from user index is safe."""
         # Arrange
-        user_id = uuid4()
-        existing_session = uuid4()
-        nonexistent_session = uuid4()
+        user_id = uuid7()
+        existing_session = uuid7()
+        nonexistent_session = uuid7()
         await session_cache.add_user_session(user_id, existing_session)
 
         # Act - should not raise
@@ -400,8 +400,8 @@ class TestSessionCacheUpdateActivity:
         # Arrange
         old_time = datetime.now(UTC) - timedelta(hours=1)
         session_data = SessionData(
-            id=uuid4(),
-            user_id=uuid4(),
+            id=uuid7(),
+            user_id=uuid7(),
             device_info="Chrome on Windows",
             user_agent="Mozilla/5.0",
             ip_address="192.168.1.1",
@@ -457,7 +457,7 @@ class TestSessionCacheUpdateActivity:
     @pytest.mark.asyncio
     async def test_update_last_activity_nonexistent_returns_false(self, session_cache):
         """Test update_last_activity on non-cached session returns False."""
-        result = await session_cache.update_last_activity(uuid4())
+        result = await session_cache.update_last_activity(uuid7())
         assert result is False
 
 
@@ -470,8 +470,8 @@ class TestSessionCacheEdgeCases:
         """Test session with None optional fields is handled correctly."""
         # Arrange - session with minimal data
         session_data = SessionData(
-            id=uuid4(),
-            user_id=uuid4(),
+            id=uuid7(),
+            user_id=uuid7(),
             device_info=None,
             user_agent=None,
             ip_address=None,
@@ -505,8 +505,8 @@ class TestSessionCacheEdgeCases:
     async def test_multiple_users_sessions_isolated(self, session_cache):
         """Test sessions for different users are properly isolated."""
         # Arrange
-        user1_id = uuid4()
-        user2_id = uuid4()
+        user1_id = uuid7()
+        user2_id = uuid7()
 
         user1_session = create_test_session_data(user_id=user1_id)
         user2_session = create_test_session_data(user_id=user2_id)
@@ -532,8 +532,8 @@ class TestSessionCacheEdgeCases:
     ):
         """Test delete_all_for_user doesn't affect other users' sessions."""
         # Arrange
-        user1_id = uuid4()
-        user2_id = uuid4()
+        user1_id = uuid7()
+        user2_id = uuid7()
 
         user1_session = create_test_session_data(user_id=user1_id)
         user2_session = create_test_session_data(user_id=user2_id)

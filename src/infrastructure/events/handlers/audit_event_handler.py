@@ -95,7 +95,7 @@ class AuditEventHandler:
         >>> # Events automatically audited when published with session
         >>> async with database.get_session() as session:
         ...     await event_bus.publish(
-        ...         UserRegistrationSucceeded(user_id=uuid4(), email="test@example.com"),
+        ...         UserRegistrationSucceeded(user_id=uuid7(), email="test@example.com"),
         ...         session=session
         ...     )
         >>> # Audit record created using provided session

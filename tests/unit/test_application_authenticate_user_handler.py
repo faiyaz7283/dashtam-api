@@ -22,7 +22,8 @@ Token generation is handled by GenerateAuthTokensHandler (CQRS separation).
 
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, Mock
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -51,7 +52,7 @@ def create_mock_user(
 ) -> Mock:
     """Create a mock User entity for testing."""
     mock_user = Mock(spec=User)
-    mock_user.id = user_id or uuid4()
+    mock_user.id = user_id or uuid7()
     mock_user.email = email
     mock_user.password_hash = password_hash
     mock_user.is_verified = is_verified

@@ -16,7 +16,7 @@ Architecture:
 
 from datetime import datetime, UTC
 from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
@@ -43,7 +43,7 @@ class TestPostgresAuditAdapterRecord:
 
         adapter = PostgresAuditAdapter(session=mock_session)
 
-        user_id = uuid4()
+        user_id = uuid7()
         test_context = {"method": "password", "mfa": True}
 
         # Act
@@ -129,7 +129,7 @@ class TestPostgresAuditAdapterRecord:
         result = await adapter.record(
             action=AuditAction.USER_LOGIN_SUCCESS,
             resource_type="session",
-            user_id=uuid4(),
+            user_id=uuid7(),
         )
 
         # Assert
@@ -193,10 +193,10 @@ class TestPostgresAuditAdapterQuery:
         mock_session = AsyncMock()
 
         # Create mock audit logs
-        user_id = uuid4()
+        user_id = uuid7()
         mock_logs = [
             MagicMock(
-                id=uuid4(),
+                id=uuid7(),
                 action=AuditAction.USER_LOGIN_SUCCESS,
                 user_id=user_id,
                 resource_type="session",
@@ -207,7 +207,7 @@ class TestPostgresAuditAdapterQuery:
                 created_at=datetime(2024, 11, 15, 12, 0, 0, tzinfo=UTC),
             ),
             MagicMock(
-                id=uuid4(),
+                id=uuid7(),
                 action=AuditAction.DATA_VIEWED,
                 user_id=user_id,
                 resource_type="account",
@@ -273,7 +273,7 @@ class TestPostgresAuditAdapterQuery:
 
         # Act
         result = await adapter.query(
-            user_id=uuid4(),
+            user_id=uuid7(),
             action=AuditAction.USER_LOGIN_SUCCESS,
         )
 
@@ -287,10 +287,10 @@ class TestPostgresAuditAdapterQuery:
         # Arrange
         mock_session = AsyncMock()
 
-        user_id = uuid4()
+        user_id = uuid7()
         mock_logs = [
             MagicMock(
-                id=uuid4(),
+                id=uuid7(),
                 action=AuditAction.PROVIDER_CONNECTED,
                 user_id=user_id,
                 resource_type="provider",
@@ -334,9 +334,9 @@ class TestPostgresAuditAdapterQuery:
         # Create 3 mock logs
         mock_logs = [
             MagicMock(
-                id=uuid4(),
+                id=uuid7(),
                 action=AuditAction.USER_LOGIN_SUCCESS,
-                user_id=uuid4(),
+                user_id=uuid7(),
                 resource_type="session",
                 resource_id=None,
                 ip_address="192.168.1.1",
@@ -381,7 +381,7 @@ class TestPostgresAuditAdapterQuery:
 
         # Act
         result = await adapter.query(
-            user_id=uuid4(),
+            user_id=uuid7(),
             action=AuditAction.USER_LOGIN_SUCCESS,
         )
 
@@ -397,8 +397,8 @@ class TestPostgresAuditAdapterQuery:
         # Arrange
         mock_session = AsyncMock()
 
-        log_id = uuid4()
-        user_id = uuid4()
+        log_id = uuid7()
+        user_id = uuid7()
 
         mock_logs = [
             MagicMock(
@@ -445,7 +445,7 @@ class TestPostgresAuditAdapterQuery:
         # Log with None user_id (system action)
         mock_logs = [
             MagicMock(
-                id=uuid4(),
+                id=uuid7(),
                 action=AuditAction.ADMIN_BACKUP_CREATED,
                 user_id=None,  # System action, no user
                 resource_type="system",
@@ -512,9 +512,9 @@ class TestPostgresAuditAdapterEdgeCases:
 
         mock_logs = [
             MagicMock(
-                id=uuid4(),
+                id=uuid7(),
                 action=AuditAction.USER_LOGIN_SUCCESS,
-                user_id=uuid4(),
+                user_id=uuid7(),
                 resource_type="session",
                 resource_id=None,
                 ip_address="192.168.1.1",
@@ -568,7 +568,7 @@ class TestPostgresAuditAdapterEdgeCases:
             action=AuditAction.USER_LOGIN_SUCCESS,
             resource_type="session",
         )
-        result2 = await adapter2.query(user_id=uuid4())
+        result2 = await adapter2.query(user_id=uuid7())
 
         # Assert: Both adapters work independently
         assert isinstance(result1, Success)

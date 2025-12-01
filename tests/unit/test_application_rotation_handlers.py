@@ -12,7 +12,7 @@ Architecture:
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, Mock
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -61,7 +61,7 @@ def _create_mock_user(
 ):
     """Create a mock User for testing."""
     mock = Mock()
-    mock.id = user_id or uuid4()
+    mock.id = user_id or uuid7()
     mock.email = email
     mock.min_token_version = min_token_version
     mock.updated_at = datetime.now(UTC)
@@ -277,7 +277,7 @@ class TestTriggerUserRotationHandlerSuccess:
     @pytest.mark.asyncio
     async def test_user_rotation_returns_success(self):
         """Test successful rotation returns Success with user version info."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = _create_mock_user(user_id=user_id, min_token_version=1)
 
         mock_repo = AsyncMock()
@@ -306,7 +306,7 @@ class TestTriggerUserRotationHandlerSuccess:
     @pytest.mark.asyncio
     async def test_user_rotation_increments_user_version(self):
         """Test rotation increments user.min_token_version."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = _create_mock_user(user_id=user_id, min_token_version=3)
 
         mock_repo = AsyncMock()
@@ -334,7 +334,7 @@ class TestTriggerUserRotationHandlerSuccess:
     @pytest.mark.asyncio
     async def test_user_rotation_emits_attempted_event(self):
         """Test rotation emits UserTokenRotationAttempted event first."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = _create_mock_user(user_id=user_id)
 
         mock_repo = AsyncMock()
@@ -366,7 +366,7 @@ class TestTriggerUserRotationHandlerSuccess:
     @pytest.mark.asyncio
     async def test_user_rotation_emits_succeeded_event(self):
         """Test successful rotation emits UserTokenRotationSucceeded event."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_user = _create_mock_user(user_id=user_id, min_token_version=2)
 
         mock_repo = AsyncMock()
@@ -405,7 +405,7 @@ class TestTriggerUserRotationHandlerFailure:
     @pytest.mark.asyncio
     async def test_user_rotation_returns_not_found(self):
         """Test rotation returns Failure when user doesn't exist."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         mock_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None
@@ -431,7 +431,7 @@ class TestTriggerUserRotationHandlerFailure:
     @pytest.mark.asyncio
     async def test_user_rotation_emits_failed_event_for_not_found(self):
         """Test rotation emits UserTokenRotationFailed when user not found."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         mock_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None

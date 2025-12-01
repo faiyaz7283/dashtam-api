@@ -565,7 +565,7 @@ class UserService:
             ))
         
         # Create user
-        user = User(id=uuid4(), email=email, ...)
+        user = User(id=uuid7(), email=email, ...)
         await self.users.save(user)
         
         return Success(user)

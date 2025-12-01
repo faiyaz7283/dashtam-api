@@ -105,7 +105,7 @@ async def register_user(
     
     # Step 3: Business logic - create user
     try:
-        user_id = uuid4()
+        user_id = uuid7()
         user = User(
             id=user_id,
             email=data.email,

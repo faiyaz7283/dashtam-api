@@ -23,7 +23,8 @@ Reference:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from jose import JWTError, jwt
 
@@ -99,7 +100,7 @@ class JWTService:
         Example:
             >>> service = JWTService(secret_key="x" * 32)
             >>> token = service.generate_access_token(
-            ...     user_id=uuid4(),
+            ...     user_id=uuid7(),
             ...     email="user@example.com",
             ...     roles=["user"],
             ... )
@@ -120,7 +121,7 @@ class JWTService:
             "roles": roles,
             "iat": int(now.timestamp()),  # Issued at
             "exp": int(expires_at.timestamp()),  # Expires at
-            "jti": str(uuid4()),  # JWT ID (unique identifier)
+            "jti": str(uuid7()),  # JWT ID (unique identifier)
         }
 
         # Add optional session_id if provided
@@ -146,7 +147,7 @@ class JWTService:
         Example:
             >>> service = JWTService(secret_key="x" * 32)
             >>> token = service.generate_access_token(
-            ...     user_id=uuid4(),
+            ...     user_id=uuid7(),
             ...     email="user@example.com",
             ...     roles=["user"],
             ... )

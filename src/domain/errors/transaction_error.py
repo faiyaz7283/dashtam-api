@@ -32,7 +32,6 @@ class TransactionError:
         - Status errors: TRANSACTION_NOT_FOUND, TRANSACTION_ALREADY_SETTLED, DUPLICATE_PROVIDER_TRANSACTION
     """
 
-
     # -------------------------------------------------------------------------
     # Validation Errors
     # -------------------------------------------------------------------------
@@ -63,7 +62,6 @@ class TransactionError:
     - transaction_date is before account creation
     - settlement_date is before transaction_date
     """
-
 
     # -------------------------------------------------------------------------
     # Security/Trade Validation Errors

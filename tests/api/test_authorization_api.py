@@ -34,7 +34,7 @@ Reference:
 
 from typing import Annotated
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 from fastapi import Depends, FastAPI
@@ -141,7 +141,7 @@ def mock_authorization():
 def mock_current_user():
     """Create a mock current user."""
     return {
-        "id": uuid4(),
+        "id": uuid7(),
         "email": "test@example.com",
         "role": UserRole.USER,
     }
@@ -194,7 +194,7 @@ class TestRequirePermission:
 
     def test_returns_403_when_permission_denied(self, test_app, mock_authorization):
         """Test that 403 is returned when permission check fails."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.check_permission.return_value = False
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -207,7 +207,7 @@ class TestRequirePermission:
 
     def test_allows_access_when_permission_granted(self, test_app, mock_authorization):
         """Test that access is allowed when permission check passes."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.check_permission.return_value = True
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -219,7 +219,7 @@ class TestRequirePermission:
 
     def test_checks_correct_resource_and_action(self, test_app, mock_authorization):
         """Test that correct resource and action are passed to check."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.check_permission.return_value = False
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -244,7 +244,7 @@ class TestRequireCasbinRole:
 
     def test_returns_403_when_role_not_assigned(self, test_app, mock_authorization):
         """Test that 403 is returned when user doesn't have role."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.has_role.return_value = False
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -257,7 +257,7 @@ class TestRequireCasbinRole:
 
     def test_allows_access_when_role_assigned(self, test_app, mock_authorization):
         """Test that access is allowed when user has role."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.has_role.return_value = True
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -269,7 +269,7 @@ class TestRequireCasbinRole:
 
     def test_checks_correct_role(self, test_app, mock_authorization):
         """Test that correct role is passed to has_role check."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.has_role.return_value = False
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -293,7 +293,7 @@ class TestRequireAnyPermission:
 
     def test_returns_403_when_no_permissions_match(self, test_app, mock_authorization):
         """Test that 403 is returned when no permissions match."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.check_permission.return_value = False
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -306,7 +306,7 @@ class TestRequireAnyPermission:
         self, test_app, mock_authorization
     ):
         """Test that access is allowed when first permission matches."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         # First permission matches, second doesn't
         async def side_effect(user_id, resource, action):
@@ -324,7 +324,7 @@ class TestRequireAnyPermission:
         self, test_app, mock_authorization
     ):
         """Test that access is allowed when second permission matches."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         # First permission doesn't match, second does
         async def side_effect(user_id, resource, action):
@@ -352,7 +352,7 @@ class TestRequireAllPermissions:
         self, test_app, mock_authorization
     ):
         """Test that 403 is returned when first permission is missing."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         # First permission fails
         async def side_effect(user_id, resource, action):
@@ -370,7 +370,7 @@ class TestRequireAllPermissions:
         self, test_app, mock_authorization
     ):
         """Test that 403 is returned when second permission is missing."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Second permission fails
         async def side_effect(user_id, resource, action):
@@ -388,7 +388,7 @@ class TestRequireAllPermissions:
         self, test_app, mock_authorization
     ):
         """Test that access is allowed when all permissions granted."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.check_permission.return_value = True
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -410,7 +410,7 @@ class TestErrorResponseFormat:
 
     def test_403_response_has_correct_structure(self, test_app, mock_authorization):
         """Test that 403 response has proper error structure."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.check_permission.return_value = False
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -423,7 +423,7 @@ class TestErrorResponseFormat:
 
     def test_403_response_includes_error_message(self, test_app, mock_authorization):
         """Test that 403 response includes meaningful error message."""
-        user_id = uuid4()
+        user_id = uuid7()
         mock_authorization.has_role.return_value = False
 
         client = create_client_with_mocks(test_app, mock_authorization, str(user_id))
@@ -450,7 +450,7 @@ class TestRoleHierarchy:
 
     def test_admin_can_access_user_endpoints(self, test_app, mock_authorization):
         """Test that admin role can access user-level endpoints."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         # Admin has both admin and user roles
         # Note: authorization calls use keyword args (user_id=..., role=...)
@@ -468,7 +468,7 @@ class TestRoleHierarchy:
 
     def test_user_cannot_access_admin_endpoints(self, test_app, mock_authorization):
         """Test that user role cannot access admin-level endpoints."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         # User doesn't have admin role
         # Note: authorization calls use keyword args (user_id=..., role=...)
@@ -510,7 +510,7 @@ class TestEdgeCases:
             return {"ok": True}
 
         mock_auth = AsyncMock()
-        client = create_client_with_mocks(app, mock_auth, str(uuid4()))
+        client = create_client_with_mocks(app, mock_auth, str(uuid7()))
 
         # Empty permission list should deny access (no permissions to satisfy)
         response = client.get("/empty-any")
@@ -534,7 +534,7 @@ class TestEdgeCases:
             return {"ok": True}
 
         mock_auth = AsyncMock()
-        client = create_client_with_mocks(app, mock_auth, str(uuid4()))
+        client = create_client_with_mocks(app, mock_auth, str(uuid7()))
 
         # Empty permission list means all (zero) permissions satisfied
         response = client.get("/empty-all")

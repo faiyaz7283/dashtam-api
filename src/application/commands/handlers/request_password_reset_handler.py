@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import RequestPasswordReset
 from src.core.result import Result, Success
@@ -127,7 +127,7 @@ class RequestPasswordResetHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             PasswordResetRequestAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 email=cmd.email,
             )
@@ -140,7 +140,7 @@ class RequestPasswordResetHandler:
         if user is None:
             await self._event_bus.publish(
                 PasswordResetRequestFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     email=cmd.email,
                     reason=PasswordResetError.USER_NOT_FOUND,
@@ -153,7 +153,7 @@ class RequestPasswordResetHandler:
         if not user.is_verified:
             await self._event_bus.publish(
                 PasswordResetRequestFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     email=cmd.email,
                     reason=PasswordResetError.USER_NOT_VERIFIED,
@@ -172,7 +172,7 @@ class RequestPasswordResetHandler:
         if request_count >= self.MAX_REQUESTS_PER_HOUR:
             await self._event_bus.publish(
                 PasswordResetRequestFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     email=cmd.email,
                     reason=PasswordResetError.RATE_LIMITED,
@@ -204,7 +204,7 @@ class RequestPasswordResetHandler:
         # Step 8: Emit SUCCEEDED event
         await self._event_bus.publish(
             PasswordResetRequestSucceeded(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 email=user.email,

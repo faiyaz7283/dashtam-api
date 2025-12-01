@@ -14,7 +14,8 @@ Architecture:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -33,7 +34,7 @@ def create_user(
     """Helper to create User entities for testing."""
     now = datetime.now(UTC)
     return User(
-        id=user_id or uuid4(),
+        id=user_id or uuid7(),
         email=email,
         password_hash=password_hash,
         is_verified=is_verified,
@@ -52,7 +53,7 @@ class TestUserCreation:
     def test_user_created_with_all_required_fields(self):
         """Test User can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
+        user_id = uuid7()
         now = datetime.now(UTC)
 
         # Act

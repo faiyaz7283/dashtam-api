@@ -23,7 +23,7 @@ Reference:
 """
 
 import os
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 import pytest_asyncio
@@ -144,7 +144,7 @@ class TestEnforcerDirect:
     @pytest.mark.asyncio
     async def test_readonly_can_read_accounts_direct(self, casbin_enforcer):
         """Test readonly role can read accounts (direct enforcer)."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         await casbin_enforcer.add_role_for_user(user_id, "readonly")
 
         # Test directly with enforcer (enforce is sync, even on AsyncEnforcer)
@@ -154,7 +154,7 @@ class TestEnforcerDirect:
     @pytest.mark.asyncio
     async def test_readonly_cannot_write_accounts_direct(self, casbin_enforcer):
         """Test readonly role cannot write to accounts (direct enforcer)."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         await casbin_enforcer.add_role_for_user(user_id, "readonly")
 
         allowed = casbin_enforcer.enforce(user_id, "accounts", "write")
@@ -163,7 +163,7 @@ class TestEnforcerDirect:
     @pytest.mark.asyncio
     async def test_user_inherits_readonly_direct(self, casbin_enforcer):
         """Test user role inherits readonly permissions (direct enforcer)."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         await casbin_enforcer.add_role_for_user(user_id, "user")
 
         # User should inherit readonly's read permission
@@ -173,7 +173,7 @@ class TestEnforcerDirect:
     @pytest.mark.asyncio
     async def test_user_can_write_accounts_direct(self, casbin_enforcer):
         """Test user role can write to accounts (direct enforcer)."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         await casbin_enforcer.add_role_for_user(user_id, "user")
 
         allowed = casbin_enforcer.enforce(user_id, "accounts", "write")
@@ -182,7 +182,7 @@ class TestEnforcerDirect:
     @pytest.mark.asyncio
     async def test_admin_has_all_permissions_direct(self, casbin_enforcer):
         """Test admin role has all permissions (direct enforcer)."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         await casbin_enforcer.add_role_for_user(user_id, "admin")
 
         # Admin should have access to admin-only resources (enforce is sync)
@@ -193,7 +193,7 @@ class TestEnforcerDirect:
     @pytest.mark.asyncio
     async def test_user_cannot_access_admin_direct(self, casbin_enforcer):
         """Test user role cannot access admin resources (direct enforcer)."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         await casbin_enforcer.add_role_for_user(user_id, "user")
 
         allowed = casbin_enforcer.enforce(user_id, "admin", "read")
@@ -202,7 +202,7 @@ class TestEnforcerDirect:
     @pytest.mark.asyncio
     async def test_unassigned_user_denied_direct(self, casbin_enforcer):
         """Test user without role is denied (direct enforcer)."""
-        user_id = str(uuid4())  # No role assigned
+        user_id = str(uuid7())  # No role assigned
 
         allowed = casbin_enforcer.enforce(user_id, "accounts", "read")
         assert allowed is False
@@ -224,7 +224,7 @@ class TestCasbinAdapterPermissions:
     @pytest.mark.asyncio
     async def test_adapter_checks_permission(self, casbin_adapter, casbin_enforcer):
         """Test adapter delegates permission check to enforcer."""
-        user_id = uuid4()
+        user_id = uuid7()
         await casbin_enforcer.add_role_for_user(str(user_id), "readonly")
 
         allowed = await casbin_adapter.check_permission(
@@ -238,7 +238,7 @@ class TestCasbinAdapterPermissions:
     @pytest.mark.asyncio
     async def test_adapter_denies_unauthorized(self, casbin_adapter, casbin_enforcer):
         """Test adapter denies unauthorized access."""
-        user_id = uuid4()
+        user_id = uuid7()
         await casbin_enforcer.add_role_for_user(str(user_id), "readonly")
 
         allowed = await casbin_adapter.check_permission(
@@ -252,7 +252,7 @@ class TestCasbinAdapterPermissions:
     @pytest.mark.asyncio
     async def test_adapter_denies_unassigned_user(self, casbin_adapter):
         """Test adapter denies user without any role."""
-        user_id = uuid4()  # No role assigned
+        user_id = uuid7()  # No role assigned
 
         allowed = await casbin_adapter.check_permission(
             user_id=user_id,
@@ -276,7 +276,7 @@ class TestRoleOperations:
     async def test_get_roles_for_user(self, casbin_adapter, casbin_enforcer):
         """Test getting roles assigned to a user."""
         # Assign role
-        user_id = uuid4()
+        user_id = uuid7()
         await casbin_enforcer.add_role_for_user(str(user_id), "user")
 
         # Get roles
@@ -290,7 +290,7 @@ class TestRoleOperations:
     ):
         """Test has_role returns True for assigned role."""
         # Assign role
-        user_id = uuid4()
+        user_id = uuid7()
         await casbin_enforcer.add_role_for_user(str(user_id), "admin")
 
         # Check has_role
@@ -304,7 +304,7 @@ class TestRoleOperations:
     ):
         """Test has_role returns False for unassigned role."""
         # Assign user role (not admin)
-        user_id = uuid4()
+        user_id = uuid7()
         await casbin_enforcer.add_role_for_user(str(user_id), "user")
 
         # Check for admin role
@@ -315,8 +315,8 @@ class TestRoleOperations:
     @pytest.mark.asyncio
     async def test_assign_role_success(self, casbin_adapter, casbin_enforcer):
         """Test successful role assignment."""
-        user_id = uuid4()
-        admin_id = uuid4()
+        user_id = uuid7()
+        admin_id = uuid7()
 
         # Assign role via adapter
         result = await casbin_adapter.assign_role(
@@ -336,8 +336,8 @@ class TestRoleOperations:
         self, casbin_adapter, casbin_enforcer
     ):
         """Test assigning same role twice returns False."""
-        user_id = uuid4()
-        admin_id = uuid4()
+        user_id = uuid7()
+        admin_id = uuid7()
 
         # First assignment
         await casbin_adapter.assign_role(
@@ -358,8 +358,8 @@ class TestRoleOperations:
     @pytest.mark.asyncio
     async def test_revoke_role_success(self, casbin_adapter, casbin_enforcer):
         """Test successful role revocation."""
-        user_id = uuid4()
-        admin_id = uuid4()
+        user_id = uuid7()
+        admin_id = uuid7()
 
         # First assign role
         await casbin_enforcer.add_role_for_user(str(user_id), "user")
@@ -383,8 +383,8 @@ class TestRoleOperations:
         self, casbin_adapter, casbin_enforcer
     ):
         """Test revoking unassigned role returns False."""
-        user_id = uuid4()
-        admin_id = uuid4()
+        user_id = uuid7()
+        admin_id = uuid7()
 
         # Try to revoke role user doesn't have
         result = await casbin_adapter.revoke_role(
@@ -411,7 +411,7 @@ class TestCacheIntegration:
     ):
         """Test that permission check results are cached."""
         # Assign role
-        user_id = uuid4()
+        user_id = uuid7()
         await casbin_enforcer.add_role_for_user(str(user_id), "readonly")
 
         # First check - should miss cache and set
@@ -429,8 +429,8 @@ class TestCacheIntegration:
         self, casbin_adapter, casbin_enforcer, mock_cache
     ):
         """Test that role assignment invalidates user's cache."""
-        user_id = uuid4()
-        admin_id = uuid4()
+        user_id = uuid7()
+        admin_id = uuid7()
 
         # Assign role
         await casbin_adapter.assign_role(
@@ -458,7 +458,7 @@ class TestAuditIntegration:
     ):
         """Test that permission checks are audited."""
         # Assign role
-        user_id = uuid4()
+        user_id = uuid7()
         await casbin_enforcer.add_role_for_user(str(user_id), "readonly")
 
         # Check permission
@@ -491,8 +491,8 @@ class TestEventIntegration:
         self, casbin_adapter, casbin_enforcer, mock_event_bus
     ):
         """Test that role assignment publishes domain events."""
-        user_id = uuid4()
-        admin_id = uuid4()
+        user_id = uuid7()
+        admin_id = uuid7()
 
         # Assign role
         await casbin_adapter.assign_role(
@@ -509,8 +509,8 @@ class TestEventIntegration:
         self, casbin_adapter, casbin_enforcer, mock_event_bus
     ):
         """Test that role revocation publishes domain events."""
-        user_id = uuid4()
-        admin_id = uuid4()
+        user_id = uuid7()
+        admin_id = uuid7()
 
         # First assign role
         await casbin_enforcer.add_role_for_user(str(user_id), "user")

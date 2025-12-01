@@ -43,7 +43,7 @@ class UserRepository(Protocol):
             User if found, None otherwise.
 
         Example:
-            >>> user = await repo.find_by_id(uuid4())
+            >>> user = await repo.find_by_id(uuid7())
             >>> if user:
             ...     print(user.email)
         """
@@ -78,7 +78,7 @@ class UserRepository(Protocol):
             DatabaseError: If database operation fails.
 
         Example:
-            >>> user = User(id=uuid4(), email="new@example.com", ...)
+            >>> user = User(id=uuid7(), email="new@example.com", ...)
             >>> await repo.save(user)
         """
         ...

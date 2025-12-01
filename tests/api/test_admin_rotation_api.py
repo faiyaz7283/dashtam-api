@@ -16,7 +16,7 @@ Note:
 """
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 from fastapi import FastAPI, Request, status
@@ -231,7 +231,7 @@ class TestUserRotationEndpoint:
 
     def test_user_rotation_returns_201_created(self, client):
         """Test successful rotation returns 201 Created."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         response = client.post(
             f"/api/v1/admin/users/{user_id}/rotations",
             json={"reason": "Password changed"},
@@ -241,7 +241,7 @@ class TestUserRotationEndpoint:
 
     def test_user_rotation_returns_user_id(self, client):
         """Test rotation response includes user_id."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         response = client.post(
             f"/api/v1/admin/users/{user_id}/rotations",
             json={"reason": "Suspicious activity"},
@@ -253,7 +253,7 @@ class TestUserRotationEndpoint:
 
     def test_user_rotation_returns_version_info(self, client):
         """Test rotation response includes version information."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         response = client.post(
             f"/api/v1/admin/users/{user_id}/rotations",
             json={"reason": "Test"},
@@ -277,7 +277,7 @@ class TestUserRotationEndpoint:
 
     def test_user_rotation_requires_reason(self, client):
         """Test rotation requires reason field."""
-        user_id = str(uuid4())
+        user_id = str(uuid7())
         response = client.post(
             f"/api/v1/admin/users/{user_id}/rotations",
             json={},

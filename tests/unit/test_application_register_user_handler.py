@@ -16,7 +16,8 @@ Architecture:
 """
 
 from unittest.mock import AsyncMock, Mock
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -184,7 +185,7 @@ class TestRegisterUserHandlerFailure:
         """Test registration fails when email already registered."""
         # Arrange
         existing_user = Mock()
-        existing_user.id = uuid4()
+        existing_user.id = uuid7()
         existing_user.email = "existing@example.com"
 
         mock_user_repo = AsyncMock()
@@ -218,7 +219,7 @@ class TestRegisterUserHandlerFailure:
         """Test duplicate email does not save user or token."""
         # Arrange
         existing_user = Mock()
-        existing_user.id = uuid4()
+        existing_user.id = uuid7()
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = existing_user
@@ -324,7 +325,7 @@ class TestRegisterUserHandlerEvents:
         """Test duplicate email publishes FAILED event."""
         # Arrange
         existing_user = Mock()
-        existing_user.id = uuid4()
+        existing_user.id = uuid7()
 
         mock_user_repo = AsyncMock()
         mock_user_repo.find_by_email.return_value = existing_user

@@ -13,7 +13,7 @@ Architecture:
 - Validates all events follow 3-state pattern
 """
 
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -37,8 +37,8 @@ class TestProviderConnectionAttempted:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderConnectionAttempted(
@@ -58,14 +58,14 @@ class TestProviderConnectionAttempted:
         """Test event is immutable (frozen dataclass)."""
         # Arrange
         event = ProviderConnectionAttempted(
-            user_id=uuid4(),
-            provider_id=uuid4(),
+            user_id=uuid7(),
+            provider_id=uuid7(),
             provider_slug="schwab",
         )
 
         # Act & Assert
         with pytest.raises(AttributeError):
-            event.user_id = uuid4()  # type: ignore[misc]
+            event.user_id = uuid7()  # type: ignore[misc]
 
 
 @pytest.mark.unit
@@ -75,9 +75,9 @@ class TestProviderConnectionSucceeded:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        connection_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        connection_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderConnectionSucceeded(
@@ -98,15 +98,15 @@ class TestProviderConnectionSucceeded:
         """Test event is immutable (frozen dataclass)."""
         # Arrange
         event = ProviderConnectionSucceeded(
-            user_id=uuid4(),
-            connection_id=uuid4(),
-            provider_id=uuid4(),
+            user_id=uuid7(),
+            connection_id=uuid7(),
+            provider_id=uuid7(),
             provider_slug="schwab",
         )
 
         # Act & Assert
         with pytest.raises(AttributeError):
-            event.connection_id = uuid4()  # type: ignore[misc]
+            event.connection_id = uuid7()  # type: ignore[misc]
 
 
 @pytest.mark.unit
@@ -116,8 +116,8 @@ class TestProviderConnectionFailed:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderConnectionFailed(
@@ -147,8 +147,8 @@ class TestProviderConnectionFailed:
         for reason in reasons:
             # Act
             event = ProviderConnectionFailed(
-                user_id=uuid4(),
-                provider_id=uuid4(),
+                user_id=uuid7(),
+                provider_id=uuid7(),
                 provider_slug="schwab",
                 reason=reason,
             )
@@ -164,9 +164,9 @@ class TestProviderDisconnectionAttempted:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        connection_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        connection_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderDisconnectionAttempted(
@@ -191,9 +191,9 @@ class TestProviderDisconnectionSucceeded:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        connection_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        connection_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderDisconnectionSucceeded(
@@ -218,9 +218,9 @@ class TestProviderDisconnectionFailed:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        connection_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        connection_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderDisconnectionFailed(
@@ -246,9 +246,9 @@ class TestProviderTokenRefreshAttempted:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        connection_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        connection_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderTokenRefreshAttempted(
@@ -273,9 +273,9 @@ class TestProviderTokenRefreshSucceeded:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        connection_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        connection_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderTokenRefreshSucceeded(
@@ -300,9 +300,9 @@ class TestProviderTokenRefreshFailed:
     def test_event_created_with_all_required_fields(self):
         """Test event can be created with all required fields."""
         # Arrange
-        user_id = uuid4()
-        connection_id = uuid4()
-        provider_id = uuid4()
+        user_id = uuid7()
+        connection_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         event = ProviderTokenRefreshFailed(
@@ -326,9 +326,9 @@ class TestProviderTokenRefreshFailed:
         """Test event defaults needs_user_action to False."""
         # Act
         event = ProviderTokenRefreshFailed(
-            user_id=uuid4(),
-            connection_id=uuid4(),
-            provider_id=uuid4(),
+            user_id=uuid7(),
+            connection_id=uuid7(),
+            provider_id=uuid7(),
             provider_slug="schwab",
             reason="network_error",
         )
@@ -348,9 +348,9 @@ class TestProviderTokenRefreshFailed:
         for reason in reasons:
             # Act
             event = ProviderTokenRefreshFailed(
-                user_id=uuid4(),
-                connection_id=uuid4(),
-                provider_id=uuid4(),
+                user_id=uuid7(),
+                connection_id=uuid7(),
+                provider_id=uuid7(),
                 provider_slug="schwab",
                 reason=reason,
             )

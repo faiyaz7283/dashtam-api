@@ -16,7 +16,7 @@ Architecture:
 """
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 import pytest_asyncio
@@ -39,7 +39,7 @@ def create_test_user(
     """Create a test User with all required fields."""
     now = datetime.now(UTC)
     return User(
-        id=user_id or uuid4(),
+        id=user_id or uuid7(),
         email=email,
         password_hash=password_hash,
         is_verified=is_verified,
@@ -66,7 +66,7 @@ class TestUserRepositorySave:
     async def test_save_user_persists_to_database(self, test_database):
         """Test saving a user persists it to the database."""
         # Arrange - Use unique email per test run
-        user_id = uuid4()
+        user_id = uuid7()
         unique_email = f"test_{user_id}@example.com"
         user = create_test_user(
             user_id=user_id,
@@ -98,7 +98,7 @@ class TestUserRepositorySave:
     async def test_save_user_with_verified_status(self, test_database):
         """Test saving a user with verified status."""
         # Arrange - Use unique email per test run
-        user_id = uuid4()
+        user_id = uuid7()
         unique_email = f"admin_{user_id}@example.com"
         user = create_test_user(
             user_id=user_id,
@@ -130,7 +130,7 @@ class TestUserRepositoryFindByEmail:
     async def test_find_by_email_returns_user(self, test_database):
         """Test find_by_email returns existing user."""
         # Arrange - Use unique email per test run
-        user_id = uuid4()
+        user_id = uuid7()
         email = f"findme_{user_id}@example.com"
         user = create_test_user(
             user_id=user_id,
@@ -168,7 +168,7 @@ class TestUserRepositoryFindByEmail:
     async def test_find_by_email_is_case_insensitive(self, test_database):
         """Test find_by_email is case insensitive."""
         # Arrange - Use unique email to avoid conflicts
-        user_id = uuid4()
+        user_id = uuid7()
         unique_suffix = str(user_id)[:8]
         email_mixed_case = f"Test_{unique_suffix}@Example.com"
         email_lowercase = f"test_{unique_suffix}@example.com"
@@ -202,7 +202,7 @@ class TestUserRepositoryFindById:
     async def test_find_by_id_returns_user(self, test_database):
         """Test find_by_id returns existing user."""
         # Arrange - Use unique email per test run
-        user_id = uuid4()
+        user_id = uuid7()
         unique_email = f"findbyid_{user_id}@example.com"
         user = create_test_user(
             user_id=user_id,
@@ -231,7 +231,7 @@ class TestUserRepositoryFindById:
         # Act
         async with test_database.get_session() as session:
             repo = UserRepository(session=session)
-            found = await repo.find_by_id(uuid4())
+            found = await repo.find_by_id(uuid7())
 
         # Assert
         assert found is None
@@ -245,7 +245,7 @@ class TestUserRepositoryUpdate:
     async def test_update_user_persists_changes(self, test_database):
         """Test updating a user persists changes to database."""
         # Arrange - Use unique email per test run
-        user_id = uuid4()
+        user_id = uuid7()
         unique_email = f"update_{user_id}@example.com"
         user = create_test_user(
             user_id=user_id,
@@ -281,7 +281,7 @@ class TestUserRepositoryUpdate:
     async def test_update_user_failed_login_attempts(self, test_database):
         """Test updating failed login attempts."""
         # Arrange - Use unique email per test run
-        user_id = uuid4()
+        user_id = uuid7()
         unique_email = f"login_{user_id}@example.com"
         user = create_test_user(
             user_id=user_id,

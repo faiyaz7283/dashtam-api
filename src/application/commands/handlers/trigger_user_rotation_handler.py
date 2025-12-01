@@ -15,7 +15,7 @@ On failure:
 """
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 from src.application.commands.rotation_commands import (
     TriggerUserTokenRotation,
@@ -79,7 +79,7 @@ class TriggerUserTokenRotationHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             UserTokenRotationAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=cmd.user_id,
                 triggered_by=cmd.triggered_by,
@@ -94,7 +94,7 @@ class TriggerUserTokenRotationHandler:
         if user is None:
             await self._event_bus.publish(
                 UserTokenRotationFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     user_id=cmd.user_id,
                     triggered_by=cmd.triggered_by,
@@ -115,7 +115,7 @@ class TriggerUserTokenRotationHandler:
         # Step 6: Emit SUCCEEDED event
         await self._event_bus.publish(
             UserTokenRotationSucceeded(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=cmd.user_id,
                 triggered_by=cmd.triggered_by,

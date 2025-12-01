@@ -1123,7 +1123,8 @@ CREATE RULE audit_logs_no_delete AS
 
 ```python
 from datetime import datetime, UTC
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1163,7 +1164,7 @@ class PostgresAuditAdapter:
         """Record immutable audit entry in PostgreSQL."""
         try:
             audit_log = AuditLogModel(
-                id=uuid4(),
+                id=uuid7(),
                 action=action.value,
                 user_id=user_id,
                 resource_type=resource_type,

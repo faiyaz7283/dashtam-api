@@ -14,7 +14,8 @@ Architecture:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -104,9 +105,9 @@ def create_connection(
 ) -> ProviderConnection:
     """Helper to create ProviderConnection entities for testing."""
     return ProviderConnection(
-        id=connection_id or uuid4(),
-        user_id=user_id or uuid4(),
-        provider_id=provider_id or uuid4(),
+        id=connection_id or uuid7(),
+        user_id=user_id or uuid7(),
+        provider_id=provider_id or uuid7(),
         provider_slug=provider_slug,
         alias=alias,
         status=status,
@@ -123,9 +124,9 @@ class TestProviderConnectionCreation:
     def test_connection_created_with_all_required_fields(self):
         """Test connection can be created with all required fields."""
         # Arrange
-        connection_id = uuid4()
-        user_id = uuid4()
-        provider_id = uuid4()
+        connection_id = uuid7()
+        user_id = uuid7()
+        provider_id = uuid7()
 
         # Act
         connection = ProviderConnection(

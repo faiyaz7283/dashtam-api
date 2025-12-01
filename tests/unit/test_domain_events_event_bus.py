@@ -18,7 +18,7 @@ Architecture:
 
 import asyncio
 from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -50,7 +50,7 @@ class TestInMemoryEventBusBasicFlow:
             received_event = event
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act
@@ -81,7 +81,7 @@ class TestInMemoryEventBusBasicFlow:
             call_order.append("handler_3")
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act
@@ -104,7 +104,7 @@ class TestInMemoryEventBusBasicFlow:
         event_bus = InMemoryEventBus(logger=mock_logger)
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act & Assert - Should not raise exception
@@ -137,7 +137,7 @@ class TestInMemoryEventBusFailOpen:
             successful_handlers.append("handler_2")
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act
@@ -177,7 +177,7 @@ class TestInMemoryEventBusFailOpen:
             pass  # Success
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act
@@ -215,7 +215,7 @@ class TestInMemoryEventBusEventData:
             received_data["event_id"] = event.event_id
             received_data["occurred_at"] = event.occurred_at
 
-        user_id = uuid4()
+        user_id = uuid7()
         event = UserRegistrationSucceeded(
             user_id=user_id, email="test@example.com", verification_token="test_token"
         )
@@ -246,11 +246,11 @@ class TestInMemoryEventBusEventData:
             received_events.append(("password_change", event))
 
         registration_event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         password_event = UserPasswordChangeSucceeded(
-            user_id=uuid4(), initiated_by="user"
+            user_id=uuid7(), initiated_by="user"
         )
 
         # Act
@@ -292,7 +292,7 @@ class TestInMemoryEventBusAsyncSupport:
             execution_order.append("fast_end")
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act
@@ -329,7 +329,7 @@ class TestInMemoryEventBusAsyncSupport:
             async_operation_completed = True
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act
@@ -355,7 +355,7 @@ class TestInMemoryEventBusLogging:
             pass
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act
@@ -381,7 +381,7 @@ class TestInMemoryEventBusLogging:
             raise ValueError("Test error message")
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act
@@ -418,7 +418,7 @@ class TestInMemoryEventBusEdgeCases:
             call_count += 1
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act - Subscribe same handler twice
@@ -442,13 +442,13 @@ class TestInMemoryEventBusEdgeCases:
             received_emails.append(event.email)
 
         event1 = UserRegistrationSucceeded(
-            user_id=uuid4(), email="user1@example.com", verification_token="token1"
+            user_id=uuid7(), email="user1@example.com", verification_token="token1"
         )
         event2 = UserRegistrationSucceeded(
-            user_id=uuid4(), email="user2@example.com", verification_token="token2"
+            user_id=uuid7(), email="user2@example.com", verification_token="token2"
         )
         event3 = UserRegistrationSucceeded(
-            user_id=uuid4(), email="user3@example.com", verification_token="token3"
+            user_id=uuid7(), email="user3@example.com", verification_token="token3"
         )
 
         # Act
@@ -475,7 +475,7 @@ class TestInMemoryEventBusEdgeCases:
             return "This return value should be ignored"
 
         event = UserRegistrationSucceeded(
-            user_id=uuid4(), email="test@example.com", verification_token="test_token"
+            user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
         # Act & Assert - Should not raise exception

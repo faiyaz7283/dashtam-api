@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from time import perf_counter
 from typing import TYPE_CHECKING
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 from src.core.result import Failure, Result, Success
 from src.domain.enums import RateLimitScope
@@ -318,7 +318,7 @@ class TokenBucketAdapter:
         try:
             await self._event_bus.publish(
                 RateLimitCheckAttempted(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     endpoint=endpoint,
                     identifier=identifier,
                     scope=scope.value,
@@ -345,7 +345,7 @@ class TokenBucketAdapter:
         try:
             await self._event_bus.publish(
                 RateLimitCheckAllowed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     endpoint=endpoint,
                     identifier=identifier,
                     scope=scope.value,
@@ -373,7 +373,7 @@ class TokenBucketAdapter:
         try:
             await self._event_bus.publish(
                 RateLimitCheckDenied(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     endpoint=endpoint,
                     identifier=identifier,
                     scope=scope.value,

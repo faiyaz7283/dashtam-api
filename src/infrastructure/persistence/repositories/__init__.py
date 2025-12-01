@@ -7,6 +7,9 @@ defined in the domain layer.
 from src.infrastructure.persistence.repositories.account_repository import (
     AccountRepository,
 )
+from src.infrastructure.persistence.repositories.transaction_repository import (
+    TransactionRepository,
+)
 from src.infrastructure.persistence.repositories.email_verification_token_repository import (
     EmailVerificationTokenRepository,
 )
@@ -35,5 +38,6 @@ __all__ = [
     "RefreshTokenRepository",
     "SecurityConfigRepository",
     "SessionRepository",
+    "TransactionRepository",
     "UserRepository",
 ]

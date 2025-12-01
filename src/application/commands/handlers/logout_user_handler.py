@@ -19,7 +19,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import LogoutUser
 from src.core.result import Result, Success
@@ -96,7 +97,7 @@ class LogoutUserHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             UserLogoutAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=cmd.user_id,
             )
@@ -115,7 +116,7 @@ class LogoutUserHandler:
             # For security, we still return success but log internally
             await self._event_bus.publish(
                 UserLogoutFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     user_id=cmd.user_id,
                     reason=LogoutError.TOKEN_NOT_FOUND,
@@ -130,7 +131,7 @@ class LogoutUserHandler:
             # Token doesn't belong to user - security issue
             await self._event_bus.publish(
                 UserLogoutFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     user_id=cmd.user_id,
                     reason="token_user_mismatch",
@@ -143,7 +144,7 @@ class LogoutUserHandler:
         if token_data.revoked_at is not None:
             await self._event_bus.publish(
                 UserLogoutFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     user_id=cmd.user_id,
                     reason=LogoutError.TOKEN_ALREADY_REVOKED,
@@ -160,7 +161,7 @@ class LogoutUserHandler:
         # Step 4: Emit SUCCEEDED event
         await self._event_bus.publish(
             UserLogoutSucceeded(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=cmd.user_id,
                 session_id=session_id,

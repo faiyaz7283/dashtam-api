@@ -398,7 +398,7 @@ from src.core.container import get_logger
 
 @app.middleware("http")
 async def bind_request_context(request: Request, call_next):
-    trace_id = request.headers.get("X-Trace-ID") or str(uuid4())
+    trace_id = request.headers.get("X-Trace-ID") or str(uuid7())
     
     # Create request-scoped logger
     request_logger = get_logger().bind(
@@ -992,7 +992,7 @@ class AuthService:
 
 ```python
 # src/presentation/api/middleware/trace_middleware.py
-from uuid import uuid4
+from uuid_extensions import uuid7
 from contextvars import ContextVar
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -1005,7 +1005,7 @@ class TraceMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request, call_next):
         # Generate or extract trace_id
-        trace_id = request.headers.get("X-Trace-Id") or str(uuid4())
+        trace_id = request.headers.get("X-Trace-Id") or str(uuid7())
         
         # Store in context variable
         trace_id_context.set(trace_id)
@@ -1022,7 +1022,7 @@ def get_trace_id() -> str:
     trace_id = trace_id_context.get()
     if not trace_id:
         # Fallback for non-HTTP contexts (background tasks)
-        trace_id = str(uuid4())
+        trace_id = str(uuid7())
         trace_id_context.set(trace_id)
     return trace_id
 
@@ -1540,7 +1540,7 @@ async def start_background_tasks():
     
     async def refresh_tokens():
         # Generate new trace_id for background task
-        trace_id = str(uuid4())
+        trace_id = str(uuid7())
         trace_id_context.set(trace_id)
         
         logger.info(
@@ -1788,7 +1788,7 @@ class MultiAdapter:
 # 1. Middleware injects trace_id
 @app.middleware("http")
 async def trace_middleware(request: Request, call_next):
-    trace_id = str(uuid4())
+    trace_id = str(uuid7())
     trace_id_context.set(trace_id)
     
     logger = get_logger()

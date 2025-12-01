@@ -15,7 +15,8 @@ Architecture:
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -49,8 +50,8 @@ def create_account(
     if balance is None:
         balance = Money(Decimal("10000.00"), currency)
     return Account(
-        id=account_id or uuid4(),
-        connection_id=connection_id or uuid4(),
+        id=account_id or uuid7(),
+        connection_id=connection_id or uuid7(),
         provider_account_id=provider_account_id,
         account_number_masked=account_number_masked,
         name=name,
@@ -175,8 +176,8 @@ class TestAccountCreation:
 
     def test_account_created_with_required_fields(self):
         """Test account can be created with all required fields."""
-        account_id = uuid4()
-        connection_id = uuid4()
+        account_id = uuid7()
+        connection_id = uuid7()
         balance = Money(Decimal("10000.00"), "USD")
 
         account = Account(

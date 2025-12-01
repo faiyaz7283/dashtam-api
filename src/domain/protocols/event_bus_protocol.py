@@ -24,7 +24,7 @@ Usage:
     >>> event_bus = get_event_bus()  # Returns EventBusProtocol implementation
     >>>
     >>> # Publish event
-    >>> event = UserRegistered(user_id=uuid4(), email="test@example.com")
+    >>> event = UserRegistered(user_id=uuid7(), email="test@example.com")
     >>> await event_bus.publish(event)
     >>>
     >>> # Subscribe handler

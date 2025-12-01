@@ -27,7 +27,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import RefreshAccessToken
 from src.core.result import Failure, Result, Success
@@ -129,7 +130,7 @@ class RefreshAccessTokenHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             AuthTokenRefreshAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=None,  # Unknown until we verify token
             )
@@ -197,7 +198,7 @@ class RefreshAccessTokenHandler:
                 # Emit security monitoring event
                 await self._event_bus.publish(
                     TokenRejectedDueToRotation(
-                        event_id=uuid4(),
+                        event_id=uuid7(),
                         occurred_at=now,
                         user_id=user.id,
                         token_version=token_data.token_version,
@@ -253,7 +254,7 @@ class RefreshAccessTokenHandler:
         # Step 10: Emit SUCCEEDED event
         await self._event_bus.publish(
             AuthTokenRefreshSucceeded(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 session_id=token_data.session_id,
@@ -328,7 +329,7 @@ class RefreshAccessTokenHandler:
         """
         await self._event_bus.publish(
             AuthTokenRefreshFailed(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=user_id,
                 reason=reason,

@@ -13,11 +13,12 @@ Reference:
     - docs/architecture/provider-domain-model.md
 
 Usage:
+    from uuid_extensions import uuid7
     from src.domain.entities import ProviderConnection
     from src.domain.enums import ConnectionStatus
 
     connection = ProviderConnection(
-        id=uuid4(),
+        id=uuid7(),
         user_id=user.id,
         provider_id=provider_uuid,
         provider_slug="schwab",
@@ -77,7 +78,7 @@ class ProviderConnection:
 
     Example:
         >>> conn = ProviderConnection(
-        ...     id=uuid4(),
+        ...     id=uuid7(),
         ...     user_id=user_id,
         ...     provider_id=provider_id,
         ...     provider_slug="schwab",

@@ -62,8 +62,9 @@ class User:
             min_token_version: Per-user minimum token version (increment to invalidate tokens)
 
     Example:
+        >>> from uuid_extensions import uuid7
         >>> user = User(
-        ...     id=uuid4(),
+        ...     id=uuid7(),
         ...     email="user@example.com",
         ...     password_hash="$2b$12$...",
         ...     is_verified=False,

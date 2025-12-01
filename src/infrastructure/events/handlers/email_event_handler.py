@@ -64,7 +64,7 @@ class EmailEventHandler:
         >>>
         >>> # Events automatically trigger email logging
         >>> await event_bus.publish(UserRegistrationSucceeded(
-        ...     user_id=uuid4(),
+        ...     user_id=uuid7(),
         ...     email="test@example.com"
         ... ))
         >>> # Log output: {"event": "email_would_be_sent", "template": "welcome_email", ...}

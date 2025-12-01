@@ -14,7 +14,7 @@ On failure:
 """
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 from src.application.commands.rotation_commands import (
     GlobalRotationResult,
@@ -72,7 +72,7 @@ class TriggerGlobalTokenRotationHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             GlobalTokenRotationAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 triggered_by=cmd.triggered_by,
                 reason=cmd.reason,
@@ -97,7 +97,7 @@ class TriggerGlobalTokenRotationHandler:
             # Step 5: Emit SUCCEEDED event
             await self._event_bus.publish(
                 GlobalTokenRotationSucceeded(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     triggered_by=cmd.triggered_by,
                     previous_version=previous_version,
@@ -120,7 +120,7 @@ class TriggerGlobalTokenRotationHandler:
             # Emit FAILED event
             await self._event_bus.publish(
                 GlobalTokenRotationFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     triggered_by=cmd.triggered_by,
                     reason=cmd.reason,

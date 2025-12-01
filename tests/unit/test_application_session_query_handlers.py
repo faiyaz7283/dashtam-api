@@ -12,7 +12,7 @@ Architecture:
 
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, Mock
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -40,8 +40,8 @@ def create_mock_session_data(
 ):
     """Create a mock SessionData for testing."""
     mock = Mock(spec=SessionData)
-    mock.id = session_id or uuid4()
-    mock.user_id = user_id or uuid4()
+    mock.id = session_id or uuid7()
+    mock.user_id = user_id or uuid7()
     mock.device_info = device_info
     mock.ip_address = ip_address
     mock.location = location
@@ -59,8 +59,8 @@ class TestGetSessionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_get_session_returns_session_from_cache(self):
         """Test handler returns session found in cache."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(session_id=session_id, user_id=user_id)
 
         mock_cache = AsyncMock()
@@ -86,8 +86,8 @@ class TestGetSessionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_get_session_falls_back_to_database(self):
         """Test handler falls back to database on cache miss."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(session_id=session_id, user_id=user_id)
 
         mock_cache = AsyncMock()
@@ -112,8 +112,8 @@ class TestGetSessionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_get_session_populates_cache_on_miss(self):
         """Test handler populates cache when found in database."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(
             session_id=session_id, user_id=user_id, is_revoked=False
         )
@@ -138,8 +138,8 @@ class TestGetSessionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_get_session_does_not_cache_revoked_session(self):
         """Test handler doesn't cache revoked sessions."""
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(
             session_id=session_id, user_id=user_id, is_revoked=True
         )
@@ -180,7 +180,7 @@ class TestGetSessionHandlerFailure:
             session_cache=mock_cache,
         )
 
-        query = GetSession(session_id=uuid4(), user_id=uuid4())
+        query = GetSession(session_id=uuid7(), user_id=uuid7())
 
         result = await handler.handle(query)
 
@@ -190,9 +190,9 @@ class TestGetSessionHandlerFailure:
     @pytest.mark.asyncio
     async def test_get_session_returns_not_owner(self):
         """Test handler returns NOT_OWNER when user doesn't own session."""
-        owner_id = uuid4()
-        other_user_id = uuid4()
-        session_id = uuid4()
+        owner_id = uuid7()
+        other_user_id = uuid7()
+        session_id = uuid7()
         mock_session = create_mock_session_data(session_id=session_id, user_id=owner_id)
 
         mock_cache = AsyncMock()
@@ -220,7 +220,7 @@ class TestListSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_list_sessions_returns_all_sessions(self):
         """Test handler returns all sessions for user."""
-        user_id = uuid4()
+        user_id = uuid7()
         sessions = [
             create_mock_session_data(user_id=user_id, is_revoked=False),
             create_mock_session_data(user_id=user_id, is_revoked=False),
@@ -244,7 +244,7 @@ class TestListSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_list_sessions_with_active_only_filter(self):
         """Test handler filters to active sessions only."""
-        user_id = uuid4()
+        user_id = uuid7()
         active_sessions = [
             create_mock_session_data(user_id=user_id, is_revoked=False),
             create_mock_session_data(user_id=user_id, is_revoked=False),
@@ -266,9 +266,9 @@ class TestListSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_list_sessions_marks_current_session(self):
         """Test handler marks current session in list."""
-        user_id = uuid4()
-        current_session_id = uuid4()
-        other_session_id = uuid4()
+        user_id = uuid7()
+        current_session_id = uuid7()
+        other_session_id = uuid7()
 
         sessions = [
             create_mock_session_data(session_id=current_session_id, user_id=user_id),
@@ -297,7 +297,7 @@ class TestListSessionsHandlerSuccess:
     @pytest.mark.asyncio
     async def test_list_sessions_returns_empty_list(self):
         """Test handler returns empty list when no sessions."""
-        user_id = uuid4()
+        user_id = uuid7()
 
         mock_repo = AsyncMock()
         mock_repo.find_by_user_id.return_value = []

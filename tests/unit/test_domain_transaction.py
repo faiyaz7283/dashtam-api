@@ -12,7 +12,7 @@ Coverage target: 100%
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -257,8 +257,8 @@ class TestTransactionCreation:
 
     def test_create_minimal_transaction(self):
         """Create transaction with only required fields."""
-        transaction_id = uuid4()
-        account_id = uuid4()
+        transaction_id = uuid7()
+        account_id = uuid7()
         now = datetime.now(UTC)
 
         transaction = Transaction(
@@ -289,8 +289,8 @@ class TestTransactionCreation:
     def test_create_trade_transaction_with_security_details(self):
         """Create trade transaction with all security fields."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="trade-123",
             transaction_type=TransactionType.TRADE,
             subtype=TransactionSubtype.BUY,
@@ -329,8 +329,8 @@ class TestTransactionCreation:
         }
 
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="schwab-123",
             transaction_type=TransactionType.TRADE,
             subtype=TransactionSubtype.SELL,
@@ -353,8 +353,8 @@ class TestTransactionQueryMethods:
     def test_is_trade_returns_true_for_trade_type(self):
         """is_trade() should return True for TRADE type."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRADE,
             subtype=TransactionSubtype.BUY,
@@ -371,8 +371,8 @@ class TestTransactionQueryMethods:
     def test_is_trade_returns_false_for_non_trade_types(self):
         """is_trade() should return False for non-TRADE types."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRANSFER,
             subtype=TransactionSubtype.DEPOSIT,
@@ -389,8 +389,8 @@ class TestTransactionQueryMethods:
     def test_is_transfer_returns_true_for_transfer_type(self):
         """is_transfer() should return True for TRANSFER type."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRANSFER,
             subtype=TransactionSubtype.WITHDRAWAL,
@@ -407,8 +407,8 @@ class TestTransactionQueryMethods:
     def test_is_income_returns_true_for_income_type(self):
         """is_income() should return True for INCOME type."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.INCOME,
             subtype=TransactionSubtype.DIVIDEND,
@@ -425,8 +425,8 @@ class TestTransactionQueryMethods:
     def test_is_fee_returns_true_for_fee_type(self):
         """is_fee() should return True for FEE type."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.FEE,
             subtype=TransactionSubtype.ACCOUNT_FEE,
@@ -443,8 +443,8 @@ class TestTransactionQueryMethods:
     def test_is_debit_returns_true_for_negative_amount(self):
         """is_debit() should return True for negative amounts."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRANSFER,
             subtype=TransactionSubtype.WITHDRAWAL,
@@ -461,8 +461,8 @@ class TestTransactionQueryMethods:
     def test_is_debit_returns_false_for_positive_amount(self):
         """is_debit() should return False for positive amounts."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRANSFER,
             subtype=TransactionSubtype.DEPOSIT,
@@ -479,8 +479,8 @@ class TestTransactionQueryMethods:
     def test_is_credit_returns_true_for_positive_amount(self):
         """is_credit() should return True for positive amounts."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRANSFER,
             subtype=TransactionSubtype.DEPOSIT,
@@ -497,8 +497,8 @@ class TestTransactionQueryMethods:
     def test_is_credit_returns_false_for_negative_amount(self):
         """is_credit() should return False for negative amounts."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRANSFER,
             subtype=TransactionSubtype.WITHDRAWAL,
@@ -515,8 +515,8 @@ class TestTransactionQueryMethods:
     def test_is_settled_returns_true_for_settled_status(self):
         """is_settled() should return True for SETTLED status."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRADE,
             subtype=TransactionSubtype.BUY,
@@ -538,8 +538,8 @@ class TestTransactionQueryMethods:
             TransactionStatus.CANCELLED,
         ]:
             transaction = Transaction(
-                id=uuid4(),
-                account_id=uuid4(),
+                id=uuid7(),
+                account_id=uuid7(),
                 provider_transaction_id="test-1",
                 transaction_type=TransactionType.TRADE,
                 subtype=TransactionSubtype.BUY,
@@ -556,8 +556,8 @@ class TestTransactionQueryMethods:
     def test_has_security_details_returns_true_when_all_present(self):
         """has_security_details() should return True when symbol, quantity, unit_price all present."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRADE,
             subtype=TransactionSubtype.BUY,
@@ -577,8 +577,8 @@ class TestTransactionQueryMethods:
     def test_has_security_details_returns_false_when_symbol_missing(self):
         """has_security_details() should return False when symbol is None."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRADE,
             subtype=TransactionSubtype.BUY,
@@ -598,8 +598,8 @@ class TestTransactionQueryMethods:
     def test_has_security_details_returns_false_when_quantity_missing(self):
         """has_security_details() should return False when quantity is None."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRADE,
             subtype=TransactionSubtype.BUY,
@@ -619,8 +619,8 @@ class TestTransactionQueryMethods:
     def test_has_security_details_returns_false_when_unit_price_missing(self):
         """has_security_details() should return False when unit_price is None."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRADE,
             subtype=TransactionSubtype.BUY,
@@ -644,8 +644,8 @@ class TestTransactionImmutability:
     def test_transaction_is_frozen(self):
         """Transaction should be immutable (frozen dataclass)."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRANSFER,
             subtype=TransactionSubtype.DEPOSIT,
@@ -664,8 +664,8 @@ class TestTransactionImmutability:
     def test_transaction_has_no_update_methods(self):
         """Transaction should not have any update methods."""
         transaction = Transaction(
-            id=uuid4(),
-            account_id=uuid4(),
+            id=uuid7(),
+            account_id=uuid7(),
             provider_transaction_id="test-1",
             transaction_type=TransactionType.TRANSFER,
             subtype=TransactionSubtype.DEPOSIT,

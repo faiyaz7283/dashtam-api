@@ -858,7 +858,8 @@ class ListUserSessions:
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from src.core.result import Failure, Result, Success
 from src.domain.entities.session import Session
@@ -929,7 +930,7 @@ class CreateSessionHandler:
         )
         
         # Create session entity
-        session_id = uuid4()
+        session_id = uuid7()
         expires_at = datetime.now(UTC) + timedelta(seconds=command.expires_at_seconds)
         
         session = Session(
@@ -1562,14 +1563,15 @@ class SessionListResponse(BaseModel):
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 
 @dataclass(frozen=True, kw_only=True)
 class SessionCreatedEvent:
     """Published when a new session is created."""
     
-    event_id: UUID = field(default_factory=uuid4)
+    event_id: UUID = field(default_factory=uuid7)
     occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     
     session_id: UUID
@@ -1583,7 +1585,7 @@ class SessionCreatedEvent:
 class SessionRevokedEvent:
     """Published when a session is revoked."""
     
-    event_id: UUID = field(default_factory=uuid4)
+    event_id: UUID = field(default_factory=uuid7)
     occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     
     session_id: UUID
@@ -1595,7 +1597,7 @@ class SessionRevokedEvent:
 class AllSessionsRevokedEvent:
     """Published when all user sessions are revoked."""
     
-    event_id: UUID = field(default_factory=uuid4)
+    event_id: UUID = field(default_factory=uuid7)
     occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     
     user_id: UUID

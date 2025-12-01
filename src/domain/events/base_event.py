@@ -20,7 +20,7 @@ Usage:
     ...     user_id: UUID
     ...     email: str
     >>>
-    >>> event = UserRegistered(user_id=uuid4(), email="test@example.com")
+    >>> event = UserRegistered(user_id=uuid7(), email="test@example.com")
     >>> print(event.event_id)  # Auto-generated UUID
     >>> print(event.occurred_at)  # Auto-generated timestamp
 
@@ -31,7 +31,8 @@ Reference:
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -66,7 +67,7 @@ class DomainEvent:
         >>>
         >>> # Create event (event_id and occurred_at auto-generated)
         >>> event = UserRegistered(
-        ...     user_id=uuid4(),
+        ...     user_id=uuid7(),
         ...     email="test@example.com",
         ...     ip_address="192.168.1.1"
         ... )
@@ -94,10 +95,10 @@ class DomainEvent:
           RegisterUser or ChangePassword
     """
 
-    event_id: UUID = field(default_factory=uuid4)
+    event_id: UUID = field(default_factory=uuid7)
     """Unique identifier for this event instance.
 
-    Auto-generated UUID v4 if not provided. Used for:
+    Auto-generated UUID v7 if not provided. Used for:
         - Event tracking across systems
         - Deduplication in message queues
         - Correlation in distributed tracing

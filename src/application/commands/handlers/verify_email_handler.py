@@ -24,7 +24,8 @@ Architecture:
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import VerifyEmail
 from src.core.result import Failure, Result, Success
@@ -98,7 +99,7 @@ class VerifyEmailHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             EmailVerificationAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 token=token_preview,
             )
@@ -151,7 +152,7 @@ class VerifyEmailHandler:
         # Step 8: Emit SUCCEEDED event
         await self._event_bus.publish(
             EmailVerificationSucceeded(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 email=user.email,
@@ -174,7 +175,7 @@ class VerifyEmailHandler:
         """
         await self._event_bus.publish(
             EmailVerificationFailed(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 token=token,
                 reason=reason,

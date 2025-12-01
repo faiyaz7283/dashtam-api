@@ -29,6 +29,7 @@ dependencies = [
     "structlog>=25.5.0",
     "urllib3>=2.5.0",
     "user-agents>=2.2.0",
+    "uuid7>=0.1.0",
     "uvicorn[standard]>=0.37.0",
 ]
 
@@ -116,6 +117,7 @@ module = [
     "casbin_async_sqlalchemy_adapter",
     "user_agents",
     "user_agents.*",
+    "uuid_extensions",
 ]
 ignore_missing_imports = true
 

@@ -17,7 +17,7 @@ Architecture:
 """
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 from src.application.commands.session_commands import RevokeAllUserSessions
 from src.core.result import Result, Success
@@ -88,7 +88,7 @@ class RevokeAllSessionsHandler:
         now = datetime.now(UTC)
         await self._event_bus.publish(
             AllSessionsRevokedEvent(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=now,
                 user_id=cmd.user_id,
                 reason=cmd.reason,

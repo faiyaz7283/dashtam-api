@@ -73,10 +73,10 @@ class TokenGenerationProtocol(Protocol):
 
         Example:
             >>> token = service.generate_access_token(
-            ...     user_id=uuid4(),
+            ...     user_id=uuid7(),
             ...     email="user@example.com",
             ...     roles=["user"],
-            ...     session_id=uuid4(),
+            ...     session_id=uuid7(),
             ... )
             >>> # eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 

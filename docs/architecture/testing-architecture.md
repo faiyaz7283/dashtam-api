@@ -1100,7 +1100,7 @@ class TestEventFlowEndToEnd:
         """Test UserRegistrationSucceeded → audit record created."""
         # Arrange
         event_bus = get_event_bus()
-        user_id = uuid4()
+        user_id = uuid7()
         event = UserRegistrationSucceeded(
             user_id=user_id, email="integration@example.com"
         )

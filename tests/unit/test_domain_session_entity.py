@@ -15,7 +15,7 @@ Architecture:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -28,8 +28,8 @@ class TestSessionCreation:
 
     def test_session_creation_with_required_fields(self):
         """Test session creation with only required fields."""
-        session_id = uuid4()
-        user_id = uuid4()
+        session_id = uuid7()
+        user_id = uuid7()
 
         session = Session(id=session_id, user_id=user_id)
 
@@ -42,9 +42,9 @@ class TestSessionCreation:
 
     def test_session_creation_with_all_fields(self):
         """Test session creation with all fields populated."""
-        session_id = uuid4()
-        user_id = uuid4()
-        refresh_token_id = uuid4()
+        session_id = uuid7()
+        user_id = uuid7()
+        refresh_token_id = uuid7()
         now = datetime.now(UTC)
         expires_at = now + timedelta(days=30)
 
@@ -81,33 +81,33 @@ class TestSessionIsActive:
 
     def test_is_active_returns_true_for_new_session(self):
         """Test new session is active by default."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         assert session.is_active() is True
 
     def test_is_active_returns_false_when_revoked(self):
         """Test revoked session is not active."""
-        session = Session(id=uuid4(), user_id=uuid4(), is_revoked=True)
+        session = Session(id=uuid7(), user_id=uuid7(), is_revoked=True)
 
         assert session.is_active() is False
 
     def test_is_active_returns_false_when_expired(self):
         """Test expired session is not active."""
         past_time = datetime.now(UTC) - timedelta(hours=1)
-        session = Session(id=uuid4(), user_id=uuid4(), expires_at=past_time)
+        session = Session(id=uuid7(), user_id=uuid7(), expires_at=past_time)
 
         assert session.is_active() is False
 
     def test_is_active_returns_true_when_not_expired(self):
         """Test session with future expiration is active."""
         future_time = datetime.now(UTC) + timedelta(days=30)
-        session = Session(id=uuid4(), user_id=uuid4(), expires_at=future_time)
+        session = Session(id=uuid7(), user_id=uuid7(), expires_at=future_time)
 
         assert session.is_active() is True
 
     def test_is_active_returns_true_when_no_expiration(self):
         """Test session without expiration is active."""
-        session = Session(id=uuid4(), user_id=uuid4(), expires_at=None)
+        session = Session(id=uuid7(), user_id=uuid7(), expires_at=None)
 
         assert session.is_active() is True
 
@@ -115,7 +115,7 @@ class TestSessionIsActive:
         """Test session that is both revoked and expired is not active."""
         past_time = datetime.now(UTC) - timedelta(hours=1)
         session = Session(
-            id=uuid4(), user_id=uuid4(), is_revoked=True, expires_at=past_time
+            id=uuid7(), user_id=uuid7(), is_revoked=True, expires_at=past_time
         )
 
         assert session.is_active() is False
@@ -127,7 +127,7 @@ class TestSessionRevoke:
 
     def test_revoke_marks_session_as_revoked(self):
         """Test revoke sets is_revoked to True."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         session.revoke("user_logout")
 
@@ -135,7 +135,7 @@ class TestSessionRevoke:
 
     def test_revoke_sets_revoked_reason(self):
         """Test revoke stores the reason."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         session.revoke("password_changed")
 
@@ -143,7 +143,7 @@ class TestSessionRevoke:
 
     def test_revoke_sets_revoked_at_timestamp(self):
         """Test revoke sets timestamp."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
         before_revoke = datetime.now(UTC)
 
         session.revoke("security_concern")
@@ -153,7 +153,7 @@ class TestSessionRevoke:
 
     def test_revoke_makes_session_inactive(self):
         """Test revoked session becomes inactive."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
         assert session.is_active() is True
 
         session.revoke("admin_action")
@@ -171,7 +171,7 @@ class TestSessionRevoke:
         ]
 
         for reason in reasons:
-            session = Session(id=uuid4(), user_id=uuid4())
+            session = Session(id=uuid7(), user_id=uuid7())
             session.revoke(reason)
             assert session.revoked_reason == reason
 
@@ -182,7 +182,7 @@ class TestSessionUpdateActivity:
 
     def test_update_activity_updates_timestamp(self):
         """Test update_activity sets last_activity_at."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
         before_update = datetime.now(UTC)
 
         session.update_activity()
@@ -192,7 +192,7 @@ class TestSessionUpdateActivity:
 
     def test_update_activity_with_same_ip(self):
         """Test update_activity with same IP doesn't track change."""
-        session = Session(id=uuid4(), user_id=uuid4(), ip_address="192.168.1.1")
+        session = Session(id=uuid7(), user_id=uuid7(), ip_address="192.168.1.1")
 
         session.update_activity(ip_address="192.168.1.1")
 
@@ -202,7 +202,7 @@ class TestSessionUpdateActivity:
 
     def test_update_activity_with_different_ip_tracks_change(self):
         """Test update_activity with different IP tracks change."""
-        session = Session(id=uuid4(), user_id=uuid4(), ip_address="192.168.1.1")
+        session = Session(id=uuid7(), user_id=uuid7(), ip_address="192.168.1.1")
 
         session.update_activity(ip_address="10.0.0.1")
 
@@ -212,7 +212,7 @@ class TestSessionUpdateActivity:
 
     def test_update_activity_sets_ip_when_none(self):
         """Test update_activity sets IP if none was set."""
-        session = Session(id=uuid4(), user_id=uuid4(), ip_address=None)
+        session = Session(id=uuid7(), user_id=uuid7(), ip_address=None)
 
         session.update_activity(ip_address="192.168.1.1")
 
@@ -220,7 +220,7 @@ class TestSessionUpdateActivity:
 
     def test_update_activity_without_ip(self):
         """Test update_activity without IP only updates timestamp."""
-        session = Session(id=uuid4(), user_id=uuid4(), ip_address="192.168.1.1")
+        session = Session(id=uuid7(), user_id=uuid7(), ip_address="192.168.1.1")
         before_update = datetime.now(UTC)
 
         session.update_activity()
@@ -235,7 +235,7 @@ class TestSessionRecordProviderAccess:
 
     def test_record_provider_access_stores_provider(self):
         """Test record_provider_access adds provider to list."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         session.record_provider_access("schwab")
 
@@ -243,7 +243,7 @@ class TestSessionRecordProviderAccess:
 
     def test_record_provider_access_sets_last_provider(self):
         """Test record_provider_access sets last_provider_accessed."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         session.record_provider_access("fidelity")
 
@@ -251,7 +251,7 @@ class TestSessionRecordProviderAccess:
 
     def test_record_provider_access_sets_sync_timestamp(self):
         """Test record_provider_access sets last_provider_sync_at."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
         before_access = datetime.now(UTC)
 
         session.record_provider_access("schwab")
@@ -261,7 +261,7 @@ class TestSessionRecordProviderAccess:
 
     def test_record_provider_access_multiple_providers(self):
         """Test recording access to multiple providers."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         session.record_provider_access("schwab")
         session.record_provider_access("fidelity")
@@ -272,7 +272,7 @@ class TestSessionRecordProviderAccess:
 
     def test_record_provider_access_no_duplicates(self):
         """Test same provider not added twice to list."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         session.record_provider_access("schwab")
         session.record_provider_access("schwab")
@@ -287,7 +287,7 @@ class TestSessionSuspiciousActivity:
 
     def test_increment_suspicious_activity_increases_count(self):
         """Test increment adds to counter."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
         assert session.suspicious_activity_count == 0
 
         session.increment_suspicious_activity()
@@ -296,7 +296,7 @@ class TestSessionSuspiciousActivity:
 
     def test_increment_suspicious_activity_multiple_times(self):
         """Test multiple increments."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         session.increment_suspicious_activity()
         session.increment_suspicious_activity()
@@ -311,7 +311,7 @@ class TestSessionMarkAsTrusted:
 
     def test_mark_as_trusted_sets_flag(self):
         """Test mark_as_trusted sets is_trusted to True."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
         assert session.is_trusted is False
 
         session.mark_as_trusted()
@@ -320,7 +320,7 @@ class TestSessionMarkAsTrusted:
 
     def test_mark_as_trusted_idempotent(self):
         """Test mark_as_trusted can be called multiple times."""
-        session = Session(id=uuid4(), user_id=uuid4())
+        session = Session(id=uuid7(), user_id=uuid7())
 
         session.mark_as_trusted()
         session.mark_as_trusted()

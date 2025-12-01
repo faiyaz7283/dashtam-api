@@ -19,7 +19,7 @@ or create sessions (CQRS separation).
 
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, Mock
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 
@@ -54,8 +54,8 @@ class TestGenerateAuthTokensHandlerSuccess:
     async def test_generate_tokens_returns_auth_tokens(self):
         """Test successful generation returns Success with AuthTokens."""
         # Arrange
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
 
         mock_token_service = Mock()
         mock_token_service.generate_access_token.return_value = "jwt_access_token_123"
@@ -99,8 +99,8 @@ class TestGenerateAuthTokensHandlerSuccess:
     async def test_generate_tokens_calls_jwt_service_correctly(self):
         """Test handler calls JWT service with correct parameters."""
         # Arrange
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         email = "test@example.com"
         roles = ["user", "admin"]
 
@@ -168,10 +168,10 @@ class TestGenerateAuthTokensHandlerSuccess:
         )
 
         command = GenerateAuthTokens(
-            user_id=uuid4(),
+            user_id=uuid7(),
             email="test@example.com",
             roles=["user"],
-            session_id=uuid4(),
+            session_id=uuid7(),
         )
 
         # Act
@@ -185,8 +185,8 @@ class TestGenerateAuthTokensHandlerSuccess:
     async def test_generate_tokens_persists_refresh_token(self):
         """Test handler persists refresh token hash to database."""
         # Arrange
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         expires_at = datetime.now(UTC) + timedelta(days=30)
 
         mock_token_service = Mock()
@@ -233,8 +233,8 @@ class TestGenerateAuthTokensHandlerSuccess:
     async def test_generate_tokens_with_multiple_roles(self):
         """Test token generation with multiple user roles."""
         # Arrange
-        user_id = uuid4()
-        session_id = uuid4()
+        user_id = uuid7()
+        session_id = uuid7()
         roles = ["user", "admin", "moderator"]
 
         mock_token_service = Mock()
@@ -306,10 +306,10 @@ class TestGenerateAuthTokensHandlerTokenContent:
         )
 
         command = GenerateAuthTokens(
-            user_id=uuid4(),
+            user_id=uuid7(),
             email="test@example.com",
             roles=["user"],
-            session_id=uuid4(),
+            session_id=uuid7(),
         )
 
         # Act
@@ -348,10 +348,10 @@ class TestGenerateAuthTokensHandlerTokenContent:
         )
 
         command = GenerateAuthTokens(
-            user_id=uuid4(),
+            user_id=uuid7(),
             email="test@example.com",
             roles=["user"],
-            session_id=uuid4(),
+            session_id=uuid7(),
         )
 
         # Act

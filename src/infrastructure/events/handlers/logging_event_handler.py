@@ -97,7 +97,7 @@ class LoggingEventHandler:
         >>>
         >>> # Events automatically logged when published
         >>> await event_bus.publish(UserRegistrationSucceeded(
-        ...     user_id=uuid4(),
+        ...     user_id=uuid7(),
         ...     email="test@example.com"
         ... ))
         >>> # Log output: {"event": "user_registration_succeeded", "user_id": "...", "email": "..."}

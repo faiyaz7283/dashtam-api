@@ -13,13 +13,14 @@ Reference:
     - docs/architecture/account-domain-model.md
 
 Usage:
+    from uuid_extensions import uuid7
     from src.domain.entities import Account
     from src.domain.enums import AccountType
     from src.domain.value_objects import Money
     from decimal import Decimal
 
     account = Account(
-        id=uuid4(),
+        id=uuid7(),
         connection_id=connection.id,
         provider_account_id="SCHWAB-12345",
         account_number_masked="****1234",
@@ -75,7 +76,7 @@ class Account:
 
     Example:
         >>> account = Account(
-        ...     id=uuid4(),
+        ...     id=uuid7(),
         ...     connection_id=connection.id,
         ...     provider_account_id="ACC-12345",
         ...     account_number_masked="****1234",

@@ -26,7 +26,8 @@ Architecture:
 
 import secrets
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import RegisterUser
 from src.core.result import Failure, Result, Success
@@ -101,7 +102,7 @@ class RegisterUserHandler:
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             UserRegistrationAttempted(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 email=cmd.email,
             )
@@ -117,7 +118,7 @@ class RegisterUserHandler:
                 # Emit FAILED event
                 await self._event_bus.publish(
                     UserRegistrationFailed(
-                        event_id=uuid4(),
+                        event_id=uuid7(),
                         occurred_at=datetime.now(UTC),
                         email=cmd.email,
                         reason=RegistrationError.EMAIL_ALREADY_EXISTS,
@@ -129,7 +130,7 @@ class RegisterUserHandler:
             password_hash = self._password_service.hash_password(cmd.password)
 
             # Step 5: Create User entity
-            user_id = uuid4()
+            user_id = uuid7()
             now = datetime.now(UTC)
             user = User(
                 id=user_id,
@@ -158,7 +159,7 @@ class RegisterUserHandler:
             # Step 8: Emit SUCCEEDED event (triggers email via EmailEventHandler)
             await self._event_bus.publish(
                 UserRegistrationSucceeded(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     user_id=user_id,
                     email=cmd.email,
@@ -173,7 +174,7 @@ class RegisterUserHandler:
             # Catch-all for database errors or unexpected issues
             await self._event_bus.publish(
                 UserRegistrationFailed(
-                    event_id=uuid4(),
+                    event_id=uuid7(),
                     occurred_at=datetime.now(UTC),
                     email=cmd.email,
                     reason=f"{RegistrationError.DATABASE_ERROR}: {str(e)}",

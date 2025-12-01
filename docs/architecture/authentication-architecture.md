@@ -747,7 +747,7 @@ All events inherit from `DomainEvent` which provides:
 ```python
 @dataclass(frozen=True, slots=True, kw_only=True)
 class DomainEvent:
-    event_id: UUID = field(default_factory=uuid4)  # Auto-generated
+    event_id: UUID = field(default_factory=uuid7)  # Auto-generated
     occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))  # Auto-generated
 ```
 

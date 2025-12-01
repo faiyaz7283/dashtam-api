@@ -22,7 +22,7 @@ Note:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid_extensions import uuid7
 
 import pytest
 import pytest_asyncio
@@ -62,7 +62,7 @@ async def clean_session_tables(test_database):
 def create_test_user(user_id=None, email=None):
     """Create a test User with all required fields."""
     now = datetime.now(UTC)
-    user_id = user_id or uuid4()
+    user_id = user_id or uuid7()
     return User(
         id=user_id,
         email=email or f"test_{user_id}@example.com",
@@ -100,8 +100,8 @@ def create_test_session(
     """
     now = datetime.now(UTC)
     return SessionData(
-        id=session_id or uuid4(),
-        user_id=user_id or uuid4(),
+        id=session_id or uuid7(),
+        user_id=user_id or uuid7(),
         device_info=device_info,
         user_agent="Mozilla/5.0 Chrome/120.0",
         ip_address=ip_address,
@@ -131,7 +131,7 @@ class TestSessionRepositorySave:
         """Test saving a session persists it to the database."""
         # Arrange - Create user first (sessions require user FK)
         user = create_test_user()
-        session_id = uuid4()
+        session_id = uuid7()
         session = create_test_session(session_id=session_id, user_id=user.id)
 
         # Save user first
@@ -161,7 +161,7 @@ class TestSessionRepositorySave:
         """Test saving an existing session updates it."""
         # Arrange
         user = create_test_user()
-        session_id = uuid4()
+        session_id = uuid7()
         session = create_test_session(session_id=session_id, user_id=user.id)
 
         async with test_database.get_session() as db_session:
@@ -262,7 +262,7 @@ class TestSessionRepositoryFindByUserId:
         # Act
         async with test_database.get_session() as db_session:
             repo = SessionRepository(session=db_session)
-            found = await repo.find_by_user_id(uuid4())
+            found = await repo.find_by_user_id(uuid7())
 
         # Assert
         assert found == []
@@ -354,7 +354,7 @@ class TestSessionRepositoryRevokeAll:
         """Test revoke_all_for_user excludes specified session."""
         # Arrange
         user = create_test_user()
-        current_session_id = uuid4()
+        current_session_id = uuid7()
         current_session = create_test_session(
             session_id=current_session_id, user_id=user.id
         )
@@ -492,7 +492,7 @@ class TestSessionRepositoryDelete:
         """Test delete removes session from database."""
         # Arrange
         user = create_test_user()
-        session_id = uuid4()
+        session_id = uuid7()
         session = create_test_session(session_id=session_id, user_id=user.id)
 
         async with test_database.get_session() as db_session:
@@ -523,7 +523,7 @@ class TestSessionRepositoryDelete:
         # Act
         async with test_database.get_session() as db_session:
             repo = SessionRepository(session=db_session)
-            deleted = await repo.delete(uuid4())
+            deleted = await repo.delete(uuid7())
 
         # Assert
         assert deleted is False

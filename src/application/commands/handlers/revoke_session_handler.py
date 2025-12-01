@@ -15,7 +15,8 @@ Architecture:
 """
 
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid_extensions import uuid7
 
 from src.application.commands.session_commands import RevokeSession
 from src.core.result import Failure, Result, Success
@@ -100,7 +101,7 @@ class RevokeSessionHandler:
         # Step 7: Publish event
         await self._event_bus.publish(
             SessionRevokedEvent(
-                event_id=uuid4(),
+                event_id=uuid7(),
                 occurred_at=now,
                 session_id=cmd.session_id,
                 user_id=cmd.user_id,

@@ -20,7 +20,7 @@ Usage:
     >>> # Application layer uses protocol
     >>> event_bus = get_event_bus()
     >>> event_bus.subscribe(UserRegistered, log_user_registered)
-    >>> await event_bus.publish(UserRegistered(user_id=uuid4(), email="test"))
+    >>> await event_bus.publish(UserRegistered(user_id=uuid7(), email="test"))
 
 Reference:
     - docs/architecture/domain-events-architecture.md (Lines 920-1067)
@@ -70,7 +70,7 @@ class InMemoryEventBus:
         >>> bus.subscribe(UserRegistered, send_welcome_email)
         >>>
         >>> # Publish event (all 3 handlers execute concurrently)
-        >>> event = UserRegistered(user_id=uuid4(), email="test@example.com")
+        >>> event = UserRegistered(user_id=uuid7(), email="test@example.com")
         >>> await bus.publish(event)
         >>>
         >>> # If audit handler fails, logging and email handlers still execute

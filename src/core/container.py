@@ -73,6 +73,9 @@ if TYPE_CHECKING:
 
     # Repository types
     from src.infrastructure.persistence.repositories import UserRepository
+    from src.infrastructure.persistence.repositories import (
+        ProviderConnectionRepository,
+    )
 
     # Handler types
     from src.application.commands.handlers.register_user_handler import (
@@ -917,6 +920,47 @@ async def get_user_repository(
     from src.infrastructure.persistence.repositories import UserRepository
 
     return UserRepository(session=session)
+
+
+async def get_provider_connection_repository(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ProviderConnectionRepository":
+    """Get provider connection repository (request-scoped).
+
+    Creates new repository instance per request with database session.
+    Repository provides CRUD operations for ProviderConnection domain entities.
+
+    Args:
+        session: Database session for request duration.
+            Injected via Depends(get_db_session).
+
+    Returns:
+        ProviderConnectionRepository instance.
+
+    Usage:
+        # Application Layer (command handlers)
+        from src.core.container import get_provider_connection_repository
+        conn_repo = await anext(get_provider_connection_repository())
+        conn = await conn_repo.find_by_id(connection_id)
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        from src.infrastructure.persistence.repositories import ProviderConnectionRepository
+
+        @router.get("/providers/connections/{id}")
+        async def get_connection(
+            conn_repo: ProviderConnectionRepository = Depends(get_provider_connection_repository)
+        ):
+            return await conn_repo.find_by_id(id)
+
+    Reference:
+        - docs/architecture/repository-pattern.md
+    """
+    from src.infrastructure.persistence.repositories import (
+        ProviderConnectionRepository,
+    )
+
+    return ProviderConnectionRepository(session=session)
 
 
 # ============================================================================

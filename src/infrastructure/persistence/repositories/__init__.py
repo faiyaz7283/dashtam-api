@@ -10,6 +10,9 @@ from src.infrastructure.persistence.repositories.email_verification_token_reposi
 from src.infrastructure.persistence.repositories.password_reset_token_repository import (
     PasswordResetTokenRepository,
 )
+from src.infrastructure.persistence.repositories.provider_connection_repository import (
+    ProviderConnectionRepository,
+)
 from src.infrastructure.persistence.repositories.refresh_token_repository import (
     RefreshTokenRepository,
 )
@@ -24,6 +27,7 @@ from src.infrastructure.persistence.repositories.user_repository import UserRepo
 __all__ = [
     "EmailVerificationTokenRepository",
     "PasswordResetTokenRepository",
+    "ProviderConnectionRepository",
     "RefreshTokenRepository",
     "SecurityConfigRepository",
     "SessionRepository",

@@ -31,12 +31,14 @@ from src.infrastructure.persistence.models.password_reset_token import (
 from src.infrastructure.persistence.models.provider_connection import (
     ProviderConnection as ProviderConnectionModel,
 )
+from src.infrastructure.persistence.models.account import Account as AccountModel
 from src.infrastructure.persistence.models.refresh_token import RefreshToken
 from src.infrastructure.persistence.models.security_config import SecurityConfig
 from src.infrastructure.persistence.models.session import Session
 from src.infrastructure.persistence.models.user import User
 
 __all__ = [
+    "AccountModel",
     "AuditLog",
     "CasbinRule",
     "User",

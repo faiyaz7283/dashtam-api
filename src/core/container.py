@@ -124,6 +124,23 @@ if TYPE_CHECKING:
         TriggerUserTokenRotationHandler,
     )
 
+    # Provider handlers
+    from src.application.commands.handlers.connect_provider_handler import (
+        ConnectProviderHandler,
+    )
+    from src.application.commands.handlers.disconnect_provider_handler import (
+        DisconnectProviderHandler,
+    )
+    from src.application.commands.handlers.refresh_provider_tokens_handler import (
+        RefreshProviderTokensHandler,
+    )
+    from src.application.queries.handlers.get_provider_handler import (
+        GetProviderConnectionHandler,
+    )
+    from src.application.queries.handlers.list_providers_handler import (
+        ListProviderConnectionsHandler,
+    )
+
 
 # ============================================================================
 # Module-Level State (Enforcer Singleton)
@@ -1501,6 +1518,160 @@ async def get_trigger_user_rotation_handler(
     return TriggerUserTokenRotationHandler(
         user_repo=user_repo,
         event_bus=event_bus,
+    )
+
+
+# ============================================================================
+# Provider Handler Factories
+# ============================================================================
+
+
+async def get_connect_provider_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ConnectProviderHandler":
+    """Get ConnectProvider command handler (request-scoped).
+
+    Creates handler with:
+    - ProviderConnectionRepository (request-scoped)
+    - EventBus (app-scoped singleton)
+
+    Returns:
+        ConnectProviderHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.commands.handlers.connect_provider_handler import (
+        ConnectProviderHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        ProviderConnectionRepository,
+    )
+
+    connection_repo = ProviderConnectionRepository(session=session)
+    event_bus = get_event_bus()
+
+    return ConnectProviderHandler(
+        connection_repo=connection_repo,
+        event_bus=event_bus,
+    )
+
+
+async def get_disconnect_provider_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "DisconnectProviderHandler":
+    """Get DisconnectProvider command handler (request-scoped).
+
+    Creates handler with:
+    - ProviderConnectionRepository (request-scoped)
+    - EventBus (app-scoped singleton)
+
+    Returns:
+        DisconnectProviderHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.commands.handlers.disconnect_provider_handler import (
+        DisconnectProviderHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        ProviderConnectionRepository,
+    )
+
+    connection_repo = ProviderConnectionRepository(session=session)
+    event_bus = get_event_bus()
+
+    return DisconnectProviderHandler(
+        connection_repo=connection_repo,
+        event_bus=event_bus,
+    )
+
+
+async def get_refresh_provider_tokens_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "RefreshProviderTokensHandler":
+    """Get RefreshProviderTokens command handler (request-scoped).
+
+    Creates handler with:
+    - ProviderConnectionRepository (request-scoped)
+    - EventBus (app-scoped singleton)
+
+    Returns:
+        RefreshProviderTokensHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.commands.handlers.refresh_provider_tokens_handler import (
+        RefreshProviderTokensHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        ProviderConnectionRepository,
+    )
+
+    connection_repo = ProviderConnectionRepository(session=session)
+    event_bus = get_event_bus()
+
+    return RefreshProviderTokensHandler(
+        connection_repo=connection_repo,
+        event_bus=event_bus,
+    )
+
+
+async def get_get_provider_connection_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "GetProviderConnectionHandler":
+    """Get GetProviderConnection query handler (request-scoped).
+
+    Creates handler with:
+    - ProviderConnectionRepository (request-scoped)
+
+    Returns:
+        GetProviderConnectionHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.get_provider_handler import (
+        GetProviderConnectionHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        ProviderConnectionRepository,
+    )
+
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return GetProviderConnectionHandler(
+        connection_repo=connection_repo,
+    )
+
+
+async def get_list_provider_connections_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListProviderConnectionsHandler":
+    """Get ListProviderConnections query handler (request-scoped).
+
+    Creates handler with:
+    - ProviderConnectionRepository (request-scoped)
+
+    Returns:
+        ListProviderConnectionsHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.list_providers_handler import (
+        ListProviderConnectionsHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        ProviderConnectionRepository,
+    )
+
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return ListProviderConnectionsHandler(
+        connection_repo=connection_repo,
     )
 
 

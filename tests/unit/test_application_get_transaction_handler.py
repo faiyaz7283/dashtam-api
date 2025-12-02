@@ -457,9 +457,7 @@ class MockAccountRepository:
 class MockProviderConnectionRepository:
     """Mock ProviderConnectionRepository for testing."""
 
-    def __init__(
-        self, find_by_id_result: ProviderConnection | None = None
-    ) -> None:
+    def __init__(self, find_by_id_result: ProviderConnection | None = None) -> None:
         """Initialize mock with predefined results."""
         self._find_by_id_result = find_by_id_result
 

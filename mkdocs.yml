@@ -113,18 +113,34 @@ plugins:
 # Navigation
 nav:
   - Home: index.md
+  - API Reference:
+    - Authentication: api/authentication.md
+    - Token Rotation: api/admin-token-rotation.md
   - Architecture:
+    - Account Domain: architecture/account-domain-model.md
     - Audit Trail: architecture/audit-trail-architecture.md
+    - Authentication: architecture/authentication-architecture.md
+    - Authorization: architecture/authorization-architecture.md
     - Cache: architecture/cache-architecture.md
+    - CQRS Pattern: architecture/cqrs-pattern.md
     - Database: architecture/database-architecture.md
     - Dependency Injection: architecture/dependency-injection-architecture.md
     - Directory Structure: architecture/directory-structure.md
     - Domain Events: architecture/domain-events-architecture.md
     - Error Handling: architecture/error-handling-architecture.md
+    - Provider Domain: architecture/provider-domain-model.md
+    - Rate Limiting: architecture/rate-limit-architecture.md
+    - Repository Pattern: architecture/repository-pattern.md
     - Secrets Management: architecture/secrets-management-architecture.md
+    - Session Management: architecture/session-management-architecture.md
     - Structured Logging: architecture/structured-logging-architecture.md
     - Testing: architecture/testing-architecture.md
+    - Token Breach Rotation: architecture/token-breach-rotation-architecture.md
+    - Transaction Domain: architecture/transaction-domain-model.md
   - Guides:
     - Audit Usage Patterns: guides/audit-usage-patterns.md
+    - Database Seeding: guides/database-seeding.md
     - Domain Events Usage: guides/domain-events-usage.md
+    - Enum Security: guides/enum-security-guidelines.md
     - Error Handling Usage: guides/error-handling-usage.md
+    - Import Guidelines: guides/import-guidelines.md

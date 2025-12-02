@@ -190,6 +190,114 @@ class ListSessionsHandler:
 3. **Transformation**: Map domain entities to result DTOs
 4. **Caching**: Queries can leverage caching (reads are safe to cache)
 
+### Sequence Diagrams
+
+The following diagrams illustrate the flow of commands and queries through the system layers.
+
+#### Command Handler Flow
+
+```mermaid
+sequenceDiagram
+    participant API as API Endpoint
+    participant Handler as Command Handler
+    participant EventBus as Event Bus
+    participant Domain as Domain Entity
+    participant Repo as Repository
+    participant DB as Database
+    
+    API->>Handler: handle(command)
+    
+    Note over Handler,EventBus: 1. Emit ATTEMPTED event
+    Handler->>EventBus: publish(CommandAttempted)
+    EventBus-->>Handler: ack
+    
+    Note over Handler,Domain: 2. Execute business logic
+    Handler->>Domain: create_entity()
+    Domain-->>Handler: entity
+    
+    Note over Handler,Repo: 3. Persist changes
+    Handler->>Repo: save(entity)
+    Repo->>DB: INSERT/UPDATE
+    DB-->>Repo: ack
+    Repo-->>Handler: Success(id)
+    
+    Note over Handler,EventBus: 4. Emit SUCCEEDED event
+    Handler->>EventBus: publish(CommandSucceeded)
+    EventBus-->>Handler: ack
+    
+    Handler-->>API: Success(result)
+    
+    Note over EventBus: Event handlers react asynchronously
+    EventBus->>EventBus: trigger_event_handlers()
+```
+
+#### Query Handler Flow
+
+```mermaid
+sequenceDiagram
+    participant API as API Endpoint
+    participant Handler as Query Handler
+    participant Repo as Repository
+    participant DB as Database
+    participant Cache as Cache (Optional)
+    
+    API->>Handler: handle(query)
+    
+    alt Cache Hit
+        Handler->>Cache: get(cache_key)
+        Cache-->>Handler: cached_data
+        Handler-->>API: Success(result)
+    else Cache Miss
+        Handler->>Repo: find_by_criteria()
+        Repo->>DB: SELECT
+        DB-->>Repo: rows
+        Repo-->>Handler: [entities]
+        
+        Note over Handler: Transform to DTO
+        Handler->>Handler: to_result_dto()
+        
+        opt Update Cache
+            Handler->>Cache: set(cache_key, result)
+        end
+        
+        Handler-->>API: Success(result)
+    end
+    
+    Note over Handler: No events emitted<br/>No state changes
+```
+
+#### Event Propagation Flow
+
+```mermaid
+sequenceDiagram
+    participant Handler as Command Handler
+    participant EventBus as Event Bus
+    participant Logging as Logging Handler
+    participant Audit as Audit Handler
+    participant Email as Email Handler
+    
+    Note over Handler,EventBus: Command succeeded
+    Handler->>EventBus: publish(UserRegistrationSucceeded)
+    
+    par Event Handler Execution
+        EventBus->>Logging: handle(event)
+        Logging->>Logging: log.info("User registered")
+        Logging-->>EventBus: done
+    and
+        EventBus->>Audit: handle(event)
+        Audit->>Audit: record_audit_trail()
+        Audit-->>EventBus: done
+    and
+        EventBus->>Email: handle(event)
+        Email->>Email: send_welcome_email()
+        Email-->>EventBus: done
+    end
+    
+    EventBus-->>Handler: all_handlers_completed
+    
+    Note over EventBus: Handlers execute independently<br/>Failures don't affect command
+```
+
 ---
 
 ## Domain Events (3-State Pattern)

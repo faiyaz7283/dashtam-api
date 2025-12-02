@@ -161,6 +161,212 @@ class AccountRepository(Protocol):
 - Include implementation details
 - Use database terminology (`SELECT`, `WHERE`, etc.)
 
+### 2.4 Architecture Decision: Queries-Only Domain Entities
+
+**Decision**: Domain entities in Dashtam expose only query methods (getters) and NO mutation methods (setters).
+
+#### Rationale
+
+**Traditional Approach** (Mutation in Entities):
+
+```python
+# ❌ DON'T: Mutation methods in entity
+class Account:
+    def update_balance(self, new_balance: Money) -> None:
+        """Update account balance."""
+        self.balance = new_balance
+        self.updated_at = datetime.now(UTC)
+    
+    def deactivate(self) -> None:
+        """Deactivate account."""
+        self.is_active = False
+```
+
+**Problems with Mutation Methods**:
+
+1. **Unclear Intent**: What business event triggered this mutation?
+2. **No Audit Trail**: Can't track why balance changed
+3. **Coupling**: Entity knows about database concerns (`updated_at`)
+4. **Hard to Test**: Which method combinations are valid?
+5. **Event Emission**: Where do domain events fit?
+
+**Dashtam Approach** (Queries-Only):
+
+```python
+# ✅ DO: Queries-only entity
+@dataclass(frozen=True)
+class Account:
+    """Account domain entity (immutable).
+    
+    This entity exposes ONLY query methods (getters).
+    ALL mutations happen through CQRS command handlers.
+    """
+    id: UUID
+    connection_id: UUID
+    name: str
+    balance: Money
+    is_active: bool
+    
+    # Query methods ONLY
+    def is_below_threshold(self, threshold: Money) -> bool:
+        """Check if balance is below threshold."""
+        return self.balance.amount < threshold.amount
+    
+    def can_withdraw(self, amount: Money) -> bool:
+        """Check if withdrawal is possible."""
+        return self.is_active and self.balance.amount >= amount.amount
+    
+    # NO mutation methods!
+    # Use UpdateAccountBalanceHandler instead
+```
+
+#### How Mutations Work in CQRS
+
+All state changes happen through **Command Handlers**:
+
+```python
+# Command represents user intent
+@dataclass(frozen=True, kw_only=True)
+class UpdateAccountBalance:
+    """Update account balance command."""
+    account_id: UUID
+    new_balance: Money
+    reason: str  # Audit trail
+
+# Handler orchestrates the mutation
+class UpdateAccountBalanceHandler:
+    async def handle(self, cmd: UpdateAccountBalance) -> Result[None, str]:
+        # 1. Emit ATTEMPTED event (audit)
+        await self._event_bus.publish(
+            AccountBalanceUpdateAttempted(
+                account_id=cmd.account_id,
+                reason=cmd.reason,
+            )
+        )
+        
+        # 2. Load entity (immutable)
+        account = await self._accounts.find_by_id(cmd.account_id)
+        
+        # 3. Create NEW entity with updated values
+        updated_account = dataclasses.replace(
+            account,
+            balance=cmd.new_balance,
+            updated_at=datetime.now(UTC),
+        )
+        
+        # 4. Save (repository handles persistence)
+        await self._accounts.save(updated_account)
+        
+        # 5. Emit SUCCEEDED event (audit)
+        await self._event_bus.publish(
+            AccountBalanceUpdateSucceeded(
+                account_id=cmd.account_id,
+                new_balance=cmd.new_balance,
+                reason=cmd.reason,
+            )
+        )
+        
+        return Success(None)
+```
+
+#### Benefits of Queries-Only Approach
+
+| Aspect | Traditional (Mutation Methods) | Queries-Only (CQRS) |
+|--------|--------------------------------|---------------------|
+| **Intent** | Unclear which method to call | Explicit command name |
+| **Audit** | Hard to track mutations | 3-state events automatic |
+| **Testing** | Test complex method chains | Test handlers independently |
+| **Events** | Where to emit events? | Built into handler pattern |
+| **Validation** | Scattered across methods | Centralized in command |
+| **Coupling** | Entity knows infrastructure | Entity is pure domain |
+| **Immutability** | Mutable state (bugs) | Immutable entities (safe) |
+
+#### Domain Entity Guidelines
+
+**DO** add query methods that:
+
+- Return boolean checks (`is_active()`, `can_withdraw()`)
+- Calculate derived values (`total_value()`, `tax_amount()`)
+- Format display values (`formatted_balance()`, `masked_number()`)
+- Compare states (`is_newer_than()`, `matches_criteria()`)
+
+**DON'T** add mutation methods that:
+
+- Change entity state (`update_balance()`, `deactivate()`)
+- Persist to database (`save()`, `delete()`)
+- Emit domain events (`publish_updated()`)
+- Handle business workflows (`process_transaction()`)
+
+**Instead**: Create a command handler for each mutation.
+
+#### Example: Account Entity (Queries-Only)
+
+```python
+@dataclass(frozen=True)
+class Account:
+    """Account domain entity.
+    
+    Immutable entity with query methods only.
+    Mutations handled by command handlers.
+    """
+    id: UUID
+    connection_id: UUID
+    provider_account_id: str
+    name: str
+    account_type: AccountType
+    balance: Money
+    available_balance: Money | None
+    is_active: bool
+    last_synced_at: datetime | None
+    
+    # =========================================================================
+    # Query Methods (Safe to Add)
+    # =========================================================================
+    
+    def is_synced_recently(self, threshold_hours: int = 24) -> bool:
+        """Check if account was synced within threshold."""
+        if self.last_synced_at is None:
+            return False
+        age = datetime.now(UTC) - self.last_synced_at
+        return age.total_seconds() < (threshold_hours * 3600)
+    
+    def has_available_funds(self, amount: Money) -> bool:
+        """Check if sufficient available balance."""
+        if not self.is_active:
+            return False
+        balance_to_check = self.available_balance or self.balance
+        return balance_to_check.amount >= amount.amount
+    
+    def formatted_balance(self) -> str:
+        """Format balance for display."""
+        return f"{self.balance.currency} {self.balance.amount:,.2f}"
+    
+    # =========================================================================
+    # NO Mutation Methods
+    # =========================================================================
+    # ❌ update_balance()       → Use UpdateAccountBalanceHandler
+    # ❌ deactivate()           → Use Deactivate AccountHandler
+    # ❌ mark_synced()          → Use SyncAccountHandler
+```
+
+#### Migration Guide for Existing Code
+
+If you find mutation methods in domain entities:
+
+1. **Identify the business intent**: What command does this represent?
+2. **Create a command**: Define the command in `src/application/commands/`
+3. **Create a handler**: Implement the mutation in a command handler
+4. **Emit events**: Add 3-state events for audit trail
+5. **Remove mutation method**: Delete from entity, make entity immutable
+6. **Update callers**: Change `entity.update_X()` to `await handler.handle(UpdateX(...))`
+
+#### References
+
+- `docs/architecture/cqrs-pattern.md` - Command/Query separation
+- `docs/architecture/domain-events-architecture.md` - Event-driven mutations
+- `src/domain/entities/` - Example entities (all queries-only)
+- `src/application/commands/handlers/` - Example mutation handlers
+
 ---
 
 ## 3. Repository Implementation (Infrastructure Layer)

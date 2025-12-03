@@ -23,6 +23,7 @@ from src.presentation.api.middleware.rate_limit_middleware import RateLimitMiddl
 from src.presentation.api.middleware.trace_middleware import TraceMiddleware
 from src.presentation.api.v1 import v1_router
 from src.presentation.api.v1.errors import register_exception_handlers
+from src.presentation.routers import oauth_router
 
 
 @asynccontextmanager
@@ -71,6 +72,9 @@ register_exception_handlers(app)
 
 # Include API v1 routers (RESTful resource-based endpoints)
 app.include_router(v1_router)
+
+# Include external-facing routers (OAuth callbacks, webhooks)
+app.include_router(oauth_router)
 
 
 @app.get("/")

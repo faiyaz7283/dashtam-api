@@ -67,6 +67,10 @@ if TYPE_CHECKING:
     from src.domain.protocols.secrets_protocol import SecretsProtocol
     from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
     from src.domain.protocols.authorization_protocol import AuthorizationProtocol
+    from src.domain.protocols.provider_protocol import ProviderProtocol
+
+    # Infrastructure types
+    from src.infrastructure.providers.encryption_service import EncryptionService
 
     # Casbin types
     from casbin import AsyncEnforcer
@@ -75,6 +79,9 @@ if TYPE_CHECKING:
     from src.infrastructure.persistence.repositories import UserRepository
     from src.infrastructure.persistence.repositories import (
         ProviderConnectionRepository,
+    )
+    from src.infrastructure.persistence.repositories.provider_repository import (
+        ProviderRepository,
     )
     from src.infrastructure.persistence.repositories import AccountRepository
     from src.infrastructure.persistence.repositories import TransactionRepository
@@ -262,6 +269,43 @@ def get_secrets() -> "SecretsProtocol":
         raise ValueError(
             f"Unsupported SECRETS_BACKEND: {backend}. Supported: 'env', 'aws'"
         )
+
+
+@lru_cache()
+def get_encryption_service() -> "EncryptionService":
+    """Get encryption service singleton (app-scoped).
+
+    Returns EncryptionService for encrypting/decrypting provider credentials.
+    Uses settings.encryption_key for AES-256-GCM encryption.
+
+    Returns:
+        EncryptionService instance.
+
+    Raises:
+        RuntimeError: If encryption key is invalid.
+
+    Usage:
+        # Application Layer (direct use)
+        encryption = get_encryption_service()
+        result = encryption.encrypt({"access_token": "..."})
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        encryption: EncryptionService = Depends(get_encryption_service)
+    """
+    from src.infrastructure.providers.encryption_service import EncryptionService
+    from src.core.result import Failure, Success
+
+    # Use the factory method which validates the key
+    result = EncryptionService.create(settings.encryption_key)
+
+    match result:
+        case Success(value=service):
+            return service
+        case Failure(error=err):
+            raise RuntimeError(
+                f"Failed to initialize encryption service: {err.message}"
+            )
 
 
 @lru_cache()
@@ -995,6 +1039,43 @@ async def get_provider_connection_repository(
     )
 
     return ProviderConnectionRepository(session=session)
+
+
+async def get_provider_repository(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ProviderRepository":
+    """Get provider repository (request-scoped).
+
+    Creates new repository instance per request with database session.
+    Repository provides CRUD operations for Provider domain entities.
+
+    Args:
+        session: Database session for request duration.
+            Injected via Depends(get_db_session).
+
+    Returns:
+        ProviderRepository instance.
+
+    Usage:
+        # Application Layer
+        from src.core.container import get_provider_repository
+        provider_repo = await anext(get_provider_repository())
+        provider = await provider_repo.find_by_slug("schwab")
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+
+        @router.get("/providers/{slug}")
+        async def get_provider(
+            provider_repo: ProviderRepository = Depends(get_provider_repository)
+        ):
+            return await provider_repo.find_by_slug(slug)
+    """
+    from src.infrastructure.persistence.repositories.provider_repository import (
+        ProviderRepository,
+    )
+
+    return ProviderRepository(session=session)
 
 
 async def get_account_repository(
@@ -1932,6 +2013,67 @@ async def get_list_security_transactions_handler(
         account_repo=account_repo,
         connection_repo=connection_repo,
     )
+
+
+# ============================================================================
+# Provider Factory (Application-Scoped)
+# ============================================================================
+
+
+def get_provider(slug: str) -> "ProviderProtocol":
+    """Get financial provider adapter by slug.
+
+    Factory function that returns the correct provider implementation
+    based on the provider slug. Follows Composition Root pattern.
+
+    Currently supported providers:
+        - 'schwab': Charles Schwab (OAuth, Trader API)
+
+    Future providers (not yet implemented):
+        - 'plaid': Plaid (aggregator)
+        - 'yodlee': Yodlee (aggregator)
+
+    Args:
+        slug: Provider identifier (e.g., 'schwab', 'plaid').
+
+    Returns:
+        Provider adapter implementing ProviderProtocol.
+
+    Raises:
+        ValueError: If provider slug is unknown or provider not configured.
+
+    Usage:
+        # Application Layer (command handlers)
+        from src.core.container import get_provider
+        provider = get_provider("schwab")
+        result = await provider.exchange_code_for_tokens(auth_code)
+
+        # Presentation Layer (FastAPI Depends)
+        # Use a dependency that calls this factory with the slug parameter
+
+    Reference:
+        - docs/architecture/provider-integration-architecture.md
+    """
+    match slug:
+        case "schwab":
+            from src.infrastructure.providers.schwab import SchwabProvider
+
+            # Validate required settings
+            if not settings.schwab_api_key or not settings.schwab_api_secret:
+                raise ValueError(
+                    f"Provider '{slug}' not configured. "
+                    "Set SCHWAB_API_KEY and SCHWAB_API_SECRET in environment."
+                )
+
+            return SchwabProvider(settings=settings)
+
+        # Future providers:
+        # case "plaid":
+        #     from src.infrastructure.providers.plaid import PlaidProvider
+        #     return PlaidProvider(settings=settings)
+
+        case _:
+            raise ValueError(f"Unknown provider: {slug}. Supported: 'schwab'")
 
 
 # ============================================================================

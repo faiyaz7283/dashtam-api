@@ -141,8 +141,21 @@ async def create_user_in_db(session, user_id=None, email=None):
     return user_id
 
 
-async def create_connection_in_db(session, user_id, connection_id=None):
-    """Create a provider connection in the database for FK constraint."""
+async def create_connection_in_db(
+    session, user_id, provider_id, provider_slug="schwab", connection_id=None
+):
+    """Create a provider connection in the database for FK constraint.
+
+    Args:
+        session: Database session.
+        user_id: UUID of the user owning the connection.
+        provider_id: UUID of the provider (must exist in providers table).
+        provider_slug: Provider slug (default: "schwab").
+        connection_id: Optional UUID for the connection.
+
+    Returns:
+        UUID of the created connection.
+    """
     from src.domain.enums.connection_status import ConnectionStatus
     from src.infrastructure.persistence.models.provider_connection import (
         ProviderConnection as ProviderConnectionModel,
@@ -153,8 +166,8 @@ async def create_connection_in_db(session, user_id, connection_id=None):
     connection = ProviderConnectionModel(
         id=connection_id,
         user_id=user_id,
-        provider_id=uuid7(),
-        provider_slug="schwab",
+        provider_id=provider_id,
+        provider_slug=provider_slug,
         status=ConnectionStatus.ACTIVE.value,
     )
     session.add(connection)
@@ -204,6 +217,26 @@ async def clean_transactions_table(test_database):
     yield
 
 
+@pytest_asyncio.fixture
+async def account_with_provider(test_database, schwab_provider):
+    """Create an account with all FK dependencies satisfied.
+
+    Creates user → provider_connection → account chain.
+    Uses the schwab_provider fixture for valid provider_id.
+
+    Returns:
+        UUID: The account_id for use in tests.
+    """
+    provider_id, provider_slug = schwab_provider
+    async with test_database.get_session() as session:
+        user_id = await create_user_in_db(session)
+        connection_id = await create_connection_in_db(
+            session, user_id, provider_id, provider_slug
+        )
+        account_id = await create_account_in_db(session, connection_id)
+    return account_id
+
+
 # =============================================================================
 # Test Classes
 # =============================================================================
@@ -214,14 +247,12 @@ class TestTransactionRepositorySave:
     """Test TransactionRepository save operations."""
 
     @pytest.mark.asyncio
-    async def test_save_transaction_persists_to_database(self, test_database):
+    async def test_save_transaction_persists_to_database(
+        self, test_database, account_with_provider
+    ):
         """Test saving a transaction persists it to the database."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         transaction = create_test_transaction(account_id=account_id)
 
         # Act
@@ -241,14 +272,12 @@ class TestTransactionRepositorySave:
             assert found.symbol == "AAPL"
 
     @pytest.mark.asyncio
-    async def test_save_transaction_with_all_money_fields(self, test_database):
+    async def test_save_transaction_with_all_money_fields(
+        self, test_database, account_with_provider
+    ):
         """Test saving transaction with amount, unit_price, and commission."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         amount = Money(Decimal("-1050.00"), "USD")
         unit_price = Money(Decimal("105.00"), "USD")
         commission = Money(Decimal("5.00"), "USD")
@@ -276,14 +305,12 @@ class TestTransactionRepositorySave:
             assert found.commission == commission
 
     @pytest.mark.asyncio
-    async def test_save_transaction_update_existing(self, test_database):
+    async def test_save_transaction_update_existing(
+        self, test_database, account_with_provider
+    ):
         """Test updating an existing transaction."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         transaction = create_test_transaction(
             account_id=account_id,
             status=TransactionStatus.PENDING,
@@ -330,14 +357,12 @@ class TestTransactionRepositorySave:
             assert found.settlement_date == date.today()
 
     @pytest.mark.asyncio
-    async def test_save_non_trade_transaction(self, test_database):
+    async def test_save_non_trade_transaction(
+        self, test_database, account_with_provider
+    ):
         """Test saving non-TRADE transaction (no security fields)."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         transaction = create_test_transaction(
             account_id=account_id,
             transaction_type=TransactionType.TRANSFER,
@@ -374,14 +399,12 @@ class TestTransactionRepositorySaveMany:
     """Test TransactionRepository save_many bulk operations."""
 
     @pytest.mark.asyncio
-    async def test_save_many_creates_multiple_transactions(self, test_database):
+    async def test_save_many_creates_multiple_transactions(
+        self, test_database, account_with_provider
+    ):
         """Test save_many creates multiple transactions efficiently."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         transactions = [
             create_test_transaction(account_id=account_id, symbol="AAPL"),
             create_test_transaction(account_id=account_id, symbol="GOOGL"),
@@ -403,14 +426,12 @@ class TestTransactionRepositorySaveMany:
             assert symbols == {"AAPL", "GOOGL", "MSFT"}
 
     @pytest.mark.asyncio
-    async def test_save_many_updates_existing_transactions(self, test_database):
+    async def test_save_many_updates_existing_transactions(
+        self, test_database, account_with_provider
+    ):
         """Test save_many can update existing transactions."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         tx1 = create_test_transaction(
             account_id=account_id, status=TransactionStatus.PENDING
         )
@@ -480,13 +501,10 @@ class TestTransactionRepositorySaveMany:
                 assert tx.status == TransactionStatus.SETTLED
 
     @pytest.mark.asyncio
-    async def test_save_many_empty_list(self, test_database):
+    async def test_save_many_empty_list(self, test_database, account_with_provider):
         """Test save_many with empty list does nothing."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
+        account_id = account_with_provider
 
         # Act
         async with test_database.get_session() as session:
@@ -505,14 +523,12 @@ class TestTransactionRepositoryFindById:
     """Test TransactionRepository find_by_id operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_id_returns_transaction(self, test_database):
+    async def test_find_by_id_returns_transaction(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_id returns transaction."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         transaction = create_test_transaction(account_id=account_id)
 
         async with test_database.get_session() as session:
@@ -540,14 +556,12 @@ class TestTransactionRepositoryFindById:
         assert found is None
 
     @pytest.mark.asyncio
-    async def test_find_by_id_maps_money_value_objects(self, test_database):
+    async def test_find_by_id_maps_money_value_objects(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_id correctly maps Money value objects."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         amount = Money(Decimal("-500.00"), "GBP")
         unit_price = Money(Decimal("50.00"), "GBP")
         commission = Money(Decimal("2.50"), "GBP")
@@ -585,14 +599,12 @@ class TestTransactionRepositoryFindByAccountId:
     """Test TransactionRepository find_by_account_id operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_account_id_returns_transactions(self, test_database):
+    async def test_find_by_account_id_returns_transactions(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_account_id returns transactions."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         transaction = create_test_transaction(account_id=account_id)
 
         async with test_database.get_session() as session:
@@ -609,13 +621,12 @@ class TestTransactionRepositoryFindByAccountId:
         assert transactions[0].id == transaction.id
 
     @pytest.mark.asyncio
-    async def test_find_by_account_id_pagination(self, test_database):
+    async def test_find_by_account_id_pagination(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_account_id supports pagination."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
+        account_id = account_with_provider
 
         # Create 10 transactions
         transactions = [
@@ -661,14 +672,12 @@ class TestTransactionRepositoryFindByAccountAndType:
     """Test TransactionRepository find_by_account_and_type operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_account_and_type_filters_correctly(self, test_database):
+    async def test_find_by_account_and_type_filters_correctly(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_account_and_type filters by type."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         trade = create_test_transaction(
             account_id=account_id,
             transaction_type=TransactionType.TRADE,
@@ -699,13 +708,12 @@ class TestTransactionRepositoryFindByAccountAndType:
         assert trades[0].transaction_type == TransactionType.TRADE
 
     @pytest.mark.asyncio
-    async def test_find_by_account_and_type_returns_empty_list(self, test_database):
+    async def test_find_by_account_and_type_returns_empty_list(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_account_and_type returns empty when no match."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
+        account_id = account_with_provider
 
         # Act
         async with test_database.get_session() as session:
@@ -723,14 +731,12 @@ class TestTransactionRepositoryFindByDateRange:
     """Test TransactionRepository find_by_date_range operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_date_range_filters_correctly(self, test_database):
+    async def test_find_by_date_range_filters_correctly(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_date_range returns transactions in range."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         tx_old = create_test_transaction(
             account_id=account_id,
             transaction_date=date(2025, 1, 1),
@@ -762,14 +768,12 @@ class TestTransactionRepositoryFindByDateRange:
         assert transactions[0].id == tx_in_range.id
 
     @pytest.mark.asyncio
-    async def test_find_by_date_range_ordered_chronologically(self, test_database):
+    async def test_find_by_date_range_ordered_chronologically(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_date_range returns results in chronological order."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         tx1 = create_test_transaction(
             account_id=account_id, transaction_date=date(2025, 6, 1)
         )
@@ -807,15 +811,11 @@ class TestTransactionRepositoryFindByProviderTransactionId:
 
     @pytest.mark.asyncio
     async def test_find_by_provider_transaction_id_returns_transaction(
-        self, test_database
+        self, test_database, account_with_provider
     ):
         """Test find_by_provider_transaction_id returns matching transaction."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         provider_tx_id = "SCHWAB-12345"
         transaction = create_test_transaction(
             account_id=account_id,
@@ -838,13 +838,12 @@ class TestTransactionRepositoryFindByProviderTransactionId:
         assert found.provider_transaction_id == provider_tx_id
 
     @pytest.mark.asyncio
-    async def test_find_by_provider_transaction_id_returns_none(self, test_database):
+    async def test_find_by_provider_transaction_id_returns_none(
+        self, test_database, account_with_provider
+    ):
         """Test find_by_provider_transaction_id returns None when not found."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
+        account_id = account_with_provider
 
         # Act
         async with test_database.get_session() as session:
@@ -862,14 +861,12 @@ class TestTransactionRepositoryFindSecurityTransactions:
     """Test TransactionRepository find_security_transactions operations."""
 
     @pytest.mark.asyncio
-    async def test_find_security_transactions_filters_by_symbol(self, test_database):
+    async def test_find_security_transactions_filters_by_symbol(
+        self, test_database, account_with_provider
+    ):
         """Test find_security_transactions returns transactions for symbol."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         aapl_tx = create_test_transaction(account_id=account_id, symbol="AAPL")
         googl_tx = create_test_transaction(account_id=account_id, symbol="GOOGL")
 
@@ -889,13 +886,12 @@ class TestTransactionRepositoryFindSecurityTransactions:
         assert aapl_transactions[0].symbol == "AAPL"
 
     @pytest.mark.asyncio
-    async def test_find_security_transactions_returns_empty_list(self, test_database):
+    async def test_find_security_transactions_returns_empty_list(
+        self, test_database, account_with_provider
+    ):
         """Test find_security_transactions returns empty when no match."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
+        account_id = account_with_provider
 
         # Act
         async with test_database.get_session() as session:
@@ -911,14 +907,12 @@ class TestTransactionRepositoryDelete:
     """Test TransactionRepository delete operations."""
 
     @pytest.mark.asyncio
-    async def test_delete_removes_transaction(self, test_database):
+    async def test_delete_removes_transaction(
+        self, test_database, account_with_provider
+    ):
         """Test delete removes transaction from database."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         transaction = create_test_transaction(account_id=account_id)
 
         async with test_database.get_session() as session:
@@ -951,14 +945,12 @@ class TestTransactionRepositoryEnumMapping:
     """Test enum mapping between domain and model."""
 
     @pytest.mark.asyncio
-    async def test_all_transaction_types_persist_correctly(self, test_database):
+    async def test_all_transaction_types_persist_correctly(
+        self, test_database, account_with_provider
+    ):
         """Test all TransactionType enum values work correctly."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         test_types = [
             TransactionType.TRADE,
             TransactionType.TRANSFER,
@@ -1006,14 +998,12 @@ class TestTransactionRepositoryEnumMapping:
                 assert found.transaction_type == tx_type
 
     @pytest.mark.asyncio
-    async def test_all_asset_types_persist_correctly(self, test_database):
+    async def test_all_asset_types_persist_correctly(
+        self, test_database, account_with_provider
+    ):
         """Test all AssetType enum values work correctly."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-            account_id = await create_account_in_db(session, connection_id)
-
+        account_id = account_with_provider
         test_types = [
             AssetType.EQUITY,
             AssetType.ETF,

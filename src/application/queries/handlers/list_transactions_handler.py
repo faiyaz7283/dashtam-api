@@ -34,6 +34,7 @@ from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
 from src.domain.protocols.transaction_repository import TransactionRepository
+from src.domain.enums.transaction_type import TransactionType
 
 
 @dataclass
@@ -60,6 +61,7 @@ class ListTransactionsError:
     CONNECTION_NOT_FOUND = "Provider connection not found"
     NOT_OWNED_BY_USER = "Account not owned by user"
     INVALID_DATE_RANGE = "Start date must be before end date"
+    INVALID_TRANSACTION_TYPE = "Invalid transaction type"
 
 
 def _map_transaction_to_dto(transaction: Transaction) -> TransactionResult:
@@ -175,9 +177,14 @@ class ListTransactionsByAccountHandler:
 
         # Fetch transactions with filters
         if query.transaction_type is not None:
+            # Convert string to TransactionType enum
+            try:
+                transaction_type_enum = TransactionType(query.transaction_type)
+            except ValueError:
+                return Failure(error=ListTransactionsError.INVALID_TRANSACTION_TYPE)
             transactions = await self._transaction_repo.find_by_account_and_type(
                 account_id=query.account_id,
-                transaction_type=query.transaction_type,
+                transaction_type=transaction_type_enum,
                 limit=query.limit,
             )
         else:

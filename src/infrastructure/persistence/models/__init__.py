@@ -28,6 +28,7 @@ from src.infrastructure.persistence.models.email_verification_token import (
 from src.infrastructure.persistence.models.password_reset_token import (
     PasswordResetToken,
 )
+from src.infrastructure.persistence.models.provider import Provider as ProviderModel
 from src.infrastructure.persistence.models.provider_connection import (
     ProviderConnection as ProviderConnectionModel,
 )
@@ -50,6 +51,7 @@ __all__ = [
     "EmailVerificationToken",
     "PasswordResetToken",
     "ProviderConnectionModel",
+    "ProviderModel",
     "SecurityConfig",
     "TransactionModel",
 ]

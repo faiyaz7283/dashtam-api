@@ -55,6 +55,13 @@ from src.domain.protocols.account_repository import AccountRepository
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
+from src.domain.protocols.provider_repository import ProviderRepository
+from src.domain.protocols.provider_protocol import (
+    OAuthTokens,
+    ProviderAccountData,
+    ProviderProtocol,
+    ProviderTransactionData,
+)
 from src.domain.protocols.rate_limit_protocol import RateLimitProtocol
 from src.domain.protocols.transaction_repository import TransactionRepository
 from src.domain.protocols.user_repository import UserRepository
@@ -90,8 +97,13 @@ __all__ = [
     "SessionRepository",
     # Rate Limit protocol
     "RateLimitProtocol",
-    # Provider Connection Repository
+    # Provider protocols and data types
+    "OAuthTokens",
+    "ProviderAccountData",
     "ProviderConnectionRepository",
+    "ProviderProtocol",
+    "ProviderRepository",
+    "ProviderTransactionData",
     # Transaction Repository
     "TransactionRepository",
 ]

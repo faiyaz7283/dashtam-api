@@ -72,8 +72,9 @@ class ProviderConnection(BaseMutableModel):
 
     # Provider identification
     provider_id: Mapped[UUID] = mapped_column(
+        ForeignKey("providers.id"),
         nullable=False,
-        comment="Provider UUID (FK to providers table in future)",
+        comment="Provider UUID (FK to providers table)",
     )
 
     provider_slug: Mapped[str] = mapped_column(

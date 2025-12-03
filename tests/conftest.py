@@ -427,6 +427,79 @@ async def mock_cache():
     return cache
 
 
+# =============================================================================
+# Provider Fixtures (for FK constraints in integration tests)
+# =============================================================================
+
+
+@pytest_asyncio.fixture
+async def schwab_provider(test_database):
+    """Fixture providing the seeded schwab provider ID.
+
+    Returns the (provider_id, slug) tuple of the seeded 'schwab' provider.
+    Most tests should use this for FK constraint satisfaction when they
+    don't care about which provider is used.
+
+    Usage:
+        async def test_connection(test_database, schwab_provider):
+            provider_id, provider_slug = schwab_provider
+            connection = create_test_connection(
+                provider_id=provider_id,
+                provider_slug=provider_slug,
+                ...
+            )
+    """
+    from sqlalchemy import select
+    from src.infrastructure.persistence.models.provider import Provider as ProviderModel
+
+    async with test_database.get_session() as session:
+        stmt = select(ProviderModel).where(ProviderModel.slug == "schwab")
+        result = await session.execute(stmt)
+        provider = result.scalar_one()
+        return provider.id, provider.slug
+
+
+@pytest.fixture
+def provider_factory(test_database):
+    """Factory fixture for creating unique test providers.
+
+    Use this when tests need multiple different providers or need to
+    test provider-specific filtering logic.
+
+    Returns an async function that creates a unique provider and returns
+    (provider_id, slug) tuple.
+
+    Usage:
+        async def test_multiple_providers(test_database, provider_factory):
+            provider1_id, slug1 = await provider_factory("fidelity")
+            provider2_id, slug2 = await provider_factory("vanguard")
+    """
+    import uuid
+    from uuid_extensions import uuid7
+    from src.infrastructure.persistence.models.provider import Provider as ProviderModel
+
+    async def _create_provider(slug_prefix="test"):
+        async with test_database.get_session() as session:
+            provider_id = uuid7()
+            unique_slug = f"{slug_prefix}_{uuid.uuid4().hex[:8]}"
+            now = datetime.now(UTC)
+
+            provider = ProviderModel(
+                id=provider_id,
+                slug=unique_slug,
+                name=f"Test Provider {unique_slug}",
+                credential_type=CredentialType.OAUTH2.value,
+                is_active=True,
+                created_at=now,
+                updated_at=now,
+            )
+            session.add(provider)
+            await session.commit()
+            return provider_id, unique_slug
+
+    return _create_provider
+
+
 # Test data cleanup tracker
 @pytest.fixture
 def cleanup_tracker():

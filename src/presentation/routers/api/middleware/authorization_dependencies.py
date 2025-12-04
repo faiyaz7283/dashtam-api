@@ -36,7 +36,7 @@ from fastapi import Depends, HTTPException, status
 
 from src.core.container import get_authorization
 from src.domain.protocols.authorization_protocol import AuthorizationProtocol
-from src.presentation.api.middleware.auth_dependencies import (
+from src.presentation.routers.api.middleware.auth_dependencies import (
     CurrentUser,
     get_current_user,
 )

@@ -16,46 +16,47 @@ toward the domain.
 ```mermaid
 graph TB
     subgraph Presentation["Presentation Layer (src/presentation/)"]
-        API[FastAPI Routers<br/>HTTP Endpoints]
+        Routers[FastAPI Routers<br/>HTTP Endpoints]
     end
 
     subgraph Application["Application Layer (src/application/)"]
         Commands[Commands<br/>Write Operations]
         Queries[Queries<br/>Read Operations]
-        EventHandlers[Event Handlers<br/>Side Effects]
     end
 
     subgraph Domain["Domain Layer (src/domain/) ← CORE"]
         Entities[Entities<br/>Business Objects]
         ValueObjects[Value Objects<br/>Immutable Values]
         Protocols[Protocols<br/>Interfaces/Ports]
-        Events[Domain Events<br/>Things That Happened]
+        DomainEvents[Domain Events<br/>Things That Happened]
+        DomainErrors[Domain Errors<br/>ProviderError, etc.]
     end
 
     subgraph Infrastructure["Infrastructure Layer (src/infrastructure/)"]
         Persistence[Persistence<br/>PostgreSQL Repos]
-        External[External Services<br/>Email, Cache]
+        EventHandlers[Event Handlers<br/>Logging, Audit, Email]
         Providers[Financial Providers<br/>Schwab, etc.]
+        Security[Security<br/>JWT, Encryption]
     end
 
     subgraph Core["Core (src/core/)"]
         Result[Result Types<br/>Success/Failure]
-        Errors[Error Classes<br/>Base Errors]
-        Validation[Validation<br/>Framework]
+        BaseErrors[Base Errors<br/>DomainError]
+        Container[Container<br/>Dependency Injection]
     end
 
-    API --> Commands
-    API --> Queries
+    Routers --> Commands
+    Routers --> Queries
     Commands --> Entities
     Commands --> Protocols
     Queries --> Protocols
-    EventHandlers --> Events
+    EventHandlers --> DomainEvents
     Persistence -.implements.-> Protocols
-    External -.implements.-> Protocols
     Providers -.implements.-> Protocols
+    Security -.implements.-> Protocols
     Entities --> Result
-    Entities --> Errors
-    Commands --> Validation
+    Entities --> DomainErrors
+    DomainErrors --> BaseErrors
 ```
 
 ---
@@ -71,7 +72,7 @@ graph TB
 - `result.py` - Result types for railway-oriented programming (`Success[T]`, `Failure[E]`)
 - `errors/` - Core error classes (base and generic errors)
   - `domain_error.py` - DomainError (base class for all errors)
-  - `common_errors.py` - ValidationError, NotFoundError, ConflictError, etc.
+  - `common_error.py` - ValidationError, NotFoundError, ConflictError, etc.
 - `enums/` - Core enums (error codes, environment)
   - `error_code.py` - ErrorCode enum (domain-level error codes)
   - `environment.py` - Environment enum (dev, test, prod, ci)
@@ -119,18 +120,45 @@ All protocols are in `domain/protocols/` - NO separate `domain/repositories/` di
 ```text
 src/domain/protocols/
 ├── __init__.py                            # Exports all protocols
-├── user_repository.py                     # User persistence protocol
-├── email_verification_token_repository.py # Email token persistence
-├── refresh_token_repository.py            # Refresh token persistence
-├── password_reset_token_repository.py     # Password reset token persistence
+│
+│   # Repository protocols (persistence)
+├── user_repository.py                     # User persistence
+├── account_repository.py                  # Account persistence
+├── transaction_repository.py              # Transaction persistence
+├── session_repository.py                  # Session persistence
+├── provider_repository.py                 # Provider metadata
+├── provider_connection_repository.py      # Provider connections
+├── email_verification_token_repository.py # Email tokens
+├── refresh_token_repository.py            # Refresh tokens
+├── password_reset_token_repository.py     # Password reset tokens
+├── security_config_repository.py          # Security configuration
+│
+│   # Service protocols (business operations)
 ├── cache_protocol.py                      # Cache operations (Redis)
+├── session_cache_protocol.py              # Session caching
 ├── password_hashing_protocol.py           # Password hashing (bcrypt)
 ├── token_generation_protocol.py           # JWT/token generation
 ├── event_bus_protocol.py                  # Domain event publishing
 ├── audit_protocol.py                      # Audit trail recording
 ├── logger_protocol.py                     # Structured logging
 ├── secrets_protocol.py                    # Secrets management
-└── email_protocol.py                      # Email sending
+├── authorization_protocol.py              # RBAC authorization
+├── rate_limit_protocol.py                 # Rate limiting
+├── session_enricher_protocol.py           # Session metadata enrichment
+│
+│   # Provider protocols
+├── provider_protocol.py                   # Financial provider adapter
+│
+│   # Email protocols
+├── email_protocol.py                      # Email sending
+├── email_service_protocol.py              # Email service
+│
+│   # Token service protocols
+├── refresh_token_service_protocol.py      # Refresh token operations
+├── password_reset_token_service_protocol.py # Password reset operations
+│
+│   # Composite exports
+└── repositories.py                        # Re-exports all repositories
 ```
 
 **Dependencies**: `src/core/` only (Result types, errors)
@@ -207,11 +235,27 @@ src/application/
 ```text
 src/infrastructure/
 ├── __init__.py
-├── persistence/       # Database adapters (PostgreSQL repositories)
-├── external/          # External service clients (email, cache, secrets)
-├── providers/         # Financial provider integrations (OAuth, data sync)
+│
+│   # Core infrastructure
+├── persistence/       # Database adapters (PostgreSQL repositories, models)
+├── providers/         # Financial provider integrations (Schwab, Plaid)
+├── external/          # External service clients
 ├── enums/             # Infrastructure enums (error codes)
-└── errors/            # Infrastructure errors (database, cache, providers)
+├── errors/            # Infrastructure errors (database, cache)
+│
+│   # Security & auth
+├── authorization/     # Casbin RBAC adapter
+├── security/          # JWT service, encryption service
+├── secrets/           # Secrets management adapters (env, AWS)
+│
+│   # Cross-cutting concerns
+├── audit/             # Audit trail PostgreSQL adapter
+├── cache/             # Redis cache adapter
+├── email/             # Email service adapter
+├── events/            # Event bus implementation, event handlers
+├── logging/           # Structured logging adapter
+├── rate_limit/        # Rate limiting storage (Redis)
+└── enrichers/         # Session metadata enrichers
 ```
 
 **Dependencies**: `src/domain/`, `src/core/`, external libraries
@@ -242,13 +286,24 @@ src/infrastructure/
 ```text
 src/presentation/
 ├── __init__.py
-└── api/
+└── routers/               # All route definitions
     ├── __init__.py
-    └── v1/            # API version 1
-        ├── users.py   # User endpoints
-        ├── auth.py    # Authentication endpoints
-        └── accounts.py # Account endpoints
+    ├── api/               # Versioned public API
+    │   ├── __init__.py
+    │   ├── middleware/    # Rate limiting, auth dependencies
+    │   └── v1/            # API version 1
+    │       ├── __init__.py
+    │       ├── admin/     # Admin endpoints (rotations, security)
+    │       ├── errors/    # Error response builders
+    │       ├── users.py
+    │       ├── sessions.py
+    │       ├── providers.py
+    │       ├── accounts.py
+    │       └── transactions.py
+    └── oauth_callbacks.py # OAuth callback handlers
 ```
+
+**Future versioning**: Add `routers/api/v2/` when needed.
 
 **Dependencies**: `src/application/`, `src/core/`
 
@@ -259,12 +314,48 @@ src/presentation/
 - Translates HTTP → Command/Query → HTTP
 - RESTful URLs (resource-based, NOT verb-based)
 - Proper HTTP methods (GET/POST/PATCH/DELETE)
-- All schemas in `src/schemas/` (NOT inline)
+- All request/response schemas in `src/schemas/` (NOT inline)
 
 **Examples**:
 
-- `api/v1/users.py` - User CRUD endpoints (`/api/v1/users`)
-- `api/v1/auth.py` - Authentication endpoints (`/api/v1/auth/login`)
+- `routers/api/v1/users.py` - User CRUD endpoints (`/api/v1/users`)
+- `routers/api/v1/sessions.py` - Login/logout endpoints (`/api/v1/sessions`)
+- `routers/api/v1/admin/token_rotation.py` - Token rotation admin endpoints
+- `routers/oauth_callbacks.py` - OAuth callback handlers
+
+---
+
+### Request/Response Schemas (`src/schemas/`)
+
+**Purpose**: Pydantic schemas for API request/response validation.
+
+**Structure**:
+
+```text
+src/schemas/
+├── __init__.py
+├── auth_schemas.py        # Login, registration, password reset
+├── session_schemas.py     # Session management
+├── provider_schemas.py    # Provider connection
+├── account_schemas.py     # Account operations
+├── transaction_schemas.py # Transaction queries
+├── rotation_schemas.py    # Token rotation admin
+└── common_schemas.py      # Shared schemas (pagination, errors)
+```
+
+**Dependencies**: `pydantic`, `src/domain/types.py` (Annotated types)
+
+**Rules**:
+
+- Request schemas: Validate incoming data, use domain Annotated types
+- Response schemas: Define API response structure
+- NO business logic (validation only)
+- Schemas named `<Domain>Create`, `<Domain>Update`, `<Domain>Response`
+
+**Examples**:
+
+- `auth_schemas.py` - `UserCreate`, `LoginRequest`, `TokenResponse`
+- `account_schemas.py` - `AccountResponse`, `AccountListResponse`
 
 ---
 
@@ -291,12 +382,37 @@ tests/
 - Smoke tests: Critical user journeys (registration → login → data sync)
 - All tests run in Docker (isolated test database, Redis)
 
+**Test File Naming** (flat structure with naming pattern):
+
+Test files use a flat structure with naming pattern: `test_<layer>_<component>.py`
+
+```text
+tests/
+├── unit/
+│   ├── test_domain_user_entity.py
+│   ├── test_domain_provider_connection.py
+│   ├── test_application_register_user_handler.py
+│   ├── test_application_connect_provider_handler.py
+│   └── test_core_config.py
+├── integration/
+│   ├── test_database_postgres.py
+│   ├── test_cache_redis.py
+│   ├── test_account_repository.py
+│   └── test_authorization_casbin.py
+├── api/
+│   ├── test_sessions_api.py
+│   ├── test_providers_endpoints.py
+│   └── test_rate_limit_middleware.py
+└── smoke/
+    └── test_user_registration_flow.py
+```
+
 **Examples**:
 
-- `unit/domain/test_user.py` - Test User entity validation
-- `integration/infrastructure/test_user_repository.py` - Test database operations
-- `api/test_users.py` - Test POST /api/v1/users endpoint
-- `smoke/test_onboarding_flow.py` - Test complete onboarding flow
+- `unit/test_domain_user_entity.py` - Test User entity validation
+- `integration/test_account_repository.py` - Test database operations
+- `api/test_sessions_api.py` - Test POST /api/v1/sessions endpoint
+- `smoke/test_user_registration_flow.py` - Test complete registration flow
 
 ---
 
@@ -633,19 +749,28 @@ errors cause:
 src/core/errors/
 ├── __init__.py              # Export all core errors
 ├── domain_error.py          # DomainError (base class for all errors)
-└── common_errors.py         # ValidationError, NotFoundError, ConflictError,
+└── common_error.py          # ValidationError, NotFoundError, ConflictError,
                              # AuthenticationError, AuthorizationError
 
 src/domain/errors/
 ├── __init__.py              # Export all domain errors
+├── account_error.py         # AccountError (account validation/operations)
 ├── audit_error.py           # AuditError (audit system failures)
-└── secrets_error.py         # SecretsError (secrets retrieval failures)
+├── authentication_error.py  # AuthenticationError (login failures)
+├── provider_connection_error.py # ProviderConnectionError (connection state)
+├── provider_error.py        # ProviderError (provider API failures - part of protocol)
+├── rate_limit_error.py      # RateLimitError (rate limit violations)
+├── secrets_error.py         # SecretsError (secrets retrieval failures)
+└── transaction_error.py     # TransactionError (transaction validation)
 
 src/infrastructure/errors/
 ├── __init__.py              # Export all infrastructure errors
 └── infrastructure_error.py  # InfrastructureError, DatabaseError, CacheError,
-                             # ExternalServiceError, ProviderError
+                             # ExternalServiceError
 ```
+
+**Note**: Provider errors (`ProviderError`, `ProviderAuthenticationError`, etc.) are
+defined in `src/domain/errors/` because they are part of the `ProviderProtocol` contract.
 
 ### When to Use Each Layer
 
@@ -658,14 +783,14 @@ src/infrastructure/errors/
 **Domain Errors** (`src/domain/errors/`):
 
 - **Domain-specific errors**: Tied to specific domain concepts
-- Examples: AuditError (audit trail), SecretsError (secrets management)
-- Future: ProviderError, TransactionError, AccountError
+- **Protocol contract errors**: Part of protocol return types (ProviderError hierarchy)
+- Examples: AuditError, SecretsError, AccountError, TransactionError, ProviderError
 
 **Infrastructure Errors** (`src/infrastructure/errors/`):
 
-- **Infrastructure failures**: Database, cache, external services
-- Examples: DatabaseError, CacheError, ProviderError
-- Maps to domain errors when flowing to domain layer
+- **Infrastructure failures**: Database, cache connections
+- Examples: DatabaseError, CacheError, ExternalServiceError
+- Does NOT include provider errors (those are domain errors)
 
 ### Error Naming Convention
 
@@ -676,10 +801,15 @@ src/infrastructure/errors/
 
 ```python
 # src/domain/errors/__init__.py
+from src.domain.errors.account_error import AccountError
 from src.domain.errors.audit_error import AuditError
+from src.domain.errors.provider_error import (
+    ProviderError,
+    ProviderAuthenticationError,
+)
 from src.domain.errors.secrets_error import SecretsError
 
-__all__ = ["AuditError", "SecretsError"]
+__all__ = ["AccountError", "AuditError", "ProviderError", ...]
 ```
 
 **Import from errors package**:

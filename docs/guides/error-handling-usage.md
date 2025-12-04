@@ -63,7 +63,7 @@ class CreateUserHandler:
 
 ```python
 from fastapi import APIRouter, Request, Depends
-from src.presentation.api.v1.errors import ErrorResponseBuilder
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 
 @router.post("/users", status_code=201)
 async def create_user(

@@ -10,7 +10,7 @@ Reference:
 import ipaddress
 import logging
 
-from src.domain.protocols.session_enricher import LocationEnrichmentResult
+from src.domain.protocols.session_enricher_protocol import LocationEnrichmentResult
 
 
 logger = logging.getLogger(__name__)

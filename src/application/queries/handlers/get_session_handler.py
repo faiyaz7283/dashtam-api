@@ -10,7 +10,7 @@ from uuid import UUID
 
 from src.application.queries.session_queries import GetSession
 from src.core.result import Failure, Result, Success
-from src.domain.protocols.session_cache import SessionCache
+from src.domain.protocols.session_cache_protocol import SessionCache
 from src.domain.protocols.session_repository import SessionRepository
 
 

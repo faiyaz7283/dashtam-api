@@ -161,7 +161,7 @@ from src.core.container import (
     get_get_account_handler,
     get_list_accounts_by_user_handler,
 )
-from src.presentation.api.middleware.auth_dependencies import (
+from src.presentation.routers.api.middleware.auth_dependencies import (
     AuthenticatedUser,
 )
 from src.schemas.account_schemas import (
@@ -578,7 +578,7 @@ def _map_account_error(error: str) -> ApplicationError:
 Use `ErrorResponseBuilder` for ApplicationError mapping:
 
 ```python
-from src.presentation.api.v1.errors import ErrorResponseBuilder
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 
 if isinstance(result, Failure):
     app_error = _map_account_error(result.error)
@@ -613,7 +613,7 @@ if isinstance(result, Failure):
 All endpoints require JWT authentication via `AuthenticatedUser` type alias:
 
 ```python
-from src.presentation.api.middleware.auth_dependencies import AuthenticatedUser
+from src.presentation.routers.api.middleware.auth_dependencies import AuthenticatedUser
 
 @router.get("/accounts")
 async def list_accounts(
@@ -642,7 +642,7 @@ AuthenticatedUser = Annotated[CurrentUser, Depends(get_current_user)]
 Use authorization dependencies for fine-grained access:
 
 ```python
-from src.presentation.api.middleware.authorization_dependencies import (
+from src.presentation.routers.api.middleware.authorization_dependencies import (
     require_permission,
     require_casbin_role,
 )
@@ -823,7 +823,7 @@ from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.main import app
-from src.presentation.api.middleware.auth_dependencies import get_current_user
+from src.presentation.routers.api.middleware.auth_dependencies import get_current_user
 
 
 @dataclass

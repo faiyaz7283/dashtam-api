@@ -42,9 +42,9 @@ from src.core.container import (
     get_sync_accounts_handler,
 )
 from src.core.result import Failure
-from src.presentation.api.middleware.auth_dependencies import AuthenticatedUser
-from src.presentation.api.middleware.trace_middleware import get_trace_id
-from src.presentation.api.v1.errors import ErrorResponseBuilder
+from src.presentation.routers.api.middleware.auth_dependencies import AuthenticatedUser
+from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 from src.schemas.account_schemas import (
     AccountListResponse,
     AccountResponse,

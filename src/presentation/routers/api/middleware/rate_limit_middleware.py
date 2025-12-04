@@ -13,7 +13,7 @@ Architecture:
 
 Usage:
     # In main.py
-    from src.presentation.api.middleware.rate_limit_middleware import RateLimitMiddleware
+    from src.presentation.routers.api.middleware.rate_limit_middleware import RateLimitMiddleware
 
     app.add_middleware(RateLimitMiddleware)
 

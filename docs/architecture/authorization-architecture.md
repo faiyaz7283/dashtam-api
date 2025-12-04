@@ -519,7 +519,7 @@ from fastapi import Depends, HTTPException, status
 
 from src.core.container import get_authorization
 from src.domain.protocols.authorization_protocol import AuthorizationProtocol
-from src.presentation.api.dependencies.authentication import get_current_user
+from src.presentation.routers.api.dependencies.authentication import get_current_user
 
 class PermissionChecker:
     """FastAPI dependency for permission checking.
@@ -633,7 +633,7 @@ def require_role(role: str) -> RoleChecker:
 # src/presentation/api/v1/users.py
 from fastapi import APIRouter, Depends
 
-from src.presentation.api.dependencies.authorization import (
+from src.presentation.routers.api.dependencies.authorization import (
     require_permission,
     require_role,
 )

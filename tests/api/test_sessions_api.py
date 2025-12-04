@@ -27,7 +27,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
 from fastapi.testclient import TestClient
 
-from src.presentation.api.middleware.trace_middleware import TraceMiddleware
+from src.presentation.routers.api.middleware.trace_middleware import TraceMiddleware
 from src.schemas.auth_schemas import AuthErrorResponse
 
 

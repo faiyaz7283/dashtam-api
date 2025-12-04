@@ -15,7 +15,7 @@ from src.application.commands.handlers.refresh_access_token_handler import (
 )
 from src.core.container import get_refresh_token_handler
 from src.core.result import Failure, Success
-from src.presentation.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.schemas.auth_schemas import (
     AuthErrorResponse,
     TokenCreateRequest,

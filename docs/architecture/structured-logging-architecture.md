@@ -1034,7 +1034,7 @@ app.add_middleware(TraceMiddleware)
 **Usage with logger**:
 
 ```python
-from src.presentation.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 
 logger.info(
     "Operation completed",
@@ -1531,7 +1531,7 @@ async def call_schwab_api(
 ### 9.3 Background Task Logging
 
 ```python
-from src.presentation.api.middleware.trace_middleware import trace_id_context
+from src.presentation.routers.api.middleware.trace_middleware import trace_id_context
 
 @app.on_event("startup")
 async def start_background_tasks():

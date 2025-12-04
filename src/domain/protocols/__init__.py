@@ -43,8 +43,8 @@ from src.domain.protocols.refresh_token_service_protocol import (
     RefreshTokenServiceProtocol,
 )
 from src.domain.protocols.security_config_repository import SecurityConfigRepository
-from src.domain.protocols.session_cache import SessionCache
-from src.domain.protocols.session_enricher import (
+from src.domain.protocols.session_cache_protocol import SessionCache
+from src.domain.protocols.session_enricher_protocol import (
     DeviceEnricher,
     DeviceEnrichmentResult,
     LocationEnricher,

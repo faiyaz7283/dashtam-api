@@ -22,26 +22,26 @@ Admin Resources:
 
 from fastapi import APIRouter
 
-from src.presentation.api.v1.accounts import (
+from src.presentation.routers.api.v1.accounts import (
     provider_accounts_router,
     router as accounts_router,
 )
-from src.presentation.api.v1.admin import admin_router
-from src.presentation.api.v1.email_verifications import (
+from src.presentation.routers.api.v1.admin import admin_router
+from src.presentation.routers.api.v1.email_verifications import (
     router as email_verifications_router,
 )
-from src.presentation.api.v1.password_resets import (
+from src.presentation.routers.api.v1.password_resets import (
     password_reset_tokens_router,
     password_resets_router,
 )
-from src.presentation.api.v1.providers import router as providers_router
-from src.presentation.api.v1.sessions import router as sessions_router
-from src.presentation.api.v1.tokens import router as tokens_router
-from src.presentation.api.v1.transactions import (
+from src.presentation.routers.api.v1.providers import router as providers_router
+from src.presentation.routers.api.v1.sessions import router as sessions_router
+from src.presentation.routers.api.v1.tokens import router as tokens_router
+from src.presentation.routers.api.v1.transactions import (
     account_transactions_router,
     router as transactions_router,
 )
-from src.presentation.api.v1.users import router as users_router
+from src.presentation.routers.api.v1.users import router as users_router
 
 # Create combined v1 router
 v1_router = APIRouter(prefix="/api/v1")

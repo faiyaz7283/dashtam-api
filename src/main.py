@@ -19,10 +19,12 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from src.core.config import settings
-from src.presentation.api.middleware.rate_limit_middleware import RateLimitMiddleware
-from src.presentation.api.middleware.trace_middleware import TraceMiddleware
-from src.presentation.api.v1 import v1_router
-from src.presentation.api.v1.errors import register_exception_handlers
+from src.presentation.routers.api.middleware.rate_limit_middleware import (
+    RateLimitMiddleware,
+)
+from src.presentation.routers.api.middleware.trace_middleware import TraceMiddleware
+from src.presentation.routers.api.v1 import v1_router
+from src.presentation.routers.api.v1.errors import register_exception_handlers
 from src.presentation.routers import oauth_router
 
 

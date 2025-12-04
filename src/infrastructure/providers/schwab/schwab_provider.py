@@ -33,17 +33,17 @@ import structlog
 from src.core.config import Settings
 from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
-from src.domain.protocols.provider_protocol import (
-    OAuthTokens,
-    ProviderAccountData,
-    ProviderTransactionData,
-)
-from src.infrastructure.errors import (
+from src.domain.errors import (
     ProviderAuthenticationError,
     ProviderError,
     ProviderInvalidResponseError,
     ProviderRateLimitError,
     ProviderUnavailableError,
+)
+from src.domain.protocols.provider_protocol import (
+    OAuthTokens,
+    ProviderAccountData,
+    ProviderTransactionData,
 )
 from src.infrastructure.providers.schwab.api.accounts_api import SchwabAccountsAPI
 from src.infrastructure.providers.schwab.api.transactions_api import (

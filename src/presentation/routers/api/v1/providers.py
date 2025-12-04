@@ -66,9 +66,9 @@ from src.domain.protocols.cache_protocol import CacheProtocol
 from src.domain.protocols.provider_protocol import OAuthTokens
 from src.domain.value_objects.provider_credentials import ProviderCredentials
 from src.infrastructure.providers.encryption_service import EncryptionService
-from src.presentation.api.middleware.auth_dependencies import AuthenticatedUser
-from src.presentation.api.middleware.trace_middleware import get_trace_id
-from src.presentation.api.v1.errors import ErrorResponseBuilder
+from src.presentation.routers.api.middleware.auth_dependencies import AuthenticatedUser
+from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 from src.schemas.provider_schemas import (
     AuthorizationUrlResponse,
     ConnectProviderRequest,
@@ -437,7 +437,7 @@ async def oauth_callback(
             message=f"Provider authentication failed: {token_result.error.message}",
         )
         # Return 502 Bad Gateway for provider failures
-        from src.presentation.api.v1.errors import ProblemDetails
+        from src.presentation.routers.api.v1.errors import ProblemDetails
 
         problem = ProblemDetails(
             type=f"{settings.api_base_url}/errors/provider_error",

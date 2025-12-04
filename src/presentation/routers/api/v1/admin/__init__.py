@@ -11,7 +11,9 @@ Resources:
 
 from fastapi import APIRouter
 
-from src.presentation.api.v1.admin.token_rotation import router as token_rotation_router
+from src.presentation.routers.api.v1.admin.token_rotation import (
+    router as token_rotation_router,
+)
 
 # Create combined admin router
 admin_router = APIRouter(prefix="/admin", tags=["Admin"])

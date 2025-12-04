@@ -12,7 +12,10 @@ from fastapi.responses import JSONResponse
 
 from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.core.config import settings
-from src.presentation.api.v1.errors.problem_details import ErrorDetail, ProblemDetails
+from src.presentation.routers.api.v1.errors.problem_details import (
+    ErrorDetail,
+    ProblemDetails,
+)
 
 
 class ErrorResponseBuilder:

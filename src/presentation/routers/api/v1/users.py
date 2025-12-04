@@ -13,7 +13,7 @@ from src.application.commands.auth_commands import RegisterUser
 from src.application.commands.handlers.register_user_handler import RegisterUserHandler
 from src.core.container import get_register_user_handler
 from src.core.result import Failure, Success
-from src.presentation.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.schemas.auth_schemas import (
     AuthErrorResponse,
     UserCreateRequest,

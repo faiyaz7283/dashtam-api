@@ -32,7 +32,7 @@ from src.core.container import (
 )
 from src.core.result import Failure, Success
 from src.infrastructure.persistence.repositories import SecurityConfigRepository
-from src.presentation.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.schemas.auth_schemas import AuthErrorResponse
 from src.schemas.rotation_schemas import (
     GlobalRotationRequest,

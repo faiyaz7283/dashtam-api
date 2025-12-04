@@ -10,13 +10,13 @@ Exports:
     register_exception_handlers: Register global exception handlers with FastAPI
 """
 
-from src.presentation.api.v1.errors.error_response_builder import (
+from src.presentation.routers.api.v1.errors.error_response_builder import (
     ErrorResponseBuilder,
 )
-from src.presentation.api.v1.errors.exception_handlers import (
+from src.presentation.routers.api.v1.errors.exception_handlers import (
     register_exception_handlers,
 )
-from src.presentation.api.v1.errors.problem_details import (
+from src.presentation.routers.api.v1.errors.problem_details import (
     ErrorDetail,
     ProblemDetails,
 )

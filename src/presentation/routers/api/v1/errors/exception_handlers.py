@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from src.core.config import settings
-from src.presentation.api.v1.errors.problem_details import ProblemDetails
+from src.presentation.routers.api.v1.errors.problem_details import ProblemDetails
 
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:

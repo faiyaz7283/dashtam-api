@@ -11,7 +11,7 @@ from fastapi import status
 from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.core.enums import ErrorCode
 from src.core.errors import ValidationError
-from src.presentation.api.v1.errors import ErrorResponseBuilder
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 
 
 @pytest.mark.unit

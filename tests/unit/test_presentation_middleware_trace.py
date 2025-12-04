@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from src.presentation.api.middleware.trace_middleware import (
+from src.presentation.routers.api.middleware.trace_middleware import (
     TraceMiddleware,
     get_trace_id,
 )

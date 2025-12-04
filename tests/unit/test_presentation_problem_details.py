@@ -7,7 +7,7 @@ established testing patterns from Phase 0.
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
-from src.presentation.api.v1.errors import ErrorDetail, ProblemDetails
+from src.presentation.routers.api.v1.errors import ErrorDetail, ProblemDetails
 
 
 @pytest.mark.unit

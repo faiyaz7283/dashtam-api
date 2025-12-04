@@ -163,6 +163,14 @@ if TYPE_CHECKING:
         ListSecurityTransactionsHandler,
     )
 
+    # Sync handlers
+    from src.application.commands.handlers.sync_accounts_handler import (
+        SyncAccountsHandler,
+    )
+    from src.application.commands.handlers.sync_transactions_handler import (
+        SyncTransactionsHandler,
+    )
+
 
 # ============================================================================
 # Module-Level State (Enforcer Singleton)
@@ -2012,6 +2020,107 @@ async def get_list_security_transactions_handler(
         transaction_repo=transaction_repo,
         account_repo=account_repo,
         connection_repo=connection_repo,
+    )
+
+
+# ============================================================================
+# Sync Handler Factories (Request-Scoped)
+# ============================================================================
+
+
+async def get_sync_accounts_handler(
+    session: AsyncSession = Depends(get_db_session),
+    provider_slug: str = "schwab",
+) -> "SyncAccountsHandler":
+    """Get SyncAccounts command handler (request-scoped).
+
+    Creates handler with:
+    - ProviderConnectionRepository (request-scoped)
+    - AccountRepository (request-scoped)
+    - EncryptionService (app-scoped)
+    - Provider adapter (created from slug)
+    - EventBus (app-scoped)
+
+    Args:
+        session: Database session.
+        provider_slug: Provider to use for sync (default: schwab).
+
+    Returns:
+        SyncAccountsHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.commands.handlers.sync_accounts_handler import (
+        SyncAccountsHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+    )
+
+    connection_repo = ProviderConnectionRepository(session=session)
+    account_repo = AccountRepository(session=session)
+    encryption_service = get_encryption_service()
+    provider = get_provider(provider_slug)
+    event_bus = get_event_bus()
+
+    return SyncAccountsHandler(
+        connection_repo=connection_repo,
+        account_repo=account_repo,
+        encryption_service=encryption_service,
+        provider=provider,
+        event_bus=event_bus,
+    )
+
+
+async def get_sync_transactions_handler(
+    session: AsyncSession = Depends(get_db_session),
+    provider_slug: str = "schwab",
+) -> "SyncTransactionsHandler":
+    """Get SyncTransactions command handler (request-scoped).
+
+    Creates handler with:
+    - ProviderConnectionRepository (request-scoped)
+    - AccountRepository (request-scoped)
+    - TransactionRepository (request-scoped)
+    - EncryptionService (app-scoped)
+    - Provider adapter (created from slug)
+    - EventBus (app-scoped)
+
+    Args:
+        session: Database session.
+        provider_slug: Provider to use for sync (default: schwab).
+
+    Returns:
+        SyncTransactionsHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.commands.handlers.sync_transactions_handler import (
+        SyncTransactionsHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+        TransactionRepository,
+    )
+
+    connection_repo = ProviderConnectionRepository(session=session)
+    account_repo = AccountRepository(session=session)
+    transaction_repo = TransactionRepository(session=session)
+    encryption_service = get_encryption_service()
+    provider = get_provider(provider_slug)
+    event_bus = get_event_bus()
+
+    return SyncTransactionsHandler(
+        connection_repo=connection_repo,
+        account_repo=account_repo,
+        transaction_repo=transaction_repo,
+        encryption_service=encryption_service,
+        provider=provider,
+        event_bus=event_bus,
     )
 
 

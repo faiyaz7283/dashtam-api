@@ -92,17 +92,98 @@
 - Application layer imports only from domain
 - No re-exports across module boundaries
 
-#### Phase 2-6: Pending
+#### Phase 2: Domain Layer ✅ COMPLETED (3/3 features)
 
-**What's Next**: Phase 2 - Domain Layer (Provider, Account, Transaction entities)
+**Audit**: 2025-12-01 | **PRs**: #80-82 | **Tests**: 1,018 passed | **Coverage**: 79%
+
+| Feature | Description | PR |
+|---------|-------------|-----|
+| F2.1 | Provider Connection (Domain Model) | #80 |
+| F2.2 | Account (Domain Model) | #81 |
+| F2.3 | Transaction (Domain Model) | #82 |
+
+**Phase 2 Domain Established**:
+
+- ✅ ProviderConnection entity with 6-state connection lifecycle
+- ✅ ProviderCredentials value object (encrypted, opaque)
+- ✅ Account entity with Money value object (Decimal precision)
+- ✅ Transaction entity (21 fields, immutable, two-level classification)
+- ✅ 9 provider domain events (3-state pattern)
+- ✅ All protocols in `src/domain/protocols/`
+
+#### Phase 3: Application Layer ✅ COMPLETED (6/6 features)
+
+**Audit**: 2025-12-01 | **PRs**: #84-89 | **Tests**: 1,176 passed | **Coverage**: 81%
+
+| Feature | Description | PR |
+|---------|-------------|-----|
+| F3.1 | Provider Connection Repository | #84 |
+| F3.2 | Account Repository | #85 |
+| F3.3 | Transaction Repository | #86 |
+| F3.4 | Provider Commands & Queries (CQRS) | #87 |
+| F3.5 | Account Commands & Queries (CQRS) | #88 |
+| F3.6 | Transaction Commands & Queries (CQRS) | #89 |
+
+**Phase 3 Application Layer Established**:
+
+- ✅ All 3 repositories with entity ↔ model mapping
+- ✅ CQRS pattern: Commands (write) + Queries (read) separation
+- ✅ 3-state domain events for all command handlers
+- ✅ DTOs for query results (Money → amount+currency conversion)
+- ✅ Container factory functions for all handlers
+
+#### Phase 4: Provider Integration ✅ COMPLETED (3/3 features)
+
+**Audit**: 2025-12-04 | **PRs**: #90-91 | **Tests**: 1,524 passed | **Coverage**: 82%
+
+| Feature | Description | PR |
+|---------|-------------|-----|
+| F4.1 | Provider OAuth Flow (Schwab) | #90 |
+| F4.2 | Schwab Account API | #91 |
+| F4.3 | Schwab Transaction API | #91 |
+
+**Phase 4 Provider Infrastructure Established**:
+
+- ✅ OAuth 2.0 Authorization Code flow (Schwab)
+- ✅ Token exchange and refresh with Result types
+- ✅ SchwabAccountsAPI + SchwabAccountMapper (JSON → ProviderAccountData)
+- ✅ SchwabTransactionsAPI + SchwabTransactionMapper (JSON → ProviderTransactionData)
+- ✅ Clean separation: API clients (HTTP) → Mappers → Provider (orchestration)
+- ✅ AES-256-GCM encryption service for credentials
+
+#### Phase 5: API Endpoints ✅ COMPLETED (3/3 features)
+
+**Audit**: 2025-12-04 | **Tests**: 1,563 passed, 17 skipped | **Coverage**: 80%
+
+| Feature | Description |
+|---------|-------------|
+| F5.1 | Provider Endpoints (7 endpoints) |
+| F5.2 | Account Endpoints (4 endpoints) |
+| F5.3 | Transaction Endpoints (4 endpoints) |
+
+**Phase 5 API Layer Established**:
+
+- ✅ RESTful provider endpoints: list, get, initiate OAuth, callback, update, disconnect, token refresh
+- ✅ RESTful account endpoints: list by user, get, sync, list by connection
+- ✅ RESTful transaction endpoints: get, sync, list by account (with date range support)
+- ✅ RFC 7807 error responses with `ErrorResponseBuilder`
+- ✅ Request/response schemas in `src/schemas/` (provider, account, transaction, common)
+- ✅ Sync command handlers with encryption service integration
+- ✅ Container factory functions for all new handlers
+
+**Key Implementation Details**:
+
+- `get_trace_id() or ""` pattern for trace_id type safety (returns `str | None`)
+- `response_model=None` required for 204 No Content endpoints
+- Auth override in tests: `app.dependency_overrides[get_current_user]` (not type alias)
+- Handler results wrapped in DTOs (e.g., `AccountListResult`, not raw lists)
+
+#### Phase 6: Pending
 
 See `~/references/starter/dashtam-feature-roadmap.md` for:
 
-- Phase 2: Domain Layer (F2.1-F2.3) - Provider, Account, Transaction entities
-- Phase 3: Application Layer (F3.1-F3.6) - Repositories, Commands, Queries
-- Phase 4: Provider Integration (F4.1-F4.3) - Schwab OAuth, APIs
-- Phase 5: API Endpoints (F5.1-F5.3) - RESTful endpoints
-- Phase 6: Advanced Features (F6.1-F6.4) - Plaid, Background Jobs, Analytics
+- Phase 6: Advanced Features (F6.1-F6.4) - Plaid, Background Jobs, Analytics (deferred to post-v1.0)
+- TODO: Refactor handlers to return `Result[T, ApplicationError]` instead of `Result[T, str]`
 
 ---
 
@@ -232,14 +313,50 @@ def create_user(email: str) -> Result[User, ValidationError]:
     if not is_valid_email(email):
         return Failure(ValidationError("Invalid email"))
     return Success(user)
-
-# Handle with pattern matching
-match create_user(email):
-    case Success(user):
-        return {"id": str(user.id)}
-    case Failure(error):
-        return {"error": error.message}, 400
 ```
+
+#### Pattern Matching with kw_only Dataclasses
+
+**IMPORTANT**: When `Success` and `Failure` use `kw_only=True`, mypy reports errors with positional pattern matching.
+
+```python
+# ❌ WRONG - mypy error with kw_only dataclasses
+match result:
+    case Success(value):   # Error: requires keyword argument
+        return value
+    case Failure(error):   # Error: requires keyword argument  
+        return handle_error(error)
+
+# ✅ CORRECT - Use isinstance() checks instead
+if isinstance(result, Failure):
+    return Failure(error=result.error)
+
+# After isinstance check, type narrowing gives us Success
+value = result.value
+```
+
+**Full Pattern** (used throughout Dashtam):
+
+```python
+async def fetch_accounts(self, access_token: str) -> Result[list[Account], ProviderError]:
+    result = await self._accounts_api.get_accounts(access_token)
+    
+    # Handle failure case first
+    if isinstance(result, Failure):
+        return Failure(error=result.error)
+    
+    # After isinstance, type narrowing knows this is Success
+    raw_accounts = result.value
+    
+    # Continue processing...
+    mapped = [self._mapper.map(acc) for acc in raw_accounts]
+    return Success(value=mapped)
+```
+
+**When to Use Each**:
+
+- **isinstance() checks**: When dataclasses use `kw_only=True` (Dashtam's pattern)
+- **Pattern matching**: Only when dataclasses use positional arguments (no `kw_only`)
 
 #### Annotated Types (Centralized Validation)
 
@@ -1401,4 +1518,4 @@ grep -r "if not is_valid" src/           # Validation duplicates
 
 ---
 
-**Last Updated**: 2025-11-30
+**Last Updated**: 2025-12-04

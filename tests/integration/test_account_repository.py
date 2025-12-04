@@ -105,11 +105,24 @@ async def create_user_in_db(session, user_id=None, email=None):
 async def create_connection_in_db(
     session,
     user_id,
-    connection_id=None,
+    provider_id,
     provider_slug="schwab",
+    connection_id=None,
     status=ConnectionStatus.ACTIVE,
 ):
-    """Create a provider connection in the database for FK constraint."""
+    """Create a provider connection in the database for FK constraint.
+
+    Args:
+        session: Database session.
+        user_id: UUID of the user owning the connection.
+        provider_id: UUID of the provider (must exist in providers table).
+        provider_slug: Provider slug (default: "schwab").
+        connection_id: Optional UUID for the connection.
+        status: Connection status (default: ACTIVE).
+
+    Returns:
+        UUID of the created connection.
+    """
     from src.infrastructure.persistence.models.provider_connection import (
         ProviderConnection as ProviderConnectionModel,
     )
@@ -119,7 +132,7 @@ async def create_connection_in_db(
     connection = ProviderConnectionModel(
         id=connection_id,
         user_id=user_id,
-        provider_id=uuid7(),
+        provider_id=provider_id,
         provider_slug=provider_slug,
         status=status.value,
     )
@@ -148,6 +161,25 @@ async def clean_accounts_table(test_database):
     yield
 
 
+@pytest_asyncio.fixture
+async def connection_with_provider(test_database, schwab_provider):
+    """Create a connection with all FK dependencies satisfied.
+
+    Creates user → provider_connection chain.
+    Uses the schwab_provider fixture for valid provider_id.
+
+    Returns:
+        tuple: (connection_id, user_id) for use in tests.
+    """
+    provider_id, provider_slug = schwab_provider
+    async with test_database.get_session() as session:
+        user_id = await create_user_in_db(session)
+        connection_id = await create_connection_in_db(
+            session, user_id, provider_id, provider_slug
+        )
+    return connection_id, user_id
+
+
 # =============================================================================
 # Test Classes
 # =============================================================================
@@ -158,13 +190,12 @@ class TestAccountRepositorySave:
     """Test AccountRepository save operations."""
 
     @pytest.mark.asyncio
-    async def test_save_account_persists_to_database(self, test_database):
+    async def test_save_account_persists_to_database(
+        self, test_database, connection_with_provider
+    ):
         """Test saving an account persists it to the database."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         account = create_test_account(connection_id=connection_id)
 
         # Act
@@ -184,13 +215,12 @@ class TestAccountRepositorySave:
             assert found.account_type == AccountType.BROKERAGE
 
     @pytest.mark.asyncio
-    async def test_save_account_with_available_balance(self, test_database):
+    async def test_save_account_with_available_balance(
+        self, test_database, connection_with_provider
+    ):
         """Test saving an account with available balance."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         balance = Money(Decimal("1000.00"), "USD")
         available_balance = Money(Decimal("900.00"), "USD")
         account = create_test_account(
@@ -214,13 +244,12 @@ class TestAccountRepositorySave:
             assert found.available_balance == available_balance
 
     @pytest.mark.asyncio
-    async def test_save_account_update_existing(self, test_database):
+    async def test_save_account_update_existing(
+        self, test_database, connection_with_provider
+    ):
         """Test updating an existing account."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         account = create_test_account(
             connection_id=connection_id,
             name="Original Name",
@@ -250,13 +279,12 @@ class TestAccountRepositorySave:
             assert found.balance.amount == Decimal("2000.00")
 
     @pytest.mark.asyncio
-    async def test_save_account_with_provider_metadata(self, test_database):
+    async def test_save_account_with_provider_metadata(
+        self, test_database, connection_with_provider
+    ):
         """Test saving account with provider metadata."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         metadata = {
             "schwab_account_type": "INDIVIDUAL",
             "tax_advantaged": False,
@@ -281,12 +309,12 @@ class TestAccountRepositorySave:
             assert found.provider_metadata == metadata
 
     @pytest.mark.asyncio
-    async def test_save_account_balance_mapping_roundtrip(self, test_database):
+    async def test_save_account_balance_mapping_roundtrip(
+        self, test_database, connection_with_provider
+    ):
         """Test Money value object survives save/load roundtrip."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
+        connection_id, _ = connection_with_provider
 
         # Use precise decimal with 4 decimal places
         balance = Money(Decimal("12345.6789"), "EUR")
@@ -317,13 +345,12 @@ class TestAccountRepositoryFindById:
     """Test AccountRepository find_by_id operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_id_returns_account(self, test_database):
+    async def test_find_by_id_returns_account(
+        self, test_database, connection_with_provider
+    ):
         """Test find_by_id returns account when found."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         account_id = uuid7()
         account = create_test_account(
             account_id=account_id,
@@ -355,13 +382,12 @@ class TestAccountRepositoryFindById:
         assert found is None
 
     @pytest.mark.asyncio
-    async def test_find_by_id_maps_money_value_objects(self, test_database):
+    async def test_find_by_id_maps_money_value_objects(
+        self, test_database, connection_with_provider
+    ):
         """Test find_by_id correctly maps Money value objects."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         balance = Money(Decimal("5000.00"), "GBP")
         available = Money(Decimal("4500.00"), "GBP")
         account = create_test_account(
@@ -394,13 +420,12 @@ class TestAccountRepositoryFindByConnectionId:
     """Test AccountRepository find_by_connection_id operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_connection_id_returns_accounts(self, test_database):
+    async def test_find_by_connection_id_returns_accounts(
+        self, test_database, connection_with_provider
+    ):
         """Test find_by_connection_id returns accounts for connection."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         account = create_test_account(connection_id=connection_id)
 
         async with test_database.get_session() as session:
@@ -428,13 +453,12 @@ class TestAccountRepositoryFindByConnectionId:
         assert accounts == []
 
     @pytest.mark.asyncio
-    async def test_find_by_connection_id_multiple_accounts(self, test_database):
+    async def test_find_by_connection_id_multiple_accounts(
+        self, test_database, connection_with_provider
+    ):
         """Test connection can have multiple accounts (IRA, brokerage, etc.)."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         brokerage = create_test_account(
             connection_id=connection_id,
             name="Brokerage",
@@ -467,13 +491,12 @@ class TestAccountRepositoryFindByUserId:
     """Test AccountRepository find_by_user_id operations (JOIN)."""
 
     @pytest.mark.asyncio
-    async def test_find_by_user_id_returns_all_accounts(self, test_database):
+    async def test_find_by_user_id_returns_all_accounts(
+        self, test_database, connection_with_provider
+    ):
         """Test find_by_user_id returns accounts across connections."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, user_id = connection_with_provider
         account = create_test_account(connection_id=connection_id)
 
         async with test_database.get_session() as session:
@@ -490,16 +513,20 @@ class TestAccountRepositoryFindByUserId:
         assert accounts[0].id == account.id
 
     @pytest.mark.asyncio
-    async def test_find_by_user_id_across_multiple_connections(self, test_database):
+    async def test_find_by_user_id_across_multiple_connections(
+        self, test_database, provider_factory
+    ):
         """Test find_by_user_id returns accounts from multiple connections."""
         # Arrange
+        prov1_id, prov1_slug = await provider_factory("schwab")
+        prov2_id, prov2_slug = await provider_factory("fidelity")
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
             conn1_id = await create_connection_in_db(
-                session, user_id, provider_slug="schwab"
+                session, user_id, prov1_id, prov1_slug
             )
             conn2_id = await create_connection_in_db(
-                session, user_id, provider_slug="fidelity"
+                session, user_id, prov2_id, prov2_slug
             )
 
         acc1 = create_test_account(connection_id=conn1_id, name="Schwab Account")
@@ -532,14 +559,22 @@ class TestAccountRepositoryFindByUserId:
         assert accounts == []
 
     @pytest.mark.asyncio
-    async def test_find_by_user_id_excludes_other_users(self, test_database):
+    async def test_find_by_user_id_excludes_other_users(
+        self, test_database, provider_factory
+    ):
         """Test find_by_user_id only returns accounts for specified user."""
         # Arrange - Use unique emails to avoid conflicts with previous test runs
+        prov1_id, prov1_slug = await provider_factory("user1_prov")
+        prov2_id, prov2_slug = await provider_factory("user2_prov")
         async with test_database.get_session() as session:
             user1_id = await create_user_in_db(session)
             user2_id = await create_user_in_db(session)
-            conn1_id = await create_connection_in_db(session, user1_id)
-            conn2_id = await create_connection_in_db(session, user2_id)
+            conn1_id = await create_connection_in_db(
+                session, user1_id, prov1_id, prov1_slug
+            )
+            conn2_id = await create_connection_in_db(
+                session, user2_id, prov2_id, prov2_slug
+            )
 
         acc1 = create_test_account(connection_id=conn1_id, name="User1 Account")
         acc2 = create_test_account(connection_id=conn2_id, name="User2 Account")
@@ -564,13 +599,12 @@ class TestAccountRepositoryFindByProviderAccountId:
     """Test AccountRepository find_by_provider_account_id operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_provider_account_id_returns_account(self, test_database):
+    async def test_find_by_provider_account_id_returns_account(
+        self, test_database, connection_with_provider
+    ):
         """Test find_by_provider_account_id returns matching account."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         provider_account_id = "SCHWAB-12345"
         account = create_test_account(
             connection_id=connection_id,
@@ -593,12 +627,12 @@ class TestAccountRepositoryFindByProviderAccountId:
         assert found.provider_account_id == provider_account_id
 
     @pytest.mark.asyncio
-    async def test_find_by_provider_account_id_returns_none(self, test_database):
+    async def test_find_by_provider_account_id_returns_none(
+        self, test_database, connection_with_provider
+    ):
         """Test find_by_provider_account_id returns None when not found."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
+        connection_id, _ = connection_with_provider
 
         # Act
         async with test_database.get_session() as session:
@@ -610,17 +644,19 @@ class TestAccountRepositoryFindByProviderAccountId:
 
     @pytest.mark.asyncio
     async def test_find_by_provider_account_id_scoped_to_connection(
-        self, test_database
+        self, test_database, provider_factory
     ):
         """Test provider_account_id lookup is scoped to specific connection."""
         # Arrange - Same provider_account_id in different connections
+        prov1_id, prov1_slug = await provider_factory("schwab1")
+        prov2_id, prov2_slug = await provider_factory("schwab2")
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
             conn1_id = await create_connection_in_db(
-                session, user_id, provider_slug="schwab1"
+                session, user_id, prov1_id, prov1_slug
             )
             conn2_id = await create_connection_in_db(
-                session, user_id, provider_slug="schwab2"
+                session, user_id, prov2_id, prov2_slug
             )
 
         provider_account_id = "SAME-ID-12345"
@@ -657,13 +693,12 @@ class TestAccountRepositoryFindActiveByUser:
     """Test AccountRepository find_active_by_user operations."""
 
     @pytest.mark.asyncio
-    async def test_find_active_by_user_returns_only_active(self, test_database):
+    async def test_find_active_by_user_returns_only_active(
+        self, test_database, connection_with_provider
+    ):
         """Test find_active_by_user returns only active accounts."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, user_id = connection_with_provider
         active_account = create_test_account(
             connection_id=connection_id,
             name="Active Account",
@@ -692,14 +727,11 @@ class TestAccountRepositoryFindActiveByUser:
 
     @pytest.mark.asyncio
     async def test_find_active_by_user_returns_empty_when_none_active(
-        self, test_database
+        self, test_database, connection_with_provider
     ):
         """Test find_active_by_user returns empty when no active accounts."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, user_id = connection_with_provider
         inactive = create_test_account(
             connection_id=connection_id,
             is_active=False,
@@ -718,16 +750,20 @@ class TestAccountRepositoryFindActiveByUser:
         assert accounts == []
 
     @pytest.mark.asyncio
-    async def test_find_active_by_user_across_connections(self, test_database):
+    async def test_find_active_by_user_across_connections(
+        self, test_database, provider_factory
+    ):
         """Test find_active_by_user returns active accounts across connections."""
         # Arrange
+        prov1_id, prov1_slug = await provider_factory("schwab")
+        prov2_id, prov2_slug = await provider_factory("fidelity")
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
             conn1_id = await create_connection_in_db(
-                session, user_id, provider_slug="schwab"
+                session, user_id, prov1_id, prov1_slug
             )
             conn2_id = await create_connection_in_db(
-                session, user_id, provider_slug="fidelity"
+                session, user_id, prov2_id, prov2_slug
             )
 
         acc1 = create_test_account(
@@ -762,12 +798,12 @@ class TestAccountRepositoryFindNeedingSync:
     """Test AccountRepository find_needing_sync operations."""
 
     @pytest.mark.asyncio
-    async def test_find_needing_sync_returns_stale_accounts(self, test_database):
+    async def test_find_needing_sync_returns_stale_accounts(
+        self, test_database, connection_with_provider
+    ):
         """Test find_needing_sync returns accounts not synced within threshold."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
+        connection_id, _ = connection_with_provider
 
         # Account synced 2 hours ago (stale)
         stale = create_test_account(
@@ -790,12 +826,12 @@ class TestAccountRepositoryFindNeedingSync:
         assert accounts[0].name == "Stale Account"
 
     @pytest.mark.asyncio
-    async def test_find_needing_sync_excludes_recently_synced(self, test_database):
+    async def test_find_needing_sync_excludes_recently_synced(
+        self, test_database, connection_with_provider
+    ):
         """Test find_needing_sync excludes recently synced accounts."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
+        connection_id, _ = connection_with_provider
 
         # Account synced 5 minutes ago (recent)
         recent = create_test_account(
@@ -817,12 +853,12 @@ class TestAccountRepositoryFindNeedingSync:
         assert accounts == []
 
     @pytest.mark.asyncio
-    async def test_find_needing_sync_includes_never_synced(self, test_database):
+    async def test_find_needing_sync_includes_never_synced(
+        self, test_database, connection_with_provider
+    ):
         """Test find_needing_sync includes accounts never synced (NULL)."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
+        connection_id, _ = connection_with_provider
 
         # Account never synced
         never_synced = create_test_account(
@@ -850,13 +886,12 @@ class TestAccountRepositoryDelete:
     """Test AccountRepository delete operations."""
 
     @pytest.mark.asyncio
-    async def test_delete_removes_account(self, test_database):
+    async def test_delete_removes_account(
+        self, test_database, connection_with_provider
+    ):
         """Test delete removes account from database."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
-
+        connection_id, _ = connection_with_provider
         account = create_test_account(connection_id=connection_id)
 
         async with test_database.get_session() as session:
@@ -889,12 +924,12 @@ class TestAccountRepositoryAccountTypeMapping:
     """Test AccountType enum mapping between domain and model."""
 
     @pytest.mark.asyncio
-    async def test_all_account_types_persist_correctly(self, test_database):
+    async def test_all_account_types_persist_correctly(
+        self, test_database, connection_with_provider
+    ):
         """Test all AccountType enum values work correctly."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
+        connection_id, _ = connection_with_provider
 
         # Test a representative sample of account types
         test_types = [
@@ -924,12 +959,12 @@ class TestAccountRepositoryAccountTypeMapping:
                 assert found.account_type == account_type
 
     @pytest.mark.asyncio
-    async def test_account_type_roundtrip_all_values(self, test_database):
+    async def test_account_type_roundtrip_all_values(
+        self, test_database, connection_with_provider
+    ):
         """Test all AccountType enum values survive roundtrip."""
         # Arrange
-        async with test_database.get_session() as session:
-            user_id = await create_user_in_db(session)
-            connection_id = await create_connection_in_db(session, user_id)
+        connection_id, _ = connection_with_provider
 
         # Test ALL account types
         for account_type in AccountType:

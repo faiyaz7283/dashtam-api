@@ -629,12 +629,14 @@ dev = [
     { name = "black" },
     { name = "boto3-stubs", extra = ["logs"] },
     { name = "fakeredis", extra = ["lua"] },
+    { name = "freezegun" },
     { name = "httpx" },
     { name = "moto" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "pytest-httpx" },
     { name = "ruff" },
     { name = "types-passlib" },
     { name = "types-python-dateutil" },
@@ -685,12 +687,14 @@ dev = [
     { name = "black", specifier = ">=25.9.0" },
     { name = "boto3-stubs", extras = ["logs"], specifier = ">=1.40.73" },
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.32.0" },
+    { name = "freezegun", specifier = ">=1.5.5" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "moto", extras = ["logs", "secretsmanager"], specifier = ">=5.1.16" },
     { name = "mypy", specifier = ">=1.18.2" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-asyncio", specifier = ">=1.2.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "pytest-httpx", specifier = ">=0.35.0" },
     { name = "ruff", specifier = ">=0.13.3" },
     { name = "types-passlib", specifier = ">=1.7.7.20250602" },
     { name = "types-python-dateutil", specifier = ">=2.9.0.20250822" },
@@ -778,6 +782,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/3c/2b9345a6504e4055eaa490e0b41c10e338ad61d9aeaae41d97807873cdf2/fastapi-0.118.0.tar.gz", hash = "sha256:5e81654d98c4d2f53790a7d32d25a7353b30c81441be7d0958a26b5d761fa1c8", size = 310536, upload-time = "2025-09-29T03:37:23.126Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/54e2bdaad22ca91a59455251998d43094d5c3d3567c52c7c04774b3f43f2/fastapi-0.118.0-py3-none-any.whl", hash = "sha256:705137a61e2ef71019d2445b123aa8845bd97273c395b744d5a7dfe559056855", size = 97694, upload-time = "2025-09-29T03:37:21.338Z" },
+]
+
+[[package]]
+name = "freezegun"
+version = "1.5.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/dd/23e2f4e357f8fd3bdff613c1fe4466d21bfb00a6177f238079b17f7b1c84/freezegun-1.5.5.tar.gz", hash = "sha256:ac7742a6cc6c25a2c35e9292dfd554b897b517d2dec26891a2e8debf205cb94a", size = 35914, upload-time = "2025-08-09T10:39:08.338Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/2e/b41d8a1a917d6581fc27a35d05561037b048e47df50f27f8ac9c7e27a710/freezegun-1.5.5-py3-none-any.whl", hash = "sha256:cd557f4a75cf074e84bc374249b9dd491eaeacd61376b9eb3c423282211619d2", size = 19266, upload-time = "2025-08-09T10:39:06.636Z" },
 ]
 
 [[package]]
@@ -1838,6 +1854,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5e/f7/c933acc76f5208b3b00089573cf6a2bc26dc80a8aece8f52bb7d6b1855ca/pytest_cov-7.0.0.tar.gz", hash = "sha256:33c97eda2e049a0c5298e91f519302a1334c26ac65c1a483d6206fd458361af1", size = 54328, upload-time = "2025-09-09T10:57:02.113Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ee/49/1377b49de7d0c1ce41292161ea0f721913fa8722c19fb9c1e3aa0367eecb/pytest_cov-7.0.0-py3-none-any.whl", hash = "sha256:3b8e9558b16cc1479da72058bdecf8073661c7f57f7d3c5f22a1c23507f2d861", size = 22424, upload-time = "2025-09-09T10:57:00.695Z" },
+]
+
+[[package]]
+name = "pytest-httpx"
+version = "0.35.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1f/89/5b12b7b29e3d0af3a4b9c071ee92fa25a9017453731a38f08ba01c280f4c/pytest_httpx-0.35.0.tar.gz", hash = "sha256:d619ad5d2e67734abfbb224c3d9025d64795d4b8711116b1a13f72a251ae511f", size = 54146, upload-time = "2024-11-28T19:16:54.237Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/ed/026d467c1853dd83102411a78126b4842618e86c895f93528b0528c7a620/pytest_httpx-0.35.0-py3-none-any.whl", hash = "sha256:ee11a00ffcea94a5cbff47af2114d34c5b231c326902458deed73f9c459fd744", size = 19442, upload-time = "2024-11-28T19:16:52.787Z" },
 ]
 
 [[package]]

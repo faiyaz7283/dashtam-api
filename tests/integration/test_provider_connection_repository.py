@@ -48,12 +48,16 @@ def create_test_connection(
     connected_at=None,
     last_sync_at=None,
 ):
-    """Create a test ProviderConnection with all required fields."""
+    """Create a test ProviderConnection with all required fields.
+
+    Note: provider_id MUST be a valid FK to providers table.
+    Use schwab_provider fixture or provider_factory fixture.
+    """
     now = datetime.now(UTC)
     return ProviderConnection(
         id=connection_id or uuid7(),
         user_id=user_id or uuid7(),
-        provider_id=provider_id or uuid7(),
+        provider_id=provider_id,  # Required - must be valid FK!
         provider_slug=provider_slug,
         status=status,
         alias=alias,
@@ -100,6 +104,9 @@ async def create_user_in_db(session, user_id=None, email=None):
     return user_id
 
 
+# Fixtures schwab_provider and provider_factory are defined in conftest.py
+
+
 @pytest_asyncio.fixture
 async def provider_connection_repository(test_database):
     """Provide ProviderConnectionRepository with test database session."""
@@ -117,9 +124,12 @@ class TestProviderConnectionRepositorySave:
     """Test ProviderConnectionRepository save operations."""
 
     @pytest.mark.asyncio
-    async def test_save_connection_persists_to_database(self, test_database):
+    async def test_save_connection_persists_to_database(
+        self, test_database, schwab_provider
+    ):
         """Test saving a connection persists it to the database."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
@@ -127,7 +137,8 @@ class TestProviderConnectionRepositorySave:
         connection = create_test_connection(
             connection_id=connection_id,
             user_id=user_id,
-            provider_slug="schwab",
+            provider_id=provider_id,
+            provider_slug=provider_slug,
             status=ConnectionStatus.PENDING,
         )
 
@@ -144,19 +155,24 @@ class TestProviderConnectionRepositorySave:
             assert found is not None
             assert found.id == connection_id
             assert found.user_id == user_id
-            assert found.provider_slug == "schwab"
+            assert found.provider_slug == provider_slug
             assert found.status == ConnectionStatus.PENDING
 
     @pytest.mark.asyncio
-    async def test_save_connection_with_credentials(self, test_database):
+    async def test_save_connection_with_credentials(
+        self, test_database, schwab_provider
+    ):
         """Test saving a connection with credentials."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
         credentials = create_test_credentials()
         connection = create_test_connection(
             user_id=user_id,
+            provider_id=provider_id,
+            provider_slug=provider_slug,
             status=ConnectionStatus.ACTIVE,
             credentials=credentials,
             connected_at=datetime.now(UTC),
@@ -179,14 +195,19 @@ class TestProviderConnectionRepositorySave:
             assert found.credentials.expires_at == credentials.expires_at
 
     @pytest.mark.asyncio
-    async def test_save_connection_update_existing(self, test_database):
+    async def test_save_connection_update_existing(
+        self, test_database, schwab_provider
+    ):
         """Test updating an existing connection."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
         connection = create_test_connection(
             user_id=user_id,
+            provider_id=provider_id,
+            provider_slug=provider_slug,
             status=ConnectionStatus.PENDING,
             alias=None,
         )
@@ -224,13 +245,18 @@ class TestProviderConnectionRepositoryFindById:
     """Test ProviderConnectionRepository find_by_id operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_id_returns_connection(self, test_database):
+    async def test_find_by_id_returns_connection(self, test_database, schwab_provider):
         """Test find_by_id returns existing connection."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
-        connection = create_test_connection(user_id=user_id)
+        connection = create_test_connection(
+            user_id=user_id,
+            provider_id=provider_id,
+            provider_slug=provider_slug,
+        )
 
         async with test_database.get_session() as session:
             repo = ProviderConnectionRepository(session=session)
@@ -262,14 +288,28 @@ class TestProviderConnectionRepositoryFindByUserId:
     """Test ProviderConnectionRepository find_by_user_id operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_user_id_returns_all_connections(self, test_database):
+    async def test_find_by_user_id_returns_all_connections(
+        self, test_database, provider_factory
+    ):
         """Test find_by_user_id returns all user connections."""
         # Arrange
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
-        conn1 = create_test_connection(user_id=user_id, provider_slug="schwab")
-        conn2 = create_test_connection(user_id=user_id, provider_slug="fidelity")
+        # Create two different providers
+        provider1_id, slug1 = await provider_factory("schwab")
+        provider2_id, slug2 = await provider_factory("fidelity")
+
+        conn1 = create_test_connection(
+            user_id=user_id,
+            provider_id=provider1_id,
+            provider_slug=slug1,
+        )
+        conn2 = create_test_connection(
+            user_id=user_id,
+            provider_id=provider2_id,
+            provider_slug=slug2,
+        )
 
         async with test_database.get_session() as session:
             repo = ProviderConnectionRepository(session=session)
@@ -284,7 +324,7 @@ class TestProviderConnectionRepositoryFindByUserId:
         # Assert
         assert len(connections) == 2
         slugs = {c.provider_slug for c in connections}
-        assert slugs == {"schwab", "fidelity"}
+        assert slugs == {slug1, slug2}
 
     @pytest.mark.asyncio
     async def test_find_by_user_id_returns_empty_list_when_none(self, test_database):
@@ -298,7 +338,9 @@ class TestProviderConnectionRepositoryFindByUserId:
         assert connections == []
 
     @pytest.mark.asyncio
-    async def test_find_by_user_id_includes_all_statuses(self, test_database):
+    async def test_find_by_user_id_includes_all_statuses(
+        self, test_database, provider_factory
+    ):
         """Test find_by_user_id returns connections in all statuses."""
         # Arrange
         async with test_database.get_session() as session:
@@ -311,13 +353,16 @@ class TestProviderConnectionRepositoryFindByUserId:
         ]
         connections = []
         for i, status in enumerate(statuses):
+            # Create a unique provider for each connection
+            provider_id, provider_slug = await provider_factory(f"provider_{i}")
             # ACTIVE status requires credentials at creation time (domain validation)
             credentials = (
                 create_test_credentials() if status == ConnectionStatus.ACTIVE else None
             )
             conn = create_test_connection(
                 user_id=user_id,
-                provider_slug=f"provider_{i}",
+                provider_id=provider_id,
+                provider_slug=provider_slug,
                 status=status,
                 credentials=credentials,
             )
@@ -344,24 +389,26 @@ class TestProviderConnectionRepositoryFindByUserAndProvider:
     """Test ProviderConnectionRepository find_by_user_and_provider operations."""
 
     @pytest.mark.asyncio
-    async def test_find_by_user_and_provider_returns_matching(self, test_database):
+    async def test_find_by_user_and_provider_returns_matching(
+        self, test_database, provider_factory
+    ):
         """Test find_by_user_and_provider returns matching connections."""
         # Arrange
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
-        provider_id = uuid7()
-        other_provider_id = uuid7()
+        provider_id, provider_slug = await provider_factory("schwab")
+        other_provider_id, other_slug = await provider_factory("fidelity")
 
         conn1 = create_test_connection(
             user_id=user_id,
             provider_id=provider_id,
-            provider_slug="schwab",
+            provider_slug=provider_slug,
         )
         conn2 = create_test_connection(
             user_id=user_id,
             provider_id=other_provider_id,
-            provider_slug="fidelity",
+            provider_slug=other_slug,
         )
 
         async with test_database.get_session() as session:
@@ -379,22 +426,25 @@ class TestProviderConnectionRepositoryFindByUserAndProvider:
         assert connections[0].provider_id == provider_id
 
     @pytest.mark.asyncio
-    async def test_find_by_user_and_provider_multiple_connections(self, test_database):
+    async def test_find_by_user_and_provider_multiple_connections(
+        self, test_database, schwab_provider
+    ):
         """Test user can have multiple connections to same provider."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
-
-        provider_id = uuid7()
 
         conn1 = create_test_connection(
             user_id=user_id,
             provider_id=provider_id,
+            provider_slug=provider_slug,
             alias="Personal Account",
         )
         conn2 = create_test_connection(
             user_id=user_id,
             provider_id=provider_id,
+            provider_slug=provider_slug,
             alias="IRA Account",
         )
 
@@ -419,27 +469,37 @@ class TestProviderConnectionRepositoryFindActiveByUser:
     """Test ProviderConnectionRepository find_active_by_user operations."""
 
     @pytest.mark.asyncio
-    async def test_find_active_by_user_returns_only_active(self, test_database):
+    async def test_find_active_by_user_returns_only_active(
+        self, test_database, provider_factory
+    ):
         """Test find_active_by_user returns only active connections."""
         # Arrange
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
+        # Create providers for each connection
+        pending_pid, pending_slug = await provider_factory("pending")
+        active_pid, active_slug = await provider_factory("active")
+        expired_pid, expired_slug = await provider_factory("expired")
+
         # Create connections with different statuses
         pending = create_test_connection(
             user_id=user_id,
-            provider_slug="pending_provider",
+            provider_id=pending_pid,
+            provider_slug=pending_slug,
             status=ConnectionStatus.PENDING,
         )
         active = create_test_connection(
             user_id=user_id,
-            provider_slug="active_provider",
+            provider_id=active_pid,
+            provider_slug=active_slug,
             status=ConnectionStatus.ACTIVE,
             credentials=create_test_credentials(),
         )
         expired = create_test_connection(
             user_id=user_id,
-            provider_slug="expired_provider",
+            provider_id=expired_pid,
+            provider_slug=expired_slug,
             status=ConnectionStatus.EXPIRED,
             credentials=create_test_credentials(),
         )
@@ -458,19 +518,22 @@ class TestProviderConnectionRepositoryFindActiveByUser:
         # Assert
         assert len(connections) == 1
         assert connections[0].status == ConnectionStatus.ACTIVE
-        assert connections[0].provider_slug == "active_provider"
+        assert connections[0].provider_slug == active_slug
 
     @pytest.mark.asyncio
     async def test_find_active_by_user_returns_empty_when_no_active(
-        self, test_database
+        self, test_database, schwab_provider
     ):
         """Test find_active_by_user returns empty when no active connections."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
         pending = create_test_connection(
             user_id=user_id,
+            provider_id=provider_id,
+            provider_slug=provider_slug,
             status=ConnectionStatus.PENDING,
         )
 
@@ -492,20 +555,22 @@ class TestProviderConnectionRepositoryFindExpiringSoon:
     """Test ProviderConnectionRepository find_expiring_soon operations."""
 
     @pytest.mark.asyncio
-    async def test_find_expiring_soon_returns_expiring(self, test_database):
+    async def test_find_expiring_soon_returns_expiring(
+        self, test_database, provider_factory
+    ):
         """Test find_expiring_soon returns connections about to expire."""
         # Arrange
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
-        # Use unique slugs to identify our test data (short UUID prefix to stay < 50 chars)
-        unique_id = str(uuid7())[:8]
-        expiring_slug = f"expiring_{unique_id}"
-        not_expiring_slug = f"not_exp_{unique_id}"
+        # Create providers for connections
+        expiring_pid, expiring_slug = await provider_factory("expiring")
+        not_exp_pid, not_expiring_slug = await provider_factory("not_exp")
 
         # Connection expiring in 15 minutes (within 30 min threshold)
         expiring_soon = create_test_connection(
             user_id=user_id,
+            provider_id=expiring_pid,
             provider_slug=expiring_slug,
             status=ConnectionStatus.ACTIVE,
             credentials=create_test_credentials(
@@ -516,6 +581,7 @@ class TestProviderConnectionRepositoryFindExpiringSoon:
         # Connection expiring in 2 hours (outside threshold)
         not_expiring = create_test_connection(
             user_id=user_id,
+            provider_id=not_exp_pid,
             provider_slug=not_expiring_slug,
             status=ConnectionStatus.ACTIVE,
             credentials=create_test_credentials(
@@ -544,17 +610,19 @@ class TestProviderConnectionRepositoryFindExpiringSoon:
         assert our_connections[0].provider_slug == expiring_slug
 
     @pytest.mark.asyncio
-    async def test_find_expiring_soon_excludes_non_active(self, test_database):
+    async def test_find_expiring_soon_excludes_non_active(
+        self, test_database, provider_factory
+    ):
         """Test find_expiring_soon excludes non-active connections."""
         # Arrange
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
-        # Expired connection (not active) - use unique slug to identify our test data
-        # Keep slug short (< 50 chars)
-        unique_slug = f"expired_{str(uuid7())[:8]}"
+        # Create provider for connection
+        provider_id, unique_slug = await provider_factory("expired")
         expired = create_test_connection(
             user_id=user_id,
+            provider_id=provider_id,
             provider_slug=unique_slug,
             status=ConnectionStatus.EXPIRED,
             credentials=create_test_credentials(
@@ -577,17 +645,19 @@ class TestProviderConnectionRepositoryFindExpiringSoon:
         assert our_connection == []
 
     @pytest.mark.asyncio
-    async def test_find_expiring_soon_custom_threshold(self, test_database):
+    async def test_find_expiring_soon_custom_threshold(
+        self, test_database, provider_factory
+    ):
         """Test find_expiring_soon with custom threshold."""
         # Arrange
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
-        # Connection expiring in 45 minutes - use unique slug to identify
-        # Keep slug short (< 50 chars)
-        unique_slug = f"thresh_{str(uuid7())[:8]}"
+        # Create provider for connection
+        provider_id, unique_slug = await provider_factory("thresh")
         connection = create_test_connection(
             user_id=user_id,
+            provider_id=provider_id,
             provider_slug=unique_slug,
             status=ConnectionStatus.ACTIVE,
             credentials=create_test_credentials(
@@ -622,13 +692,18 @@ class TestProviderConnectionRepositoryDelete:
     """Test ProviderConnectionRepository delete operations."""
 
     @pytest.mark.asyncio
-    async def test_delete_removes_connection(self, test_database):
+    async def test_delete_removes_connection(self, test_database, schwab_provider):
         """Test delete removes connection from database."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
-        connection = create_test_connection(user_id=user_id)
+        connection = create_test_connection(
+            user_id=user_id,
+            provider_id=provider_id,
+            provider_slug=provider_slug,
+        )
 
         async with test_database.get_session() as session:
             repo = ProviderConnectionRepository(session=session)
@@ -662,9 +737,10 @@ class TestProviderConnectionRepositoryCredentialMapping:
     """Test credential mapping between domain and model."""
 
     @pytest.mark.asyncio
-    async def test_credentials_roundtrip(self, test_database):
+    async def test_credentials_roundtrip(self, test_database, schwab_provider):
         """Test credentials survive save/load roundtrip."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
@@ -678,6 +754,8 @@ class TestProviderConnectionRepositoryCredentialMapping:
 
         connection = create_test_connection(
             user_id=user_id,
+            provider_id=provider_id,
+            provider_slug=provider_slug,
             status=ConnectionStatus.ACTIVE,
             credentials=credentials,
         )
@@ -702,14 +780,17 @@ class TestProviderConnectionRepositoryCredentialMapping:
         ) == original_expires.replace(microsecond=0)
 
     @pytest.mark.asyncio
-    async def test_null_credentials_handled(self, test_database):
+    async def test_null_credentials_handled(self, test_database, schwab_provider):
         """Test connection without credentials handled correctly."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
         connection = create_test_connection(
             user_id=user_id,
+            provider_id=provider_id,
+            provider_slug=provider_slug,
             status=ConnectionStatus.PENDING,
             credentials=None,
         )
@@ -728,14 +809,17 @@ class TestProviderConnectionRepositoryCredentialMapping:
         assert loaded.credentials is None
 
     @pytest.mark.asyncio
-    async def test_credentials_cleared_on_update(self, test_database):
+    async def test_credentials_cleared_on_update(self, test_database, schwab_provider):
         """Test credentials can be cleared on update."""
         # Arrange
+        provider_id, provider_slug = schwab_provider
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
         connection = create_test_connection(
             user_id=user_id,
+            provider_id=provider_id,
+            provider_slug=provider_slug,
             status=ConnectionStatus.ACTIVE,
             credentials=create_test_credentials(),
         )
@@ -762,15 +846,22 @@ class TestProviderConnectionRepositoryCredentialMapping:
             assert loaded.status == ConnectionStatus.DISCONNECTED
 
     @pytest.mark.asyncio
-    async def test_all_credential_types_supported(self, test_database):
+    async def test_all_credential_types_supported(
+        self, test_database, provider_factory
+    ):
         """Test all CredentialType enum values work correctly."""
         async with test_database.get_session() as session:
             user_id = await create_user_in_db(session)
 
         for cred_type in CredentialType:
+            # Create a unique provider for each credential type
+            provider_id, provider_slug = await provider_factory(
+                f"cred_{cred_type.value}"
+            )
             connection = create_test_connection(
                 user_id=user_id,
-                provider_slug=f"provider_{cred_type.value}",
+                provider_id=provider_id,
+                provider_slug=provider_slug,
                 status=ConnectionStatus.ACTIVE,
                 credentials=ProviderCredentials(
                     encrypted_data=f"data_for_{cred_type.value}".encode(),

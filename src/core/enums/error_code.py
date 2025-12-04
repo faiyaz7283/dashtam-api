@@ -73,3 +73,15 @@ class ErrorCode(Enum):
     # Rate limit errors
     RATE_LIMIT_CHECK_FAILED = "rate_limit_check_failed"
     RATE_LIMIT_RESET_FAILED = "rate_limit_reset_failed"
+
+    # Encryption errors
+    ENCRYPTION_KEY_INVALID = "encryption_key_invalid"
+    ENCRYPTION_FAILED = "encryption_failed"
+    DECRYPTION_FAILED = "decryption_failed"
+    INVALID_INPUT = "invalid_input"
+
+    # Provider errors
+    PROVIDER_AUTHENTICATION_FAILED = "provider_authentication_failed"
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    PROVIDER_RATE_LIMITED = "provider_rate_limited"
+    PROVIDER_CREDENTIAL_INVALID = "provider_credential_invalid"

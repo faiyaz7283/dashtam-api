@@ -15,9 +15,10 @@ Architecture:
 
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
-from uuid_extensions import uuid7
 
 import pytest
+from freezegun import freeze_time
+from uuid_extensions import uuid7
 
 from src.core.result import Failure, Success
 from src.domain.entities.provider_connection import ProviderConnection
@@ -616,18 +617,24 @@ class TestProviderConnectionMarkDisconnected:
 
     def test_mark_disconnected_updates_timestamp(self):
         """Test mark_disconnected updates updated_at."""
-        # Arrange
-        credentials = create_credentials()
-        connection = create_connection(
-            status=ConnectionStatus.ACTIVE,
-            credentials=credentials,
-        )
+        # Arrange - create connection at a fixed time
+        initial_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        with freeze_time(initial_time):
+            credentials = create_credentials()
+            connection = create_connection(
+                status=ConnectionStatus.ACTIVE,
+                credentials=credentials,
+            )
         original_updated_at = connection.updated_at
+        assert original_updated_at == initial_time
 
-        # Act
-        connection.mark_disconnected()
+        # Act - call method at a later time
+        later_time = datetime(2024, 1, 1, 12, 0, 1, tzinfo=UTC)
+        with freeze_time(later_time):
+            connection.mark_disconnected()
 
-        # Assert
+        # Assert - timestamp should be updated to the later time
+        assert connection.updated_at == later_time
         assert connection.updated_at > original_updated_at
 
 

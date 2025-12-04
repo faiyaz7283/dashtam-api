@@ -12,6 +12,13 @@ Schwab API Documentation:
     - OAuth: https://developer.schwab.com/products/trader-api--individual/details/documentation/Retail%20Trader%20API%20Production
     - Trader API: https://api.schwabapi.com/trader/v1
 
+Architecture:
+    SchwabProvider orchestrates:
+    - api/accounts_api.py: HTTP client for accounts endpoints
+    - api/transactions_api.py: HTTP client for transactions endpoints
+    - mappers/account_mapper.py: JSON → ProviderAccountData
+    - mappers/transaction_mapper.py: JSON → ProviderTransactionData
+
 Reference:
     - docs/architecture/provider-integration-architecture.md
     - docs/architecture/provider-oauth-architecture.md
@@ -19,8 +26,6 @@ Reference:
 
 import base64
 from datetime import date
-from decimal import Decimal, InvalidOperation
-from typing import Any
 
 import httpx
 import structlog
@@ -39,6 +44,16 @@ from src.infrastructure.errors import (
     ProviderInvalidResponseError,
     ProviderRateLimitError,
     ProviderUnavailableError,
+)
+from src.infrastructure.providers.schwab.api.accounts_api import SchwabAccountsAPI
+from src.infrastructure.providers.schwab.api.transactions_api import (
+    SchwabTransactionsAPI,
+)
+from src.infrastructure.providers.schwab.mappers.account_mapper import (
+    SchwabAccountMapper,
+)
+from src.infrastructure.providers.schwab.mappers.transaction_mapper import (
+    SchwabTransactionMapper,
 )
 
 logger = structlog.get_logger(__name__)
@@ -89,6 +104,18 @@ class SchwabProvider:
 
         self._settings = settings
         self._timeout = timeout
+
+        # Initialize API clients and mappers
+        self._accounts_api = SchwabAccountsAPI(
+            base_url=self._trader_api_base,
+            timeout=timeout,
+        )
+        self._transactions_api = SchwabTransactionsAPI(
+            base_url=self._trader_api_base,
+            timeout=timeout,
+        )
+        self._account_mapper = SchwabAccountMapper()
+        self._transaction_mapper = SchwabTransactionMapper()
 
     @property
     def slug(self) -> str:
@@ -391,6 +418,8 @@ class SchwabProvider:
     ) -> Result[list[ProviderAccountData], ProviderError]:
         """Fetch all accounts for the authenticated user.
 
+        Delegates to SchwabAccountsAPI for HTTP and SchwabAccountMapper for mapping.
+
         Args:
             access_token: Valid Schwab access token.
 
@@ -404,103 +433,20 @@ class SchwabProvider:
             provider=self.slug,
         )
 
-        try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.get(
-                    f"{self._trader_api_base}/accounts",
-                    headers={
-                        "Authorization": f"Bearer {access_token}",
-                        "Accept": "application/json",
-                    },
-                    params={"fields": "positions"},
-                )
+        # Fetch raw JSON from Schwab API
+        result = await self._accounts_api.get_accounts(
+            access_token=access_token,
+            include_positions=True,
+        )
 
-            return self._handle_accounts_response(response)
+        # Handle API errors
+        if isinstance(result, Failure):
+            return Failure(error=result.error)
 
-        except httpx.TimeoutException as e:
-            logger.warning(
-                "schwab_fetch_accounts_timeout",
-                provider=self.slug,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message="Schwab API request timed out",
-                    provider_name=self.slug,
-                    is_transient=True,
-                )
-            )
-        except httpx.RequestError as e:
-            logger.warning(
-                "schwab_fetch_accounts_connection_error",
-                provider=self.slug,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message=f"Failed to connect to Schwab API: {e}",
-                    provider_name=self.slug,
-                    is_transient=True,
-                )
-            )
+        raw_accounts = result.value
 
-    def _handle_accounts_response(
-        self,
-        response: httpx.Response,
-    ) -> Result[list[ProviderAccountData], ProviderError]:
-        """Handle Schwab accounts API response.
-
-        Args:
-            response: HTTP response from accounts endpoint.
-
-        Returns:
-            Success(list[ProviderAccountData]) or Failure(ProviderError).
-        """
-        # Handle common error cases
-        error_result = self._check_api_error_response(response, "fetch_accounts")
-        if error_result is not None:
-            return error_result
-
-        # Parse successful response
-        try:
-            data = response.json()
-        except ValueError as e:
-            logger.error(
-                "schwab_fetch_accounts_invalid_json",
-                provider=self.slug,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderInvalidResponseError(
-                    code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                    message="Invalid JSON response from Schwab",
-                    provider_name=self.slug,
-                    response_body=response.text[:500],
-                )
-            )
-
-        # Map Schwab accounts to ProviderAccountData
-        accounts: list[ProviderAccountData] = []
-
-        # Schwab returns list of account objects
-        account_list = data if isinstance(data, list) else []
-
-        for account_data in account_list:
-            try:
-                account = self._map_account(account_data)
-                if account is not None:
-                    accounts.append(account)
-            except (KeyError, TypeError, InvalidOperation) as e:
-                logger.warning(
-                    "schwab_account_mapping_error",
-                    provider=self.slug,
-                    error=str(e),
-                    account_data=str(account_data)[:200],
-                )
-                # Continue processing other accounts
-                continue
+        # Map raw JSON to ProviderAccountData
+        accounts = self._account_mapper.map_accounts(raw_accounts)
 
         logger.info(
             "schwab_fetch_accounts_succeeded",
@@ -510,39 +456,6 @@ class SchwabProvider:
 
         return Success(value=accounts)
 
-    def _map_account(self, data: dict[str, Any]) -> ProviderAccountData | None:
-        """Map Schwab account JSON to ProviderAccountData.
-
-        Args:
-            data: Single account object from Schwab API.
-
-        Returns:
-            ProviderAccountData or None if mapping fails.
-        """
-        # Schwab structure: { "securitiesAccount": { ... } }
-        securities_account = data.get("securitiesAccount", {})
-
-        if not securities_account:
-            return None
-
-        account_number = securities_account.get("accountNumber", "")
-        current_balances = securities_account.get("currentBalances", {})
-
-        # Mask account number (show last 4 digits)
-        masked = f"****{account_number[-4:]}" if len(account_number) >= 4 else "****"
-
-        return ProviderAccountData(
-            provider_account_id=account_number,
-            account_number_masked=masked,
-            name=securities_account.get("accountName", f"Schwab {masked}"),
-            account_type=securities_account.get("type", "UNKNOWN"),
-            balance=Decimal(str(current_balances.get("liquidationValue", 0))),
-            currency="USD",
-            available_balance=Decimal(str(current_balances.get("availableFunds", 0))),
-            is_active=True,
-            raw_data=data,
-        )
-
     async def fetch_transactions(
         self,
         access_token: str,
@@ -551,6 +464,8 @@ class SchwabProvider:
         end_date: date | None = None,
     ) -> Result[list[ProviderTransactionData], ProviderError]:
         """Fetch transactions for a specific account.
+
+        Delegates to SchwabTransactionsAPI for HTTP and SchwabTransactionMapper for mapping.
 
         Args:
             access_token: Valid Schwab access token.
@@ -566,114 +481,29 @@ class SchwabProvider:
         logger.info(
             "schwab_fetch_transactions_started",
             provider=self.slug,
-            account_id=provider_account_id[-4:],  # Log only last 4 chars
+            account_id=provider_account_id[-4:]
+            if len(provider_account_id) >= 4
+            else "****",
             start_date=str(start_date),
             end_date=str(end_date),
         )
 
-        # Build query params
-        params: dict[str, str] = {}
-        if start_date:
-            params["startDate"] = start_date.isoformat()
-        if end_date:
-            params["endDate"] = end_date.isoformat()
+        # Fetch raw JSON from Schwab API
+        result = await self._transactions_api.get_transactions(
+            access_token=access_token,
+            account_number=provider_account_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
-        try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.get(
-                    f"{self._trader_api_base}/accounts/{provider_account_id}/transactions",
-                    headers={
-                        "Authorization": f"Bearer {access_token}",
-                        "Accept": "application/json",
-                    },
-                    params=params if params else None,
-                )
+        # Handle API errors
+        if isinstance(result, Failure):
+            return Failure(error=result.error)
 
-            return self._handle_transactions_response(response)
+        raw_transactions = result.value
 
-        except httpx.TimeoutException as e:
-            logger.warning(
-                "schwab_fetch_transactions_timeout",
-                provider=self.slug,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message="Schwab API request timed out",
-                    provider_name=self.slug,
-                    is_transient=True,
-                )
-            )
-        except httpx.RequestError as e:
-            logger.warning(
-                "schwab_fetch_transactions_connection_error",
-                provider=self.slug,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message=f"Failed to connect to Schwab API: {e}",
-                    provider_name=self.slug,
-                    is_transient=True,
-                )
-            )
-
-    def _handle_transactions_response(
-        self,
-        response: httpx.Response,
-    ) -> Result[list[ProviderTransactionData], ProviderError]:
-        """Handle Schwab transactions API response.
-
-        Args:
-            response: HTTP response from transactions endpoint.
-
-        Returns:
-            Success(list[ProviderTransactionData]) or Failure(ProviderError).
-        """
-        # Handle common error cases
-        error_result = self._check_api_error_response(response, "fetch_transactions")
-        if error_result is not None:
-            return error_result
-
-        # Parse successful response
-        try:
-            data = response.json()
-        except ValueError as e:
-            logger.error(
-                "schwab_fetch_transactions_invalid_json",
-                provider=self.slug,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderInvalidResponseError(
-                    code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                    message="Invalid JSON response from Schwab",
-                    provider_name=self.slug,
-                    response_body=response.text[:500],
-                )
-            )
-
-        # Map Schwab transactions to ProviderTransactionData
-        transactions: list[ProviderTransactionData] = []
-
-        # Schwab returns list of transaction objects
-        transaction_list = data if isinstance(data, list) else []
-
-        for txn_data in transaction_list:
-            try:
-                txn = self._map_transaction(txn_data)
-                if txn is not None:
-                    transactions.append(txn)
-            except (KeyError, TypeError, ValueError) as e:
-                logger.warning(
-                    "schwab_transaction_mapping_error",
-                    provider=self.slug,
-                    error=str(e),
-                )
-                # Continue processing other transactions
-                continue
+        # Map raw JSON to ProviderTransactionData
+        transactions = self._transaction_mapper.map_transactions(raw_transactions)
 
         logger.info(
             "schwab_fetch_transactions_succeeded",
@@ -682,72 +512,6 @@ class SchwabProvider:
         )
 
         return Success(value=transactions)
-
-    def _map_transaction(self, data: dict[str, Any]) -> ProviderTransactionData | None:
-        """Map Schwab transaction JSON to ProviderTransactionData.
-
-        Args:
-            data: Single transaction object from Schwab API.
-
-        Returns:
-            ProviderTransactionData or None if mapping fails.
-        """
-        txn_id = data.get("activityId") or data.get("transactionId")
-        if not txn_id:
-            return None
-
-        # Parse transaction date
-        txn_date_str = data.get("tradeDate") or data.get("transactionDate")
-        if not txn_date_str:
-            return None
-
-        # Parse date (format: YYYY-MM-DD or ISO datetime)
-        txn_date = date.fromisoformat(txn_date_str[:10])
-
-        # Parse settlement date if present
-        settle_date_str = data.get("settlementDate")
-        settle_date = (
-            date.fromisoformat(settle_date_str[:10]) if settle_date_str else None
-        )
-
-        # Get transaction info
-        txn_info = data.get("transactionItem", {})
-        instrument = txn_info.get("instrument", {})
-
-        # Calculate amount
-        net_amount = data.get("netAmount", 0)
-
-        return ProviderTransactionData(
-            provider_transaction_id=str(txn_id),
-            transaction_type=data.get("type", "UNKNOWN"),
-            subtype=data.get("subType"),
-            amount=Decimal(str(net_amount)),
-            currency="USD",
-            description=data.get("description", ""),
-            transaction_date=txn_date,
-            settlement_date=settle_date,
-            status=data.get("status", "EXECUTED"),
-            # Security details
-            symbol=instrument.get("symbol"),
-            security_name=instrument.get("description"),
-            asset_type=instrument.get("assetType"),
-            quantity=(
-                Decimal(str(txn_info.get("amount", 0)))
-                if txn_info.get("amount")
-                else None
-            ),
-            unit_price=(
-                Decimal(str(txn_info.get("price", 0)))
-                if txn_info.get("price")
-                else None
-            ),
-            commission=(
-                Decimal(str(data.get("totalCommission", 0)))
-                if data.get("totalCommission")
-                else None
-            ),
-            raw_data=data,
-        )
 
     def _check_api_error_response(
         self,

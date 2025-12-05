@@ -324,33 +324,17 @@ Each critical workflow emits 3 events:
 2. **`*Succeeded`**: After successful commit (audit: SUCCEEDED)
 3. **`*Failed`**: After failure (audit: FAILED)
 
-```text
-┌──────────────────┐
-│ Command Received │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Emit *Attempted  │  ← Always emitted first
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Execute Business │
-│     Logic        │
-└────────┬─────────┘
-         │
-    ┌────┴────┐
-    │         │
-    ▼         ▼
-┌────────┐ ┌────────┐
-│Success │ │Failure │
-└───┬────┘ └───┬────┘
-    │          │
-    ▼          ▼
-┌───────────┐ ┌──────────┐
-│*Succeeded │ │ *Failed  │
-└───────────┘ └──────────┘
+```mermaid
+flowchart TD
+    A[Command Received] --> B[Emit *Attempted]
+    B --> C[Execute Business Logic]
+    C --> D{Result?}
+    D -->|Success| E[Emit *Succeeded]
+    D -->|Failure| F[Emit *Failed]
+    
+    style B fill:#fff3cd,stroke:#856404
+    style E fill:#d4edda,stroke:#155724
+    style F fill:#f8d7da,stroke:#721c24
 ```
 
 ### Event Handlers

@@ -1250,4 +1250,4 @@ RBAC policies are seeded via `alembic/seeds/rbac_seeder.py` (post-migration hook
 
 ---
 
-**Created**: 2025-11-27 | **Last Updated**: 2025-11-27
+**Created**: 2025-11-27 | **Last Updated**: 2025-12-05

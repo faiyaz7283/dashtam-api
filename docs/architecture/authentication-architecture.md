@@ -1391,32 +1391,6 @@ token_version >= max(global_min_token_version, user.min_token_version)
 7. **Event-Driven**: All auth actions emit events (audit, notifications, session management)
 8. **Audit Trail**: All security events logged (PCI-DSS compliance)
 
-### Dependencies
-
-**Phase 0 Dependencies**:
-
-- F0.3: Configuration (JWT_SECRET_KEY, AWS SES credentials)
-- F0.4: Database (users, tokens tables)
-- F0.5: Redis (token blacklist, optional)
-- F0.7: Secrets Management (JWT secret, AWS credentials)
-- F0.9: Audit Trail (log all auth events)
-- F0.10: Domain Events (UserRegistered, PasswordChanged, etc.)
-
-**Phase 1 Dependencies**:
-
-- F1.3: Session Management (create session on login, revoke on password change)
-
-### Next Steps
-
-1. ✅ Architecture approved
-2. ⏳ Create implementation TODO list (break into phases)
-3. ⏳ Database migrations (users, tokens tables)
-4. ⏳ Domain entities (User, Email, Password)
-5. ⏳ Application commands/handlers
-6. ⏳ Infrastructure services (bcrypt, JWT, email)
-7. ⏳ API endpoints
-8. ⏳ Tests (unit, integration, API)
-
 ---
 
-**Created**: 2025-11-19 | **Last Updated**: 2025-11-22
+**Created**: 2025-11-19 | **Last Updated**: 2025-12-05

@@ -76,6 +76,11 @@ class Settings(BaseSettings):
         default="us-east-1",
         description="AWS region for cloud services (e.g., CloudWatch)",
     )
+    instance_id: str | None = Field(
+        default=None,
+        description="Instance identifier for log stream naming. Defaults to hostname if not set. "
+        "In AWS EC2, can be set to the instance ID (e.g., i-0123456789abcdef0).",
+    )
 
     # Application metadata
     app_name: str = Field(

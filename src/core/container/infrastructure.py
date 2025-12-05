@@ -445,11 +445,14 @@ def get_logger() -> "LoggerProtocol":
         else str(settings.environment)
     )
 
+    # Use settings.instance_id if set, otherwise fall back to hostname
+    instance_id = settings.instance_id or gethostname()
+
     if env == "production":
         from src.infrastructure.logging.cloudwatch_adapter import CloudWatchAdapter
 
         log_group = f"/dashtam/{env}/app"
-        log_stream = f"{gethostname()}/{datetime.now(UTC).date().isoformat()}"
+        log_stream = f"{instance_id}/{datetime.now(UTC).date().isoformat()}"
         return CloudWatchAdapter(
             log_group=log_group,
             log_stream=log_stream,

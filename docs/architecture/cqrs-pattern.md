@@ -417,16 +417,19 @@ def create_user(email: str) -> Result[User, str]:
     return Success(value=User(email=email))
 ```
 
-### Pattern Matching
+### Handling Results
+
+**Note**: Since `Success` and `Failure` use `kw_only=True`, use `isinstance()` checks instead of pattern matching:
 
 ```python
 result = await handler.handle(command)
 
-match result:
-    case Success(value=user_id):
-        return {"id": str(user_id)}
-    case Failure(error=error):
-        return {"error": error}, 400
+# Use isinstance() for kw_only dataclasses
+if isinstance(result, Failure):
+    return {"error": result.error}, 400
+
+# After isinstance check, type narrowing gives us Success
+return {"id": str(result.value)}
 ```
 
 ### Result Type Definition
@@ -685,4 +688,4 @@ async def test_list_providers_returns_all():
 
 ---
 
-**Created**: 2025-12-01 | **Last Updated**: 2025-12-01
+**Created**: 2025-12-01 | **Last Updated**: 2025-12-05

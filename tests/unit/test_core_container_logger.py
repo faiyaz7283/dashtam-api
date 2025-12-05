@@ -25,7 +25,7 @@ class TestGetLoggerContainer:
 
     def test_get_logger_returns_console_adapter_in_development(self):
         """Test get_logger() returns ConsoleAdapter in development environment."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "development"
 
             # Clear cache to force new call
@@ -45,7 +45,7 @@ class TestGetLoggerContainer:
 
     def test_get_logger_returns_console_adapter_in_testing(self):
         """Test get_logger() returns ConsoleAdapter in testing environment."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "testing"
 
             get_logger.cache_clear()
@@ -63,7 +63,7 @@ class TestGetLoggerContainer:
 
     def test_get_logger_returns_cloudwatch_adapter_in_production(self):
         """Test get_logger() returns CloudWatchAdapter in production environment."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "production"
             mock_settings.aws_region = "us-east-1"
 
@@ -87,7 +87,7 @@ class TestGetLoggerContainer:
 
     def test_get_logger_uses_singleton_pattern(self):
         """Test get_logger() returns same instance on multiple calls."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "development"
 
             get_logger.cache_clear()
@@ -112,7 +112,7 @@ class TestGetLoggerContainer:
 
     def test_get_logger_returns_protocol_compliant_adapter(self):
         """Test get_logger() returns LoggerProtocol-compliant adapter."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "development"
 
             get_logger.cache_clear()
@@ -142,7 +142,7 @@ class TestGetLoggerEdgeCases:
 
     def test_get_logger_with_unknown_environment_uses_console(self):
         """Test get_logger() defaults to ConsoleAdapter for unknown environment."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "unknown_env"
 
             get_logger.cache_clear()
@@ -161,7 +161,7 @@ class TestGetLoggerEdgeCases:
 
     def test_get_logger_cache_can_be_cleared(self):
         """Test get_logger() cache can be cleared and new instance created."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "development"
 
             get_logger.cache_clear()
@@ -194,7 +194,7 @@ class TestGetLoggerEnvironmentSpecific:
 
     def test_get_logger_ci_environment_uses_console(self):
         """Test get_logger() uses ConsoleAdapter in CI environment."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "ci"
 
             get_logger.cache_clear()
@@ -212,7 +212,7 @@ class TestGetLoggerEnvironmentSpecific:
 
     def test_get_logger_production_uses_correct_aws_config(self):
         """Test get_logger() uses correct AWS configuration in production."""
-        with patch("src.core.container.settings") as mock_settings:
+        with patch("src.core.container.infrastructure.settings") as mock_settings:
             mock_settings.environment = "production"
             mock_settings.aws_region = "ap-southeast-1"
 

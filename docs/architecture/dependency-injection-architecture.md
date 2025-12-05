@@ -24,19 +24,39 @@ testable dependency management across all architectural layers.
 
 ### Protocol Locations
 
-All protocols live in `src/domain/protocols/`:
+All protocols live in `src/domain/protocols/` (26 protocols):
+
+**Repository Protocols** (10):
 
 - `user_repository.py` - User persistence
 - `email_verification_token_repository.py` - Email token persistence
 - `refresh_token_repository.py` - Refresh token persistence
 - `password_reset_token_repository.py` - Password reset token persistence
+- `session_repository.py` - Session persistence
+- `security_config_repository.py` - Security configuration
+- `provider_connection_repository.py` - Provider connections
+- `provider_repository.py` - Provider metadata
+- `account_repository.py` - Account persistence
+- `transaction_repository.py` - Transaction persistence
+
+**Service Protocols** (16):
+
 - `cache_protocol.py` - Cache operations (Redis)
+- `session_cache_protocol.py` - Session caching
 - `password_hashing_protocol.py` - Password hashing (bcrypt)
-- `token_generation_protocol.py` - JWT/token generation
+- `token_generation_protocol.py` - JWT generation
+- `refresh_token_service_protocol.py` - Refresh token operations
+- `password_reset_token_service_protocol.py` - Password reset tokens
 - `event_bus_protocol.py` - Domain event publishing
 - `audit_protocol.py` - Audit trail recording
 - `logger_protocol.py` - Structured logging
 - `secrets_protocol.py` - Secrets management
+- `email_protocol.py` - Email sending
+- `email_service_protocol.py` - Email service operations
+- `rate_limit_protocol.py` - Rate limiting
+- `authorization_protocol.py` - RBAC authorization
+- `provider_protocol.py` - Financial provider operations
+- `session_enricher_protocol.py` - Session metadata enrichment
 
 ### Container Pattern
 
@@ -76,7 +96,7 @@ class RegisterUserHandler:
 
 **Purpose**: Singletons that live for the entire application lifetime.
 
-**Location**: `src/core/container.py`
+**Location**: `src/core/container/` (modular structure)
 
 **Pattern**: Functions decorated with `@lru_cache()` return same instance
 
@@ -99,7 +119,7 @@ class RegisterUserHandler:
 
 **Purpose**: Dependencies created fresh per HTTP request.
 
-**Location**: Dependency functions in `src/core/container.py` or endpoint files
+**Location**: Dependency functions in `src/core/container/` modules
 
 **Pattern**: Generator functions with `yield` (cleanup after request)
 
@@ -126,182 +146,101 @@ because auth is an HTTP concern, not business logic. See `docs/architecture/erro
 
 ## 2. Container Implementation
 
-### 2.1 Container Structure
+### 2.1 Modular Container Structure
+
+The container is organized into modules by domain responsibility:
+
+```text
+src/core/container/
+├── __init__.py              # Re-exports all (single entry point preserved)
+├── infrastructure.py        # Core services: cache, db, secrets, logging, etc.
+├── events.py               # Event bus with all 27 subscriptions
+├── repositories.py         # All repository factories
+├── auth_handlers.py        # Auth command/query handlers (15 handlers)
+├── provider_handlers.py    # Provider handlers (5 handlers)
+├── data_handlers.py        # Account/transaction handlers (9 handlers)
+├── providers.py            # Financial provider adapter factory
+└── authorization.py        # Casbin RBAC enforcer
+```
+
+**Key Benefits**:
+
+- **Maintainability**: Smaller, focused files (~200-500 lines each vs 2300+ monolith)
+- **Team Development**: Multiple developers can work on different modules
+- **Faster Navigation**: Find dependencies by domain area
+- **Backward Compatible**: All imports still work via `__init__.py` re-exports
+
+### 2.2 Module Responsibilities
+
+**infrastructure.py** (~460 lines) - Application-scoped singletons:
+
+- `get_cache()` - Redis connection pool
+- `get_secrets()` - Env/AWS secrets adapter
+- `get_encryption_service()` - AES-256-GCM encryption
+- `get_database()` - PostgreSQL connection pool
+- `get_db_session()` - Request-scoped session
+- `get_audit_session()` - Separate audit session
+- `get_audit()` - Audit trail adapter
+- `get_password_service()` - Bcrypt hashing
+- `get_token_service()` - JWT generation
+- `get_email_service()` - Email adapter
+- `get_rate_limit()` - Token bucket rate limiter
+- `get_logger()` - Console/CloudWatch logger
+
+**events.py** (~230 lines) - Domain event infrastructure:
+
+- `get_event_bus()` - In-memory event bus with 27 subscriptions
+- Registers LoggingEventHandler, AuditEventHandler, EmailEventHandler, SessionEventHandler
+
+**repositories.py** (~230 lines) - Repository factories:
+
+- `get_user_repository()`
+- `get_provider_connection_repository()`
+- `get_provider_repository()`
+- `get_account_repository()`
+- `get_transaction_repository()`
+
+**auth_handlers.py** (~530 lines) - Authentication handlers:
+
+- Registration, login, logout handlers
+- Token refresh, email verification
+- Password reset (request and confirm)
+- Session management (list, get, revoke)
+- Token rotation (global and per-user)
+
+**provider_handlers.py** (~190 lines) - Provider handlers:
+
+- Connect/disconnect provider
+- Refresh provider tokens
+- Get/list provider connections
+
+**data_handlers.py** (~390 lines) - Account/transaction handlers:
+
+- Account queries (get, list by connection, list by user)
+- Transaction queries (get, list, date range, security)
+- Sync handlers (accounts, transactions)
+
+**providers.py** (~80 lines) - Provider factory:
+
+- `get_provider(slug)` - Returns Schwab (future: Plaid, Yodlee)
+
+**authorization.py** (~160 lines) - Casbin RBAC:
+
+- `init_enforcer()` - Initialize at startup
+- `get_enforcer()` - Get singleton
+- `get_authorization()` - Request-scoped adapter
+
+### 2.3 Usage (Unchanged)
+
+All existing imports continue to work:
 
 ```python
-# src/core/container.py
-"""Centralized dependency injection container.
+# Single import point preserved
+from src.core.container import get_cache, get_db_session, get_register_user_handler
 
-Provides both application-scoped singletons and request-scoped dependencies
-for use across all architectural layers.
-
-Architecture:
-    - Application-scoped: @lru_cache() decorated functions (singletons)
-    - Request-scoped: Generator functions with yield (per-request)
-"""
-
-from functools import lru_cache
-from typing import AsyncGenerator
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.core.config import settings
-from src.domain.protocols.cache import CacheProtocol
-from src.domain.protocols.secrets_protocol import SecretsProtocol
-from src.infrastructure.persistence.database import Database
-
-
-# ============================================================================
-# Application-Scoped Dependencies (Singletons)
-# ============================================================================
-
-@lru_cache()
-def get_secrets() -> SecretsProtocol:
-    """Get secrets manager singleton (app-scoped).
-    
-    Container owns factory logic - decides which adapter based on SECRETS_BACKEND.
-    This follows the Composition Root pattern (industry best practice).
-    
-    Returns correct adapter based on SECRETS_BACKEND environment variable:
-        - 'env': EnvAdapter (local development)
-        - 'aws': AWSAdapter (production)
-    
-    Returns:
-        Secrets manager implementing SecretsProtocol.
-    
-    Usage:
-        # Application Layer
-        secrets = get_secrets()
-        db_url = secrets.get_secret("database/url")
-        
-        # Presentation Layer
-        secrets: SecretsProtocol = Depends(get_secrets)
-    """
-    import os
-    
-    backend = os.getenv("SECRETS_BACKEND", "env")
-    
-    if backend == "aws":
-        from src.infrastructure.secrets.aws_adapter import AWSAdapter
-        region = os.getenv("AWS_REGION", "us-east-1")
-        return AWSAdapter(environment=settings.environment, region=region)
-    elif backend == "env":
-        from src.infrastructure.secrets.env_adapter import EnvAdapter
-        return EnvAdapter()
-    else:
-        raise ValueError(f"Unsupported SECRETS_BACKEND: {backend}")
-
-
-@lru_cache()
-def get_cache() -> CacheProtocol:
-    """Get cache client singleton (app-scoped).
-    
-    Container creates RedisAdapter directly with connection pooling.
-    This follows the Composition Root pattern (industry best practice).
-    
-    Returns:
-        Cache client implementing CacheProtocol.
-    
-    Usage:
-        # Application Layer
-        cache = get_cache()
-        await cache.set("key", "value")
-        
-        # Presentation Layer
-        cache: CacheProtocol = Depends(get_cache)
-    """
-    from redis.asyncio import ConnectionPool, Redis
-    from src.infrastructure.cache.redis_adapter import RedisAdapter
-    
-    # Container owns Redis configuration
-    pool = ConnectionPool.from_url(
-        settings.redis_url,
-        max_connections=50,
-        decode_responses=False,
-        socket_connect_timeout=5,
-        socket_timeout=5,
-        retry_on_timeout=True,
-        socket_keepalive=True,
-        socket_keepalive_options={1: 1, 2: 1, 3: 5},
-    )
-    redis_client = Redis(connection_pool=pool)
-    return RedisAdapter(redis_client=redis_client)
-
-
-@lru_cache()
-def get_database() -> Database:
-    """Get database manager singleton (app-scoped).
-    
-    Returns Database instance with connection pool.
-    Use get_db_session() for per-request sessions.
-    
-    Returns:
-        Database manager instance.
-    
-    Note:
-        This is rarely used directly. Prefer get_db_session() for sessions.
-    """
-    return Database(
-        database_url=settings.database_url,
-        echo=settings.db_echo,
-    )
-
-
-# ============================================================================
-# Request-Scoped Dependencies (Per-Request)
-# ============================================================================
-
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Get database session (request-scoped).
-    
-    Creates new session per request with automatic transaction management:
-        - Commits on success
-        - Rolls back on exception
-        - Always closes session
-    
-    Yields:
-        Database session for request duration.
-    
-    Usage:
-        # Presentation Layer (FastAPI endpoint)
-        @router.post("/users")
-        async def create_user(
-            session: AsyncSession = Depends(get_db_session)
-        ):
-            # Use session
-            ...
-    """
-    db = get_database()
-    async with db.get_session() as session:
-        yield session
-
-
-# ============================================================================
-# Handler Factories (Request-Scoped)
-# ============================================================================
-
-def get_register_user_handler():
-    """Get RegisterUser command handler (request-scoped).
-    
-    Creates new handler instance per request.
-    Handler uses application-scoped dependencies internally.
-    
-    Returns:
-        RegisterUserHandler instance.
-    
-    Usage:
-        @router.post("/users")
-        async def create_user(
-            handler: RegisterUserHandler = Depends(get_register_user_handler)
-        ):
-            result = await handler.handle(command)
-    """
-    from src.application.commands.handlers.register_user_handler import (
-        RegisterUserHandler,
-    )
-    
-    # Handler uses container internally for app-scoped dependencies
-    return RegisterUserHandler()
+# Or import from specific module for clarity
+from src.core.container.infrastructure import get_cache
+from src.core.container.auth_handlers import get_register_user_handler
 ```
 
 ---
@@ -324,31 +263,51 @@ class User:
 
 ### 3.2 Application Layer
 
-**Rule**: Use container directly for app-scoped dependencies.
+**Rule**: Handlers receive dependencies via **constructor injection**. The container factories
+assemble handlers with their dependencies - handlers never import container directly.
 
 ```python
 # src/application/commands/handlers/register_user_handler.py
-from src.core.container import get_cache, get_secrets
+# NO container imports - only domain protocols!
+from src.domain.protocols import UserRepository, PasswordHashingProtocol
+from src.domain.protocols.event_bus_protocol import EventBusProtocol
 
 class RegisterUserHandler:
-    def __init__(self):
-        # Application layer uses container directly
-        self.cache = get_cache()      # ← App-scoped singleton
-        self.secrets = get_secrets()  # ← App-scoped singleton
+    """Handler receives all dependencies via constructor."""
     
-    async def handle(
-        self, 
-        cmd: RegisterUser, 
-        session: AsyncSession  # ← Injected from presentation layer
-    ) -> Result[UUID, Error]:
-        # Use dependencies
-        db_url = self.secrets.get_secret("database/url")
-        await self.cache.set(f"user:{cmd.email}", "pending")
-        
-        # Use injected session
-        user = User(email=cmd.email)
-        session.add(user)
-        return Success(user.id)
+    def __init__(
+        self,
+        user_repo: UserRepository,              # ← Injected protocol
+        password_service: PasswordHashingProtocol,  # ← Injected protocol
+        event_bus: EventBusProtocol,            # ← Injected protocol
+    ) -> None:
+        self._user_repo = user_repo
+        self._password_service = password_service
+        self._event_bus = event_bus
+    
+    async def handle(self, cmd: RegisterUser) -> Result[UUID, str]:
+        # Use injected dependencies - no container knowledge
+        password_hash = self._password_service.hash_password(cmd.password)
+        user = User(email=cmd.email, password_hash=password_hash, ...)
+        await self._user_repo.save(user)
+        await self._event_bus.publish(UserRegistrationSucceeded(...))
+        return Success(value=user.id)
+```
+
+**Container factory assembles the handler** (`src/core/container/auth_handlers.py`):
+
+```python
+async def get_register_user_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> RegisterUserHandler:
+    """Container factory wires dependencies."""
+    from src.infrastructure.persistence.repositories import UserRepository
+    
+    return RegisterUserHandler(
+        user_repo=UserRepository(session=session),
+        password_service=get_password_service(),  # App-scoped singleton
+        event_bus=get_event_bus(),                # App-scoped singleton
+    )
 ```
 
 ### 3.3 Infrastructure Layer
@@ -404,26 +363,51 @@ async def create_user(
 
 ## 4. Testing Strategy
 
-### 4.1 Unit Tests - Mock Container
+### 4.1 Unit Tests - Direct Dependency Injection
+
+Since handlers use **constructor injection**, unit testing is straightforward - create
+mock dependencies and pass them directly:
 
 ```python
 # tests/unit/test_application_register_user_handler.py
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock
+import pytest
 
-def test_register_user_handler():
-    """Test handler with mocked dependencies."""
-    # Mock container functions
-    with patch("src.core.container.get_cache") as mock_cache:
-        with patch("src.core.container.get_secrets") as mock_secrets:
-            # Configure mocks
-            mock_cache.return_value = Mock(CacheProtocol)
-            mock_secrets.return_value = Mock(SecretsProtocol)
-            
-            # Test handler
-            handler = RegisterUserHandler()
-            # Handler uses mocked dependencies
-            ...
+@pytest.mark.asyncio
+async def test_register_user_handler_success():
+    """Test handler with mock dependencies - NO patching needed."""
+    # Create mock dependencies directly
+    mock_user_repo = Mock()
+    mock_user_repo.find_by_email = AsyncMock(return_value=None)  # No existing user
+    mock_user_repo.save = AsyncMock()
+    
+    mock_password_service = Mock()
+    mock_password_service.hash_password.return_value = "hashed_password"
+    
+    mock_event_bus = Mock()
+    mock_event_bus.publish = AsyncMock()
+    
+    # Instantiate handler with mocks
+    handler = RegisterUserHandler(
+        user_repo=mock_user_repo,
+        password_service=mock_password_service,
+        event_bus=mock_event_bus,
+    )
+    
+    # Test the handler
+    result = await handler.handle(RegisterUser(email="test@example.com", password="secure"))
+    
+    assert isinstance(result, Success)
+    mock_user_repo.save.assert_called_once()
+    mock_event_bus.publish.assert_called()  # Events emitted
 ```
+
+**Benefits of constructor injection testing**:
+
+- No `patch()` context managers needed
+- Test isolation - each test has fresh mocks
+- Clear dependency graph visible in test setup
+- IDE autocomplete works on mock setup
 
 ### 4.2 Integration Tests - Real Dependencies
 
@@ -646,29 +630,40 @@ async def get_cache():  # ❌ No @lru_cache - creates new Redis connection per r
 
 ### 9.1 Hexagonal Architecture Compliance
 
-- ✅ **Domain Layer**: No container imports (pure)
-- ✅ **Application Layer**: Uses container for app-scoped dependencies
-- ✅ **Infrastructure Layer**: Implements protocols, can use container
-- ✅ **Presentation Layer**: Uses FastAPI Depends (delegates to container)
+- ✅ **Domain Layer**: No container imports (pure, only protocols)
+- ✅ **Application Layer**: Handlers receive dependencies via constructor injection
+- ✅ **Infrastructure Layer**: Implements protocols, can use container for assembly
+- ✅ **Presentation Layer**: Uses FastAPI Depends (delegates to container factories)
 
 ### 9.2 CQRS Pattern
 
-```python
-# Command handlers use container
-class RegisterUserHandler:
-    def __init__(self):
-        self.cache = get_cache()
+Handlers are **protocol-dependent** and **container-agnostic**:
 
-# Query handlers use container
+```python
+# Command handler - depends only on protocols
+class RegisterUserHandler:
+    def __init__(self, user_repo: UserRepository, event_bus: EventBusProtocol):
+        self._user_repo = user_repo
+        self._event_bus = event_bus
+
+# Query handler - depends only on protocols
 class GetUserHandler:
-    def __init__(self):
-        self.cache = get_cache()
+    def __init__(self, user_repo: UserRepository):
+        self._user_repo = user_repo
+
+# Container factory wires dependencies
+async def get_register_user_handler(session: AsyncSession = Depends(get_db_session)):
+    return RegisterUserHandler(
+        user_repo=UserRepository(session=session),
+        event_bus=get_event_bus(),
+    )
 
 # Presentation layer injects via Depends
 @router.post("/users")
 async def create_user(
     handler: RegisterUserHandler = Depends(get_register_user_handler)
 ):
+    result = await handler.handle(command)
     ...
 ```
 
@@ -693,4 +688,4 @@ async def get_user(
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-11-13
+**Created**: 2025-11-13 | **Last Updated**: 2025-12-04

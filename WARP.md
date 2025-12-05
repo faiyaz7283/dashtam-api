@@ -1370,6 +1370,25 @@ async def create_user(
 - Committing without running tests
 - Using ABC instead of Protocol
 
+#### Architecture Compliance Audit Process
+
+**For each architecture document audit** (e.g., F6.4), follow this checklist:
+
+1. **Read & Analyze** - Review the architecture doc for industry standard compliance
+2. **Identify Gaps** - Note any missing patterns, improvements needed
+3. **Verify Code** - Check source code implements the documented architecture
+4. **Verify Tests** - Ensure tests correctly validate the architecture
+5. **Fix & Add Tests** - Address any test gaps
+6. **Create Usage Guide** - Add practical how-to guide in `docs/guides/`
+7. **Run Verification** - `make lint`, `make format`, `make type-check`, `make test`, `make lint-md`
+
+**Usage Guide Pattern** (create for each architecture doc):
+
+- Location: `docs/guides/<topic>-usage.md`
+- Purpose: Practical how-to patterns (vs architecture doc which explains *what* and *why*)
+- Sections: Quick Start, Adding New X, Testing, Common Patterns, Troubleshooting
+- Example: `dependency-injection-usage.md` pairs with `dependency-injection-architecture.md`
+
 ---
 
 ## Part 7: Quick Reference

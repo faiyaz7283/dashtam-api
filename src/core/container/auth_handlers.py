@@ -214,9 +214,7 @@ async def get_create_session_handler(
 
     session_repo = SessionRepository(session=session)
     user_repo = UserRepository(session=session)
-    # TODO: Fix in cache-architecture.md audit - add get_redis_adapter() factory
-    # or extend CacheProtocol with JSON methods. See RedisSessionCache type mismatch.
-    session_cache = RedisSessionCache(redis_adapter=get_cache())  # type: ignore[arg-type]
+    session_cache = RedisSessionCache(cache=get_cache())
     device_enricher = UserAgentDeviceEnricher()
     location_enricher = IPLocationEnricher()
     event_bus = get_event_bus()
@@ -423,7 +421,7 @@ async def get_get_session_handler(
     from src.infrastructure.persistence.repositories import SessionRepository
 
     session_repo = SessionRepository(session=session)
-    session_cache = RedisSessionCache(redis_adapter=get_cache())  # type: ignore[arg-type]
+    session_cache = RedisSessionCache(cache=get_cache())
 
     return GetSessionHandler(
         session_repo=session_repo,
@@ -446,7 +444,7 @@ async def get_revoke_session_handler(
     from src.infrastructure.persistence.repositories import SessionRepository
 
     session_repo = SessionRepository(session=session)
-    session_cache = RedisSessionCache(redis_adapter=get_cache())  # type: ignore[arg-type]
+    session_cache = RedisSessionCache(cache=get_cache())
     event_bus = get_event_bus()
 
     return RevokeSessionHandler(
@@ -471,7 +469,7 @@ async def get_revoke_all_sessions_handler(
     from src.infrastructure.persistence.repositories import SessionRepository
 
     session_repo = SessionRepository(session=session)
-    session_cache = RedisSessionCache(redis_adapter=get_cache())  # type: ignore[arg-type]
+    session_cache = RedisSessionCache(cache=get_cache())
     event_bus = get_event_bus()
 
     return RevokeAllSessionsHandler(

@@ -228,7 +228,7 @@ async def session_cache(cache_adapter):
     """
     from src.infrastructure.cache.session_cache import RedisSessionCache
 
-    return RedisSessionCache(redis_adapter=cache_adapter)
+    return RedisSessionCache(cache=cache_adapter)
 
 
 @pytest_asyncio.fixture

@@ -264,3 +264,109 @@ class TestCacheIntegration:
         result = await cache_adapter.get_json("nonexistent_json")
         assert isinstance(result, Success)
         assert result.value is None
+
+    @pytest.mark.asyncio
+    async def test_delete_pattern_removes_matching_keys(self, cache_adapter):
+        """Test delete_pattern removes all keys matching glob pattern."""
+        # Set multiple keys with a common prefix
+        await cache_adapter.set("session:user123:abc", "session1")
+        await cache_adapter.set("session:user123:def", "session2")
+        await cache_adapter.set("session:user123:ghi", "session3")
+        await cache_adapter.set("session:user456:xyz", "other_user")
+
+        # Delete all sessions for user123
+        result = await cache_adapter.delete_pattern("session:user123:*")
+        assert isinstance(result, Success)
+        assert result.value == 3  # 3 keys deleted
+
+        # Verify user123 sessions are gone
+        result1 = await cache_adapter.get("session:user123:abc")
+        result2 = await cache_adapter.get("session:user123:def")
+        result3 = await cache_adapter.get("session:user123:ghi")
+        assert result1.value is None
+        assert result2.value is None
+        assert result3.value is None
+
+        # Verify user456 session still exists
+        result4 = await cache_adapter.get("session:user456:xyz")
+        assert result4.value == "other_user"
+
+    @pytest.mark.asyncio
+    async def test_delete_pattern_returns_zero_when_no_matches(self, cache_adapter):
+        """Test delete_pattern returns 0 when no keys match pattern."""
+        result = await cache_adapter.delete_pattern("nonexistent:*")
+        assert isinstance(result, Success)
+        assert result.value == 0
+
+    @pytest.mark.asyncio
+    async def test_get_many_retrieves_multiple_values(self, cache_adapter):
+        """Test get_many retrieves multiple values in single operation."""
+        # Set multiple keys
+        await cache_adapter.set("batch:key1", "value1")
+        await cache_adapter.set("batch:key2", "value2")
+        await cache_adapter.set("batch:key3", "value3")
+
+        # Get all at once
+        result = await cache_adapter.get_many(
+            ["batch:key1", "batch:key2", "batch:key3", "batch:missing"]
+        )
+        assert isinstance(result, Success)
+        assert result.value == {
+            "batch:key1": "value1",
+            "batch:key2": "value2",
+            "batch:key3": "value3",
+            "batch:missing": None,  # Missing key returns None
+        }
+
+    @pytest.mark.asyncio
+    async def test_get_many_with_empty_list_returns_empty_dict(self, cache_adapter):
+        """Test get_many with empty list returns empty dict."""
+        result = await cache_adapter.get_many([])
+        assert isinstance(result, Success)
+        assert result.value == {}
+
+    @pytest.mark.asyncio
+    async def test_set_many_stores_multiple_values(self, cache_adapter):
+        """Test set_many stores multiple values in single operation."""
+        mapping = {
+            "multi:a": "alpha",
+            "multi:b": "beta",
+            "multi:c": "gamma",
+        }
+
+        # Set all at once
+        result = await cache_adapter.set_many(mapping)
+        assert isinstance(result, Success)
+        assert result.value is None
+
+        # Verify all were set
+        get_result = await cache_adapter.get_many(["multi:a", "multi:b", "multi:c"])
+        assert isinstance(get_result, Success)
+        assert get_result.value == mapping
+
+    @pytest.mark.asyncio
+    async def test_set_many_with_ttl(self, cache_adapter):
+        """Test set_many stores values with TTL."""
+        mapping = {
+            "ttl_multi:x": "x_value",
+            "ttl_multi:y": "y_value",
+        }
+
+        # Set with 60 second TTL
+        result = await cache_adapter.set_many(mapping, ttl=60)
+        assert isinstance(result, Success)
+
+        # Verify TTLs are set
+        ttl_x = await cache_adapter.ttl("ttl_multi:x")
+        ttl_y = await cache_adapter.ttl("ttl_multi:y")
+        assert isinstance(ttl_x, Success)
+        assert isinstance(ttl_y, Success)
+        assert ttl_x.value is not None and 0 < ttl_x.value <= 60
+        assert ttl_y.value is not None and 0 < ttl_y.value <= 60
+
+    @pytest.mark.asyncio
+    async def test_set_many_with_empty_dict_succeeds(self, cache_adapter):
+        """Test set_many with empty dict succeeds without error."""
+        result = await cache_adapter.set_many({})
+        assert isinstance(result, Success)
+        assert result.value is None

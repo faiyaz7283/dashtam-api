@@ -475,3 +475,102 @@ class RedisAdapter:
                     },
                 )
             )
+
+    async def get_many(
+        self, keys: list[str]
+    ) -> Result[dict[str, str | None], CacheError]:
+        """Get multiple values from Redis (batch operation).
+
+        Uses Redis MGET for efficient batch retrieval.
+
+        Args:
+            keys: List of cache keys to retrieve.
+
+        Returns:
+            Result with dict mapping keys to values (None for missing), or CacheError.
+        """
+        if not keys:
+            return Success(value={})
+
+        try:
+            values = await self._redis.mget(keys)
+            result_dict: dict[str, str | None] = {}
+            for key, value in zip(keys, values):
+                if value is None:
+                    result_dict[key] = None
+                else:
+                    decoded = (
+                        value.decode("utf-8") if isinstance(value, bytes) else value
+                    )
+                    result_dict[key] = decoded
+            return Success(value=result_dict)
+        except RedisError as e:
+            return Failure(
+                error=CacheError(
+                    code=ErrorCode.VALIDATION_FAILED,
+                    infrastructure_code=InfrastructureErrorCode.CACHE_GET_ERROR,
+                    message="Failed to get multiple keys from cache",
+                    details={"keys": keys, "error": str(e)},
+                )
+            )
+        except Exception as e:
+            return Failure(
+                error=CacheError(
+                    code=ErrorCode.VALIDATION_FAILED,
+                    infrastructure_code=InfrastructureErrorCode.CACHE_GET_ERROR,
+                    message="Unexpected error getting multiple keys",
+                    details={"keys": keys, "error": str(e), "type": type(e).__name__},
+                )
+            )
+
+    async def set_many(
+        self,
+        mapping: dict[str, str],
+        ttl: int | None = None,
+    ) -> Result[None, CacheError]:
+        """Set multiple values in Redis (batch operation).
+
+        Uses Redis pipeline for atomic batch writes.
+
+        Args:
+            mapping: Dict of key->value pairs to cache.
+            ttl: Time to live in seconds for all keys (None = no expiration).
+
+        Returns:
+            Result with None on success, or CacheError.
+        """
+        if not mapping:
+            return Success(value=None)
+
+        try:
+            # Use pipeline for efficient batch operation
+            async with self._redis.pipeline() as pipe:
+                for key, value in mapping.items():
+                    if ttl is not None:
+                        pipe.setex(key, ttl, value)
+                    else:
+                        pipe.set(key, value)
+                await pipe.execute()
+            return Success(value=None)
+        except RedisError as e:
+            return Failure(
+                error=CacheError(
+                    code=ErrorCode.VALIDATION_FAILED,
+                    infrastructure_code=InfrastructureErrorCode.CACHE_SET_ERROR,
+                    message="Failed to set multiple keys in cache",
+                    details={"keys": list(mapping.keys()), "error": str(e)},
+                )
+            )
+        except Exception as e:
+            return Failure(
+                error=CacheError(
+                    code=ErrorCode.VALIDATION_FAILED,
+                    infrastructure_code=InfrastructureErrorCode.CACHE_SET_ERROR,
+                    message="Unexpected error setting multiple keys",
+                    details={
+                        "keys": list(mapping.keys()),
+                        "error": str(e),
+                        "type": type(e).__name__,
+                    },
+                )
+            )

@@ -346,3 +346,65 @@ class CacheProtocol(Protocol):
                     pass
         """
         ...
+
+    async def get_many(
+        self, keys: list[str]
+    ) -> Result[dict[str, str | None], DomainError]:
+        """Get multiple values at once (batch operation).
+
+        More efficient than multiple get() calls - uses Redis MGET.
+
+        Args:
+            keys: List of cache keys to retrieve.
+
+        Returns:
+            Result with dict mapping keys to values (None for missing keys),
+            or CacheError.
+
+        Example:
+            result = await cache.get_many(["user:1", "user:2", "user:3"])
+            match result:
+                case Success(data):
+                    for key, value in data.items():
+                        if value is not None:
+                            # Process cached value
+                            pass
+                case Failure(_):
+                    # Fail open
+                    pass
+        """
+        ...
+
+    async def set_many(
+        self,
+        mapping: dict[str, str],
+        ttl: int | None = None,
+    ) -> Result[None, DomainError]:
+        """Set multiple values at once (batch operation).
+
+        More efficient than multiple set() calls - uses Redis pipeline.
+
+        Args:
+            mapping: Dict of key->value pairs to cache.
+            ttl: Time to live in seconds for all keys (None = no expiration).
+
+        Returns:
+            Result with None on success, or CacheError.
+
+        Example:
+            result = await cache.set_many(
+                {
+                    "user:1": json.dumps(user1),
+                    "user:2": json.dumps(user2),
+                },
+                ttl=3600
+            )
+            match result:
+                case Success(_):
+                    # All keys cached
+                    pass
+                case Failure(_):
+                    # Fail open
+                    pass
+        """
+        ...

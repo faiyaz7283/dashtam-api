@@ -43,41 +43,36 @@ Manager for production) with a read-only, environment-agnostic interface.
 
 ### 2.1 Layer Responsibilities
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ Domain Layer (Port/Protocol)                            │
-│ - SecretsProtocol defines interface                     │
-│ - Pure Python (no external dependencies)                │
-│ - Read-only methods only                                │
-└─────────────────────────────────────────────────────────┘
-                          ▲
-                          │ implements
-                          │
-┌─────────────────────────────────────────────────────────┐
-│ Infrastructure Layer (Adapters)                         │
-│ - EnvAdapter (local .env files)                  │
-│ - AWSAdapter (AWS Secrets Manager)               │
-│ - VaultAdapter (HashiCorp Vault)                 │
-│ - Each adapter handles caching, error handling          │
-└─────────────────────────────────────────────────────────┘
-                          ▲
-                          │ uses
-                          │
-┌─────────────────────────────────────────────────────────┐
-│ Core Layer (Container)                                  │
-│ - get_secrets() creates correct adapter                 │
-│ - Reads SECRETS_BACKEND env var                         │
-│ - Follows Composition Root pattern                      │
-└─────────────────────────────────────────────────────────┘
-                          ▲
-                          │ uses
-                          │
-┌─────────────────────────────────────────────────────────┐
-│ Application Layer (Settings)                            │
-│ - Settings.from_secrets_manager() classmethod           │
-│ - Loads config from any secrets backend                 │
-│ - Auto-detects backend from environment                 │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Domain["Domain Layer (Port/Protocol)"]
+        D1["SecretsProtocol defines interface"]
+        D2["Pure Python (no external dependencies)"]
+        D3["Read-only methods only"]
+    end
+
+    subgraph Infrastructure["Infrastructure Layer (Adapters)"]
+        I1["EnvAdapter (local .env files)"]
+        I2["AWSAdapter (AWS Secrets Manager)"]
+        I3["VaultAdapter (HashiCorp Vault)"]
+        I4["Each adapter handles caching, error handling"]
+    end
+
+    subgraph Core["Core Layer (Container)"]
+        C1["get_secrets() creates correct adapter"]
+        C2["Reads SECRETS_BACKEND env var"]
+        C3["Follows Composition Root pattern"]
+    end
+
+    subgraph Application["Application Layer (Settings)"]
+        A1["Settings loads from container"]
+        A2["Loads config from any secrets backend"]
+        A3["Auto-detects backend from environment"]
+    end
+
+    Infrastructure -->|implements| Domain
+    Core -->|uses| Infrastructure
+    Application -->|uses| Core
 ```
 
 ### 2.2 Dependency Flow
@@ -102,53 +97,51 @@ Manager for production) with a read-only, environment-agnostic interface.
 
 ```python
 # src/domain/protocols/secrets_protocol.py
-from typing import Protocol, Dict, Any
+from typing import Protocol
+
+from src.domain.errors import SecretsError
+from src.core.result import Result
 
 
 class SecretsProtocol(Protocol):
     """Protocol for secrets management systems.
-    
+
     Applications are READ-ONLY consumers of secrets.
-    Secret provisioning is an admin operation (Terraform, AWS CLI).
-    
+    Secret provisioning is an admin operation (Terraform, AWS CLI, web console).
+
     Implementations:
-    - EnvAdapter: Local development (.env files)
-    - AWSAdapter: Production (AWS Secrets Manager)
-    - VaultAdapter: Alternative (HashiCorp Vault)
+        - EnvAdapter: Local development (.env files)
+        - AWSAdapter: Production (AWS Secrets Manager)
+        - VaultAdapter: Alternative (HashiCorp Vault)
     """
-    
-    def get_secret(self, secret_path: str) -> str:
+
+    def get_secret(self, secret_path: str) -> Result[str, SecretsError]:
         """Get single secret value.
-        
+
         Args:
-            secret_path: Path like 'database/url' or 'schwab/api_key'
-            
+            secret_path: Path like 'database/url' or 'schwab/api_key'.
+
         Returns:
-            Secret value as string
-            
-        Raises:
-            SecretNotFoundError: If secret doesn't exist
+            Success(secret_value) if found.
+            Failure(SecretsError) if not found or access denied.
         """
         ...
-    
-    def get_secret_json(self, secret_path: str) -> Dict[str, Any]:
+
+    def get_secret_json(self, secret_path: str) -> Result[dict[str, str], SecretsError]:
         """Get secret as parsed JSON dictionary.
-        
+
         Args:
-            secret_path: Path to JSON-formatted secret
-            
+            secret_path: Path to JSON-formatted secret.
+
         Returns:
-            Parsed JSON as dictionary
-            
-        Raises:
-            SecretNotFoundError: If secret doesn't exist
-            ValueError: If secret is not valid JSON
+            Success(parsed_json) if valid JSON.
+            Failure(SecretsError) if not found, access denied, or invalid JSON.
         """
         ...
-    
+
     def refresh_cache(self) -> None:
         """Clear cached secrets to reload after rotation.
-        
+
         Call this after rotating secrets in backend system.
         Next get_secret() call will fetch fresh value.
         """
@@ -565,88 +558,64 @@ def get_secrets() -> SecretsProtocol:
 
 ### 6.2 Settings Class with Secrets Support
 
+The actual implementation in `src/core/config.py` (lines 270-334) uses Result types
+for proper error handling:
+
 ```python
-# src/core/config.py
-import os
-from functools import lru_cache
-from pydantic_settings import BaseSettings
+# src/core/config.py (simplified - see actual file for full implementation)
+from src.core.result import Success
 from src.domain.protocols.secrets_protocol import SecretsProtocol
 
 
 class Settings(BaseSettings):
     """Application configuration with multi-tier secrets support."""
-    
-    # Core settings
-    environment: str = "development"
-    debug: bool = False
-    
-    # Database
-    database_url: str
-    
-    # Charles Schwab API
-    schwab_api_key: str
-    schwab_api_secret: str
-    schwab_redirect_uri: str
-    
-    # Security
-    secret_key: str
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-    
+
     @classmethod
-    def from_secrets_manager(cls, secrets: SecretsProtocol) -> "Settings":
-        """Load settings from any secrets backend (AWS, Vault, etc).
-        
+    def from_secrets_manager(
+        cls,
+        secrets: SecretsProtocol,
+    ) -> "Settings":
+        """Load settings from secrets manager (production environments).
+
         Args:
-            secrets: Secrets adapter implementing SecretsProtocol
-            
+            secrets: Secrets manager implementing SecretsProtocol.
+
         Returns:
-            Settings instance with values from secrets backend
+            Settings: Configuration loaded from secrets backend.
+
+        Raises:
+            ValueError: If required secrets are missing or inaccessible.
         """
-        environment = os.getenv("ENVIRONMENT", "production")
-        
+        # Helper functions handle Result types
+        def get_required(path: str) -> str:
+            result = secrets.get_secret(path)
+            if isinstance(result, Success):
+                return result.value
+            raise ValueError(f"Required secret not found: {path}")
+
+        def get_optional(path: str) -> str | None:
+            result = secrets.get_secret(path)
+            if isinstance(result, Success):
+                return result.value
+            return None
+
+        # Build settings from secrets
         return cls(
-            environment=environment,
-            debug=environment != "production",
-            
-            # Load secrets via protocol (backend-agnostic)
-            database_url=secrets.get_secret("database/url"),
-            schwab_api_key=secrets.get_secret("schwab/api_key"),
-            schwab_api_secret=secrets.get_secret("schwab/api_secret"),
-            schwab_redirect_uri=secrets.get_secret("schwab/redirect_uri"),
-            secret_key=secrets.get_secret("app/secret_key"),
+            environment=Environment.PRODUCTION,
+            database_url=get_required("database/url"),
+            redis_url=get_required("cache/redis_url"),
+            secret_key=get_required("security/secret_key"),
+            encryption_key=get_required("security/encryption_key"),
+            api_base_url=get_required("api/base_url"),
+            # ... other required settings
+            schwab_api_key=get_optional("providers/schwab/api_key"),
+            schwab_api_secret=get_optional("providers/schwab/api_secret"),
         )
-
-
-@lru_cache()
-def get_settings() -> Settings:
-    """Get settings singleton with auto-detected secrets backend.
-    
-    Returns:
-        Settings instance (cached for performance)
-        
-    Behavior:
-        - SECRETS_BACKEND=env: Load from .env file (default)
-        - SECRETS_BACKEND=aws: Load from AWS Secrets Manager
-        - SECRETS_BACKEND=vault: Load from HashiCorp Vault
-    
-    Note:
-        Settings can also use get_secrets() from container for
-        dynamic secret loading after application startup.
-    """
-    secrets_backend = os.getenv("SECRETS_BACKEND", "env")
-    
-    if secrets_backend != "env":
-        # Production: Use secrets manager via container
-        from src.core.container import get_secrets
-        secrets = get_secrets()
-        return Settings.from_secrets_manager(secrets)
-    else:
-        # Development: Use .env files
-        return Settings()
 ```
+
+**Key Pattern**: Helper functions `get_required()` and `get_optional()` unwrap
+Result types, converting `Failure` to exceptions for required secrets or `None`
+for optional ones.
 
 ### 6.3 Usage in Application
 
@@ -906,58 +875,57 @@ def test_aws_adapter_caching():
 
 ## 10. Implementation Checklist
 
-### 10.1 Domain Layer
+### 10.1 Domain Layer ✅
 
-- [ ] Create `src/domain/protocols/secrets_protocol.py`
-- [ ] Define `SecretsProtocol` with 3 methods (get_secret, get_secret_json, refresh_cache)
-- [ ] Define custom exceptions (SecretNotFoundError, SecretAccessError)
-- [ ] Add Google-style docstrings
+- [x] Create `src/domain/protocols/secrets_protocol.py`
+- [x] Define `SecretsProtocol` with 3 methods (get_secret, get_secret_json, refresh_cache)
+- [x] Define `SecretsError` in `src/domain/errors/secrets_error.py`
+- [x] Add Google-style docstrings
 
-### 10.2 Infrastructure Layer
+### 10.2 Infrastructure Layer ✅
 
-- [ ] Create `src/infrastructure/secrets/` directory
-- [ ] Implement `EnvAdapter` (local dev)
-- [ ] Implement `AWSAdapter` (production) with caching
-- [ ] Implement `VaultAdapter` (optional)
-- [ ] Add error handling (try/except with custom exceptions)
+- [x] Create `src/infrastructure/secrets/` directory
+- [x] Implement `EnvAdapter` (local dev)
+- [x] Implement `AWSAdapter` (production) with caching
+- [x] Implement `BaseSecretsAdapter` for shared `get_secret_json()` logic
+- [ ] Implement `VaultAdapter` (optional, deferred)
+- [x] Add error handling (Result types with SecretsError)
 
-### 10.3 Container Integration
+### 10.3 Container Integration ✅
 
 - [x] Container `get_secrets()` implements backend selection
-- [x] Support SECRETS_BACKEND env var (env, aws, vault)
+- [x] Support SECRETS_BACKEND env var (env, aws)
 - [x] Validate required env vars for each backend
 - [x] No separate factory module (Composition Root pattern)
 
-### 10.4 Settings Integration
+### 10.4 Settings Integration ✅
 
-- [ ] Update `src/core/config.py`
-- [ ] Add `Settings.from_secrets_manager()` classmethod
-- [ ] Update `get_settings()` to auto-detect backend
-- [ ] Maintain backward compatibility (.env files still work)
+- [x] `src/core/config.py` uses environment variables directly
+- [x] `Settings.from_secrets_manager()` classmethod implemented (lines 270-334)
+- [x] Settings loads from .env files in development
+- [x] Backward compatibility maintained (.env files work)
 
-### 10.5 Testing
+### 10.5 Testing ✅
 
-- [ ] Unit tests: Protocol mocking (10 tests)
-- [ ] Unit tests: Factory pattern (15 tests)
-- [ ] Integration tests: AWS adapter with moto (20 tests)
-- [ ] Integration tests: Secret caching (10 tests)
-- [ ] All tests passing (55+ tests)
-- [ ] Coverage: 90%+
+- [x] Unit tests: Container secrets backend selection (9 tests)
+- [x] Unit tests: EnvAdapter (18 tests)
+- [x] Unit tests: AWSAdapter with moto (22 tests)
+- [x] Integration tests: EnvAdapter with real environment (8 tests)
+- [x] All tests passing (57+ secrets-related tests)
+- [x] Coverage: 80%+ (overall project)
 
-### 10.6 Documentation
+### 10.6 Documentation ✅
 
-- [ ] Update `docs/architecture/` with this document
-- [ ] Update `~/starter/clean-slate-reference.md` Section 8 reference
-- [ ] Add usage examples to `WARP.md` Section 12
-- [ ] Document secret naming convention
-- [ ] Document IAM permissions for AWS
+- [x] Architecture document created
+- [x] Secret naming convention documented (Section 7)
+- [x] IAM permissions documented (Section 11.2)
+- [x] Migration path documented (Section 12)
 
-### 10.7 Dependencies
+### 10.7 Dependencies ✅
 
-- [ ] Add `boto3` to `pyproject.toml` (AWS)
-- [ ] Add `hvac` to `pyproject.toml` (Vault, optional)
-- [ ] Add `moto[secretsmanager]` to dev dependencies (testing)
-- [ ] Run `uv sync` to install dependencies
+- [x] `boto3` in `pyproject.toml` (AWS)
+- [x] `moto[all]` in dev dependencies (testing)
+- [ ] `hvac` not added (Vault adapter deferred)
 
 ---
 
@@ -1096,4 +1064,4 @@ Same as staging, but with `ENVIRONMENT=production` and production secret paths.
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-11-13
+**Created**: 2025-11-13 | **Last Updated**: 2025-12-05

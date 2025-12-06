@@ -23,7 +23,7 @@ from src.application.commands.session_commands import RevokeAllUserSessions
 from src.core.result import Result, Success
 from src.domain.events.session_events import AllSessionsRevokedEvent
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
-from src.domain.protocols.session_cache import SessionCache
+from src.domain.protocols.session_cache_protocol import SessionCache
 from src.domain.protocols.session_repository import SessionRepository
 
 

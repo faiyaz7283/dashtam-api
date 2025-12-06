@@ -280,9 +280,68 @@ class CacheProtocol(Protocol):
         """
         ...
     
+    async def decrement(
+        self,
+        key: str,
+        amount: int = 1
+    ) -> Result[int, CacheError]:
+        """
+        Atomic decrement operation.
+        
+        Args:
+            key: Cache key
+            amount: Amount to decrement by
+            
+        Returns:
+            Result with new value or CacheError
+        """
+        ...
+    
+    async def ttl(self, key: str) -> Result[int | None, CacheError]:
+        """
+        Get time to live for key.
+        
+        Args:
+            key: Cache key
+            
+        Returns:
+            Result with seconds until expiration, None if no TTL
+        """
+        ...
+    
+    async def flush(self) -> Result[None, CacheError]:
+        """
+        Flush all keys from cache (use with caution).
+        
+        Returns:
+            Result with None on success or CacheError
+        """
+        ...
+    
+    async def ping(self) -> Result[bool, CacheError]:
+        """
+        Check cache connectivity (health check).
+        
+        Returns:
+            Result with True if reachable or CacheError
+        """
+        ...
+    
+    async def delete_pattern(self, pattern: str) -> Result[int, CacheError]:
+        """
+        Delete all keys matching pattern.
+        
+        Args:
+            pattern: Glob-style pattern (e.g., "user:*")
+            
+        Returns:
+            Result with count of deleted keys or CacheError
+        """
+        ...
+    
     async def get_many(self, keys: list[str]) -> Result[dict[str, str | None], CacheError]:
         """
-        Get multiple values at once.
+        Get multiple values at once (batch operation).
         
         Args:
             keys: List of cache keys
@@ -298,7 +357,7 @@ class CacheProtocol(Protocol):
         ttl: int | None = None
     ) -> Result[None, CacheError]:
         """
-        Set multiple values at once.
+        Set multiple values at once (batch operation).
         
         Args:
             mapping: Dict of key->value pairs
@@ -306,27 +365,6 @@ class CacheProtocol(Protocol):
             
         Returns:
             Result with None on success or CacheError
-        """
-        ...
-    
-    async def flush_pattern(self, pattern: str) -> Result[int, CacheError]:
-        """
-        Delete all keys matching pattern.
-        
-        Args:
-            pattern: Redis pattern (e.g., "user:*")
-            
-        Returns:
-            Result with count of deleted keys or CacheError
-        """
-        ...
-    
-    async def health_check(self) -> Result[bool, CacheError]:
-        """
-        Check if cache is healthy and responsive.
-        
-        Returns:
-            Result with True if healthy or CacheError
         """
         ...
 ```
@@ -557,7 +595,7 @@ class RedisAdapter:
                 details={"error": str(e)}
             ))
     
-    async def flush_pattern(self, pattern: str) -> Result[int, CacheError]:
+    async def delete_pattern(self, pattern: str) -> Result[int, CacheError]:
         """Delete all keys matching pattern."""
         try:
             # Use SCAN to avoid blocking on large datasets
@@ -567,23 +605,23 @@ class RedisAdapter:
                 count += 1
             return Success(count)
         except Exception as e:
-            logger.error("redis_flush_pattern_error", pattern=pattern, error=str(e))
+            logger.error("redis_delete_pattern_error", pattern=pattern, error=str(e))
             return Failure(CacheError(
-                message=f"Failed to flush pattern: {pattern}",
-                code="CACHE_FLUSH_ERROR",
+                message=f"Failed to delete keys matching pattern: {pattern}",
+                code="CACHE_DELETE_ERROR",
                 details={"pattern": pattern, "error": str(e)}
             ))
     
-    async def health_check(self) -> Result[bool, CacheError]:
-        """Check Redis health."""
+    async def ping(self) -> Result[bool, CacheError]:
+        """Check Redis connectivity (health check)."""
         try:
             await self._redis.ping()
             return Success(True)
         except Exception as e:
-            logger.error("redis_health_check_failed", error=str(e))
+            logger.error("redis_ping_failed", error=str(e))
             return Failure(CacheError(
-                message="Redis health check failed",
-                code="CACHE_UNHEALTHY",
+                message="Redis ping failed",
+                code="CACHE_CONNECTION_ERROR",
                 details={"error": str(e)}
             ))
 ```
@@ -1081,4 +1119,4 @@ general application caching needs.
 
 ---
 
-**Created**: 2025-11-11 | **Last Updated**: 2025-11-13
+**Created**: 2025-11-11 | **Last Updated**: 2025-12-05

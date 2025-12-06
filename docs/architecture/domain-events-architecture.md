@@ -239,7 +239,13 @@ EVENT_BUS_TYPE=rabbitmq  # production (horizontal scaling)
 16. AdminUserDeleted (attempted → succeeded/failed)
 17. AdminConfigChanged (attempted → succeeded/failed)
 
-**Total**: 17 workflows × 3 events = **51 domain events**
+**Total**: 17 workflows × 3 events = **51 domain events** (planned)
+
+**Current Implementation Status**:
+
+- ~60 events defined across 5 event modules
+- 27 handler subscriptions wired in container
+- Remaining events defined for future use (see F6.16)
 
 **Non-critical workflows** (NO events):
 
@@ -1882,21 +1888,4 @@ class ChangePasswordHandler:
 
 ---
 
-## Success Criteria
-
-- [ ] EventBusProtocol defined (Protocol for hexagonal architecture)
-- [ ] DomainEvent base class (frozen dataclass)
-- [ ] 12 events defined (4 workflows × 3 states)
-- [ ] InMemoryEventBus implemented (fail-open behavior)
-- [ ] 4 event handlers implemented (logging, audit, email, session)
-- [ ] Container get_event_bus() with @lru_cache singleton
-- [ ] 48 handler subscriptions wired
-- [ ] 165 tests passing (85 unit + 20 integration + 60 event tests)
-- [ ] 90%+ coverage for domain events module
-- [ ] Documentation: domain-events-architecture.md (this file)
-- [ ] Documentation: domain-events-usage.md (usage guide)
-- [ ] All quality checks pass (lint, format, type-check, docs-build)
-
----
-
-**Created**: 2025-11-17 | **Last Updated**: 2025-11-17
+**Created**: 2025-11-17 | **Last Updated**: 2025-12-05

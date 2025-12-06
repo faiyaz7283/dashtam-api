@@ -6,7 +6,7 @@ Usage:
     from src.core.errors import DomainError, ValidationError, NotFoundError
 """
 
-from src.core.errors.common_errors import (
+from src.core.errors.common_error import (
     AuthenticationError,
     AuthorizationError,
     ConflictError,

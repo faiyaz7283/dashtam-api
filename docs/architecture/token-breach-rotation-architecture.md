@@ -274,23 +274,7 @@ Grace period allows gradual token invalidation to prevent mass logout disruption
 
 ---
 
-## 9. Dependencies
-
-**Depends On:**
-
-- User Authentication (refresh token infrastructure)
-- Session Management (session-token relationship)
-- Audit Trail (event logging)
-- Domain Events (event bus)
-
-**Depended On By:**
-
-- Future breach detection features
-- Future "log out everywhere" user feature
-
----
-
-## 10. Testing
+## 9. Testing
 
 ### Test Coverage
 
@@ -323,4 +307,4 @@ Grace period allows gradual token invalidation to prevent mass logout disruption
 
 ---
 
-**Created**: 2025-11-27 | **Last Updated**: 2025-11-27
+**Created**: 2025-11-27 | **Last Updated**: 2025-12-05

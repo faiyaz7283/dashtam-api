@@ -20,13 +20,13 @@ from pytest_httpx import HTTPXMock
 from src.core.config import Settings
 from src.core.enums import ErrorCode
 from src.core.result import Failure, Success
-from src.domain.protocols.provider_protocol import OAuthTokens
-from src.infrastructure.errors.infrastructure_error import (
+from src.domain.errors import (
     ProviderAuthenticationError,
     ProviderInvalidResponseError,
     ProviderRateLimitError,
     ProviderUnavailableError,
 )
+from src.domain.protocols.provider_protocol import OAuthTokens
 from src.infrastructure.providers.schwab.schwab_provider import SchwabProvider
 
 

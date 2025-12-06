@@ -28,8 +28,11 @@ from src.domain.events.session_events import (
     SessionEvictedEvent,
 )
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
-from src.domain.protocols.session_cache import SessionCache
-from src.domain.protocols.session_enricher import DeviceEnricher, LocationEnricher
+from src.domain.protocols.session_cache_protocol import SessionCache
+from src.domain.protocols.session_enricher_protocol import (
+    DeviceEnricher,
+    LocationEnricher,
+)
 from src.domain.protocols.session_repository import SessionData, SessionRepository
 from src.domain.protocols.user_repository import UserRepository
 

@@ -17,15 +17,15 @@ from typing import Any
 import httpx
 import structlog
 
+from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
-from src.infrastructure.errors import (
+from src.domain.errors import (
     ProviderAuthenticationError,
     ProviderError,
     ProviderInvalidResponseError,
     ProviderRateLimitError,
     ProviderUnavailableError,
 )
-from src.core.enums import ErrorCode
 
 logger = structlog.get_logger(__name__)
 

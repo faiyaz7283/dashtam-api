@@ -12,7 +12,7 @@ import logging
 from user_agents import parse as parse_user_agent
 from user_agents.parsers import UserAgent
 
-from src.domain.protocols.session_enricher import DeviceEnrichmentResult
+from src.domain.protocols.session_enricher_protocol import DeviceEnrichmentResult
 
 
 logger = logging.getLogger(__name__)

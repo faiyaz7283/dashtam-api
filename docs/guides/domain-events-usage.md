@@ -127,7 +127,7 @@ class AccountCreated(DomainEvent):
 
 ### Step 2: Add to Events Module
 
-Add new event to `src/domain/events/authentication_events.py` (or create new module):
+Add new event to `src/domain/events/auth_events.py` (or create new module):
 
 ```python
 # src/domain/events/account_events.py
@@ -478,13 +478,16 @@ async def test_user_registration_creates_audit_record(test_database):
     # Arrange
     event_bus = get_event_bus()
     
-    # Act
-    await event_bus.publish(
-        UserRegistrationSucceeded(
-            user_id=uuid7(),
-            email="test@example.com"
+    # Act - Pass session for audit handler
+    async with test_database.get_session() as session:
+        await event_bus.publish(
+            UserRegistrationSucceeded(
+                user_id=uuid7(),
+                email="test@example.com",
+                verification_token="test-token",
+            ),
+            session=session,  # Required for audit events
         )
-    )
     
     # Assert - Check audit record created
     async with test_database.get_session() as session:
@@ -557,7 +560,7 @@ async def test_user_registration_creates_audit_record(test_database):
 
 **Cause**: Audit handler creates new database sessions inside event handlers, causing timing issues during test cleanup.
 
-**Workaround**: Accept as test artifact (production not affected). See roadmap item **F0.9.2: Audit Handler Session Lifecycle Fix**.
+**Solution**: Pass session to `event_bus.publish(event, session=session)`. This is now the standard pattern - see Session Requirement section above.
 
 **Verification**: Check logs for `PendingRollbackError`:
 
@@ -727,4 +730,4 @@ async def register_user(self, email: str) -> Result[UUID, Error]:
 
 ---
 
-**Created**: 2025-11-18 | **Last Updated**: 2025-11-18
+**Created**: 2025-11-18 | **Last Updated**: 2025-12-05

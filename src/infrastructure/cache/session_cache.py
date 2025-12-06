@@ -24,8 +24,8 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from src.core.result import Success
+from src.domain.protocols.cache_protocol import CacheProtocol
 from src.domain.protocols.session_repository import SessionData
-from src.infrastructure.cache.redis_adapter import RedisAdapter
 
 
 logger = logging.getLogger(__name__)
@@ -47,16 +47,16 @@ class RedisSessionCache:
         - user:{user_id}:sessions -> Set of session IDs
 
     Attributes:
-        _redis: RedisAdapter instance for cache operations.
+        _cache: Cache instance implementing CacheProtocol.
     """
 
-    def __init__(self, redis_adapter: RedisAdapter) -> None:
+    def __init__(self, cache: CacheProtocol) -> None:
         """Initialize session cache.
 
         Args:
-            redis_adapter: RedisAdapter instance for Redis operations.
+            cache: Cache instance implementing CacheProtocol.
         """
-        self._redis = redis_adapter
+        self._cache = cache
 
     def _session_key(self, session_id: UUID) -> str:
         """Generate cache key for session data.
@@ -90,7 +90,7 @@ class RedisSessionCache:
             SessionData if cached, None otherwise (cache miss or error).
         """
         key = self._session_key(session_id)
-        result = await self._redis.get_json(key)
+        result = await self._cache.get_json(key)
 
         match result:
             case Success(value=None):
@@ -143,7 +143,7 @@ class RedisSessionCache:
         key = self._session_key(session_data.id)
         data = self._to_dict(session_data)
 
-        result = await self._redis.set_json(key, data, ttl=ttl_seconds)
+        result = await self._cache.set_json(key, data, ttl=ttl_seconds)
         if not isinstance(result, Success):
             logger.warning(
                 "Failed to cache session",
@@ -166,7 +166,7 @@ class RedisSessionCache:
             True if deleted, False if not found or error.
         """
         key = self._session_key(session_id)
-        result = await self._redis.delete(key)
+        result = await self._cache.delete(key)
 
         match result:
             case Success(value=deleted):
@@ -203,7 +203,7 @@ class RedisSessionCache:
 
         # Clear the user's session index
         user_key = self._user_sessions_key(user_id)
-        await self._redis.delete(user_key)
+        await self._cache.delete(user_key)
 
         return deleted_count
 
@@ -217,7 +217,7 @@ class RedisSessionCache:
             True if session exists in cache, False otherwise.
         """
         key = self._session_key(session_id)
-        result = await self._redis.exists(key)
+        result = await self._cache.exists(key)
 
         match result:
             case Success(value=exists):
@@ -235,7 +235,7 @@ class RedisSessionCache:
             List of session IDs, empty if none cached or error.
         """
         key = self._user_sessions_key(user_id)
-        result = await self._redis.get(key)
+        result = await self._cache.get(key)
 
         match result:
             case Success(value=None):
@@ -272,7 +272,7 @@ class RedisSessionCache:
 
         # Store updated list
         data = json.dumps([str(sid) for sid in current_ids])
-        await self._redis.set(key, data, ttl=DEFAULT_SESSION_TTL)
+        await self._cache.set(key, data, ttl=DEFAULT_SESSION_TTL)
 
     async def remove_user_session(self, user_id: UUID, session_id: UUID) -> None:
         """Remove session ID from user's session set.
@@ -293,10 +293,10 @@ class RedisSessionCache:
         if current_ids:
             # Store updated list
             data = json.dumps([str(sid) for sid in current_ids])
-            await self._redis.set(key, data, ttl=DEFAULT_SESSION_TTL)
+            await self._cache.set(key, data, ttl=DEFAULT_SESSION_TTL)
         else:
             # No sessions left, delete the key
-            await self._redis.delete(key)
+            await self._cache.delete(key)
 
     async def update_last_activity(
         self,

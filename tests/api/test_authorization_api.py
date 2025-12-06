@@ -41,7 +41,7 @@ from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 from src.domain.enums import UserRole
-from src.presentation.api.middleware.authorization_dependencies import (
+from src.presentation.routers.api.middleware.authorization_dependencies import (
     require_permission,
     require_casbin_role,
     require_any_permission,
@@ -160,7 +160,9 @@ def create_client_with_mocks(
     """Create a TestClient with mocked dependencies."""
     # Override dependencies
     from src.core.container import get_authorization
-    from src.presentation.api.middleware.auth_dependencies import get_current_user
+    from src.presentation.routers.api.middleware.auth_dependencies import (
+        get_current_user,
+    )
 
     # Capture user_id in closure
     _user_id = test_user_id

@@ -64,40 +64,35 @@ Three **separate** concerns with different purposes:
 
 ### 2.1 Layer Responsibilities
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ Domain Layer (Port/Protocol)                            │
-│ - LoggerProtocol defines interface                      │
-│ - Pure Python (no external dependencies)                │
-│ - Standard log levels (debug, info, warning, error)     │
-└─────────────────────────────────────────────────────────┘
-                          ▲
-                          │ implements
-                          │
-┌─────────────────────────────────────────────────────────┐
-│ Infrastructure Layer (Adapters)                         │
-│ - ConsoleAdapter (dev/test - stdout)                    │
-│ - CloudWatchAdapter (prod - AWS CloudWatch)             │
-│ - Each adapter handles formatting, batching, flushing   │
-└─────────────────────────────────────────────────────────┘
-                          ▲
-                          │ uses
-                          │
-┌─────────────────────────────────────────────────────────┐
-│ Core Layer (Container)                                  │
-│ - get_logger() creates correct adapter                  │
-│ - Reads ENVIRONMENT env var                             │
-│ - Follows Composition Root pattern                      │
-└─────────────────────────────────────────────────────────┘
-                          ▲
-                          │ uses
-                          │
-┌─────────────────────────────────────────────────────────┐
-│ Application Layer (Services, Handlers)                  │
-│ - Inject LoggerProtocol via Depends()                   │
-│ - Log business events, errors, performance metrics      │
-│ - Add structured context (user_id, action, resource)    │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Domain["Domain Layer (Port/Protocol)"]
+        D1["LoggerProtocol defines interface"]
+        D2["Pure Python - no external dependencies"]
+        D3["Standard log levels: debug, info, warning, error, critical"]
+    end
+
+    subgraph Infra["Infrastructure Layer (Adapters)"]
+        I1["ConsoleAdapter - dev/test stdout"]
+        I2["CloudWatchAdapter - prod AWS"]
+        I3["Handles formatting, batching, flushing"]
+    end
+
+    subgraph Core["Core Layer (Container)"]
+        C1["get_logger() creates correct adapter"]
+        C2["Reads ENVIRONMENT env var"]
+        C3["Follows Composition Root pattern"]
+    end
+
+    subgraph App["Application Layer (Services, Handlers)"]
+        A1["Inject LoggerProtocol via Depends()"]
+        A2["Log business events, errors, metrics"]
+        A3["Add structured context"]
+    end
+
+    Infra -->|implements| Domain
+    Core -->|uses| Infra
+    App -->|uses| Core
 ```
 
 ### 2.2 Dependency Flow
@@ -1034,7 +1029,7 @@ app.add_middleware(TraceMiddleware)
 **Usage with logger**:
 
 ```python
-from src.presentation.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 
 logger.info(
     "Operation completed",
@@ -1531,7 +1526,7 @@ async def call_schwab_api(
 ### 9.3 Background Task Logging
 
 ```python
-from src.presentation.api.middleware.trace_middleware import trace_id_context
+from src.presentation.routers.api.middleware.trace_middleware import trace_id_context
 
 @app.on_event("startup")
 async def start_background_tasks():

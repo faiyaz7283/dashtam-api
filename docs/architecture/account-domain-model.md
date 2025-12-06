@@ -46,7 +46,7 @@ Account
 
 ### Business Methods
 
-Account entity is primarily a data container with query methods. State changes come from provider sync operations.
+Account entity is primarily a data container with query methods. State changes come from provider sync operations. All update methods return `Result` types following railway-oriented programming.
 
 ```python
 class Account:
@@ -60,52 +60,74 @@ class Account:
     def is_retirement_account(self) -> bool:
         """Check if account type is retirement-related."""
     
+    def is_credit_account(self) -> bool:
+        """Check if account type is credit-related."""
+    
     def has_available_balance(self) -> bool:
         """Check if available balance differs from current balance."""
     
     def needs_sync(self, threshold: timedelta) -> bool:
         """Check if account hasn't been synced within threshold."""
     
-    # Update methods (from provider sync)
-    def update_balance(self, balance: Money, available: Money | None = None) -> None:
-        """Update balance from provider sync."""
+    def get_display_name(self) -> str:
+        """Get user-friendly display name (name + masked number)."""
+    
+    # Update methods (from provider sync) - Return Result types
+    def update_balance(
+        self,
+        balance: Money,
+        available_balance: Money | None = None,
+    ) -> Result[None, str]:
+        """Update balance from provider sync. Validates currency match."""
     
     def update_from_provider(
         self,
         name: str | None = None,
         is_active: bool | None = None,
         provider_metadata: dict[str, Any] | None = None,
-    ) -> None:
+    ) -> Result[None, str]:
         """Update account details from provider sync."""
     
-    def mark_synced(self) -> None:
+    def mark_synced(self) -> Result[None, str]:
         """Record successful sync timestamp."""
+    
+    def deactivate(self) -> Result[None, str]:
+        """Mark account as inactive."""
+    
+    def activate(self) -> Result[None, str]:
+        """Mark account as active."""
 ```
 
 ### Entity Relationships
 
-```text
-User (1) ──────────────────┐
-                           │
-                           ▼
-              ┌─────────────────────────┐
-              │   ProviderConnection    │
-              │   (F2.1 - Complete)     │
-              └───────────┬─────────────┘
-                          │ 1
-                          │
-                          ▼ many
-              ┌─────────────────────────┐
-              │        Account          │
-              │       (F2.2)            │
-              └───────────┬─────────────┘
-                          │ 1
-                          │
-                          ▼ many
-              ┌─────────────────────────┐
-              │      Transaction        │
-              │       (F2.3)            │
-              └─────────────────────────┘
+```mermaid
+erDiagram
+    User ||--o{ ProviderConnection : "has"
+    ProviderConnection ||--o{ Account : "contains"
+    Account ||--o{ Transaction : "has"
+    
+    User {
+        UUID id PK
+        string email
+    }
+    ProviderConnection {
+        UUID id PK
+        UUID user_id FK
+        string provider_slug
+    }
+    Account {
+        UUID id PK
+        UUID connection_id FK
+        string provider_account_id
+        AccountType account_type
+        Money balance
+    }
+    Transaction {
+        UUID id PK
+        UUID account_id FK
+        Money amount
+        datetime date
+    }
 ```
 
 ---
@@ -139,7 +161,8 @@ class Money:
     # Arithmetic operations (same currency only)
     def __add__(self, other: "Money") -> "Money": ...
     def __sub__(self, other: "Money") -> "Money": ...
-    def __mul__(self, scalar: Decimal | int) -> "Money": ...
+    def __mul__(self, scalar: Decimal | int | float) -> "Money": ...
+    def __rmul__(self, scalar: Decimal | int | float) -> "Money": ...  # 3 * money
     def __neg__(self) -> "Money": ...
     def __abs__(self) -> "Money": ...
     
@@ -232,6 +255,16 @@ class AccountType(str, Enum):
     MORTGAGE = "mortgage"             # Mortgage account
     OTHER = "other"                   # Uncategorized
     
+    # Class methods - Validation
+    @classmethod
+    def values(cls) -> list[str]:
+        """Get all account type values as strings."""
+    
+    @classmethod
+    def is_valid(cls, value: str) -> bool:
+        """Check if a string is a valid account type."""
+    
+    # Class methods - Category queries
     @classmethod
     def investment_types(cls) -> list["AccountType"]:
         """Account types that hold securities."""
@@ -253,6 +286,23 @@ class AccountType(str, Enum):
     def credit_types(cls) -> list["AccountType"]:
         """Credit and loan account types."""
         return [cls.CREDIT_CARD, cls.LINE_OF_CREDIT, cls.LOAN, cls.MORTGAGE]
+    
+    # Instance methods - Type checks
+    def is_investment(self) -> bool:
+        """Check if this is an investment account type."""
+    
+    def is_bank(self) -> bool:
+        """Check if this is a banking account type."""
+    
+    def is_retirement(self) -> bool:
+        """Check if this is a retirement account type."""
+    
+    def is_credit(self) -> bool:
+        """Check if this is a credit account type."""
+    
+    @property
+    def category(self) -> str:
+        """Get category string: 'investment', 'banking', 'credit', or 'other'."""
 ```
 
 ---
@@ -273,12 +323,32 @@ class AccountRepository(Protocol):
         """Find account by ID."""
         ...
     
-    async def find_by_connection_id(self, connection_id: UUID) -> list[Account]:
-        """Find all accounts for a provider connection."""
+    async def find_by_connection_id(
+        self,
+        connection_id: UUID,
+        active_only: bool = False,
+    ) -> list[Account]:
+        """Find all accounts for a provider connection.
+        
+        Args:
+            connection_id: Provider connection ID.
+            active_only: If True, return only active accounts.
+        """
         ...
     
-    async def find_by_user_id(self, user_id: UUID) -> list[Account]:
-        """Find all accounts across all connections for a user."""
+    async def find_by_user_id(
+        self,
+        user_id: UUID,
+        active_only: bool = False,
+        account_type: AccountType | None = None,
+    ) -> list[Account]:
+        """Find all accounts across all connections for a user.
+        
+        Args:
+            user_id: User's unique identifier.
+            active_only: If True, return only active accounts.
+            account_type: Optional filter by account type.
+        """
         ...
     
     async def find_by_provider_account_id(
@@ -315,19 +385,31 @@ class AccountRepository(Protocol):
 
 ```python
 class AccountError:
-    """Account domain error messages."""
+    """Account domain error messages.
+    
+    Used in Result types for account operation failures.
+    These are NOT exceptions - they are error value constants
+    used in railway-oriented programming pattern.
+    """
     
     # Validation errors
     INVALID_ACCOUNT_NAME = "Account name cannot be empty"
     INVALID_CURRENCY = "Invalid ISO 4217 currency code"
     INVALID_PROVIDER_ACCOUNT_ID = "Provider account ID cannot be empty"
+    INVALID_ACCOUNT_NUMBER = "Account number mask cannot be empty"
     
     # Money errors
     CURRENCY_MISMATCH = "Cannot perform operation on different currencies"
     INVALID_AMOUNT = "Amount must be a valid Decimal"
+    NEGATIVE_BALANCE_NOT_ALLOWED = "Balance cannot be negative for this account type"
     
     # State errors
     ACCOUNT_INACTIVE = "Account is not active"
+    ACCOUNT_NOT_FOUND = "Account not found"
+    
+    # Sync errors
+    SYNC_FAILED = "Account sync failed"
+    CONNECTION_REQUIRED = "Account must be associated with a connection"
 ```
 
 ---
@@ -428,8 +510,8 @@ src/domain/protocols/
 └── account_repository.py     # Repository protocol
 
 tests/unit/
-├── test_domain_account.py    # Account entity tests (~35 tests)
-└── test_domain_money.py      # Money value object tests (~40 tests)
+├── test_domain_account.py    # Account entity tests (~45 tests)
+└── test_domain_money.py      # Money value object tests (~54 tests)
 
 docs/architecture/
 └── account-domain-model.md   # This document
@@ -439,45 +521,62 @@ docs/architecture/
 
 ## Testing Strategy
 
-### Account Entity Tests (~35 tests)
+### Account Entity Tests (~45 tests)
 
 ```python
+class TestAccountTypeEnum:
+    """Enum values, validation, category methods, instance methods."""
+
 class TestAccountCreation:
-    """Entity creation with required/optional fields."""
+    """Entity creation with required/optional fields, validation."""
 
 class TestAccountQueryMethods:
-    """is_investment_account, is_bank_account, needs_sync, etc."""
+    """is_investment_account, is_bank_account, is_credit_account,
+    needs_sync, has_available_balance, get_display_name."""
 
 class TestAccountUpdateMethods:
-    """update_balance, update_from_provider, mark_synced."""
+    """update_balance, update_from_provider, mark_synced,
+    deactivate, activate - all return Result types."""
 
-class TestAccountTypeHelpers:
-    """Enum helper methods: investment_types, bank_types, etc."""
+class TestAccountEdgeCases:
+    """Negative balances, zero balances, metadata, UUID fields."""
 ```
 
-### Money Value Object Tests (~40 tests)
+### Money Value Object Tests (~54 tests)
 
 ```python
+class TestCurrencyValidation:
+    """validate_currency function: normalization, whitespace, valid/invalid codes."""
+
 class TestMoneyCreation:
-    """Creation with Decimal, validation, from_cents factory."""
+    """Creation with Decimal, int, float; immutability; NaN/Infinity rejection."""
 
-class TestMoneyArithmetic:
-    """Addition, subtraction, multiplication, negation."""
+class TestMoneyAddition:
+    """Addition same currency, new instance, currency mismatch, non-Money."""
 
-class TestMoneyCurrencyValidation:
-    """Same-currency operations, currency mismatch errors."""
+class TestMoneySubtraction:
+    """Subtraction same currency, negative results, currency mismatch."""
+
+class TestMoneyMultiplication:
+    """Multiply by int, Decimal, zero, negative; reverse multiplication."""
+
+class TestMoneyNegationAndAbsolute:
+    """Negation and abs() for positive/negative Money."""
 
 class TestMoneyComparison:
-    """Comparison operators (same currency only)."""
+    """lt, le, gt, ge with same currency; equality; currency mismatch."""
 
 class TestMoneyQueryMethods:
     """is_positive, is_negative, is_zero."""
 
-class TestMoneyStringRepresentations:
-    """__str__, __repr__ formatting."""
+class TestMoneyFactoryMethods:
+    """zero() and from_cents() with default/custom currencies."""
 
-class TestCurrencyValidation:
-    """validate_currency function tests."""
+class TestMoneyEdgeCases:
+    """Decimal precision, very small/large amounts, hash for dict key."""
+
+class TestCurrencyMismatchError:
+    """Error stores currencies, message format, is ValueError."""
 ```
 
 **Coverage Target**: 100% (domain logic critical)
@@ -577,4 +676,4 @@ balance + euros  # Raises CurrencyMismatchError
 
 ---
 
-**Created**: 2025-11-30 | **Last Updated**: 2025-11-30
+**Created**: 2025-11-30 | **Last Updated**: 2025-12-05

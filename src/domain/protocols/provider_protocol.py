@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from src.core.result import Result
-    from src.infrastructure.errors import ProviderError
+    from src.domain.errors import ProviderError
 
 
 # =============================================================================

@@ -56,6 +56,9 @@ class ProviderConnection:
     def is_credentials_expired(self) -> bool:
         """Check if credentials have passed expiration time."""
     
+    def is_credentials_expiring_soon(self) -> bool:
+        """Check if credentials will expire within 5 minutes."""
+    
     def can_sync(self) -> bool:
         """Check if connection can perform data synchronization."""
     
@@ -84,27 +87,27 @@ class ProviderConnection:
 
 ### State Machine
 
-```text
-                    ┌─────────────────────────────────────────┐
-                    │                                         │
-                    ▼                                         │
-┌─────────┐   auth success   ┌─────────┐   credentials    ┌─────────┐
-│ PENDING │ ───────────────► │ ACTIVE  │ ───────────────► │ EXPIRED │
-└─────────┘                  └─────────┘   expired        └─────────┘
-     │                            │                            │
-     │ auth failed                │ user/provider              │ re-auth
-     │ or timeout                 │ revokes                    │ success
-     ▼                            ▼                            │
-┌─────────┐                  ┌─────────┐                       │
-│ FAILED  │                  │ REVOKED │                       │
-└─────────┘                  └─────────┘                       │
-     │                            │                            │
-     │                            │                            │
-     ▼                            ▼                            │
-┌──────────────────────────────────────────────────────────────┘
-│                    DISCONNECTED
-│  (terminal state - user explicitly removes connection)
-└──────────────────────────────────────────────────────────────
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: User initiates connection
+    
+    PENDING --> ACTIVE: Auth success
+    PENDING --> FAILED: Auth failed/timeout
+    
+    ACTIVE --> EXPIRED: Credentials expired
+    ACTIVE --> REVOKED: Access revoked
+    
+    EXPIRED --> ACTIVE: Re-auth success
+    REVOKED --> ACTIVE: Re-auth success
+    FAILED --> ACTIVE: Re-auth success
+    
+    PENDING --> DISCONNECTED: User cancels
+    ACTIVE --> DISCONNECTED: User disconnects
+    EXPIRED --> DISCONNECTED: User disconnects
+    REVOKED --> DISCONNECTED: User disconnects
+    FAILED --> DISCONNECTED: User disconnects
+    
+    DISCONNECTED --> [*]: Terminal state
 ```
 
 ---
@@ -133,8 +136,14 @@ class ProviderCredentials:
     def is_expired(self) -> bool:
         """Check if credentials have expired."""
     
+    def is_expiring_soon(self, threshold: timedelta = timedelta(minutes=5)) -> bool:
+        """Check if credentials will expire within threshold."""
+    
     def time_until_expiry(self) -> timedelta | None:
         """Time remaining until expiration."""
+    
+    def supports_refresh(self) -> bool:
+        """Check if credential type supports automatic refresh."""
 ```
 
 **Why opaque?** The domain doesn't need to know if we're storing OAuth tokens, API keys, or anything else. This allows:
@@ -189,6 +198,26 @@ class ConnectionStatus(str, Enum):
     REVOKED = "revoked"           # Access revoked by user or provider
     FAILED = "failed"             # Authentication failed
     DISCONNECTED = "disconnected" # User explicitly disconnected
+    
+    @classmethod
+    def values(cls) -> list[str]:
+        """Get all status values as strings."""
+    
+    @classmethod
+    def is_valid(cls, value: str) -> bool:
+        """Check if a string is a valid status."""
+    
+    @classmethod
+    def active_states(cls) -> list["ConnectionStatus"]:
+        """Get states where connection is usable (ACTIVE only)."""
+    
+    @classmethod
+    def needs_reauth_states(cls) -> list["ConnectionStatus"]:
+        """Get states requiring re-authentication (EXPIRED, REVOKED, FAILED)."""
+    
+    @classmethod
+    def terminal_states(cls) -> list["ConnectionStatus"]:
+        """Get terminal states (DISCONNECTED)."""
 ```
 
 ### CredentialType
@@ -201,6 +230,22 @@ class CredentialType(str, Enum):
     LINK_TOKEN = "link_token"     # Plaid-style link tokens
     CERTIFICATE = "certificate"   # mTLS certificate-based auth
     CUSTOM = "custom"             # Provider-specific custom auth
+    
+    @classmethod
+    def values(cls) -> list[str]:
+        """Get all credential type values as strings."""
+    
+    @classmethod
+    def is_valid(cls, value: str) -> bool:
+        """Check if a string is a valid credential type."""
+    
+    @classmethod
+    def supports_refresh(cls) -> list["CredentialType"]:
+        """Get types that support automatic refresh (OAUTH2, LINK_TOKEN)."""
+    
+    @classmethod
+    def never_expires(cls) -> list["CredentialType"]:
+        """Get types that typically don't expire (API_KEY, CERTIFICATE)."""
 ```
 
 ---
@@ -275,6 +320,13 @@ class ProviderConnectionRepository(Protocol):
     
     async def find_active_by_user(self, user_id: UUID) -> list[ProviderConnection]:
         """Find all active connections for a user."""
+        ...
+    
+    async def find_expiring_soon(
+        self,
+        minutes: int = 30,
+    ) -> list[ProviderConnection]:
+        """Find connections with credentials expiring within threshold."""
         ...
     
     async def save(self, connection: ProviderConnection) -> None:
@@ -384,22 +436,30 @@ tests/unit/
 
 ## Testing Strategy
 
-### Unit Tests (95%+ coverage)
+### Unit Tests (~107 tests total, 95%+ coverage)
 
-- Entity state transitions (all paths)
-- Business method logic
-- Value object validation
-- Event emission on state changes
-- Edge cases (expired credentials, invalid transitions)
+**ProviderConnection Entity (~61 tests):**
+
+- Entity creation with valid/invalid fields
+- State transitions (all valid paths + invalid rejection)
+- Query methods: `is_connected()`, `needs_reauthentication()`, `can_sync()`, `is_credentials_expiring_soon()`
+- Result type handling for all state transitions
+
+**ProviderCredentials Value Object (~46 tests):**
+
+- Creation with valid/invalid data
+- Expiration logic: `is_expired()`, `is_expiring_soon()`, `time_until_expiry()`
+- `supports_refresh()` for credential types
+- Immutability verification
 
 ### Test Categories
 
-1. **Entity Creation**: Valid/invalid construction
+1. **Entity Creation**: Valid/invalid construction, validation errors
 2. **State Transitions**: All valid paths + invalid transition rejection (Result types)
 3. **Business Methods**: `is_connected()`, `needs_reauthentication()`, `can_sync()`, etc.
-4. **Credentials**: Expiration logic, type validation
-5. **Error Constants**: Verify correct error messages
+4. **Credentials**: Expiration logic, type validation, supports_refresh()
+5. **Enums**: ConnectionStatus and CredentialType helper methods
 
 ---
 
-**Created**: 2025-11-29 | **Last Updated**: 2025-11-29
+**Created**: 2025-11-29 | **Last Updated**: 2025-12-05

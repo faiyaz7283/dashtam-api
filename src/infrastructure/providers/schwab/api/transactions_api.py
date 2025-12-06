@@ -20,7 +20,7 @@ import structlog
 
 from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
-from src.infrastructure.errors import (
+from src.domain.errors import (
     ProviderAuthenticationError,
     ProviderError,
     ProviderInvalidResponseError,

@@ -170,56 +170,64 @@ Transaction entity is **read-only** with query methods only. No update methods -
 
 ```python
 class Transaction:
-    # Query methods (classification)
-    def is_security_transaction(self) -> bool:
-        """Check if transaction involves securities (BUY, SELL, DIVIDEND, etc.)."""
+    # Query methods (type classification)
+    def is_trade(self) -> bool:
+        """Check if this is a TRADE transaction."""
     
-    def is_cash_movement(self) -> bool:
-        """Check if transaction is cash movement (DEPOSIT, WITHDRAWAL, TRANSFER)."""
+    def is_transfer(self) -> bool:
+        """Check if this is a TRANSFER transaction."""
     
     def is_income(self) -> bool:
-        """Check if transaction is income (DIVIDEND, INTEREST, DISTRIBUTION)."""
+        """Check if this is an INCOME transaction."""
     
     def is_fee(self) -> bool:
-        """Check if transaction is a fee or charge."""
+        """Check if this is a FEE transaction."""
     
+    # Query methods (amount direction)
     def is_debit(self) -> bool:
         """Check if transaction decreases account value (negative amount)."""
     
     def is_credit(self) -> bool:
         """Check if transaction increases account value (positive amount)."""
     
+    # Query methods (status/details)
     def is_settled(self) -> bool:
-        """Check if transaction has settled."""
+        """Check if transaction has settled (status == SETTLED)."""
     
     def has_security_details(self) -> bool:
-        """Check if transaction has security information."""
+        """Check if transaction has security information (symbol, quantity, unit_price)."""
 ```
 
 ### Entity Relationships
 
-```text
-User (1) ──────────────────┐
-                           │
-                           ▼
-              ┌─────────────────────────┐
-              │   ProviderConnection    │
-              │   (F2.1 - Complete)     │
-              └───────────┬─────────────┘
-                          │ 1
-                          │
-                          ▼ many
-              ┌─────────────────────────┐
-              │        Account          │
-              │   (F2.2 - Complete)     │
-              └───────────┬─────────────┘
-                          │ 1
-                          │
-                          ▼ many
-              ┌─────────────────────────┐
-              │      Transaction        │
-              │       (F2.3)            │
-              └─────────────────────────┘
+```mermaid
+erDiagram
+    User ||--o{ ProviderConnection : "has"
+    ProviderConnection ||--o{ Account : "contains"
+    Account ||--o{ Transaction : "records"
+    
+    User {
+        UUID id PK
+        string email
+    }
+    ProviderConnection {
+        UUID id PK
+        UUID user_id FK
+        string provider_slug
+    }
+    Account {
+        UUID id PK
+        UUID connection_id FK
+        AccountType account_type
+    }
+    Transaction {
+        UUID id PK
+        UUID account_id FK
+        TransactionType transaction_type
+        TransactionSubtype subtype
+        Money amount
+        date transaction_date
+    }
 ```
 
 ---
@@ -415,12 +423,27 @@ class TransactionStatus(str, Enum):
     
     Most transactions from providers are already SETTLED.
     PENDING status is rare for historical data.
+    
+    Lifecycle Flow:
+        PENDING → SETTLED (normal flow)
+        PENDING → FAILED (sync/processing error)
+        PENDING → CANCELLED (voided by provider)
     """
     
     PENDING = "pending"       # Awaiting settlement
     SETTLED = "settled"       # Completed and settled
     FAILED = "failed"         # Transaction failed
     CANCELLED = "cancelled"   # Transaction cancelled
+    
+    @classmethod
+    def terminal_states(cls) -> list["TransactionStatus"]:
+        """Return statuses that represent final states."""
+        return [cls.SETTLED, cls.FAILED, cls.CANCELLED]
+    
+    @classmethod
+    def active_states(cls) -> list["TransactionStatus"]:
+        """Return statuses that may still change."""
+        return [cls.PENDING]
 ```
 
 **Note:** Unlike Orders (Phase 6+) which have many active states, Transactions are mostly `SETTLED` since they represent historical data.
@@ -447,6 +470,12 @@ class TransactionRepository(Protocol):
     
     Defines interface for transaction persistence operations.
     Infrastructure layer provides concrete implementation.
+    
+    Design Principles:
+    - Read methods return domain entities, not database models
+    - All queries scoped to account_id (multi-tenancy boundary)
+    - Pagination support for large result sets
+    - Bulk operations for efficient provider sync
     """
     
     async def find_by_id(self, transaction_id: UUID) -> Transaction | None:
@@ -455,16 +484,19 @@ class TransactionRepository(Protocol):
     async def find_by_account_id(
         self,
         account_id: UUID,
-        limit: int = 100,
+        limit: int = 50,
         offset: int = 0,
     ) -> list[Transaction]:
-        """Find transactions for an account with pagination."""
+        """Find transactions for an account with pagination.
+        
+        Returns transactions ordered by transaction_date DESC.
+        """
     
     async def find_by_account_and_type(
         self,
         account_id: UUID,
         transaction_type: TransactionType,
-        limit: int = 100,
+        limit: int = 50,
     ) -> list[Transaction]:
         """Find transactions by account and type."""
     
@@ -474,7 +506,7 @@ class TransactionRepository(Protocol):
         start_date: date,
         end_date: date,
     ) -> list[Transaction]:
-        """Find transactions within date range."""
+        """Find transactions within date range (inclusive)."""
     
     async def find_by_provider_transaction_id(
         self,
@@ -486,9 +518,10 @@ class TransactionRepository(Protocol):
     async def find_security_transactions(
         self,
         account_id: UUID,
-        symbol: str | None = None,
+        symbol: str,
+        limit: int = 50,
     ) -> list[Transaction]:
-        """Find security transactions, optionally filtered by symbol."""
+        """Find TRADE transactions for a specific security symbol."""
     
     async def save(self, transaction: Transaction) -> None:
         """Create or update transaction."""
@@ -506,22 +539,28 @@ class TransactionRepository(Protocol):
 
 ```python
 class TransactionError:
-    """Transaction error constants for Result types."""
+    """Transaction error constants for Result types.
+    
+    Used in railway-oriented programming pattern.
+    These are NOT exceptions - they are error value constants.
+    """
     
     # Validation errors
-    INVALID_AMOUNT = "Transaction amount cannot be zero"
-    INVALID_PROVIDER_ID = "Provider transaction ID cannot be empty"
-    INVALID_DATE = "Transaction date cannot be in the future"
+    INVALID_AMOUNT = "Invalid transaction amount"
+    INVALID_PROVIDER_TRANSACTION_ID = "Invalid provider transaction ID"
+    INVALID_TRANSACTION_DATE = "Invalid transaction date"
     
-    # Security transaction errors
-    MISSING_SYMBOL = "Security transactions require a symbol"
-    MISSING_QUANTITY = "Security transactions require a quantity"
-    INVALID_QUANTITY = "Quantity must be positive"
-    MISSING_UNIT_PRICE = "Security transactions require unit price"
+    # Security/trade validation errors
+    MISSING_SECURITY_SYMBOL = "Missing security symbol"
+    MISSING_QUANTITY = "Missing quantity"
+    INVALID_QUANTITY = "Invalid quantity"
+    MISSING_UNIT_PRICE = "Missing unit price"
+    MISSING_ASSET_TYPE = "Missing asset type"
     
-    # Status errors
+    # Status/lifecycle errors
     TRANSACTION_NOT_FOUND = "Transaction not found"
-    ALREADY_SETTLED = "Transaction is already settled"
+    TRANSACTION_ALREADY_SETTLED = "Transaction already settled"
+    DUPLICATE_PROVIDER_TRANSACTION = "Duplicate provider transaction"
 ```
 
 ---
@@ -582,29 +621,37 @@ docs/architecture/
 
 ## Testing Strategy
 
-### Unit Tests (~50 tests)
+### Unit Tests (~44 tests)
 
 **Transaction Entity:**
 
 - Creation with all fields
 - Creation with minimal fields (optional fields None)
-- Validation errors (missing required fields)
-- Query methods (is_security_transaction, is_cash_movement, etc.)
-- Immutability verification
+- Query methods (is_trade, is_transfer, is_income, is_fee, is_debit, is_credit, is_settled, has_security_details)
+- Immutability verification (frozen dataclass)
 
 **TransactionType Enum:**
 
-- All 17 values accessible
-- Helper methods (security_types, cash_types, income_types, fee_types)
+- All 5 values accessible (TRADE, TRANSFER, INCOME, FEE, OTHER)
+- Helper method security_related()
 - String serialization
+
+**TransactionSubtype Enum:**
+
+- All 24 values accessible
+- Helper methods (trade_subtypes, transfer_subtypes, income_subtypes, fee_subtypes)
 
 **TransactionStatus Enum:**
 
 - All 4 values accessible
-- Terminal/active state helpers
+- terminal_states() and active_states() helpers
+
+**AssetType Enum:**
+
+- All 9 values accessible
 
 Coverage target: 100%
 
 ---
 
-**Created**: 2025-11-30 | **Last Updated**: 2025-11-30
+**Created**: 2025-11-30 | **Last Updated**: 2025-12-05

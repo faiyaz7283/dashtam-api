@@ -1165,7 +1165,7 @@ class TestEventFlowEndToEnd:
 
 **Source**: `tests/conftest.py` provides reusable fixtures for all test types.
 
-#### 1. Function-Scoped Event Loop (Lines 30-48)
+#### 1. Function-Scoped Event Loop
 
 ```python
 @pytest.fixture(scope="function")
@@ -1186,7 +1186,7 @@ def event_loop(event_loop_policy):
 **Why function scope**: Each test gets fresh event loop - prevents state
 leakage between async tests.
 
-#### 2. Automatic Asyncio Marker (Lines 63-71)
+#### 2. Automatic Asyncio Marker
 
 ```python
 def pytest_collection_modifyitems(config, items):
@@ -1198,7 +1198,7 @@ def pytest_collection_modifyitems(config, items):
 
 **Benefit**: No need to manually add `@pytest.mark.asyncio` decorator.
 
-#### 3. Fresh Redis Client Per Test (Lines 111-148)
+#### 3. Fresh Redis Client Per Test
 
 ```python
 @pytest_asyncio.fixture
@@ -1231,7 +1231,7 @@ async def redis_test_client():
 
 **Pattern**: Bypass singleton for tests, fresh instances for isolation.
 
-#### 4. Test Database Fixture (Lines 169-192)
+#### 4. Test Database Fixture
 
 ```python
 @pytest_asyncio.fixture
@@ -1252,7 +1252,7 @@ async def test_database():
 **Usage**: For tests that need multiple separate sessions (e.g., audit
 durability, event bus tests).
 
-#### 5. Mock Container Dependencies (Lines 226-266)
+#### 5. Mock Container Dependencies
 
 ```python
 @pytest.fixture
@@ -1501,4 +1501,4 @@ This testing architecture provides:
 
 ---
 
-**Created**: 2025-11-12 | **Last Updated**: 2025-11-16
+**Created**: 2025-11-12 | **Last Updated**: 2025-12-05

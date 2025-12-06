@@ -13,8 +13,8 @@ from fastapi.testclient import TestClient
 from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.core.enums import ErrorCode
 from src.core.errors import ValidationError
-from src.presentation.api.middleware.trace_middleware import TraceMiddleware
-from src.presentation.api.v1.errors import (
+from src.presentation.routers.api.middleware.trace_middleware import TraceMiddleware
+from src.presentation.routers.api.v1.errors import (
     ErrorResponseBuilder,
     register_exception_handlers,
 )

@@ -211,7 +211,9 @@ def mock_account(mock_account_id, mock_connection_id):
 @pytest.fixture(autouse=True)
 def override_auth(mock_user_id):
     """Override authentication for all tests."""
-    from src.presentation.api.middleware.auth_dependencies import get_current_user
+    from src.presentation.routers.api.middleware.auth_dependencies import (
+        get_current_user,
+    )
 
     mock_user = MockCurrentUser(user_id=mock_user_id)
 

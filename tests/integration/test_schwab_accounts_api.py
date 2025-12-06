@@ -18,7 +18,7 @@ from pytest_httpx import HTTPXMock
 
 from src.core.enums import ErrorCode
 from src.core.result import Failure, Success
-from src.infrastructure.errors import (
+from src.domain.errors import (
     ProviderAuthenticationError,
     ProviderInvalidResponseError,
     ProviderRateLimitError,

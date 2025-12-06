@@ -22,51 +22,21 @@
 
 ### Flow Diagram
 
-```text
-┌──────────┐                                           ┌──────────┐
-│  User    │                                           │  Schwab  │
-│ (Browser)│                                           │   API    │
-└────┬─────┘                                           └────┬─────┘
-     │                                                      │
-     │  1. Click "Connect Schwab"                           │
-     │ ─────────────────────────────────────►               │
-     │                                      │               │
-     │                              ┌───────▼───────┐       │
-     │                              │   Dashtam     │       │
-     │                              │    Backend    │       │
-     │                              └───────┬───────┘       │
-     │                                      │               │
-     │  2. Redirect to Schwab /authorize    │               │
-     │ ◄─────────────────────────────────────               │
-     │                                                      │
-     │  3. User logs in & grants consent                    │
-     │ ─────────────────────────────────────────────────────►
-     │                                                      │
-     │  4. Redirect to callback with ?code=xxx              │
-     │ ◄─────────────────────────────────────────────────────
-     │                                                      │
-     │  5. POST callback to Dashtam                         │
-     │ ─────────────────────────────────────►               │
-     │                              ┌───────▼───────┐       │
-     │                              │   Dashtam     │       │
-     │                              │    Backend    │       │
-     │                              └───────┬───────┘       │
-     │                                      │               │
-     │                   6. Exchange code   │               │
-     │                      for tokens      │               │
-     │                                      │ ─────────────►│
-     │                                      │               │
-     │                                      │ ◄─────────────│
-     │                   7. Receive tokens  │               │
-     │                      (access + refresh)              │
-     │                              ┌───────▼───────┐       │
-     │                              │ Encrypt &     │       │
-     │                              │ Store Tokens  │       │
-     │                              └───────┬───────┘       │
-     │                                      │               │
-     │  8. Success! Connection established  │               │
-     │ ◄─────────────────────────────────────               │
-     │                                                      │
+```mermaid
+sequenceDiagram
+    participant User as User (Browser)
+    participant Dashtam as Dashtam Backend
+    participant Schwab as Schwab API
+
+    User->>Dashtam: 1. Click "Connect Schwab"
+    Dashtam->>User: 2. Redirect to Schwab /authorize
+    User->>Schwab: 3. User logs in & grants consent
+    Schwab->>User: 4. Redirect to callback with ?code=xxx
+    User->>Dashtam: 5. GET callback with code
+    Dashtam->>Schwab: 6. Exchange code for tokens
+    Schwab->>Dashtam: 7. Receive tokens (access + refresh)
+    Note over Dashtam: Encrypt & Store Tokens
+    Dashtam->>User: 8. Success! Connection established
 ```
 
 ### Step-by-Step Implementation
@@ -518,38 +488,20 @@ except ProviderAuthenticationError as e:
 
 ### Connection State Transitions
 
-```text
-                    ┌─────────────┐
-                    │   PENDING   │ (OAuth started)
-                    └──────┬──────┘
-                           │
-           ┌───────────────┼───────────────┐
-           │               │               │
-           ▼               │               ▼
-    ┌─────────────┐        │        ┌─────────────┐
-    │   FAILED    │        │        │   ACTIVE    │ (tokens stored)
-    └─────────────┘        │        └──────┬──────┘
-                           │               │
-                           │    ┌──────────┼──────────┐
-                           │    │          │          │
-                           │    ▼          │          ▼
-                           │ ┌─────────┐   │   ┌──────────────┐
-                           │ │ EXPIRED │◄──┴──►│   REVOKED    │
-                           │ └────┬────┘       └──────────────┘
-                           │      │
-                           │      │ (user re-auths)
-                           │      │
-                           │      ▼
-                           │ ┌─────────────┐
-                           └►│   ACTIVE    │
-                             └─────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: OAuth started
+    PENDING --> FAILED: Auth error
+    PENDING --> ACTIVE: Tokens stored
+    ACTIVE --> EXPIRED: Token expires
+    ACTIVE --> REVOKED: User disconnects
+    EXPIRED --> ACTIVE: User re-auths
+    EXPIRED --> REVOKED: User disconnects
 ```
 
 ---
 
 ## Testing Strategy
-
-### Overview
 
 OAuth testing is split into three layers to ensure comprehensive coverage while keeping tests fast and maintainable:
 
@@ -574,7 +526,7 @@ docker compose -f compose/docker-compose.test.yml exec app pytest tests/integrat
 
 ### Unit Tests
 
-**File**: `tests/unit/test_infrastructure_schwab_oauth.py` (22 tests)
+**File**: `tests/unit/test_infrastructure_schwab_oauth.py` (~26 tests)
 
 Covers SchwabProvider OAuth methods using `pytest-httpx` to mock HTTP responses:
 
@@ -582,7 +534,7 @@ Covers SchwabProvider OAuth methods using `pytest-httpx` to mock HTTP responses:
 - `refresh_access_token`: No rotation, with rotation, rotation to null
 - Error handling: Invalid JSON, network failures, timeout
 
-**File**: `tests/unit/test_infrastructure_encryption_service.py` (28 tests)
+**File**: `tests/unit/test_infrastructure_encryption_service.py` (~24 tests)
 
 Covers EncryptionService AES-256-GCM operations:
 
@@ -648,4 +600,4 @@ async def test_callback_success(monkeypatch, test_client):
 
 ---
 
-**Created**: 2025-12-03 | **Last Updated**: 2025-12-03
+**Created**: 2025-12-03 | **Last Updated**: 2025-12-05

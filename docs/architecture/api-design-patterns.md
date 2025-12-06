@@ -14,21 +14,20 @@
 
 The API layer is the outermost layer in Dashtam's hexagonal architecture:
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Presentation Layer (This Document)                          │
-│ - FastAPI routers                                           │
-│ - Request/response schemas                                  │
-│ - HTTP concerns only                                        │
-│ - Depends on Application Layer                              │
-└──────────────────┬──────────────────────────────────────────┘
-                   │ dispatches to
-                   ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Application Layer (CQRS Handlers)                           │
-│ - Commands & Queries                                        │
-│ - Returns Result[T, E]                                      │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Presentation["Presentation Layer (This Document)"]
+        R["FastAPI routers"]
+        S["Request/response schemas"]
+        H["HTTP concerns only"]
+    end
+
+    subgraph Application["Application Layer (CQRS Handlers)"]
+        C["Commands & Queries"]
+        RES["Returns Result[T, E]"]
+    end
+
+    Presentation -->|"dispatches to"| Application
 ```
 
 ### 1.2 Key Principles
@@ -42,21 +41,25 @@ The API layer is the outermost layer in Dashtam's hexagonal architecture:
 ### 1.3 File Structure
 
 ```text
-src/presentation/api/v1/
+src/presentation/routers/api/v1/
 ├── accounts.py              # Account endpoints
 ├── transactions.py          # Transaction endpoints
 ├── providers.py             # Provider endpoints
-├── sessions.py              # Session endpoints (existing)
-├── users.py                 # User endpoints (existing)
+├── sessions.py              # Session endpoints
+├── users.py                 # User endpoints
+├── tokens.py                # Token endpoints
+├── email_verifications.py   # Email verification endpoints
+├── password_resets.py       # Password reset endpoints
+├── admin/                   # Admin endpoints
 └── errors/                  # Error handling utilities
 
 src/schemas/
-├── auth_schemas.py          # Auth request/response (existing)
-├── session_schemas.py       # Session schemas (existing)
-├── rotation_schemas.py      # Token rotation schemas (existing)
-├── account_schemas.py       # Account request/response (Phase 5)
-├── transaction_schemas.py   # Transaction request/response (Phase 5)
-├── provider_schemas.py      # Provider request/response (Phase 5)
+├── auth_schemas.py          # Auth request/response
+├── session_schemas.py       # Session schemas
+├── rotation_schemas.py      # Token rotation schemas
+├── account_schemas.py       # Account request/response
+├── transaction_schemas.py   # Transaction request/response
+├── provider_schemas.py      # Provider request/response
 └── common_schemas.py        # Shared schemas (pagination, etc.)
 ```
 
@@ -142,7 +145,7 @@ Transform actions into resource creation:
 ### 3.1 Router Setup
 
 ```python
-# src/presentation/api/v1/accounts.py
+# src/presentation/routers/api/v1/accounts.py
 """Account API endpoints.
 
 REST endpoints for account operations. All endpoints require
@@ -955,14 +958,13 @@ def cleanup_handler_overrides():
 
 ---
 
-## 9. Phase 5 Implementation Lessons
+## 9. Common Pitfalls
 
-### 9.1 Key Patterns Discovered
+### 9.1 `get_trace_id()` Type Safety
 
-**1. `get_trace_id()` Type Safety**:
+`get_trace_id()` returns `str | None`. Always handle the `None` case:
 
 ```python
-# get_trace_id() returns str | None
 # WRONG: Type error if ErrorResponseBuilder expects str
 trace_id=get_trace_id(),
 
@@ -970,7 +972,9 @@ trace_id=get_trace_id(),
 trace_id=get_trace_id() or "",
 ```
 
-**2. 204 No Content Requires `response_model=None`**:
+### 9.2 204 No Content Requires `response_model=None`
+
+FastAPI validates response bodies against `response_model`. For 204 responses with no body, you must explicitly disable this:
 
 ```python
 # WRONG: FastAPI tries to validate None against response_model
@@ -988,7 +992,9 @@ async def disconnect_provider(...) -> Response:
     return Response(status_code=204)
 ```
 
-**3. Handler Results Must Be Wrapped in DTOs**:
+### 9.3 Handler Results Must Be Wrapped in DTOs
+
+Handlers should return DTOs with metadata, not raw domain entities:
 
 ```python
 # WRONG: Handler returns raw list
@@ -1003,7 +1009,9 @@ return Success(value=AccountListResult(
 ))
 ```
 
-**4. Function Name Conflicts with Container Imports**:
+### 9.4 Function Name Conflicts with Container Imports
+
+Avoid naming endpoint functions the same as container factory imports:
 
 ```python
 # WRONG: Endpoint name shadows container import
@@ -1019,76 +1027,6 @@ async def get_provider_connection(...):  # Distinct name
     ...
 ```
 
-### 9.2 Phase 5 Endpoint Inventory (15 endpoints)
-
-**Account Endpoints (4)**:
-
-- `GET /accounts` - List all accounts
-- `GET /accounts/{id}` - Get specific account
-- `POST /accounts/syncs` - Trigger account sync
-- `GET /providers/{id}/accounts` - List accounts for provider
-
-**Transaction Endpoints (4)**:
-
-- `GET /transactions/{id}` - Get specific transaction
-- `POST /transactions/syncs` - Trigger transaction sync
-- `GET /accounts/{id}/transactions` - List transactions for account (with date range)
-
-**Provider Endpoints (7)**:
-
-- `GET /providers` - List connected providers
-- `GET /providers/{id}` - Get specific provider connection
-- `POST /providers` - Initiate OAuth connection
-- `POST /providers/callback` - OAuth callback handler
-- `PATCH /providers/{id}` - Update connection alias
-- `DELETE /providers/{id}` - Disconnect provider
-- `POST /providers/{id}/token-refreshes` - Refresh provider tokens
-
-### 9.3 Test Coverage
-
-- 1,563 tests passed (17 skipped)
-- 80% overall coverage
-
 ---
 
-## 10. Implementation Checklist
-
-### Pre-Development
-
-- [ ] Review WARP.md REST compliance requirements
-- [ ] Review existing endpoint patterns (`accounts.py`, `providers.py`)
-- [ ] Create schemas in `src/schemas/` with `_schemas.py` suffix
-- [ ] Identify CQRS handlers needed from container
-- [ ] Plan error mapper function for string → ApplicationError
-
-### Implementation
-
-- [ ] Create router with proper prefix and tags
-- [ ] Import handlers via `Depends(get_*_handler)`
-- [ ] Add `AuthenticatedUser` to all endpoints
-- [ ] Add `Request` parameter for error building
-- [ ] Create `_map_*_error()` function for RFC 7807 compliance
-- [ ] Use `get_trace_id() or ""` (handle None)
-- [ ] Use `response_model=None` for 204 endpoints
-- [ ] Return `JSONResponse` for errors, schema for success
-
-### Testing (Real App with Dependency Overrides)
-
-- [ ] Create mock DTOs matching actual handler DTOs (all fields!)
-- [ ] Override `get_current_user` function (not AuthenticatedUser type)
-- [ ] Override handler factory functions from container
-- [ ] Happy path tests for all endpoints
-- [ ] Not found tests (404) with RFC 7807 verification
-- [ ] Error mapping tests (verify status codes)
-- [ ] Clean up overrides after each test
-
-### Documentation
-
-- [ ] Google-style docstrings on all endpoints
-- [ ] OpenAPI description and examples
-- [ ] Response schemas documented
-- [ ] Error responses documented
-
----
-
-**Created**: 2025-12-04 | **Last Updated**: 2025-12-04
+**Created**: 2025-12-04 | **Last Updated**: 2025-12-05

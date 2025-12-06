@@ -17,46 +17,39 @@
 
 ## Architecture Overview
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Presentation Layer (API)                                                    │
-│ ┌─────────────────────┐  ┌─────────────────────┐  ┌──────────────────────┐  │
-│ │ OAuth Callback      │  │ Provider Endpoints  │  │ Account Endpoints    │  │
-│ │ /oauth/{slug}/cb    │  │ /providers          │  │ /accounts            │  │
-│ └─────────────────────┘  └─────────────────────┘  └──────────────────────┘  │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   │
-┌──────────────────────────────────▼──────────────────────────────────────────┐
-│ Application Layer (Use Cases)                                               │
-│ ┌─────────────────────┐  ┌─────────────────────┐  ┌──────────────────────┐  │
-│ │ ConnectProvider     │  │ RefreshProviderTkns │  │ SyncAccounts         │  │
-│ │ DisconnectProvider  │  │ (command handlers)  │  │ SyncTransactions     │  │
-│ └─────────────────────┘  └─────────────────────┘  └──────────────────────┘  │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   │
-┌──────────────────────────────────▼──────────────────────────────────────────┐
-│ Domain Layer (Business Logic)                                               │
-│ ┌─────────────────────┐  ┌─────────────────────┐  ┌──────────────────────┐  │
-│ │ ProviderConnection  │  │ Account             │  │ Transaction          │  │
-│ │ (entity)            │  │ (entity)            │  │ (entity)             │  │
-│ └─────────────────────┘  └─────────────────────┘  └──────────────────────┘  │
-│ ┌─────────────────────┐  ┌─────────────────────┐                            │
-│ │ ProviderCredentials │  │ ProviderProtocol    │  ← PORT (interface)        │
-│ │ (value object)      │  │ (protocol)          │                            │
-│ └─────────────────────┘  └─────────────────────┘                            │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   │ implements
-┌──────────────────────────────────▼──────────────────────────────────────────┐
-│ Infrastructure Layer (Adapters)                                             │
-│ ┌─────────────────────┐  ┌─────────────────────┐  ┌──────────────────────┐  │
-│ │ SchwabProvider      │  │ PlaidProvider       │  │ ChaseProvider        │  │
-│ │ (adapter)           │  │ (future)            │  │ (future)             │  │
-│ └─────────────────────┘  └─────────────────────┘  └──────────────────────┘  │
-│ ┌─────────────────────┐  ┌─────────────────────┐                            │
-│ │ EncryptionService   │  │ AccountMapper       │                            │
-│ │ (AES-256-GCM)       │  │ TransactionMapper   │                            │
-│ └─────────────────────┘  └─────────────────────┘                            │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Presentation["Presentation Layer (API)"]
+        OC["OAuth Callback<br/>/oauth/{slug}/cb"]
+        PE["Provider Endpoints<br/>/providers"]
+        AE["Account Endpoints<br/>/accounts"]
+    end
+
+    subgraph Application["Application Layer (Use Cases)"]
+        CP["ConnectProvider<br/>DisconnectProvider"]
+        RT["RefreshProviderTokens<br/>(command handlers)"]
+        SA["SyncAccounts<br/>SyncTransactions"]
+    end
+
+    subgraph Domain["Domain Layer (Business Logic)"]
+        PC["ProviderConnection<br/>(entity)"]
+        ACC["Account<br/>(entity)"]
+        TXN["Transaction<br/>(entity)"]
+        CRED["ProviderCredentials<br/>(value object)"]
+        PP["ProviderProtocol<br/>(protocol)"]
+    end
+
+    subgraph Infrastructure["Infrastructure Layer (Adapters)"]
+        SP["SchwabProvider<br/>(adapter)"]
+        PLP["PlaidProvider<br/>(future)"]
+        CHP["ChaseProvider<br/>(future)"]
+        ENC["EncryptionService<br/>(AES-256-GCM)"]
+        MAP["AccountMapper<br/>TransactionMapper"]
+    end
+
+    Presentation --> Application
+    Application --> Domain
+    Infrastructure -->|"implements"| PP
 ```
 
 ---
@@ -136,7 +129,7 @@ class ProviderProtocol(Protocol):
     async def fetch_transactions(
         self,
         access_token: str,
-        account_id: str,
+        provider_account_id: str,
         start_date: date | None = None,
         end_date: date | None = None,
     ) -> Result[list["ProviderTransactionData"], ProviderError]:
@@ -243,23 +236,21 @@ class EncryptionService:
         ...
 ```
 
-**Flow**:
+**Encryption Flow**:
 
-```text
-Provider API Response          Encryption Service           Database
-┌─────────────────────┐       ┌──────────────────┐       ┌─────────────┐
-│ {                   │       │                  │       │             │
-│   access_token: ... │──────▶│ encrypt(data)    │──────▶│ blob (bytes)│
-│   refresh_token: ...│       │                  │       │             │
-│   expires_in: 1800  │       └──────────────────┘       └─────────────┘
-│ }                   │
-└─────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Encrypt["Token Storage"]
+        direction LR
+        API1["Provider API<br/>Response"] -->|"encrypt()"| ENC1["Encryption<br/>Service"]
+        ENC1 --> DB1[("Database<br/>blob bytes")]
+    end
 
-Database                       Encryption Service           Provider API
-┌─────────────────────┐       ┌──────────────────┐       ┌─────────────┐
-│ blob (bytes)        │──────▶│ decrypt(blob)    │──────▶│ Bearer token│
-└─────────────────────┘       │                  │       └─────────────┘
-                              └──────────────────┘
+    subgraph Decrypt["Token Retrieval"]
+        direction LR
+        DB2[("Database<br/>blob bytes")] -->|"decrypt()"| ENC2["Encryption<br/>Service"]
+        ENC2 --> API2["Provider API<br/>Bearer token"]
+    end
 ```
 
 ---
@@ -382,20 +373,25 @@ class KMSEncryptionService:
 
 ### Data Model
 
-```text
-User (1) ──────────── (N) ProviderConnection
-                              │
-                              │ provider_slug: "schwab"
-                              │ alias: "Personal Brokerage"
-                              │ credentials: encrypted_blob
-                              │
-                              └──── (N) Account
-                                         │
-                                         │ provider_account_id: "12345"
-                                         │ name: "Individual Brokerage"
-                                         │ account_type: BROKERAGE
-                                         │
-                                         └──── (N) Transaction
+```mermaid
+erDiagram
+    User ||--o{ ProviderConnection : "has"
+    ProviderConnection ||--o{ Account : "contains"
+    Account ||--o{ Transaction : "contains"
+
+    ProviderConnection {
+        string provider_slug
+        string alias
+        bytes credentials
+    }
+    Account {
+        string provider_account_id
+        string name
+        string account_type
+    }
+    Transaction {
+        string provider_transaction_id
+    }
 ```
 
 ### Use Cases
@@ -624,4 +620,4 @@ To add a new provider (e.g., Plaid):
 
 ---
 
-**Created**: 2025-12-03 | **Last Updated**: 2025-12-03
+**Created**: 2025-12-03 | **Last Updated**: 2025-12-05

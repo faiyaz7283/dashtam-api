@@ -6,7 +6,8 @@ Tests the complete HTTP request/response cycle for admin rotation:
 - GET /api/v1/admin/security/config (get security config)
 
 Architecture:
-- Uses FastAPI TestClient for HTTP-level testing
+- Uses real app with dependency overrides
+- Mocks handlers and database dependencies
 - Tests validation, status codes, and error responses
 - Verifies RFC 7807 compliance for errors
 
@@ -15,139 +16,179 @@ Note:
     Admin authentication is TODO (not yet implemented).
 """
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from uuid_extensions import uuid7
+from uuid import UUID
 
 import pytest
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from fastapi import status
 from fastapi.testclient import TestClient
 
-from src.presentation.routers.api.middleware.trace_middleware import TraceMiddleware
-from src.schemas.auth_schemas import AuthErrorResponse
-from src.schemas.rotation_schemas import (
-    GlobalRotationResponse,
-    SecurityConfigResponse,
-    UserRotationResponse,
-)
+from src.core.result import Success, Failure
+from src.main import app
+from uuid_extensions import uuid7
 
 
 # =============================================================================
-# Test App Fixtures - Create test endpoints that simulate real behavior
+# Test Doubles
 # =============================================================================
 
 
-@pytest.fixture
-def test_app():
-    """Create test FastAPI app with admin rotation endpoints.
+@dataclass
+class GlobalRotationResult:
+    """Result from global rotation handler."""
 
-    Instead of including the real router (which requires complex DI),
-    we create simplified test endpoints that verify the HTTP layer behavior.
-    """
-    app = FastAPI(title="Test Admin App")
-    app.add_middleware(TraceMiddleware)
+    previous_version: int
+    new_version: int
+    grace_period_seconds: int
 
-    # Test state for tracking calls
-    app.state.global_version = 1
-    app.state.grace_period = 300
-    app.state.last_rotation_reason = None
-    app.state.user_versions = {}
 
-    # POST /api/v1/admin/security/rotations (global rotation)
-    @app.post(
-        "/api/v1/admin/security/rotations",
-        status_code=status.HTTP_201_CREATED,
-    )
-    async def create_global_rotation(request: Request):
-        """Test endpoint simulating global token rotation."""
-        data = await request.json()
+@dataclass
+class UserRotationResult:
+    """Result from user rotation handler."""
 
-        # Validate required fields
-        if "reason" not in data:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={"detail": [{"loc": ["body", "reason"], "msg": "required"}]},
+    user_id: UUID
+    previous_version: int
+    new_version: int
+
+
+@dataclass
+class SecurityConfig:
+    """Security configuration entity."""
+
+    global_min_token_version: int
+    grace_period_seconds: int
+    last_rotation_at: datetime | None
+    last_rotation_reason: str | None
+
+
+class StubGlobalRotationHandler:
+    """Stub handler for global token rotation."""
+
+    def __init__(self):
+        self.global_version = 1
+        self.grace_period = 300
+        self.last_reason = None
+
+    async def handle(self, command):
+        previous = self.global_version
+        self.global_version += 1
+        self.last_reason = command.reason
+
+        return Success(
+            value=GlobalRotationResult(
+                previous_version=previous,
+                new_version=self.global_version,
+                grace_period_seconds=self.grace_period,
             )
+        )
 
-        if not data.get("reason") or len(data["reason"]) < 1:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={"detail": [{"loc": ["body", "reason"], "msg": "too short"}]},
+
+class StubUserRotationHandler:
+    """Stub handler for per-user token rotation."""
+
+    def __init__(self):
+        self.user_versions: dict[UUID, int] = {}
+
+    async def handle(self, command):
+        user_id = command.user_id
+
+        # Simulate user not found for special test UUID ending in '000f'
+        if str(user_id).endswith("000f"):
+            return Failure(error="user_not_found")
+
+        # Initialize or get user version
+        if user_id not in self.user_versions:
+            self.user_versions[user_id] = 1
+
+        previous = self.user_versions[user_id]
+        self.user_versions[user_id] += 1
+
+        return Success(
+            value=UserRotationResult(
+                user_id=user_id,
+                previous_version=previous,
+                new_version=self.user_versions[user_id],
             )
+        )
 
-        # Simulate rotation
-        previous = app.state.global_version
-        app.state.global_version += 1
-        app.state.last_rotation_reason = data["reason"]
 
-        return GlobalRotationResponse(
-            previous_version=previous,
-            new_version=app.state.global_version,
-            grace_period_seconds=app.state.grace_period,
-        ).model_dump()
+class StubSecurityConfigRepository:
+    """Stub repository for security config."""
 
-    # POST /api/v1/admin/users/{user_id}/rotations (per-user rotation)
-    @app.post(
-        "/api/v1/admin/users/{user_id}/rotations",
-        status_code=status.HTTP_201_CREATED,
-    )
-    async def create_user_rotation(user_id: str, request: Request):
-        """Test endpoint simulating per-user token rotation."""
-        data = await request.json()
+    def __init__(self, global_rotation_handler: StubGlobalRotationHandler):
+        self._global_handler = global_rotation_handler
 
-        # Validate required fields
-        if "reason" not in data:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={"detail": [{"loc": ["body", "reason"], "msg": "required"}]},
-            )
-
-        # Simulate user not found
-        if "notfound" in user_id.lower():
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/user_not_found",
-                    title="User Not Found",
-                    status=404,
-                    detail=f"User with ID {user_id} not found",
-                    instance=f"/api/v1/admin/users/{user_id}/rotations",
-                ).model_dump(),
-            )
-
-        # Get or initialize user version
-        if user_id not in app.state.user_versions:
-            app.state.user_versions[user_id] = 1
-
-        previous = app.state.user_versions[user_id]
-        app.state.user_versions[user_id] += 1
-
-        return UserRotationResponse(
-            user_id=user_id,
-            previous_version=previous,
-            new_version=app.state.user_versions[user_id],
-        ).model_dump()
-
-    # GET /api/v1/admin/security/config
-    @app.get("/api/v1/admin/security/config")
-    async def get_security_config(request: Request):
-        """Test endpoint simulating security config retrieval."""
-        return SecurityConfigResponse(
-            global_min_token_version=app.state.global_version,
-            grace_period_seconds=app.state.grace_period,
-            last_rotation_at=datetime.now(UTC).isoformat()
-            if app.state.last_rotation_reason
+    async def get_or_create_default(self):
+        return SecurityConfig(
+            global_min_token_version=self._global_handler.global_version,
+            grace_period_seconds=self._global_handler.grace_period,
+            last_rotation_at=datetime.now(UTC)
+            if self._global_handler.last_reason
             else None,
-            last_rotation_reason=app.state.last_rotation_reason,
-        ).model_dump()
+            last_rotation_reason=self._global_handler.last_reason,
+        )
 
-    return app
+
+# =============================================================================
+# Fixtures
+# =============================================================================
 
 
 @pytest.fixture
-def client(test_app):
-    """Create test client for the test app."""
-    return TestClient(test_app)
+def global_handler():
+    """Create stub global rotation handler."""
+    return StubGlobalRotationHandler()
+
+
+@pytest.fixture
+def user_handler():
+    """Create stub user rotation handler."""
+    return StubUserRotationHandler()
+
+
+@pytest.fixture(autouse=True)
+def override_dependencies(global_handler, user_handler):
+    """Override app dependencies with test doubles."""
+    from src.core.container import (
+        get_trigger_global_rotation_handler,
+        get_trigger_user_rotation_handler,
+        get_db_session,
+    )
+
+    app.dependency_overrides[get_trigger_global_rotation_handler] = (
+        lambda: global_handler
+    )
+    app.dependency_overrides[get_trigger_user_rotation_handler] = lambda: user_handler
+
+    # Mock db_session for security config endpoint
+    async def mock_db_session():
+        # Return a stub that won't be used (repository is mocked below)
+        return None
+
+    app.dependency_overrides[get_db_session] = mock_db_session
+
+    # Monkeypatch SecurityConfigRepository to return our stub
+    import src.presentation.routers.api.v1.admin.token_rotation as rotation_module
+
+    original_repo = rotation_module.SecurityConfigRepository
+
+    def stub_repo_factory(session):
+        return StubSecurityConfigRepository(global_handler)
+
+    rotation_module.SecurityConfigRepository = stub_repo_factory
+
+    yield
+
+    # Cleanup
+    app.dependency_overrides.clear()
+    rotation_module.SecurityConfigRepository = original_repo
+
+
+@pytest.fixture
+def client():
+    """Create test client with real app."""
+    return TestClient(app)
 
 
 # =============================================================================
@@ -266,8 +307,11 @@ class TestUserRotationEndpoint:
 
     def test_user_rotation_returns_404_for_nonexistent_user(self, client):
         """Test rotation returns 404 for non-existent user."""
+        # Use a valid UUID ending in '000f' to trigger not found in stub handler
+        notfound_uuid = "00000000-0000-0000-0000-00000000000f"
+
         response = client.post(
-            "/api/v1/admin/users/notfound-user-id/rotations",
+            f"/api/v1/admin/users/{notfound_uuid}/rotations",
             json={"reason": "Test"},
         )
 

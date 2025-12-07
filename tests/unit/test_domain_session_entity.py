@@ -14,8 +14,9 @@ Architecture:
 - Test business logic, not persistence
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid_extensions import uuid7
+from freezegun import freeze_time
 
 import pytest
 
@@ -40,13 +41,14 @@ class TestSessionCreation:
         assert session.suspicious_activity_count == 0
         assert session.providers_accessed == []
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_session_creation_with_all_fields(self):
         """Test session creation with all fields populated."""
         session_id = uuid7()
         user_id = uuid7()
         refresh_token_id = uuid7()
-        now = datetime.now(UTC)
-        expires_at = now + timedelta(days=30)
+        now = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        expires_at = datetime(2024, 1, 31, 12, 0, 0, tzinfo=UTC)  # 30 days later
 
         session = Session(
             id=session_id,
@@ -91,16 +93,18 @@ class TestSessionIsActive:
 
         assert session.is_active() is False
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_active_returns_false_when_expired(self):
         """Test expired session is not active."""
-        past_time = datetime.now(UTC) - timedelta(hours=1)
+        past_time = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)  # 1 hour ago
         session = Session(id=uuid7(), user_id=uuid7(), expires_at=past_time)
 
         assert session.is_active() is False
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_active_returns_true_when_not_expired(self):
         """Test session with future expiration is active."""
-        future_time = datetime.now(UTC) + timedelta(days=30)
+        future_time = datetime(2024, 1, 31, 12, 0, 0, tzinfo=UTC)  # 30 days later
         session = Session(id=uuid7(), user_id=uuid7(), expires_at=future_time)
 
         assert session.is_active() is True
@@ -111,9 +115,10 @@ class TestSessionIsActive:
 
         assert session.is_active() is True
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_active_returns_false_when_both_revoked_and_expired(self):
         """Test session that is both revoked and expired is not active."""
-        past_time = datetime.now(UTC) - timedelta(hours=1)
+        past_time = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)  # 1 hour ago
         session = Session(
             id=uuid7(), user_id=uuid7(), is_revoked=True, expires_at=past_time
         )
@@ -141,15 +146,15 @@ class TestSessionRevoke:
 
         assert session.revoked_reason == "password_changed"
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_revoke_sets_revoked_at_timestamp(self):
         """Test revoke sets timestamp."""
         session = Session(id=uuid7(), user_id=uuid7())
-        before_revoke = datetime.now(UTC)
 
         session.revoke("security_concern")
 
-        assert session.revoked_at is not None
-        assert session.revoked_at >= before_revoke
+        expected_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        assert session.revoked_at == expected_time
 
     def test_revoke_makes_session_inactive(self):
         """Test revoked session becomes inactive."""
@@ -180,15 +185,15 @@ class TestSessionRevoke:
 class TestSessionUpdateActivity:
     """Test Session.update_activity() method."""
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_update_activity_updates_timestamp(self):
         """Test update_activity sets last_activity_at."""
         session = Session(id=uuid7(), user_id=uuid7())
-        before_update = datetime.now(UTC)
 
         session.update_activity()
 
-        assert session.last_activity_at is not None
-        assert session.last_activity_at >= before_update
+        expected_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        assert session.last_activity_at == expected_time
 
     def test_update_activity_with_same_ip(self):
         """Test update_activity with same IP doesn't track change."""
@@ -218,14 +223,15 @@ class TestSessionUpdateActivity:
 
         assert session.ip_address == "192.168.1.1"
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_update_activity_without_ip(self):
         """Test update_activity without IP only updates timestamp."""
         session = Session(id=uuid7(), user_id=uuid7(), ip_address="192.168.1.1")
-        before_update = datetime.now(UTC)
 
         session.update_activity()
 
-        assert session.last_activity_at >= before_update
+        expected_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        assert session.last_activity_at == expected_time
         assert session.ip_address == "192.168.1.1"
 
 
@@ -249,15 +255,15 @@ class TestSessionRecordProviderAccess:
 
         assert session.last_provider_accessed == "fidelity"
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_record_provider_access_sets_sync_timestamp(self):
         """Test record_provider_access sets last_provider_sync_at."""
         session = Session(id=uuid7(), user_id=uuid7())
-        before_access = datetime.now(UTC)
 
         session.record_provider_access("schwab")
 
-        assert session.last_provider_sync_at is not None
-        assert session.last_provider_sync_at >= before_access
+        expected_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        assert session.last_provider_sync_at == expected_time
 
     def test_record_provider_access_multiple_providers(self):
         """Test recording access to multiple providers."""

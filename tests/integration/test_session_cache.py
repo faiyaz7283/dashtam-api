@@ -15,14 +15,16 @@ Reference:
     - docs/architecture/session-management-architecture.md
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid_extensions import uuid7
+from freezegun import freeze_time
 
 import pytest
 
 from src.domain.protocols.session_repository import SessionData
 
 
+@freeze_time("2024-01-01 12:00:00")
 def create_test_session_data(  # type: ignore[no-untyped-def]
     session_id=None,
     user_id=None,
@@ -36,7 +38,7 @@ def create_test_session_data(  # type: ignore[no-untyped-def]
     refresh_token_id=None,
 ) -> SessionData:
     """Create test SessionData with sensible defaults."""
-    now = datetime.now(UTC)
+    now = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
     return SessionData(
         id=session_id or uuid7(),
         user_id=user_id or uuid7(),
@@ -46,7 +48,8 @@ def create_test_session_data(  # type: ignore[no-untyped-def]
         location=location,
         created_at=now,
         last_activity_at=now,
-        expires_at=expires_at or (now + timedelta(days=30)),
+        expires_at=expires_at
+        or datetime(2024, 1, 31, 12, 0, 0, tzinfo=UTC),  # 30 days later
         is_revoked=is_revoked,
         is_trusted=is_trusted,
         revoked_at=None,
@@ -105,23 +108,24 @@ class TestSessionCacheGetSet:
         assert 0 < ttl_result.value <= ttl_seconds
 
     @pytest.mark.asyncio
+    @freeze_time("2024-01-01 12:00:00")
     async def test_set_calculates_ttl_from_expires_at(
         self, session_cache, cache_adapter
     ):
         """Test TTL is calculated from session expires_at if not provided."""
         # Arrange
-        expires_at = datetime.now(UTC) + timedelta(hours=1)
+        expires_at = datetime(2024, 1, 1, 13, 0, 0, tzinfo=UTC)  # 1 hour later
         session_data = create_test_session_data(expires_at=expires_at)
 
         # Act
         await session_cache.set(session_data)
 
-        # Assert - TTL should be approximately 1 hour
+        # Assert - TTL should be exactly 1 hour
         key = f"session:{session_data.id}"
         ttl_result = await cache_adapter.ttl(key)
         assert ttl_result.value is not None
-        # Allow some tolerance (3595-3600 seconds)
-        assert 3500 < ttl_result.value <= 3600
+        # Exact 3600 seconds (allow small Redis variance)
+        assert 3590 < ttl_result.value <= 3600
 
     @pytest.mark.asyncio
     async def test_set_session_adds_to_user_index(self, session_cache):
@@ -138,10 +142,11 @@ class TestSessionCacheGetSet:
         assert session_data.id in user_session_ids
 
     @pytest.mark.asyncio
+    @freeze_time("2024-01-01 12:00:00")
     async def test_session_data_serialization_all_fields(self, session_cache):
         """Test all SessionData fields are properly serialized/deserialized."""
         # Arrange - session with all fields populated
-        now = datetime.now(UTC)
+        now = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         refresh_token_id = uuid7()
         session_data = SessionData(
             id=uuid7(),
@@ -152,7 +157,7 @@ class TestSessionCacheGetSet:
             location="San Francisco, US",
             created_at=now,
             last_activity_at=now,
-            expires_at=now + timedelta(days=7),
+            expires_at=datetime(2024, 1, 8, 12, 0, 0, tzinfo=UTC),  # 7 days later
             is_revoked=False,
             is_trusted=True,
             revoked_at=None,
@@ -395,10 +400,11 @@ class TestSessionCacheUpdateActivity:
     """Test session cache update_last_activity operation."""
 
     @pytest.mark.asyncio
+    @freeze_time("2024-01-01 12:00:00")
     async def test_update_last_activity_updates_timestamp(self, session_cache):
         """Test update_last_activity updates the last_activity_at field."""
         # Arrange
-        old_time = datetime.now(UTC) - timedelta(hours=1)
+        old_time = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)  # 1 hour ago
         session_data = SessionData(
             id=uuid7(),
             user_id=uuid7(),
@@ -408,7 +414,7 @@ class TestSessionCacheUpdateActivity:
             location="New York, US",
             created_at=old_time,
             last_activity_at=old_time,
-            expires_at=datetime.now(UTC) + timedelta(days=30),
+            expires_at=datetime(2024, 1, 31, 12, 0, 0, tzinfo=UTC),  # 30 days later
             is_revoked=False,
             is_trusted=False,
             revoked_at=None,

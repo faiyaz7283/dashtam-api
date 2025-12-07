@@ -16,6 +16,7 @@ Architecture:
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from freezegun import freeze_time
 
 from src.domain.enums.credential_type import CredentialType
 from src.domain.value_objects.provider_credentials import ProviderCredentials
@@ -151,31 +152,34 @@ class TestProviderCredentialsIsExpired:
         # Assert
         assert credentials.is_expired() is False
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_expired_false_when_future_expiration(self):
         """Test is_expired returns False when expiration is in future."""
-        # Arrange
+        # Arrange - expires 1 hour in future
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) + timedelta(hours=1)
+            expires_at=datetime(2024, 1, 1, 13, 0, 0, tzinfo=UTC)
         )
 
         # Assert
         assert credentials.is_expired() is False
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_expired_true_when_past_expiration(self):
         """Test is_expired returns True when expiration is in past."""
-        # Arrange
+        # Arrange - expired 1 hour ago
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) - timedelta(hours=1)
+            expires_at=datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)
         )
 
         # Assert
         assert credentials.is_expired() is True
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_expired_true_at_exact_expiration(self):
         """Test is_expired returns True at exact expiration time."""
-        # Arrange - expires exactly now (or just slightly in past)
+        # Arrange - expires exactly now
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) - timedelta(milliseconds=1)
+            expires_at=datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         )
 
         # Assert
@@ -194,51 +198,56 @@ class TestProviderCredentialsIsExpiringSoon:
         # Assert
         assert credentials.is_expiring_soon() is False
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_expiring_soon_false_when_far_from_expiry(self):
         """Test is_expiring_soon returns False when expiration is far away."""
-        # Arrange
+        # Arrange - expires 1 hour from now (outside 5 min threshold)
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) + timedelta(hours=1)
+            expires_at=datetime(2024, 1, 1, 13, 0, 0, tzinfo=UTC)
         )
 
         # Assert
         assert credentials.is_expiring_soon() is False
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_expiring_soon_true_within_default_threshold(self):
         """Test is_expiring_soon returns True within 5 minute threshold."""
-        # Arrange - 3 minutes from now (within default 5 min threshold)
+        # Arrange - expires 3 minutes from now (within default 5 min threshold)
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) + timedelta(minutes=3)
+            expires_at=datetime(2024, 1, 1, 12, 3, 0, tzinfo=UTC)
         )
 
         # Assert
         assert credentials.is_expiring_soon() is True
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_expiring_soon_false_outside_default_threshold(self):
         """Test is_expiring_soon returns False just outside threshold."""
-        # Arrange - 6 minutes from now (outside default 5 min threshold)
+        # Arrange - expires 6 minutes from now (outside default 5 min threshold)
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) + timedelta(minutes=6)
+            expires_at=datetime(2024, 1, 1, 12, 6, 0, tzinfo=UTC)
         )
 
         # Assert
         assert credentials.is_expiring_soon() is False
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_expiring_soon_with_custom_threshold(self):
         """Test is_expiring_soon with custom threshold."""
-        # Arrange - 8 minutes from now
+        # Arrange - expires 8 minutes from now
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) + timedelta(minutes=8)
+            expires_at=datetime(2024, 1, 1, 12, 8, 0, tzinfo=UTC)
         )
 
         # Assert - 10 minute threshold should capture it
         assert credentials.is_expiring_soon(threshold=timedelta(minutes=10)) is True
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_is_expiring_soon_true_when_already_expired(self):
         """Test is_expiring_soon returns True when already expired."""
-        # Arrange
+        # Arrange - expired 5 minutes ago
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) - timedelta(minutes=5)
+            expires_at=datetime(2024, 1, 1, 11, 55, 0, tzinfo=UTC)
         )
 
         # Assert
@@ -257,11 +266,12 @@ class TestProviderCredentialsTimeUntilExpiry:
         # Assert
         assert credentials.time_until_expiry() is None
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_time_until_expiry_positive_when_not_expired(self):
         """Test time_until_expiry returns positive timedelta when valid."""
-        # Arrange
+        # Arrange - expires 1 hour from now
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) + timedelta(hours=1)
+            expires_at=datetime(2024, 1, 1, 13, 0, 0, tzinfo=UTC)
         )
 
         # Act
@@ -269,15 +279,14 @@ class TestProviderCredentialsTimeUntilExpiry:
 
         # Assert
         assert remaining is not None
-        assert remaining.total_seconds() > 0
-        # Should be roughly 1 hour (with small tolerance for test execution)
-        assert 3500 < remaining.total_seconds() < 3700
+        assert remaining.total_seconds() == 3600  # Exactly 1 hour
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_time_until_expiry_zero_when_expired(self):
         """Test time_until_expiry returns zero timedelta when expired."""
-        # Arrange
+        # Arrange - expired 1 hour ago
         credentials = create_credentials(
-            expires_at=datetime.now(UTC) - timedelta(hours=1)
+            expires_at=datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)
         )
 
         # Act

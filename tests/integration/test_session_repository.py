@@ -21,8 +21,9 @@ Note:
     Each test starts with empty sessions and users tables.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid_extensions import uuid7
+from freezegun import freeze_time
 
 import pytest
 import pytest_asyncio
@@ -59,9 +60,10 @@ async def clean_session_tables(test_database):
     # No cleanup needed after - next test will truncate
 
 
+@freeze_time("2024-01-01 12:00:00")
 def create_test_user(user_id=None, email=None):
     """Create a test User with all required fields."""
-    now = datetime.now(UTC)
+    now = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
     user_id = user_id or uuid7()
     return User(
         id=user_id,
@@ -76,6 +78,7 @@ def create_test_user(user_id=None, email=None):
     )
 
 
+@freeze_time("2024-01-01 12:00:00")
 def create_test_session(
     session_id=None,
     user_id=None,
@@ -98,7 +101,7 @@ def create_test_session(
         is_revoked: Whether session is revoked.
         created_at: Optional creation time (for testing ordering).
     """
-    now = datetime.now(UTC)
+    now = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
     return SessionData(
         id=session_id or uuid7(),
         user_id=user_id or uuid7(),
@@ -108,7 +111,8 @@ def create_test_session(
         location=location,
         created_at=created_at or now,
         last_activity_at=now,
-        expires_at=expires_at or (now + timedelta(days=30)),
+        expires_at=expires_at
+        or datetime(2024, 1, 31, 12, 0, 0, tzinfo=UTC),  # 30 days later
         is_revoked=is_revoked,
         is_trusted=False,
         revoked_at=None,
@@ -226,6 +230,7 @@ class TestSessionRepositoryFindByUserId:
         assert device_infos == {"Chrome", "Safari", "Firefox"}
 
     @pytest.mark.asyncio
+    @freeze_time("2024-01-01 12:00:00")
     async def test_find_by_user_id_active_only(self, test_database):
         """Test find_by_user_id with active_only filter."""
         # Arrange
@@ -273,6 +278,7 @@ class TestSessionRepositoryCountActiveSessions:
     """Test SessionRepository count_active_sessions operations."""
 
     @pytest.mark.asyncio
+    @freeze_time("2024-01-01 12:00:00")
     async def test_count_active_sessions_counts_only_active(self, test_database):
         """Test count_active_sessions only counts non-revoked, non-expired."""
         # Arrange
@@ -283,7 +289,7 @@ class TestSessionRepositoryCountActiveSessions:
         expired = create_test_session(
             user_id=user.id,
             is_revoked=False,
-            expires_at=datetime.now(UTC) - timedelta(hours=1),
+            expires_at=datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC),  # 1 hour ago
         )
 
         async with test_database.get_session() as db_session:
@@ -397,27 +403,27 @@ class TestSessionRepositoryGetOldestActiveSession:
     """Test SessionRepository get_oldest_active_session operations."""
 
     @pytest.mark.asyncio
+    @freeze_time("2024-01-01 12:00:00")
     async def test_get_oldest_returns_oldest_by_created_at(self, test_database):
         """Test get_oldest_active_session returns oldest session."""
         # Arrange
         user = create_test_user()
-        now = datetime.now(UTC)
 
         # Create sessions with different creation times using the factory parameter
         oldest = create_test_session(
             user_id=user.id,
             device_info="Oldest",
-            created_at=now - timedelta(hours=3),
+            created_at=datetime(2024, 1, 1, 9, 0, 0, tzinfo=UTC),  # 3 hours ago
         )
         middle = create_test_session(
             user_id=user.id,
             device_info="Middle",
-            created_at=now - timedelta(hours=2),
+            created_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),  # 2 hours ago
         )
         newest = create_test_session(
             user_id=user.id,
             device_info="Newest",
-            created_at=now - timedelta(hours=1),
+            created_at=datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC),  # 1 hour ago
         )
 
         async with test_database.get_session() as db_session:
@@ -442,25 +448,25 @@ class TestSessionRepositoryGetOldestActiveSession:
         assert found.device_info == "Oldest"
 
     @pytest.mark.asyncio
+    @freeze_time("2024-01-01 12:00:00")
     async def test_get_oldest_excludes_revoked_sessions(self, test_database):
         """Test get_oldest_active_session excludes revoked sessions."""
         # Arrange
         user = create_test_user()
-        now = datetime.now(UTC)
 
         # Oldest is revoked
         oldest_revoked = create_test_session(
             user_id=user.id,
             device_info="OldestRevoked",
             is_revoked=True,
-            created_at=now - timedelta(hours=3),
+            created_at=datetime(2024, 1, 1, 9, 0, 0, tzinfo=UTC),  # 3 hours ago
         )
         # Second oldest is active
         oldest_active = create_test_session(
             user_id=user.id,
             device_info="OldestActive",
             is_revoked=False,
-            created_at=now - timedelta(hours=2),
+            created_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),  # 2 hours ago
         )
 
         async with test_database.get_session() as db_session:
@@ -534,21 +540,21 @@ class TestSessionRepositoryCleanup:
     """Test SessionRepository cleanup operations."""
 
     @pytest.mark.asyncio
+    @freeze_time("2024-01-01 12:00:00")
     async def test_cleanup_removes_expired_sessions(self, test_database):
         """Test cleanup_expired_sessions removes old sessions."""
         # Arrange
         user = create_test_user()
-        now = datetime.now(UTC)
 
         expired = create_test_session(
             user_id=user.id,
             device_info="Expired",
-            expires_at=now - timedelta(hours=1),
+            expires_at=datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC),  # 1 hour ago
         )
         active = create_test_session(
             user_id=user.id,
             device_info="Active",
-            expires_at=now + timedelta(days=30),
+            expires_at=datetime(2024, 1, 31, 12, 0, 0, tzinfo=UTC),  # 30 days later
         )
 
         async with test_database.get_session() as db_session:

@@ -7,13 +7,10 @@ Tests the complete HTTP request/response cycle for admin rotation:
 
 Architecture:
 - Uses real app with dependency overrides
-- Mocks handlers and database dependencies
+- Mocks handlers, database, and authentication dependencies
 - Tests validation, status codes, and error responses
 - Verifies RFC 7807 compliance for errors
-
-Note:
-    These tests focus on request validation and response formats.
-    Admin authentication is TODO (not yet implemented).
+- Verifies 401/403 for unauthenticated/unauthorized access
 """
 
 from dataclasses import dataclass
@@ -26,6 +23,7 @@ from fastapi.testclient import TestClient
 
 from src.core.result import Success, Failure
 from src.main import app
+from src.presentation.routers.api.middleware.auth_dependencies import CurrentUser
 from uuid_extensions import uuid7
 
 
@@ -130,9 +128,40 @@ class StubSecurityConfigRepository:
         )
 
 
+class StubAuthorizationProtocol:
+    """Stub authorization that always allows admin."""
+
+    async def check_permission(self, user_id: UUID, resource: str, action: str) -> bool:
+        return True
+
+    async def has_role(self, user_id: UUID, role: str) -> bool:
+        # Return True for admin role
+        return role == "admin"
+
+
+class StubAuthorizationDenied:
+    """Stub authorization that denies admin role."""
+
+    async def check_permission(self, user_id: UUID, resource: str, action: str) -> bool:
+        return False
+
+    async def has_role(self, user_id: UUID, role: str) -> bool:
+        return False
+
+
 # =============================================================================
 # Fixtures
 # =============================================================================
+
+
+@pytest.fixture
+def admin_user():
+    """Create admin user for authenticated requests."""
+    return CurrentUser(
+        user_id=uuid7(),
+        email="admin@example.com",
+        roles=["admin"],
+    )
 
 
 @pytest.fixture
@@ -148,18 +177,28 @@ def user_handler():
 
 
 @pytest.fixture(autouse=True)
-def override_dependencies(global_handler, user_handler):
+def override_dependencies(global_handler, user_handler, admin_user):
     """Override app dependencies with test doubles."""
     from src.core.container import (
         get_trigger_global_rotation_handler,
         get_trigger_user_rotation_handler,
         get_db_session,
+        get_authorization,
+    )
+    from src.presentation.routers.api.middleware.auth_dependencies import (
+        get_current_user,
     )
 
     app.dependency_overrides[get_trigger_global_rotation_handler] = (
         lambda: global_handler
     )
     app.dependency_overrides[get_trigger_user_rotation_handler] = lambda: user_handler
+
+    # Mock authentication - return admin user
+    app.dependency_overrides[get_current_user] = lambda: admin_user
+
+    # Mock authorization - allow admin role
+    app.dependency_overrides[get_authorization] = lambda: StubAuthorizationProtocol()
 
     # Mock db_session for security config endpoint
     async def mock_db_session():
@@ -393,3 +432,152 @@ class TestSecurityConfigEndpoint:
 
         assert data["last_rotation_reason"] == "Audit test rotation"
         assert data["last_rotation_at"] is not None
+
+
+# =============================================================================
+# Authentication & Authorization Tests
+# =============================================================================
+
+
+@pytest.mark.api
+class TestAdminAuthenticationRequired:
+    """Test that admin endpoints require authentication."""
+
+    def test_global_rotation_returns_401_without_auth(self):
+        """Test global rotation returns 401 without authentication."""
+        # Clear all overrides to test without auth
+        app.dependency_overrides.clear()
+
+        try:
+            client = TestClient(app)
+            response = client.post(
+                "/api/v1/admin/security/rotations",
+                json={"reason": "Test rotation"},
+            )
+
+            # Returns 401 from HTTPBearer when no Authorization header
+            assert response.status_code in (
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,  # May return 403 if auth check passes but authz fails
+            )
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_user_rotation_returns_401_without_auth(self):
+        """Test per-user rotation returns 401 without authentication."""
+        app.dependency_overrides.clear()
+
+        try:
+            client = TestClient(app)
+            user_id = str(uuid7())
+            response = client.post(
+                f"/api/v1/admin/users/{user_id}/rotations",
+                json={"reason": "Test rotation"},
+            )
+
+            assert response.status_code in (
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            )
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_get_config_returns_401_without_auth(self):
+        """Test get config returns 401 without authentication."""
+        app.dependency_overrides.clear()
+
+        try:
+            client = TestClient(app)
+            response = client.get("/api/v1/admin/security/config")
+
+            assert response.status_code in (
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            )
+        finally:
+            app.dependency_overrides.clear()
+
+
+@pytest.mark.api
+class TestAdminAuthorizationRequired:
+    """Test that admin endpoints require admin role."""
+
+    def test_global_rotation_returns_403_without_admin_role(self):
+        """Test global rotation returns 403 for non-admin user."""
+        from src.core.container import get_authorization
+        from src.presentation.routers.api.middleware.auth_dependencies import (
+            get_current_user,
+        )
+
+        # Setup: authenticated but non-admin user
+        regular_user = CurrentUser(
+            user_id=uuid7(),
+            email="user@example.com",
+            roles=["user"],  # Not admin
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: regular_user
+        app.dependency_overrides[get_authorization] = lambda: StubAuthorizationDenied()
+
+        try:
+            client = TestClient(app)
+            response = client.post(
+                "/api/v1/admin/security/rotations",
+                json={"reason": "Test rotation"},
+            )
+
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_user_rotation_returns_403_without_admin_role(self):
+        """Test per-user rotation returns 403 for non-admin user."""
+        from src.core.container import get_authorization
+        from src.presentation.routers.api.middleware.auth_dependencies import (
+            get_current_user,
+        )
+
+        regular_user = CurrentUser(
+            user_id=uuid7(),
+            email="user@example.com",
+            roles=["user"],
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: regular_user
+        app.dependency_overrides[get_authorization] = lambda: StubAuthorizationDenied()
+
+        try:
+            client = TestClient(app)
+            user_id = str(uuid7())
+            response = client.post(
+                f"/api/v1/admin/users/{user_id}/rotations",
+                json={"reason": "Test rotation"},
+            )
+
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_get_config_returns_403_without_admin_role(self):
+        """Test get config returns 403 for non-admin user."""
+        from src.core.container import get_authorization
+        from src.presentation.routers.api.middleware.auth_dependencies import (
+            get_current_user,
+        )
+
+        regular_user = CurrentUser(
+            user_id=uuid7(),
+            email="user@example.com",
+            roles=["user"],
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: regular_user
+        app.dependency_overrides[get_authorization] = lambda: StubAuthorizationDenied()
+
+        try:
+            client = TestClient(app)
+            response = client.get("/api/v1/admin/security/config")
+
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+        finally:
+            app.dependency_overrides.clear()

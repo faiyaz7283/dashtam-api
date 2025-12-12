@@ -69,27 +69,6 @@ services:
       - dashtam-network
     restart: unless-stopped
 
-  # OAuth Callback Server
-  callback:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-      target: callback
-    container_name: dashtam-callback
-    environment:
-      API_BASE_URL: ${API_BASE_URL:-https://app:8000}
-      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
-    ports:
-      - "8182:8182"
-    volumes:
-      - ./certs:/app/certs:ro
-    depends_on:
-      - app
-    networks:
-      - dashtam-network
-    restart: unless-stopped
-
-
 networks:
   dashtam-network:
     driver: bridge

@@ -1,4 +1,4 @@
-.PHONY: help setup keys-generate keys-validate dev-up dev-down dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status dev-build dev-rebuild test-up test-down test-restart test-logs test-shell test-build test-rebuild test test-unit test-integration test-api test-smoke ci-test lint format lint-md lint-md-check lint-md-fix md-check docs-serve docs-build docs-stop migrate migrate-create migrate-down migrate-history migrate-current clean status-all ps check
+.PHONY: help setup keys-generate keys-validate dev-up dev-down dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status dev-build dev-rebuild test-up test-down test-restart test-logs test-shell test-build test-rebuild test test-unit test-integration test-api test-smoke ci-test-local ci-test ci-lint lint format lint-md lint-md-check lint-md-fix md-check docs-serve docs-build docs-stop migrate migrate-create migrate-down migrate-history migrate-current clean status-all ps check
 
 # ==============================================================================
 # HELP
@@ -47,7 +47,9 @@ help:
 	@echo "     make test-api ARGS=\"-x\"                   - Stop on first failure"
 	@echo ""
 	@echo "🤖 CI/CD:"
-	@echo "  make ci-test         - Run CI test suite (GitHub Actions simulation)"
+	@echo "  make ci-test-local   - Full CI suite (tests + lint + type-check)"
+	@echo "  make ci-test         - Tests only (matches GitHub Actions)"
+	@echo "  make ci-lint         - Linting only (matches GitHub Actions)"
 	@echo ""
 	@echo "✨ Code Quality:"
 	@echo "  make lint            - Run Python linters (ruff)"
@@ -291,12 +293,97 @@ test-smoke:
 # ==============================================================================
 # CI/CD
 # ==============================================================================
+# 
+# ci-test-local  - Full CI suite locally (tests + lint + type-check)
+# ci-test        - Tests only (matches GitHub Actions test-main job)
+# ci-lint        - Linting only (matches GitHub Actions lint job)
+# 
+# All CI commands match GitHub Actions behavior for accurate local debugging.
+# ==============================================================================
+
+ci-test-local: _ensure-env-ci
+	@echo "🤖 Running FULL CI suite locally (tests + lint + type-check)..."
+	@echo ""
+	@echo "📝 Step 1: Starting CI environment..."
+	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@echo ""
+	@echo "⏳ Step 2: Waiting for services..."
+	@sleep 3
+	@docker compose -f compose/docker-compose.ci.yml exec -T postgres pg_isready -U dashtam_test_user -d dashtam_test || sleep 2
+	@echo "✅ Services ready"
+	@echo ""
+	@echo "🧪 Step 3: Running tests (excludes smoke)..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app \
+		uv run pytest tests/ -v \
+		--cov=src \
+		--cov-report=term-missing \
+		--cov-report=html \
+		-m "not smoke" || (echo "❌ Tests failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🔍 Step 4: Running linter..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff check src/ tests/ || (echo "❌ Lint failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "✨ Step 5: Checking code formatting..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff format --check src/ tests/ || (echo "❌ Format check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🔍 Step 6: Running type checks..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run mypy src || (echo "❌ Type check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🛑 Step 7: Cleanup..."
+	@docker compose -f compose/docker-compose.ci.yml down -v
+	@echo ""
+	@echo "✅ Full CI suite passed!"
 
 ci-test: _ensure-env-ci
-	@echo "🤖 Running CI test suite..."
-	@docker compose -f compose/docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from app
+	@echo "🤖 Running CI tests (matches GitHub Actions test-main job)..."
+	@echo ""
+	@echo "📝 Starting CI environment..."
+	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@echo ""
+	@echo "⏳ Waiting for services..."
+	@sleep 3
+	@docker compose -f compose/docker-compose.ci.yml exec -T postgres pg_isready -U dashtam_test_user -d dashtam_test || sleep 2
+	@echo "✅ Services ready"
+	@echo ""
+	@echo "🧪 Running tests (excludes smoke tests)..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app \
+		uv run pytest tests/ -v \
+		--cov=src \
+		--cov-report=term-missing \
+		--cov-report=html \
+		-m "not smoke" || (echo "❌ Tests failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🛑 Cleanup..."
 	@docker compose -f compose/docker-compose.ci.yml down -v
-	@echo "✅ CI tests completed"
+	@echo ""
+	@echo "✅ CI tests passed!"
+
+ci-lint: _ensure-env-ci
+	@echo "🔍 Running CI linting (matches GitHub Actions lint job)..."
+	@echo ""
+	@echo "📝 Starting CI environment..."
+	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@echo ""
+	@echo "⏳ Waiting for app container..."
+	@sleep 3
+	@echo ""
+	@echo "🔍 Running ruff linter..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff check src/ tests/ || (echo "❌ Lint failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "✨ Checking code formatting..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff format --check src/ tests/ || (echo "❌ Format check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "📝 Running markdown linter..."
+	@docker run --rm \
+		-v $(PWD):/workspace:ro \
+		-w /workspace \
+		node:24-alpine \
+		sh -c "npx markdownlint-cli2 '**/*.md' || exit 1" || (echo "❌ Markdown lint failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🛑 Cleanup..."
+	@docker compose -f compose/docker-compose.ci.yml down -v
+	@echo ""
+	@echo "✅ CI linting passed!"
 
 # ==============================================================================
 # CODE QUALITY

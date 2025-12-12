@@ -73,26 +73,6 @@ services:
       - "traefik.http.services.dashtam-dev.loadbalancer.server.port=8000"
     restart: unless-stopped
 
-  # OAuth Callback Server (Development)
-  callback:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      target: callback
-    container_name: dashtam-dev-callback
-    env_file:
-      - ../env/.env.dev
-    ports:
-      - "8182:8182"
-    volumes:
-      - ../certs:/app/certs:ro
-    depends_on:
-      - app
-    networks:
-      - dashtam-dev-network
-    restart: unless-stopped
-
-
 networks:
   dashtam-dev-network:
     driver: bridge

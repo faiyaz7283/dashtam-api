@@ -178,12 +178,29 @@
 - Auth override in tests: `app.dependency_overrides[get_current_user]` (not type alias)
 - Handler results wrapped in DTOs (e.g., `AccountListResult`, not raw lists)
 
-#### Phase 6: Pending
+#### Phase 6: v1.0 Release Preparation (IN PROGRESS)
 
-See `~/references/starter/dashtam-feature-roadmap.md` for:
+**Status**: 5/15 streams completed
 
-- Phase 6: Advanced Features (F6.1-F6.4) - Plaid, Background Jobs, Analytics (deferred to post-v1.0)
-- TODO: Refactor handlers to return `Result[T, ApplicationError]` instead of `Result[T, str]`
+**Completed Streams**:
+
+- ✅ **F6.1**: Route Organization (PR #57cf821)
+- ✅ **F6.4**: Architecture Compliance Audit (PR #94)
+- ✅ **F6.5**: Security Audit (PRs #92, #93, #95) - **Grade: A (Excellent)**
+- ✅ **F6.9**: Migrate API Tests to Real App Pattern (commit ce44d8a)
+- ✅ **F6.10**: Adopt freezegun for Time-Dependent Tests (commit 9d61e0a)
+- ✅ **F6.12**: Admin Authentication for Protected Endpoints (commit c3bfbf4)
+
+**F6.5 Security Audit Summary** (PRs #92, #93, #95):
+
+- **Audit Areas**: 6 (Encryption, JWT/Tokens, Rate Limiting, Audit Trail, Errors, Auth/Authz)
+- **Vulnerabilities**: 2 found, 100% remediation
+- **Documentation**: validation-architecture.md (1,293 lines), key-management.md (1,054 lines)
+- **DRY Refactoring**: Unit tests now use `.env.test` settings (no hardcoded keys)
+- **Security Grade**: A (Excellent)
+- **Compliance**: PCI-DSS, SOC 2, GDPR, NIST
+
+**Pending Streams**: See `~/references/starter/dashtam-feature-roadmap.md` for F6.2, F6.3, F6.6, F6.7, F6.8, F6.11, F6.13, F6.14, F6.15
 
 ---
 

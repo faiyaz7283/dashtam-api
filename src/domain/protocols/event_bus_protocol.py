@@ -181,6 +181,7 @@ class EventBusProtocol(Protocol):
         self,
         event: DomainEvent,
         session: "AsyncSession | None" = None,
+        metadata: dict[str, str] | None = None,
     ) -> None:
         """Publish event to all registered handlers.
 
@@ -197,6 +198,9 @@ class EventBusProtocol(Protocol):
                 this session instead of creating their own. This ensures proper
                 session lifecycle management and prevents "Event loop is closed"
                 errors in tests. Defaults to None for backward compatibility.
+            metadata: Optional request metadata (IP address, user agent) for
+                audit trail enrichment (PCI-DSS 10.2.7). Event handlers can
+                access this via event_bus.get_metadata(). Defaults to None.
 
         Raises:
             No exceptions raised. Handler failures are logged but not propagated.

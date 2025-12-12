@@ -44,6 +44,31 @@ from typing import Any
 
 from src.domain.enums.audit_action import AuditAction
 from src.domain.events.auth_events import (
+    # Auth Token Refresh Events (JWT rotation)
+    AuthTokenRefreshAttempted,
+    AuthTokenRefreshFailed,
+    AuthTokenRefreshSucceeded,
+    # Email Verification Events
+    EmailVerificationAttempted,
+    EmailVerificationFailed,
+    EmailVerificationSucceeded,
+    # Password Reset Events
+    PasswordResetConfirmAttempted,
+    PasswordResetConfirmFailed,
+    PasswordResetConfirmSucceeded,
+    PasswordResetRequestAttempted,
+    PasswordResetRequestFailed,
+    PasswordResetRequestSucceeded,
+    # Token Rejected Due to Rotation
+    TokenRejectedDueToRotation,
+    # User Login Events
+    UserLoginAttempted,
+    UserLoginFailed,
+    UserLoginSucceeded,
+    # User Logout Events
+    UserLogoutAttempted,
+    UserLogoutFailed,
+    UserLogoutSucceeded,
     # User Password Change Events
     UserPasswordChangeAttempted,
     UserPasswordChangeFailed,
@@ -119,11 +144,14 @@ class AuditEventHandler:
         self._event_bus = event_bus
 
     async def _create_audit_record(self, **kwargs: Any) -> None:
-        """Helper to create audit record using session from event bus.
+        """Helper to create audit record using session and metadata from event bus.
 
         Gets session from event bus. Session is REQUIRED for audit trail recording
         to ensure proper lifecycle management and compliance with F0.9.1 (Separate
         Audit Session).
+
+        Also extracts request metadata (IP address, user agent) for PCI-DSS 10.2.7
+        compliance. Metadata is optional and defaults to None if not provided.
 
         Args:
             **kwargs: Arguments to pass to audit.record().
@@ -134,6 +162,7 @@ class AuditEventHandler:
 
         Note:
             Session must be passed to event_bus.publish(event, session=session).
+            Metadata can optionally be passed: event_bus.publish(event, session, metadata={}).
             See docs/architecture/domain-events-architecture.md for session
             lifecycle management patterns.
         """
@@ -151,6 +180,14 @@ class AuditEventHandler:
                 "\n      await event_bus.publish(event, session=session)"
                 "\n\nSee docs/architecture/domain-events-architecture.md for details."
             )
+
+        # Get metadata from event bus (OPTIONAL - for PCI-DSS 10.2.7 compliance)
+        metadata = self._event_bus.get_metadata()
+
+        # Merge metadata into kwargs (use setdefault to not overwrite explicit values)
+        if metadata:
+            kwargs.setdefault("ip_address", metadata.get("ip_address"))
+            kwargs.setdefault("user_agent", metadata.get("user_agent"))
 
         # Use session from event bus (proper lifecycle)
         audit = PostgresAuditAdapter(session=session)
@@ -502,5 +539,540 @@ class AuditEventHandler:
                 "provider_slug": event.provider_slug,
                 "reason": event.reason,
                 "needs_user_action": event.needs_user_action,
+            },
+        )
+
+    # =========================================================================
+    # User Login Event Handlers
+    # =========================================================================
+
+    async def handle_user_login_attempted(
+        self,
+        event: UserLoginAttempted,
+    ) -> None:
+        """Record user login attempt audit (ATTEMPT).
+
+        Args:
+            event: UserLoginAttempted event with email.
+
+        Audit Record:
+            - action: USER_LOGIN_ATTEMPTED
+            - user_id: None (user not authenticated yet)
+            - resource_type: "session"
+            - context: {email}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_LOGIN_ATTEMPTED,
+            user_id=None,  # User not authenticated yet
+            resource_type="session",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "email": event.email,
+            },
+        )
+
+    async def handle_user_login_succeeded(
+        self,
+        event: UserLoginSucceeded,
+    ) -> None:
+        """Record successful user login audit (SUCCESS).
+
+        Args:
+            event: UserLoginSucceeded event with user_id and session_id.
+
+        Audit Record:
+            - action: USER_LOGIN_SUCCESS
+            - user_id: UUID of logged-in user
+            - resource_type: "session"
+            - resource_id: session_id
+            - context: {email, session_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_LOGIN_SUCCESS,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=event.session_id,  # UUID or None
+            context={
+                "event_id": str(event.event_id),
+                "email": event.email,
+                "session_id": str(event.session_id) if event.session_id else None,
+            },
+        )
+
+    async def handle_user_login_failed(
+        self,
+        event: UserLoginFailed,
+    ) -> None:
+        """Record failed user login audit (FAILURE).
+
+        Args:
+            event: UserLoginFailed event with error details.
+
+        Audit Record:
+            - action: USER_LOGIN_FAILED
+            - user_id: UUID if found (for tracking lockout)
+            - resource_type: "session"
+            - context: {email, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_LOGIN_FAILED,
+            user_id=event.user_id,  # May be None if user not found
+            resource_type="session",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "email": event.email,
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # User Logout Event Handlers
+    # =========================================================================
+
+    async def handle_user_logout_attempted(
+        self,
+        event: UserLogoutAttempted,
+    ) -> None:
+        """Record user logout attempt audit (ATTEMPT).
+
+        Args:
+            event: UserLogoutAttempted event with user_id.
+
+        Audit Record:
+            - action: USER_LOGOUT (logout always succeeds, use single event)
+            - user_id: UUID of user logging out
+            - resource_type: "session"
+            - context: {event_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_LOGOUT,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+            },
+        )
+
+    async def handle_user_logout_succeeded(
+        self,
+        event: UserLogoutSucceeded,
+    ) -> None:
+        """Record successful user logout audit (SUCCESS).
+
+        Args:
+            event: UserLogoutSucceeded event with user_id and session_id.
+
+        Audit Record:
+            - action: USER_LOGOUT
+            - user_id: UUID of logged-out user
+            - resource_type: "session"
+            - resource_id: session_id
+            - context: {session_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_LOGOUT,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=event.session_id,  # UUID or None
+            context={
+                "event_id": str(event.event_id),
+                "session_id": str(event.session_id) if event.session_id else None,
+            },
+        )
+
+    async def handle_user_logout_failed(
+        self,
+        event: UserLogoutFailed,
+    ) -> None:
+        """Record failed user logout audit (FAILURE).
+
+        Args:
+            event: UserLogoutFailed event with error details.
+
+        Audit Record:
+            - action: USER_LOGOUT (logout failure is rare)
+            - user_id: UUID of user attempting logout
+            - resource_type: "session"
+            - context: {reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_LOGOUT,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Email Verification Event Handlers
+    # =========================================================================
+
+    async def handle_email_verification_attempted(
+        self,
+        event: EmailVerificationAttempted,
+    ) -> None:
+        """Record email verification attempt audit (ATTEMPT).
+
+        Args:
+            event: EmailVerificationAttempted event with token.
+
+        Audit Record:
+            - action: USER_EMAIL_VERIFICATION_ATTEMPTED
+            - user_id: None (token not verified yet)
+            - resource_type: "user"
+            - context: {token (truncated)}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_EMAIL_VERIFICATION_ATTEMPTED,
+            user_id=None,  # Token not verified yet
+            resource_type="user",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "token": event.token,  # Already truncated in event
+            },
+        )
+
+    async def handle_email_verification_succeeded(
+        self,
+        event: EmailVerificationSucceeded,
+    ) -> None:
+        """Record successful email verification audit (SUCCESS).
+
+        Args:
+            event: EmailVerificationSucceeded event with user_id and email.
+
+        Audit Record:
+            - action: USER_EMAIL_VERIFIED
+            - user_id: UUID of verified user
+            - resource_type: "user"
+            - resource_id: user_id
+            - context: {email}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_EMAIL_VERIFIED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "email": event.email,
+            },
+        )
+
+    async def handle_email_verification_failed(
+        self,
+        event: EmailVerificationFailed,
+    ) -> None:
+        """Record failed email verification audit (FAILURE).
+
+        Args:
+            event: EmailVerificationFailed event with error details.
+
+        Audit Record:
+            - action: USER_EMAIL_VERIFICATION_FAILED
+            - user_id: None (verification failed)
+            - resource_type: "user"
+            - context: {token (truncated), reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_EMAIL_VERIFICATION_FAILED,
+            user_id=None,  # Verification failed
+            resource_type="user",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "token": event.token,  # Already truncated in event
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Auth Token Refresh Event Handlers (JWT Rotation)
+    # =========================================================================
+
+    async def handle_auth_token_refresh_attempted(
+        self,
+        event: AuthTokenRefreshAttempted,
+    ) -> None:
+        """Record auth token refresh attempt audit (ATTEMPT).
+
+        Args:
+            event: AuthTokenRefreshAttempted event with user_id.
+
+        Audit Record:
+            - action: AUTH_TOKEN_REFRESH_ATTEMPTED
+            - user_id: UUID of user requesting refresh (if known)
+            - resource_type: "token"
+            - context: {event_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.AUTH_TOKEN_REFRESH_ATTEMPTED,
+            user_id=event.user_id,  # May be None if token invalid
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+            },
+        )
+
+    async def handle_auth_token_refresh_succeeded(
+        self,
+        event: AuthTokenRefreshSucceeded,
+    ) -> None:
+        """Record successful auth token refresh audit (SUCCESS).
+
+        Args:
+            event: AuthTokenRefreshSucceeded event with user_id and session_id.
+
+        Audit Record:
+            - action: AUTH_TOKEN_REFRESHED
+            - user_id: UUID of user whose tokens were refreshed
+            - resource_type: "token"
+            - resource_id: session_id
+            - context: {session_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.AUTH_TOKEN_REFRESHED,
+            user_id=event.user_id,
+            resource_type="token",
+            resource_id=event.session_id,
+            context={
+                "event_id": str(event.event_id),
+                "session_id": str(event.session_id),
+            },
+        )
+
+    async def handle_auth_token_refresh_failed(
+        self,
+        event: AuthTokenRefreshFailed,
+    ) -> None:
+        """Record failed auth token refresh audit (FAILURE).
+
+        Args:
+            event: AuthTokenRefreshFailed event with error details.
+
+        Audit Record:
+            - action: AUTH_TOKEN_REFRESH_FAILED
+            - user_id: UUID of user (if known)
+            - resource_type: "token"
+            - context: {reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.AUTH_TOKEN_REFRESH_FAILED,
+            user_id=event.user_id,  # May be None if token invalid
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Password Reset Request Event Handlers
+    # =========================================================================
+
+    async def handle_password_reset_request_attempted(
+        self,
+        event: PasswordResetRequestAttempted,
+    ) -> None:
+        """Record password reset request attempt audit (ATTEMPT).
+
+        Args:
+            event: PasswordResetRequestAttempted event with email.
+
+        Audit Record:
+            - action: USER_PASSWORD_RESET_REQUESTED
+            - user_id: None (user not found yet)
+            - resource_type: "user"
+            - context: {email}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_PASSWORD_RESET_REQUESTED,
+            user_id=None,  # User not found yet
+            resource_type="user",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "email": event.email,
+            },
+        )
+
+    async def handle_password_reset_request_succeeded(
+        self,
+        event: PasswordResetRequestSucceeded,
+    ) -> None:
+        """Record successful password reset request audit (SUCCESS).
+
+        Args:
+            event: PasswordResetRequestSucceeded event with user_id and email.
+
+        Audit Record:
+            - action: USER_PASSWORD_RESET_REQUESTED
+            - user_id: UUID of user requesting reset
+            - resource_type: "user"
+            - resource_id: user_id
+            - context: {email}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_PASSWORD_RESET_REQUESTED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "email": event.email,
+            },
+        )
+
+    async def handle_password_reset_request_failed(
+        self,
+        event: PasswordResetRequestFailed,
+    ) -> None:
+        """Record failed password reset request audit (FAILURE).
+
+        Args:
+            event: PasswordResetRequestFailed event with error details.
+
+        Audit Record:
+            - action: USER_PASSWORD_RESET_FAILED
+            - user_id: None (user not found)
+            - resource_type: "user"
+            - context: {email, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_PASSWORD_RESET_FAILED,
+            user_id=None,  # User not found
+            resource_type="user",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "email": event.email,
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Password Reset Confirm Event Handlers
+    # =========================================================================
+
+    async def handle_password_reset_confirm_attempted(
+        self,
+        event: PasswordResetConfirmAttempted,
+    ) -> None:
+        """Record password reset confirm attempt audit (ATTEMPT).
+
+        Args:
+            event: PasswordResetConfirmAttempted event with token.
+
+        Audit Record:
+            - action: USER_PASSWORD_RESET_COMPLETED (use completed action)
+            - user_id: None (token not verified yet)
+            - resource_type: "user"
+            - context: {token (truncated)}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_PASSWORD_RESET_COMPLETED,
+            user_id=None,  # Token not verified yet
+            resource_type="user",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "token": event.token,  # Already truncated in event
+            },
+        )
+
+    async def handle_password_reset_confirm_succeeded(
+        self,
+        event: PasswordResetConfirmSucceeded,
+    ) -> None:
+        """Record successful password reset confirm audit (SUCCESS).
+
+        Args:
+            event: PasswordResetConfirmSucceeded event with user_id and email.
+
+        Audit Record:
+            - action: USER_PASSWORD_RESET_COMPLETED
+            - user_id: UUID of user whose password was reset
+            - resource_type: "user"
+            - resource_id: user_id
+            - context: {email}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_PASSWORD_RESET_COMPLETED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "email": event.email,
+            },
+        )
+
+    async def handle_password_reset_confirm_failed(
+        self,
+        event: PasswordResetConfirmFailed,
+    ) -> None:
+        """Record failed password reset confirm audit (FAILURE).
+
+        Args:
+            event: PasswordResetConfirmFailed event with error details.
+
+        Audit Record:
+            - action: USER_PASSWORD_RESET_FAILED
+            - user_id: None (reset failed)
+            - resource_type: "user"
+            - context: {token (truncated), reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_PASSWORD_RESET_FAILED,
+            user_id=None,  # Reset failed
+            resource_type="user",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "token": event.token,  # Already truncated in event
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Token Rejected Due to Rotation (Security Monitoring)
+    # =========================================================================
+
+    async def handle_token_rejected_due_to_rotation(
+        self,
+        event: TokenRejectedDueToRotation,
+    ) -> None:
+        """Record token rejection due to version mismatch audit.
+
+        Security monitoring event for token rotation enforcement.
+
+        Args:
+            event: TokenRejectedDueToRotation event with version details.
+
+        Audit Record:
+            - action: TOKEN_REJECTED_VERSION_MISMATCH
+            - user_id: UUID of user (if known)
+            - resource_type: "token"
+            - context: {token_version, required_version, rejection_reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.TOKEN_REJECTED_VERSION_MISMATCH,
+            user_id=event.user_id,  # May be None
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "token_version": event.token_version,
+                "required_version": event.required_version,
+                "rejection_reason": event.rejection_reason,
             },
         )

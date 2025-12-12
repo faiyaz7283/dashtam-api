@@ -27,10 +27,14 @@ Architecture:
 """
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import AuthenticateUser, AuthenticatedUser
+
+if TYPE_CHECKING:
+    from fastapi import Request
 from src.core.result import Failure, Result, Success
 from src.domain.events.auth_events import (
     UserLoginAttempted,
@@ -79,11 +83,14 @@ class AuthenticateUserHandler:
         self._password_service = password_service
         self._event_bus = event_bus
 
-    async def handle(self, cmd: AuthenticateUser) -> Result[AuthenticatedUser, str]:
+    async def handle(
+        self, cmd: AuthenticateUser, request: "Request | None" = None
+    ) -> Result[AuthenticatedUser, str]:
         """Handle user authentication command.
 
         Args:
             cmd: AuthenticateUser command (email and password).
+            request: Optional FastAPI Request for IP/user agent tracking (PCI-DSS 10.2.7).
 
         Returns:
             Success(AuthenticatedUser) on successful authentication.
@@ -95,13 +102,19 @@ class AuthenticateUserHandler:
             - Publishes UserLoginFailed event (on failure).
             - Updates User failed_login_attempts on wrong password.
         """
+        # Extract request metadata for audit trail (PCI-DSS 10.2.7)
+        metadata: dict[str, str] = {}
+        if request and request.client:
+            metadata["ip_address"] = request.client.host
+            metadata["user_agent"] = request.headers.get("user-agent", "Unknown")
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             UserLoginAttempted(
                 event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 email=cmd.email,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 2: Find user by email
@@ -113,6 +126,7 @@ class AuthenticateUserHandler:
                 email=cmd.email,
                 reason=AuthenticationError.INVALID_CREDENTIALS,
                 user_id=None,
+                metadata=metadata,
             )
             # Use generic message to prevent user enumeration
             return Failure(error=AuthenticationError.INVALID_CREDENTIALS)
@@ -123,6 +137,7 @@ class AuthenticateUserHandler:
                 email=cmd.email,
                 reason=AuthenticationError.EMAIL_NOT_VERIFIED,
                 user_id=user.id,
+                metadata=metadata,
             )
             return Failure(error=AuthenticationError.EMAIL_NOT_VERIFIED)
 
@@ -132,6 +147,7 @@ class AuthenticateUserHandler:
                 email=cmd.email,
                 reason=AuthenticationError.ACCOUNT_LOCKED,
                 user_id=user.id,
+                metadata=metadata,
             )
             return Failure(error=AuthenticationError.ACCOUNT_LOCKED)
 
@@ -141,6 +157,7 @@ class AuthenticateUserHandler:
                 email=cmd.email,
                 reason=AuthenticationError.ACCOUNT_INACTIVE,
                 user_id=user.id,
+                metadata=metadata,
             )
             return Failure(error=AuthenticationError.ACCOUNT_INACTIVE)
 
@@ -154,6 +171,7 @@ class AuthenticateUserHandler:
                 email=cmd.email,
                 reason=AuthenticationError.INVALID_CREDENTIALS,
                 user_id=user.id,
+                metadata=metadata,
             )
             return Failure(error=AuthenticationError.INVALID_CREDENTIALS)
 
@@ -170,7 +188,8 @@ class AuthenticateUserHandler:
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 email=user.email,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 10: Return authenticated user data
@@ -187,6 +206,7 @@ class AuthenticateUserHandler:
         email: str,
         reason: str,
         user_id: UUID | None,
+        metadata: dict[str, str],
     ) -> None:
         """Publish UserLoginFailed event.
 
@@ -194,6 +214,7 @@ class AuthenticateUserHandler:
             email: Email address attempted.
             reason: Failure reason.
             user_id: User ID if found (for tracking lockout).
+            metadata: Request metadata for audit trail.
         """
         await self._event_bus.publish(
             UserLoginFailed(
@@ -202,5 +223,6 @@ class AuthenticateUserHandler:
                 email=email,
                 reason=reason,
                 user_id=user_id,
-            )
+            ),
+            metadata=metadata,
         )

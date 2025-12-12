@@ -23,15 +23,20 @@ Usage:
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.container import get_token_service
+from src.core.container import get_cache, get_db_session, get_token_service
 from src.core.result import Failure, Success
+from src.domain.protocols import CacheProtocol, SessionCache
 from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
+
+if TYPE_CHECKING:
+    from src.domain.protocols import SessionRepository
 
 # HTTP Bearer token extractor
 # auto_error=True returns 401 if no token provided
@@ -190,30 +195,90 @@ async def get_current_user_optional(
 
 async def get_current_active_user(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    cache: Annotated[CacheProtocol, Depends(get_cache)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> CurrentUser:
-    """Get current user with active account verification.
+    """Get current user with session revocation check.
 
-    Additional layer that could check if user account is still active.
-    For F1.1, this is a pass-through; extend in future for:
-    - Database lookup to verify account still active
-    - Token revocation check against session store
-    - Role-based access control
+    Security Layer: Verifies JWT is valid AND session is not revoked.
+    This prevents post-logout token reuse attacks.
+
+    Flow:
+        1. JWT already validated (by get_current_user dependency)
+        2. Extract session_id from JWT payload
+        3. Check session in Redis cache (fast path <5ms)
+        4. If cache miss, check database (slow path ~50ms)
+        5. Verify session exists and is NOT revoked
+        6. Return 401 if session revoked
 
     Args:
-        current_user: Current user from JWT.
+        current_user: Current user from JWT (already validated).
+        cache: Redis cache for fast session lookups.
+        session: Database session for fallback lookups.
 
     Returns:
-        CurrentUser if account is active.
+        CurrentUser if session is valid and not revoked.
 
     Raises:
-        HTTPException 403: If account is deactivated (future).
+        HTTPException 401: If session is revoked or not found.
 
-    Note:
-        Currently pass-through. Extend for session validation in F1.3.
+    Security:
+        - Prevents token reuse after logout
+        - Prevents token reuse after password change
+        - Prevents token reuse after manual session revocation
+
+    Reference:
+        - F6.5 Security Audit Item 2: JWT/Refresh Token Security
+        - docs/architecture/session-management-architecture.md
     """
-    # Future: Add database lookup to verify user is still active
-    # Future: Check token against revocation list
-    # For now, JWT validity is sufficient
+    # If no session_id in JWT, allow (backward compatibility)
+    # Sessions created before F1.3 may not have session_id
+    if current_user.session_id is None:
+        return current_user
+
+    # Fast path: Check Redis cache (<5ms)
+    from src.infrastructure.cache import RedisSessionCache
+
+    session_cache: SessionCache = RedisSessionCache(cache=cache)
+    cached_session = await session_cache.get(current_user.session_id)
+
+    if cached_session is not None:
+        # Session found in cache
+        if cached_session.is_revoked:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return current_user
+
+    # Slow path: Check database (~50ms)
+    from src.infrastructure.persistence.repositories import (
+        SessionRepository as SessionRepositoryImpl,
+    )
+
+    session_repo: "SessionRepository" = SessionRepositoryImpl(session=session)
+    db_session = await session_repo.find_by_id(current_user.session_id)
+
+    if db_session is None:
+        # Session not found - token has session_id but session deleted
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if db_session.is_revoked:
+        # Session revoked (logout, password change, manual revocation)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Session valid - cache it for future requests
+    await session_cache.set(db_session)
+
     return current_user
 
 

@@ -37,6 +37,9 @@ Reference:
 
 from src.core.config import Settings
 from src.domain.events.auth_events import (
+    EmailVerificationSucceeded,
+    PasswordResetConfirmSucceeded,
+    PasswordResetRequestSucceeded,
     UserPasswordChangeSucceeded,
     UserRegistrationSucceeded,
 )
@@ -161,4 +164,114 @@ class EmailEventHandler:
             change_timestamp=event.occurred_at.isoformat(),
             # Future: Fetch user email from database
             note="STUB: Replace with EmailProtocol.send() when email service ready. Fetch user email from DB.",
+        )
+
+    async def handle_password_reset_request_succeeded(
+        self,
+        event: PasswordResetRequestSucceeded,
+    ) -> None:
+        """Send password reset email after successful request (STUB).
+
+        STUB: Logs email would be sent. Future: Send actual email via EmailProtocol.
+
+        Args:
+            event: PasswordResetRequestSucceeded event with user_id, email, and reset_token.
+
+        Email Template (Future):
+            - Template: password_reset_email
+            - Subject: "Reset your Dashtam password"
+            - To: event.email
+            - Variables:
+                - user_email: event.email
+                - reset_token: event.reset_token
+                - reset_link: f"{settings.reset_url_base}/reset?token={{token}}"
+                - expiration: "This link expires in 1 hour"
+
+        Notes:
+            - Email sent asynchronously (fail-open - don't block request)
+            - Includes password reset link with token
+            - Link expires after 1 hour (security requirement)
+            - User can request new reset email if needed
+        """
+        self._logger.info(
+            "email_would_be_sent",
+            template="password_reset_email",
+            recipient=event.email,
+            user_id=str(event.user_id),
+            event_id=str(event.event_id),
+            subject="Reset your Dashtam password",
+            # Future: Generate reset link with token
+            note="STUB: Replace with EmailProtocol.send() when email service ready. Include reset link.",
+        )
+
+    async def handle_password_reset_confirm_succeeded(
+        self,
+        event: PasswordResetConfirmSucceeded,
+    ) -> None:
+        """Send password reset confirmation email (STUB).
+
+        STUB: Logs email would be sent. Future: Send actual email via EmailProtocol.
+
+        Args:
+            event: PasswordResetConfirmSucceeded event with user_id and email.
+
+        Email Template (Future):
+            - Template: password_reset_completed_email
+            - Subject: "Your Dashtam password was reset"
+            - To: event.email
+            - Variables:
+                - user_email: event.email
+                - reset_timestamp: event.occurred_at
+                - support_email: "support@dashtam.com"
+                - support_message: "If you didn't make this change, contact us immediately."
+
+        Notes:
+            - CRITICAL security notification (user must be alerted)
+            - Sent after password reset is complete
+            - Email sent asynchronously (fail-open)
+        """
+        self._logger.info(
+            "email_would_be_sent",
+            template="password_reset_completed_email",
+            recipient=event.email,
+            user_id=str(event.user_id),
+            event_id=str(event.event_id),
+            subject="Your Dashtam password was reset",
+            reset_timestamp=event.occurred_at.isoformat(),
+            note="STUB: Replace with EmailProtocol.send() when email service ready.",
+        )
+
+    async def handle_email_verification_succeeded(
+        self,
+        event: EmailVerificationSucceeded,
+    ) -> None:
+        """Send welcome email after email verification (STUB - Optional).
+
+        STUB: Logs email would be sent. Future: Send actual email via EmailProtocol.
+
+        Args:
+            event: EmailVerificationSucceeded event with user_id and email.
+
+        Email Template (Future):
+            - Template: email_verified_welcome_email
+            - Subject: "Welcome to Dashtam! Your email is verified"
+            - To: event.email
+            - Variables:
+                - user_email: event.email
+                - dashboard_link: f"{settings.app_base_url}/dashboard"
+                - getting_started_guide: Link to user guide
+
+        Notes:
+            - Optional welcome email (user already received one at registration)
+            - Email sent asynchronously (fail-open)
+            - Can be disabled in settings if redundant
+        """
+        self._logger.info(
+            "email_would_be_sent",
+            template="email_verified_welcome_email",
+            recipient=event.email,
+            user_id=str(event.user_id),
+            event_id=str(event.event_id),
+            subject="Welcome to Dashtam! Your email is verified",
+            note="STUB: Optional welcome email. Replace with EmailProtocol.send() when ready.",
         )

@@ -109,7 +109,7 @@ class SessionResult:
 class StubAuthenticateUserHandler:
     """Stub handler for user authentication."""
 
-    async def handle(self, cmd):
+    async def handle(self, cmd, request=None):
         """Check email patterns to simulate different scenarios."""
         email = cmd.email
 
@@ -164,7 +164,7 @@ class StubGenerateAuthTokensHandler:
 class StubLogoutUserHandler:
     """Stub handler for logout."""
 
-    async def handle(self, cmd):
+    async def handle(self, cmd, request=None):
         """Always return success."""
         return Success(value=None)
 
@@ -255,6 +255,43 @@ class StubTokenService:
         )
 
 
+class StubSessionCache:
+    """Stub session cache for session revocation checks."""
+
+    def __init__(self, cache=None):
+        """Initialize stub cache (ignore actual cache parameter)."""
+        pass
+
+    async def get(self, session_id: UUID):
+        """Always return None (cache miss, fall through to database)."""
+        return None
+
+    async def set(self, session):
+        """No-op for caching."""
+        pass
+
+
+class StubSessionRepository:
+    """Stub session repository for session revocation checks."""
+
+    def __init__(self, session_id: UUID):
+        self._session_id = session_id
+
+    async def find_by_id(self, session_id: UUID):
+        """Return non-revoked session."""
+        from dataclasses import dataclass
+
+        @dataclass
+        class StubSession:
+            id: UUID
+            is_revoked: bool = False
+
+        # Return valid session if ID matches
+        if session_id == self._session_id:
+            return StubSession(id=session_id, is_revoked=False)
+        return None
+
+
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -277,7 +314,9 @@ def override_dependencies(mock_user_id, mock_session_id):
     """Override app dependencies with test doubles."""
     from src.core.container import (
         get_authenticate_user_handler,
+        get_cache,
         get_create_session_handler,
+        get_db_session,
         get_generate_auth_tokens_handler,
         get_logout_user_handler,
         get_list_sessions_handler,
@@ -285,6 +324,7 @@ def override_dependencies(mock_user_id, mock_session_id):
         get_revoke_session_handler,
         get_revoke_all_sessions_handler,
     )
+    from unittest.mock import AsyncMock
 
     # Override all session-related handlers
     app.dependency_overrides[get_authenticate_user_handler] = (
@@ -308,6 +348,14 @@ def override_dependencies(mock_user_id, mock_session_id):
         lambda: StubRevokeAllSessionsHandler()
     )
 
+    # Override cache dependency (used for session revocation checks)
+    mock_cache = AsyncMock()
+    app.dependency_overrides[get_cache] = lambda: mock_cache
+
+    # Override db_session dependency (used for session revocation checks)
+    mock_db_session = AsyncMock()
+    app.dependency_overrides[get_db_session] = lambda: mock_db_session
+
     # Monkeypatch get_token_service used directly in sessions router
     # to validate Authorization header
     import src.core.container as container_module
@@ -319,11 +367,28 @@ def override_dependencies(mock_user_id, mock_session_id):
 
     container_module.get_token_service = mock_get_token_service
 
+    # Monkeypatch SessionCache and SessionRepository used in helper functions
+    import src.infrastructure.cache as cache_module
+    import src.infrastructure.persistence.repositories as repo_module
+
+    original_redis_session_cache = cache_module.RedisSessionCache
+    original_session_repository = repo_module.SessionRepository
+
+    cache_module.RedisSessionCache = StubSessionCache
+
+    # SessionRepository needs session_id to return valid session
+    def mock_session_repository_factory(session):
+        return StubSessionRepository(mock_session_id)
+
+    repo_module.SessionRepository = mock_session_repository_factory
+
     yield
 
     # Cleanup
     app.dependency_overrides.clear()
     container_module.get_token_service = original_get_token_service
+    cache_module.RedisSessionCache = original_redis_session_cache
+    repo_module.SessionRepository = original_session_repository
 
 
 @pytest.fixture

@@ -26,10 +26,14 @@ Architecture:
 
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import RegisterUser
+
+if TYPE_CHECKING:
+    from fastapi import Request
 from src.core.result import Failure, Result, Success
 from src.domain.entities.user import User
 from src.domain.events.auth_events import (
@@ -82,11 +86,14 @@ class RegisterUserHandler:
         self._password_service = password_service
         self._event_bus = event_bus
 
-    async def handle(self, cmd: RegisterUser) -> Result[UUID, str]:
+    async def handle(
+        self, cmd: RegisterUser, request: "Request | None" = None
+    ) -> Result[UUID, str]:
         """Handle user registration command.
 
         Args:
             cmd: RegisterUser command (email and password validated by Annotated types)
+            request: Optional FastAPI Request for IP/user agent tracking (PCI-DSS 10.2.7).
 
         Returns:
             Success(user_id) on successful registration
@@ -99,13 +106,19 @@ class RegisterUserHandler:
             - Creates User in database
             - Creates EmailVerificationToken in database
         """
+        # Extract request metadata for audit trail (PCI-DSS 10.2.7)
+        metadata: dict[str, str] = {}
+        if request and request.client:
+            metadata["ip_address"] = request.client.host
+            metadata["user_agent"] = request.headers.get("user-agent", "Unknown")
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             UserRegistrationAttempted(
                 event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 email=cmd.email,
-            )
+            ),
+            metadata=metadata,
         )
 
         try:
@@ -122,7 +135,8 @@ class RegisterUserHandler:
                         occurred_at=datetime.now(UTC),
                         email=cmd.email,
                         reason=RegistrationError.EMAIL_ALREADY_EXISTS,
-                    )
+                    ),
+                    metadata=metadata,
                 )
                 return Failure(error=RegistrationError.EMAIL_ALREADY_EXISTS)
 
@@ -164,7 +178,8 @@ class RegisterUserHandler:
                     user_id=user_id,
                     email=cmd.email,
                     verification_token=verification_token,
-                )
+                ),
+                metadata=metadata,
             )
 
             # Step 9: Return Success
@@ -178,6 +193,7 @@ class RegisterUserHandler:
                     occurred_at=datetime.now(UTC),
                     email=cmd.email,
                     reason=f"{RegistrationError.DATABASE_ERROR}: {str(e)}",
-                )
+                ),
+                metadata=metadata,
             )
             return Failure(error=f"{RegistrationError.DATABASE_ERROR}: {str(e)}")

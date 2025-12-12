@@ -100,6 +100,9 @@ class InMemoryEventBus:
         self._session: "AsyncSession | None" = (
             None  # Session for handlers that need DB access
         )
+        self._metadata: dict[
+            str, str
+        ] = {}  # Metadata for handlers (IP, user agent, etc.)
 
     def subscribe(
         self,
@@ -138,6 +141,7 @@ class InMemoryEventBus:
         self,
         event: DomainEvent,
         session: "AsyncSession | None" = None,
+        metadata: dict[str, str] | None = None,
     ) -> None:
         """Publish event to all registered handlers.
 
@@ -151,6 +155,10 @@ class InMemoryEventBus:
             session: Optional database session for handlers that need database
                 access (e.g., AuditEventHandler). Stored as instance variable
                 for duration of publish() so handlers can access via get_session().
+                Defaults to None for backward compatibility.
+            metadata: Optional dict with request context (ip_address, user_agent,
+                trace_id) for audit trail enrichment. Stored as instance variable
+                for duration of publish() so handlers can access via get_metadata().
                 Defaults to None for backward compatibility.
 
         Example:
@@ -185,8 +193,9 @@ class InMemoryEventBus:
             - Handler failures logged with event_id for debugging
             - NEVER raises exceptions (fail-open guarantee)
         """
-        # Store session for handlers that need it (e.g., AuditEventHandler)
+        # Store session and metadata for handlers that need them
         self._session = session
+        self._metadata = metadata or {}
 
         try:
             event_type = type(event)
@@ -226,8 +235,9 @@ class InMemoryEventBus:
                         exc_info=result,
                     )
         finally:
-            # Clear session after publish completes
+            # Clear session and metadata after publish completes
             self._session = None
+            self._metadata = {}
 
     def get_session(self) -> "AsyncSession | None":
         """Get current database session for event handlers.
@@ -259,3 +269,39 @@ class InMemoryEventBus:
             - Cleared after publish() completes (finally block)
         """
         return self._session
+
+    def get_metadata(self) -> dict[str, str]:
+        """Get current request metadata for event handlers.
+
+        Returns the metadata dict passed to publish() for handlers that need
+        request context (e.g., AuditEventHandler for IP/user agent tracking).
+        Enables PCI-DSS 10.2.7 compliance (track client IP and user agent).
+
+        Returns:
+            dict[str, str]: Current metadata dict (empty if not provided).
+                Expected keys:
+                - ip_address: Client IP address (str)
+                - user_agent: Client user agent string (str)
+                - trace_id: Request trace ID (str, optional)
+
+        Example:
+            >>> # In AuditEventHandler
+            >>> class AuditEventHandler:
+            ...     def __init__(self, event_bus: InMemoryEventBus):
+            ...         self._event_bus = event_bus
+            ...
+            ...     async def _create_audit_record(self, **kwargs):
+            ...         metadata = self._event_bus.get_metadata()
+            ...         # Merge metadata into audit record
+            ...         if metadata:
+            ...             kwargs.setdefault('ip_address', metadata.get('ip_address'))
+            ...             kwargs.setdefault('user_agent', metadata.get('user_agent'))
+            ...         await audit.record(**kwargs)
+
+        Notes:
+            - Only available during publish() execution
+            - Returns empty dict if no metadata provided to publish()
+            - Cleared after publish() completes (finally block)
+            - Handlers should use setdefault() to avoid overwriting explicit values
+        """
+        return self._metadata

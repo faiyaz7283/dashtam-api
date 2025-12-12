@@ -27,9 +27,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import ConfirmPasswordReset
+
+if TYPE_CHECKING:
+    from fastapi import Request
 from src.core.result import Failure, Result, Success
 from src.domain.events.auth_events import (
     PasswordResetConfirmAttempted,
@@ -103,12 +107,13 @@ class ConfirmPasswordResetHandler:
         self._event_bus = event_bus
 
     async def handle(
-        self, cmd: ConfirmPasswordReset
+        self, cmd: ConfirmPasswordReset, request: "Request | None" = None
     ) -> Result[PasswordResetConfirmResponse, str]:
         """Handle confirm password reset command.
 
         Args:
             cmd: ConfirmPasswordReset command with token and new password.
+            request: Optional FastAPI Request for IP/user agent tracking (PCI-DSS 10.2.7).
 
         Returns:
             Success(PasswordResetConfirmResponse) on successful password reset.
@@ -122,13 +127,19 @@ class ConfirmPasswordResetHandler:
             - Revokes all refresh tokens for user.
             - Sends password changed notification email.
         """
+        # Extract request metadata for audit trail (PCI-DSS 10.2.7)
+        metadata: dict[str, str] = {}
+        if request and request.client:
+            metadata["ip_address"] = request.client.host
+            metadata["user_agent"] = request.headers.get("user-agent", "Unknown")
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             PasswordResetConfirmAttempted(
                 event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 token=cmd.token[:8] + "..." if len(cmd.token) > 8 else cmd.token,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 2: Look up token
@@ -139,6 +150,7 @@ class ConfirmPasswordResetHandler:
             await self._publish_failed_event(
                 token=cmd.token,
                 reason=PasswordResetConfirmError.TOKEN_NOT_FOUND,
+                metadata=metadata,
             )
             return Failure(error=PasswordResetConfirmError.TOKEN_NOT_FOUND)
 
@@ -147,6 +159,7 @@ class ConfirmPasswordResetHandler:
             await self._publish_failed_event(
                 token=cmd.token,
                 reason=PasswordResetConfirmError.TOKEN_EXPIRED,
+                metadata=metadata,
             )
             return Failure(error=PasswordResetConfirmError.TOKEN_EXPIRED)
 
@@ -157,6 +170,7 @@ class ConfirmPasswordResetHandler:
             await self._publish_failed_event(
                 token=cmd.token,
                 reason=PasswordResetConfirmError.USER_NOT_FOUND,
+                metadata=metadata,
             )
             return Failure(error=PasswordResetConfirmError.USER_NOT_FOUND)
 
@@ -190,7 +204,8 @@ class ConfirmPasswordResetHandler:
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 email=user.email,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 12: Return Success
@@ -200,12 +215,14 @@ class ConfirmPasswordResetHandler:
         self,
         token: str,
         reason: str,
+        metadata: dict[str, str],
     ) -> None:
         """Publish PasswordResetConfirmFailed event.
 
         Args:
             token: Password reset token (will be truncated).
             reason: Failure reason.
+            metadata: Request metadata for audit trail.
         """
         await self._event_bus.publish(
             PasswordResetConfirmFailed(
@@ -213,5 +230,6 @@ class ConfirmPasswordResetHandler:
                 occurred_at=datetime.now(UTC),
                 token=token[:8] + "..." if len(token) > 8 else token,
                 reason=reason,
-            )
+            ),
+            metadata=metadata,
         )

@@ -456,9 +456,12 @@ class TestAdminAuthenticationRequired:
             )
 
             # Returns 401 from HTTPBearer when no Authorization header
-            assert response.status_code in (
-                status.HTTP_401_UNAUTHORIZED,
-                status.HTTP_403_FORBIDDEN,  # May return 403 if auth check passes but authz fails
+            assert (
+                response.status_code
+                in (
+                    status.HTTP_401_UNAUTHORIZED,
+                    status.HTTP_403_FORBIDDEN,  # May return 403 if auth check passes but authz fails
+                )
             )
         finally:
             app.dependency_overrides.clear()

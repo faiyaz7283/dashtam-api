@@ -118,8 +118,8 @@ class Settings(BaseSettings):
         description="JWT signing algorithm",
     )
     access_token_expire_minutes: int = Field(
-        default=30,
-        description="Access token expiration time in minutes",
+        default=15,
+        description="Access token expiration time in minutes (15 recommended for security)",
     )
     refresh_token_expire_days: int = Field(
         default=30,
@@ -178,6 +178,48 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    @field_validator("secret_key")
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        """
+        Validate JWT secret key minimum length.
+
+        Args:
+            v: Secret key string.
+
+        Returns:
+            str: Validated secret key.
+
+        Raises:
+            ValueError: If key is shorter than 32 bytes (256 bits).
+        """
+        if len(v) < 32:
+            raise ValueError(
+                f"secret_key must be at least 32 characters (256 bits), got {len(v)}"
+            )
+        return v
+
+    @field_validator("encryption_key")
+    @classmethod
+    def validate_encryption_key(cls, v: str) -> str:
+        """
+        Validate encryption key length for AES-256.
+
+        Args:
+            v: Encryption key string.
+
+        Returns:
+            str: Validated encryption key.
+
+        Raises:
+            ValueError: If key is not exactly 32 characters (256 bits).
+        """
+        if len(v) != 32:
+            raise ValueError(
+                f"encryption_key must be exactly 32 characters (256 bits), got {len(v)}"
+            )
+        return v
 
     @field_validator("bcrypt_rounds")
     @classmethod

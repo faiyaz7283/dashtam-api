@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-down dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status dev-build dev-rebuild test-up test-down test-logs test-shell test-build test-rebuild test test-unit test-integration test-api test-smoke ci-test lint format lint-md lint-md-check lint-md-fix md-check docs-serve docs-build docs-stop migrate migrate-create migrate-down migrate-history migrate-current clean status-all ps check
+.PHONY: help setup keys-generate keys-validate dev-up dev-down dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status dev-build dev-rebuild test-up test-down test-restart test-logs test-shell test-build test-rebuild test test-unit test-integration test-api test-smoke ci-test lint format lint-md lint-md-check lint-md-fix md-check docs-serve docs-build docs-stop migrate migrate-create migrate-down migrate-history migrate-current clean status-all ps check
 
 # ==============================================================================
 # HELP
@@ -30,6 +30,7 @@ help:
 	@echo "🧪 Testing (https://test.dashtam.local):"
 	@echo "  make test-up         - Start test environment"
 	@echo "  make test-down       - Stop test environment"
+	@echo "  make test-restart    - Restart test environment"
 	@echo "  make test-build      - Build test containers"
 	@echo "  make test-rebuild    - Rebuild containers (no cache)"
 	@echo "  make test            - Run all tests with coverage"
@@ -39,6 +40,11 @@ help:
 	@echo "  make test-smoke      - Smoke tests (E2E)"
 	@echo "  make test-logs       - View test logs"
 	@echo "  make test-shell      - Shell into test container"
+	@echo ""
+	@echo "  💡 All test commands support ARGS parameter:"
+	@echo "     make test-unit ARGS=\"-k test_encryption\" - Run specific tests"
+	@echo "     make test ARGS=\"--lf\"                     - Last failed only"
+	@echo "     make test-api ARGS=\"-x\"                   - Stop on first failure"
 	@echo ""
 	@echo "🤖 CI/CD:"
 	@echo "  make ci-test         - Run CI test suite (GitHub Actions simulation)"
@@ -62,13 +68,88 @@ help:
 	@echo "  make migrate-history - Show migration history"
 	@echo "  make migrate-current - Show current version"
 	@echo ""
-	@echo "🔧 Utilities:"
+	@echo "🔧 Setup & Utilities:"
+	@echo "  make setup           - First-time setup (idempotent)"
+	@echo "  make keys-generate   - Generate keys in env/.env.dev (ENV=dev FORCE=1)"
+	@echo "  make keys-validate   - Validate keys in env file (ENV=dev)"
 	@echo "  make check           - Verify Traefik is running"
 	@echo "  make status-all      - Show all environment status"
 	@echo "  make ps              - Show all Dashtam containers"
 	@echo "  make clean           - Stop and clean ALL environments"
 	@echo ""
-	@echo "📖 Full docs: https://faiyaz7283.github.io/Dashtam/"
+	@echo "📚 Full docs: https://faiyaz7283.github.io/Dashtam/"
+
+# ==============================================================================
+# SETUP & KEY GENERATION
+# ==============================================================================
+
+setup:
+	@echo "🚀 Dashtam First-Time Setup"
+	@echo ""
+	@echo "📝 Step 1: Creating env/.env.dev from template..."
+	@if [ -f env/.env.dev ]; then \
+		echo "  ℹ️  env/.env.dev already exists - skipping"; \
+	else \
+		cp env/.env.dev.example env/.env.dev; \
+		echo "  ✅ Created env/.env.dev"; \
+	fi
+	@echo ""
+	@echo "🔐 Step 2: Generating cryptographic keys..."
+	@$(MAKE) keys-generate ENV=dev
+	@echo ""
+	@echo "🔍 Step 3: Checking Traefik..."
+	@$(MAKE) _check-traefik-verbose || true
+	@echo ""
+	@echo "✅ Setup complete!"
+	@echo ""
+	@echo "📝 Next steps:"
+	@echo "  1. Add your provider credentials to env/.env.dev:"
+	@echo "     - SCHWAB_API_KEY=your_key"
+	@echo "     - SCHWAB_API_SECRET=your_secret"
+	@echo ""
+	@echo "  2. Start Traefik (if not running):"
+	@echo "     cd ~/docker-services/traefik && make up"
+	@echo ""
+	@echo "  3. Start development environment:"
+	@echo "     make dev-up"
+
+keys-generate:
+	@ENV_FILE=env/.env.$${ENV:-dev}; \
+	if [ ! -f "$$ENV_FILE" ]; then \
+		echo "❌ Error: $$ENV_FILE not found"; \
+		echo "   Run 'make setup' first or create the file from template"; \
+		exit 1; \
+	fi; \
+	SECRET_EXISTS=$$(grep -c "^SECRET_KEY=your-secret-key-will-be-generated" $$ENV_FILE || true); \
+	ENCRYPTION_EXISTS=$$(grep -c "^ENCRYPTION_KEY=your-encryption-key-will-be-generated" $$ENV_FILE || true); \
+	if [ "$${FORCE:-0}" != "1" ] && [ "$$SECRET_EXISTS" = "0" ] && [ "$$ENCRYPTION_EXISTS" = "0" ]; then \
+		echo "  ℹ️  Keys already exist in $$ENV_FILE"; \
+		echo "     Use FORCE=1 to regenerate: make keys-generate ENV=$${ENV:-dev} FORCE=1"; \
+		exit 0; \
+	fi; \
+	SECRET_KEY=$$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))'); \
+	ENCRYPTION_KEY=$$(python3 -c 'import secrets; print(secrets.token_urlsafe(24)[:32])'); \
+	if [ "$$SECRET_EXISTS" != "0" ] || [ "$${FORCE:-0}" = "1" ]; then \
+		sed -i.bak "s|^SECRET_KEY=.*|SECRET_KEY=$$SECRET_KEY|" $$ENV_FILE; \
+		rm -f $${ENV_FILE}.bak; \
+		echo "  ✅ Generated SECRET_KEY (64 chars)"; \
+	fi; \
+	if [ "$$ENCRYPTION_EXISTS" != "0" ] || [ "$${FORCE:-0}" = "1" ]; then \
+		sed -i.bak "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$$ENCRYPTION_KEY|" $$ENV_FILE; \
+		rm -f $${ENV_FILE}.bak; \
+		echo "  ✅ Generated ENCRYPTION_KEY (32 chars)"; \
+	fi; \
+	if [ "$${FORCE:-0}" = "1" ]; then \
+		echo "  ⚠️  Keys regenerated - restart services for changes to take effect"; \
+	fi
+
+keys-validate:
+	@ENV_FILE=env/.env.$${ENV:-dev}; \
+	if [ ! -f "$$ENV_FILE" ]; then \
+		echo "❌ Error: $$ENV_FILE not found"; \
+		exit 1; \
+	fi; \
+	python3 -c "import sys, re; content = open('$$ENV_FILE').read(); s = re.search(r'^SECRET_KEY=(.+)$$', content, re.M); e = re.search(r'^ENCRYPTION_KEY=(.+)$$', content, re.M); sys.exit(1) if not s or not e else None; sk, ek = s.group(1), e.group(1); sys.exit(1) if 'your-secret' in sk.lower() or 'your-encryption' in ek.lower() or len(sk) < 32 or len(ek) != 32 else (print(f'✅ SECRET_KEY: {len(sk)} chars (minimum 32)'), print(f'✅ ENCRYPTION_KEY: {len(ek)} chars (exactly 32)'), print(f'✅ All keys valid in $$ENV_FILE'))"
 
 # ==============================================================================
 # DEVELOPMENT ENVIRONMENT
@@ -165,34 +246,47 @@ test-rebuild: _check-traefik _ensure-env-test
 	@docker compose -f compose/docker-compose.test.yml build --no-cache
 	@echo "✅ Test containers rebuilt"
 
+test-restart: test-down test-up
+
 # ==============================================================================
 # TESTING
+# ==============================================================================
+# 
+# All test commands support optional ARGS parameter for pytest arguments.
+# 
+# Examples:
+#   make test                                    # All tests with coverage
+#   make test ARGS="-v --tb=short"               # Custom verbosity
+#   make test-unit ARGS="-k test_encryption"     # Specific test pattern
+#   make test-integration ARGS="-x"              # Stop on first failure
+#   make test-api ARGS="--lf"                    # Last failed tests only
+# 
 # ==============================================================================
 
 test:
 	@echo "🧪 Running all tests with coverage..."
 	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html $(ARGS)
 
 test-unit:
 	@echo "🧪 Running unit tests..."
 	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/unit/ -v
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/unit/ -v $(ARGS)
 
 test-integration:
 	@echo "🧪 Running integration tests..."
 	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v $(ARGS)
 
 test-api:
 	@echo "🧪 Running API tests..."
 	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/api/ -v
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/api/ -v $(ARGS)
 
 test-smoke:
 	@echo "🔥 Running smoke tests (E2E)..."
 	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/ -v
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/ -v $(ARGS)
 
 # ==============================================================================
 # CI/CD

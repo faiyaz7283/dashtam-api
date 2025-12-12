@@ -166,6 +166,43 @@ class AuditAction(str, Enum):
     USER_PASSWORD_RESET_COMPLETED = "user_password_reset_completed"
     """Password reset was completed (SUCCESS)."""
 
+    # Auth Token Refresh Events (JWT Rotation)
+    AUTH_TOKEN_REFRESH_ATTEMPTED = "auth_token_refresh_attempted"
+    """Auth token refresh attempted.
+
+    Context should include:
+        - user_id: User requesting refresh (if known from token)
+    """
+
+    AUTH_TOKEN_REFRESH_FAILED = "auth_token_refresh_failed"
+    """Auth token refresh failed.
+
+    Context should include:
+        - reason: Why failed (token_expired, token_revoked, token_invalid, user_not_found)
+        - user_id: User requesting refresh (if known)
+    """
+
+    AUTH_TOKEN_REFRESHED = "auth_token_refreshed"
+    """Auth token was refreshed (SUCCESS - JWT rotation completed).
+
+    Context should include:
+        - session_id: Session associated with token
+    """
+
+    # Token Version Validation (Security Monitoring)
+    TOKEN_REJECTED_VERSION_MISMATCH = "token_rejected_version_mismatch"
+    """Token rejected due to version mismatch (security monitoring event).
+
+    Emitted during token refresh when version check fails due to
+    global token rotation or per-user token rotation.
+
+    Context should include:
+        - token_version: Version of the rejected token
+        - required_version: Minimum version required
+        - rejection_reason: Why token was rejected (global_rotation, user_rotation)
+        - user_id: User whose token was rejected (if known)
+    """
+
     # Email Verification Events
     USER_EMAIL_VERIFICATION_ATTEMPTED = "user_email_verification_attempted"
     """User attempted to verify email.

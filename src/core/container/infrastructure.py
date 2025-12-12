@@ -156,7 +156,9 @@ def get_encryption_service() -> "EncryptionService":
     from src.core.result import Failure, Success
     from src.infrastructure.providers.encryption_service import EncryptionService
 
-    result = EncryptionService.create(settings.encryption_key)
+    # Convert string key to bytes (UTF-8 encoding)
+    key_bytes = settings.encryption_key.encode("utf-8")
+    result = EncryptionService.create(key_bytes)
 
     match result:
         case Success(value=service):
@@ -303,20 +305,25 @@ def get_password_service() -> "PasswordHashingProtocol":
 def get_token_service() -> "TokenGenerationProtocol":
     """Get JWT token service singleton (app-scoped).
 
-    Returns JWTService with HMAC-SHA256 and 15-minute expiration.
+    Returns JWTService with HMAC-SHA256 and configurable expiration.
     Service instance is shared across entire application.
+
+    Configuration:
+        - access_token_expire_minutes: Configurable via settings (default: 30)
+        - For stricter security, reduce to 15 minutes via environment variable
 
     Returns:
         Token generation service implementing TokenGenerationProtocol.
 
     Reference:
         - docs/architecture/authentication-architecture.md (Lines 131-173)
+        - F6.5 Security Audit Item 2: Config/Container alignment
     """
     from src.infrastructure.security import JWTService
 
     return JWTService(
         secret_key=settings.secret_key,
-        expiration_minutes=15,
+        expiration_minutes=settings.access_token_expire_minutes,
     )
 
 

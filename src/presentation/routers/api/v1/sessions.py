@@ -16,6 +16,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Request, status
 from fastapi.responses import JSONResponse, Response
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.commands.auth_commands import AuthenticateUser, LogoutUser
 from src.application.commands.handlers.authenticate_user_handler import (
@@ -46,7 +47,9 @@ from src.application.queries.session_queries import GetSession, ListUserSessions
 from src.core.config import settings
 from src.core.container import (
     get_authenticate_user_handler,
+    get_cache,
     get_create_session_handler,
+    get_db_session,
     get_generate_auth_tokens_handler,
     get_get_session_handler,
     get_list_sessions_handler,
@@ -55,6 +58,7 @@ from src.core.container import (
     get_revoke_session_handler,
 )
 from src.core.result import Failure, Success
+from src.domain.protocols import CacheProtocol
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.schemas.auth_schemas import (
     AuthErrorResponse,
@@ -130,7 +134,7 @@ async def create_session(
         email=data.email,
         password=data.password,
     )
-    auth_result = await auth_handler.handle(auth_command)
+    auth_result = await auth_handler.handle(auth_command, request)
 
     match auth_result:
         case Failure(error=error):
@@ -228,6 +232,8 @@ async def delete_current_session(
     data: SessionDeleteRequest,
     authorization: Annotated[str | None, Header()] = None,
     handler: LogoutUserHandler = Depends(get_logout_user_handler),
+    cache: CacheProtocol = Depends(get_cache),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> Response | JSONResponse:
     """Delete current session (logout).
 
@@ -247,7 +253,7 @@ async def delete_current_session(
         JSONResponse with error on failure (401).
     """
     # Extract user_id from JWT token (if provided)
-    user_id = _extract_user_id_from_token(authorization)
+    user_id = await _extract_user_id_from_token(authorization, cache, db_session)
 
     if user_id is None:
         trace_id = get_trace_id()
@@ -270,39 +276,96 @@ async def delete_current_session(
     )
 
     # Execute handler (always returns success for security)
-    await handler.handle(command)
+    await handler.handle(command, request)
 
     # Return 204 No Content
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def _extract_user_id_from_token(authorization: str | None) -> UUID | None:
-    """Extract user_id from JWT authorization header.
+async def _extract_user_id_from_token(
+    authorization: str | None,
+    cache: "CacheProtocol",
+    db_session: AsyncSession,
+) -> UUID | None:
+    """Extract user_id from JWT authorization header with session revocation check.
+
+    Security Layer: Validates JWT AND checks session is not revoked.
+    This prevents post-logout token reuse attacks.
+
+    Flow:
+        1. Validate JWT token (signature, expiration)
+        2. Extract session_id from JWT payload
+        3. Check session in Redis cache (fast path)
+        4. If cache miss, check database (slow path)
+        5. Return None if session revoked or not found
 
     Args:
         authorization: Authorization header value (e.g., "Bearer <token>").
+        cache: Redis cache for fast session lookups.
+        db_session: Database session for fallback lookups.
 
     Returns:
-        User ID from token, or None if invalid/missing.
+        User ID from token if valid and session not revoked, None otherwise.
+
+    Security:
+        - Prevents token reuse after logout
+        - Prevents token reuse after password change
+        - Prevents token reuse after manual session revocation
     """
     if not authorization or not authorization.startswith("Bearer "):
         return None
 
     try:
         from src.core.container import get_token_service
+        from src.core.result import Success
 
         token = authorization[7:]  # Remove "Bearer " prefix
         token_service = get_token_service()
         result = token_service.validate_access_token(token)
-        # Handle Result type - payload is inside Success
-        from src.core.result import Success
 
-        if isinstance(result, Success) and "sub" in result.value:
-            return UUID(str(result.value["sub"]))
+        if not isinstance(result, Success) or "sub" not in result.value:
+            return None
+
+        # Extract user_id and session_id
+        user_id = UUID(str(result.value["sub"]))
+        session_id_raw = result.value.get("session_id")
+
+        # If no session_id, allow (backward compatibility)
+        if session_id_raw is None:
+            return user_id
+
+        session_id = UUID(str(session_id_raw))
+
+        # Check session revocation (Redis cache → database fallback)
+        from src.infrastructure.cache import RedisSessionCache
+        from src.infrastructure.persistence.repositories import (
+            SessionRepository as SessionRepositoryImpl,
+        )
+
+        session_cache = RedisSessionCache(cache=cache)
+        cached_session = await session_cache.get(session_id)
+
+        if cached_session is not None:
+            # Session found in cache
+            if cached_session.is_revoked:
+                return None  # Session revoked
+            return user_id
+
+        # Slow path: Check database
+        session_repo = SessionRepositoryImpl(session=db_session)
+        db_session_entity = await session_repo.find_by_id(session_id)
+
+        if db_session_entity is None or db_session_entity.is_revoked:
+            return None  # Session not found or revoked
+
+        # Session valid - cache it for future requests
+        await session_cache.set(db_session_entity)
+
+        return user_id
+
     except Exception:
-        pass
-
-    return None
+        # Any error during validation/check → deny access
+        return None
 
 
 def _get_user_friendly_error(error: str) -> str:
@@ -316,6 +379,7 @@ def _get_user_friendly_error(error: str) -> str:
     """
     messages = {
         "invalid_credentials": "Email or password is incorrect.",
+        "user_not_found": "Email or password is incorrect.",  # Same as invalid_credentials to prevent user enumeration
         "email_not_verified": "Please verify your email address before logging in.",
         "account_locked": "Your account has been locked due to too many failed attempts.",
         "account_inactive": "Your account has been deactivated.",
@@ -323,33 +387,82 @@ def _get_user_friendly_error(error: str) -> str:
     return messages.get(error, "Authentication failed. Please try again.")
 
 
-def _extract_session_id_from_token(authorization: str | None) -> UUID | None:
-    """Extract session_id from JWT authorization header.
+async def _extract_session_id_from_token(
+    authorization: str | None,
+    cache: "CacheProtocol",
+    db_session: AsyncSession,
+) -> UUID | None:
+    """Extract session_id from JWT authorization header with session revocation check.
+
+    Security Layer: Validates JWT AND checks session is not revoked.
+    Uses same validation logic as _extract_user_id_from_token but returns session_id.
 
     Args:
         authorization: Authorization header value (e.g., "Bearer <token>").
+        cache: Redis cache for fast session lookups.
+        db_session: Database session for fallback lookups.
 
     Returns:
-        Session ID from token, or None if invalid/missing.
+        Session ID from token if valid and not revoked, None otherwise.
+
+    Security:
+        - Prevents token reuse after logout
+        - Prevents token reuse after password change
+        - Prevents token reuse after manual session revocation
+
+    Reference:
+        - F6.5 Security Audit Item 6: Session Revocation Check
     """
     if not authorization or not authorization.startswith("Bearer "):
         return None
 
     try:
         from src.core.container import get_token_service
+        from src.core.result import Success
 
         token = authorization[7:]  # Remove "Bearer " prefix
         token_service = get_token_service()
         result = token_service.validate_access_token(token)
-        # Handle Result type - payload is inside Success
-        from src.core.result import Success
 
-        if isinstance(result, Success) and "session_id" in result.value:
-            return UUID(str(result.value["session_id"]))
+        if not isinstance(result, Success):
+            return None
+
+        session_id_raw = result.value.get("session_id")
+        if session_id_raw is None:
+            return None  # No session_id in token
+
+        session_id = UUID(str(session_id_raw))
+
+        # Check session revocation (Redis cache → database fallback)
+        from src.infrastructure.cache import RedisSessionCache
+        from src.infrastructure.persistence.repositories import (
+            SessionRepository as SessionRepositoryImpl,
+        )
+
+        session_cache = RedisSessionCache(cache=cache)
+        cached_session = await session_cache.get(session_id)
+
+        if cached_session is not None:
+            # Session found in cache
+            if cached_session.is_revoked:
+                return None  # Session revoked
+            return session_id
+
+        # Slow path: Check database
+        session_repo = SessionRepositoryImpl(session=db_session)
+        db_session_entity = await session_repo.find_by_id(session_id)
+
+        if db_session_entity is None or db_session_entity.is_revoked:
+            return None  # Session not found or revoked
+
+        # Session valid - cache it for future requests
+        await session_cache.set(db_session_entity)
+
+        return session_id
+
     except Exception:
-        pass
-
-    return None
+        # Any error during validation/check → deny access
+        return None
 
 
 # =============================================================================
@@ -373,6 +486,8 @@ async def list_sessions(
     authorization: Annotated[str | None, Header()] = None,
     active_only: bool = Query(default=True, description="Only return active sessions"),
     handler: ListSessionsHandler = Depends(get_list_sessions_handler),
+    cache: CacheProtocol = Depends(get_cache),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> SessionListResponse | JSONResponse:
     """List all sessions for the current user.
 
@@ -389,8 +504,10 @@ async def list_sessions(
         JSONResponse with error on failure (401).
     """
     # Extract user_id and session_id from token
-    user_id = _extract_user_id_from_token(authorization)
-    current_session_id = _extract_session_id_from_token(authorization)
+    user_id = await _extract_user_id_from_token(authorization, cache, db_session)
+    current_session_id = await _extract_session_id_from_token(
+        authorization, cache, db_session
+    )
 
     if user_id is None:
         return _unauthorized_response(request)
@@ -447,6 +564,8 @@ async def get_session(
     session_id: UUID = Path(..., description="Session ID"),
     authorization: Annotated[str | None, Header()] = None,
     handler: GetSessionHandler = Depends(get_get_session_handler),
+    cache: CacheProtocol = Depends(get_cache),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> SessionResponse | JSONResponse:
     """Get details of a specific session.
 
@@ -463,8 +582,10 @@ async def get_session(
         JSONResponse with error on failure (401/404).
     """
     # Extract user_id and current session_id from token
-    user_id = _extract_user_id_from_token(authorization)
-    current_session_id = _extract_session_id_from_token(authorization)
+    user_id = await _extract_user_id_from_token(authorization, cache, db_session)
+    current_session_id = await _extract_session_id_from_token(
+        authorization, cache, db_session
+    )
 
     if user_id is None:
         return _unauthorized_response(request)
@@ -516,6 +637,8 @@ async def revoke_session(
     data: SessionRevokeRequest | None = None,
     authorization: Annotated[str | None, Header()] = None,
     handler: RevokeSessionHandler = Depends(get_revoke_session_handler),
+    cache: CacheProtocol = Depends(get_cache),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> Response | JSONResponse:
     """Revoke a specific session.
 
@@ -533,7 +656,7 @@ async def revoke_session(
         JSONResponse with error on failure (401/404).
     """
     # Extract user_id from token
-    user_id = _extract_user_id_from_token(authorization)
+    user_id = await _extract_user_id_from_token(authorization, cache, db_session)
 
     if user_id is None:
         return _unauthorized_response(request)
@@ -577,6 +700,8 @@ async def revoke_all_sessions(
     data: SessionRevokeAllRequest | None = None,
     authorization: Annotated[str | None, Header()] = None,
     handler: RevokeAllSessionsHandler = Depends(get_revoke_all_sessions_handler),
+    cache: CacheProtocol = Depends(get_cache),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> SessionRevokeAllResponse | JSONResponse:
     """Revoke all sessions except current.
 
@@ -593,8 +718,10 @@ async def revoke_all_sessions(
         JSONResponse with error on failure (401).
     """
     # Extract user_id and session_id from token
-    user_id = _extract_user_id_from_token(authorization)
-    current_session_id = _extract_session_id_from_token(authorization)
+    user_id = await _extract_user_id_from_token(authorization, cache, db_session)
+    current_session_id = await _extract_session_id_from_token(
+        authorization, cache, db_session
+    )
 
     if user_id is None:
         return _unauthorized_response(request)

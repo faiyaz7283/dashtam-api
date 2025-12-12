@@ -65,7 +65,7 @@ async def create_email_verification(
     )
 
     # Execute handler
-    result = await handler.handle(command)
+    result = await handler.handle(command, request)
 
     # Handle result
     match result:

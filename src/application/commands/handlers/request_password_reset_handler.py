@@ -25,9 +25,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import RequestPasswordReset
+
+if TYPE_CHECKING:
+    from fastapi import Request
 from src.core.result import Result, Success
 from src.domain.events.auth_events import (
     PasswordResetRequestAttempted,
@@ -107,12 +111,13 @@ class RequestPasswordResetHandler:
         self._verification_url_base = verification_url_base
 
     async def handle(
-        self, cmd: RequestPasswordReset
+        self, cmd: RequestPasswordReset, request: "Request | None" = None
     ) -> Result[PasswordResetRequestResponse, str]:
         """Handle password reset request command.
 
         Args:
             cmd: RequestPasswordReset command with user's email.
+            request: Optional FastAPI Request for IP/user agent tracking (PCI-DSS 10.2.7).
 
         Returns:
             Always returns Success(PasswordResetRequestResponse).
@@ -124,13 +129,19 @@ class RequestPasswordResetHandler:
             - Creates PasswordResetToken in database (if user exists).
             - Sends password reset email (if user exists).
         """
+        # Extract request metadata for audit trail (PCI-DSS 10.2.7)
+        metadata: dict[str, str] = {}
+        if request and request.client:
+            metadata["ip_address"] = request.client.host
+            metadata["user_agent"] = request.headers.get("user-agent", "Unknown")
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             PasswordResetRequestAttempted(
                 event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 email=cmd.email,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 2: Look up user by email
@@ -144,7 +155,8 @@ class RequestPasswordResetHandler:
                     occurred_at=datetime.now(UTC),
                     email=cmd.email,
                     reason=PasswordResetError.USER_NOT_FOUND,
-                )
+                ),
+                metadata=metadata,
             )
             # Return success to prevent user enumeration
             return Success(value=PasswordResetRequestResponse())
@@ -157,7 +169,8 @@ class RequestPasswordResetHandler:
                     occurred_at=datetime.now(UTC),
                     email=cmd.email,
                     reason=PasswordResetError.USER_NOT_VERIFIED,
-                )
+                ),
+                metadata=metadata,
             )
             # Return success to prevent user enumeration
             return Success(value=PasswordResetRequestResponse())
@@ -176,7 +189,8 @@ class RequestPasswordResetHandler:
                     occurred_at=datetime.now(UTC),
                     email=cmd.email,
                     reason=PasswordResetError.RATE_LIMITED,
-                )
+                ),
+                metadata=metadata,
             )
             # Return success to prevent user enumeration
             return Success(value=PasswordResetRequestResponse())
@@ -209,7 +223,8 @@ class RequestPasswordResetHandler:
                 user_id=user.id,
                 email=user.email,
                 reset_token=token[:8] + "...",  # Truncated for security in logs
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 9: Return Success

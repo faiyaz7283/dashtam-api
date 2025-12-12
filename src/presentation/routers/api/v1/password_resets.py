@@ -92,7 +92,7 @@ async def create_password_reset_token(
     )
 
     # Execute handler (always returns success for security)
-    await handler.handle(command)
+    await handler.handle(command, request)
 
     # Always return success to prevent user enumeration
     return PasswordResetTokenCreateResponse()
@@ -141,7 +141,7 @@ async def create_password_reset(
     )
 
     # Execute handler
-    result = await handler.handle(command)
+    result = await handler.handle(command, request)
 
     # Handle result
     match result:

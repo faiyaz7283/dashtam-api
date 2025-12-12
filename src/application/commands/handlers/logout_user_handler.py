@@ -19,10 +19,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import LogoutUser
+
+if TYPE_CHECKING:
+    from fastapi import Request
 from src.core.result import Result, Success
 from src.domain.events.auth_events import (
     UserLogoutAttempted,
@@ -79,11 +83,14 @@ class LogoutUserHandler:
         self._refresh_token_service = refresh_token_service
         self._event_bus = event_bus
 
-    async def handle(self, cmd: LogoutUser) -> Result[LogoutResponse, str]:
+    async def handle(
+        self, cmd: LogoutUser, request: "Request | None" = None
+    ) -> Result[LogoutResponse, str]:
         """Handle logout user command.
 
         Args:
             cmd: LogoutUser command with user_id and refresh_token.
+            request: Optional FastAPI Request for IP/user agent tracking (PCI-DSS 10.2.7).
 
         Returns:
             Success(LogoutResponse) on successful logout.
@@ -94,13 +101,19 @@ class LogoutUserHandler:
             - Publishes UserLogoutSucceeded/Failed event.
             - Revokes refresh token in database.
         """
+        # Extract request metadata for audit trail (PCI-DSS 10.2.7)
+        metadata: dict[str, str] = {}
+        if request and request.client:
+            metadata["ip_address"] = request.client.host
+            metadata["user_agent"] = request.headers.get("user-agent", "Unknown")
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             UserLogoutAttempted(
                 event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=cmd.user_id,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 2: Find refresh token by verification
@@ -120,7 +133,8 @@ class LogoutUserHandler:
                     occurred_at=datetime.now(UTC),
                     user_id=cmd.user_id,
                     reason=LogoutError.TOKEN_NOT_FOUND,
-                )
+                ),
+                metadata=metadata,
             )
             # Return success anyway to prevent information leakage
             # User experience: they wanted to logout, we say they're logged out
@@ -135,7 +149,8 @@ class LogoutUserHandler:
                     occurred_at=datetime.now(UTC),
                     user_id=cmd.user_id,
                     reason="token_user_mismatch",
-                )
+                ),
+                metadata=metadata,
             )
             # Return success to prevent information leakage
             return Success(value=LogoutResponse())
@@ -148,7 +163,8 @@ class LogoutUserHandler:
                     occurred_at=datetime.now(UTC),
                     user_id=cmd.user_id,
                     reason=LogoutError.TOKEN_ALREADY_REVOKED,
-                )
+                ),
+                metadata=metadata,
             )
             # Return success - user wanted to logout, token is already revoked
             return Success(value=LogoutResponse())
@@ -165,7 +181,8 @@ class LogoutUserHandler:
                 occurred_at=datetime.now(UTC),
                 user_id=cmd.user_id,
                 session_id=session_id,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 5: Return Success

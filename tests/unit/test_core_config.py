@@ -24,12 +24,16 @@ def base_test_env():
 
     Provides minimal required settings. Tests can override specific values
     by merging with this dict.
+
+    Note: Keys meet validation requirements:
+    - SECRET_KEY: 32+ characters (256 bits)
+    - ENCRYPTION_KEY: Exactly 32 characters (256 bits)
     """
     return {
         "DATABASE_URL": "postgresql://test",
         "REDIS_URL": "redis://test",
-        "SECRET_KEY": "test-key",
-        "ENCRYPTION_KEY": "test-encryption-key",
+        "SECRET_KEY": "test-secret-key-minlen-32!!!****",  # Exactly 32 chars
+        "ENCRYPTION_KEY": "test-encryption-exactly-32!!!!!!",  # Exactly 32 chars
         "API_BASE_URL": "https://test.com",
         "CALLBACK_BASE_URL": "https://callback.com",
         "CORS_ORIGINS": "https://test.com",
@@ -123,7 +127,7 @@ class TestSettingsLoading:
             "ENVIRONMENT": "testing",
             "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
             "REDIS_URL": "redis://localhost:6379/1",
-            "SECRET_KEY": "test-secret",
+            "SECRET_KEY": "test-secret-key-minlen-32!!!****",  # Exactly 32 chars
             "API_BASE_URL": "https://test.example.com",
         }
         with patch.dict(os.environ, env_values, clear=True):
@@ -136,7 +140,7 @@ class TestSettingsLoading:
                 == "postgresql+asyncpg://test:test@localhost:5432/test"
             )
             assert settings.redis_url == "redis://localhost:6379/1"
-            assert settings.secret_key == "test-secret"
+            assert settings.secret_key == "test-secret-key-minlen-32!!!****"
             assert settings.api_base_url == "https://test.example.com"
             assert settings.cors_origins == ["https://test.com"]
 
@@ -155,7 +159,7 @@ class TestSettingsLoading:
             assert settings.app_name == "Dashtam"  # default
             assert settings.app_version == "0.1.0"  # default
             assert settings.algorithm == "HS256"  # default
-            assert settings.access_token_expire_minutes == 30  # default
+            assert settings.access_token_expire_minutes == 15  # default (updated F6.5)
             assert settings.refresh_token_expire_days == 30  # default
             assert settings.bcrypt_rounds == 12  # default
             assert settings.api_v1_prefix == "/api/v1"  # default

@@ -27,10 +27,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import RefreshAccessToken
+
+if TYPE_CHECKING:
+    from fastapi import Request
 from src.core.result import Failure, Result, Success
 from src.domain.events.auth_events import (
     AuthTokenRefreshAttempted,
@@ -110,11 +114,14 @@ class RefreshAccessTokenHandler:
         self._refresh_token_service = refresh_token_service
         self._event_bus = event_bus
 
-    async def handle(self, cmd: RefreshAccessToken) -> Result[RefreshResponse, str]:
+    async def handle(
+        self, cmd: RefreshAccessToken, request: "Request | None" = None
+    ) -> Result[RefreshResponse, str]:
         """Handle refresh access token command.
 
         Args:
             cmd: RefreshAccessToken command (token validated by Annotated type).
+            request: Optional FastAPI Request for IP/user agent tracking (PCI-DSS 10.2.7).
 
         Returns:
             Success(RefreshResponse) on successful refresh.
@@ -127,13 +134,19 @@ class RefreshAccessTokenHandler:
             - Deletes old RefreshToken from database (rotation).
             - Creates new RefreshToken in database.
         """
+        # Extract request metadata for audit trail (PCI-DSS 10.2.7)
+        metadata: dict[str, str] = {}
+        if request and request.client:
+            metadata["ip_address"] = request.client.host
+            metadata["user_agent"] = request.headers.get("user-agent", "Unknown")
         # Step 1: Emit ATTEMPTED event
         await self._event_bus.publish(
             AuthTokenRefreshAttempted(
                 event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 user_id=None,  # Unknown until we verify token
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 2-3: Look up token by iterating through database tokens
@@ -148,6 +161,7 @@ class RefreshAccessTokenHandler:
             await self._publish_failed_event(
                 user_id=None,
                 reason=RefreshError.TOKEN_INVALID,
+                metadata=metadata,
             )
             return Failure(error=RefreshError.TOKEN_INVALID)
 
@@ -156,6 +170,7 @@ class RefreshAccessTokenHandler:
             await self._publish_failed_event(
                 user_id=token_data.user_id,
                 reason=RefreshError.TOKEN_EXPIRED,
+                metadata=metadata,
             )
             return Failure(error=RefreshError.TOKEN_EXPIRED)
 
@@ -164,6 +179,7 @@ class RefreshAccessTokenHandler:
             await self._publish_failed_event(
                 user_id=token_data.user_id,
                 reason=RefreshError.TOKEN_REVOKED,
+                metadata=metadata,
             )
             return Failure(error=RefreshError.TOKEN_REVOKED)
 
@@ -175,6 +191,7 @@ class RefreshAccessTokenHandler:
             await self._publish_failed_event(
                 user_id=token_data.user_id,
                 reason=RefreshError.USER_NOT_FOUND,
+                metadata=metadata,
             )
             return Failure(error=RefreshError.USER_NOT_FOUND)
 
@@ -209,11 +226,13 @@ class RefreshAccessTokenHandler:
                             > token_data.token_version
                             else "user_rotation"
                         ),
-                    )
+                    ),
+                    metadata=metadata,
                 )
                 await self._publish_failed_event(
                     user_id=user.id,
                     reason=RefreshError.TOKEN_VERSION_REJECTED,
+                    metadata=metadata,
                 )
                 return Failure(error=RefreshError.TOKEN_VERSION_REJECTED)
 
@@ -222,6 +241,7 @@ class RefreshAccessTokenHandler:
             await self._publish_failed_event(
                 user_id=user.id,
                 reason=RefreshError.USER_INACTIVE,
+                metadata=metadata,
             )
             return Failure(error=RefreshError.USER_INACTIVE)
 
@@ -258,7 +278,8 @@ class RefreshAccessTokenHandler:
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 session_id=token_data.session_id,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 11: Return Success
@@ -320,12 +341,14 @@ class RefreshAccessTokenHandler:
         self,
         user_id: UUID | None,
         reason: str,
+        metadata: dict[str, str],
     ) -> None:
         """Publish AuthTokenRefreshFailed event.
 
         Args:
             user_id: User ID if known.
             reason: Failure reason.
+            metadata: Request metadata for audit trail.
         """
         await self._event_bus.publish(
             AuthTokenRefreshFailed(
@@ -333,5 +356,6 @@ class RefreshAccessTokenHandler:
                 occurred_at=datetime.now(UTC),
                 user_id=user_id,
                 reason=reason,
-            )
+            ),
+            metadata=metadata,
         )

@@ -12,7 +12,8 @@ Architecture:
 """
 
 import pytest
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
+from freezegun import freeze_time
 
 from src.infrastructure.security.refresh_token_service import RefreshTokenService
 
@@ -135,24 +136,21 @@ class TestRefreshTokenServiceIntegration:
     # Expiration Calculation Tests
     # =========================================================================
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_calculate_expiration_returns_future_time(self):
         """Test that calculate_expiration returns time in future."""
         service = RefreshTokenService(expiration_days=30)
 
-        before = datetime.now(UTC)
         expires_at = service.calculate_expiration()
-        after = datetime.now(UTC)
 
-        # Expiration should be ~30 days from now
-        expected_expiration = before + timedelta(days=30)
-
-        # Allow 1 second tolerance for execution time
-        assert expires_at >= expected_expiration - timedelta(seconds=1)
-        assert expires_at <= after + timedelta(days=30) + timedelta(seconds=1)
+        # Expiration should be exactly 30 days from frozen time
+        expected_expiration = datetime(2024, 1, 31, 12, 0, 0, tzinfo=UTC)
+        assert expires_at == expected_expiration
 
         # Should be UTC timezone
         assert expires_at.tzinfo == UTC
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_calculate_expiration_with_custom_days(self):
         """Test that expiration reflects configured expiration_days."""
         test_cases = [
@@ -162,14 +160,13 @@ class TestRefreshTokenServiceIntegration:
             (90, 90),  # 3 months
         ]
 
+        frozen_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         for days, expected_days in test_cases:
             service = RefreshTokenService(expiration_days=days)
-
-            before = datetime.now(UTC)
             expires_at = service.calculate_expiration()
 
-            delta = expires_at - before
+            delta = expires_at - frozen_time
 
-            # Allow 1 second tolerance
-            assert abs(delta.days - expected_days) <= 0
-            assert abs(delta.total_seconds() - (expected_days * 24 * 60 * 60)) < 2
+            # Exact match (no tolerance needed with frozen time)
+            assert delta.days == expected_days
+            assert delta.total_seconds() == expected_days * 24 * 60 * 60

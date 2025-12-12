@@ -63,7 +63,7 @@ async def create_user(
     )
 
     # Execute handler
-    result = await handler.handle(command)
+    result = await handler.handle(command, request)
 
     # Handle result
     match result:

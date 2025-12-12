@@ -12,7 +12,8 @@ Architecture:
 """
 
 import pytest
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
+from freezegun import freeze_time
 
 from src.infrastructure.security.password_reset_token_service import (
     PasswordResetTokenService,
@@ -79,27 +80,22 @@ class TestPasswordResetTokenServiceIntegration:
         assert all(all(c in "0123456789abcdef" for c in t) for t in tokens)
         assert len(set(tokens)) == 100  # All unique
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_calculate_expiration_returns_correct_time(self):
         """Test that expiration calculation returns correct UTC time (15 minutes)."""
         expiration_minutes = 15
         service = PasswordResetTokenService(expiration_minutes=expiration_minutes)
 
-        before = datetime.now(UTC)
         expires_at = service.calculate_expiration()
-        after = datetime.now(UTC)
 
-        # Expiration should be ~15 minutes from now
-        expected_expiration = before + timedelta(minutes=expiration_minutes)
-
-        # Allow 1 second tolerance
-        assert expires_at >= expected_expiration - timedelta(seconds=1)
-        assert expires_at <= after + timedelta(minutes=expiration_minutes) + timedelta(
-            seconds=1
-        )
+        # Expiration should be exactly 15 minutes from frozen time
+        expected_expiration = datetime(2024, 1, 1, 12, 15, 0, tzinfo=UTC)
+        assert expires_at == expected_expiration
 
         # Should be UTC timezone
         assert expires_at.tzinfo == UTC
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_reset_token_service_initialization(self):
         """Test service initialization with various parameters."""
         # Default expiration (15 minutes)
@@ -110,16 +106,15 @@ class TestPasswordResetTokenServiceIntegration:
         # Custom expiration times (in minutes)
         test_cases = [5, 10, 15, 30, 60]
 
+        frozen_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         for minutes in test_cases:
             service = PasswordResetTokenService(expiration_minutes=minutes)
-
-            before = datetime.now(UTC)
             expires_at = service.calculate_expiration()
 
-            delta = expires_at - before
+            delta = expires_at - frozen_time
 
-            # Allow 1 second tolerance
-            assert abs(delta.total_seconds() - (minutes * 60)) < 2
+            # Exact match (no tolerance needed with frozen time)
+            assert delta.total_seconds() == minutes * 60
 
     def test_reset_token_format_consistency(self):
         """Test that token format is consistent across multiple generations."""
@@ -134,6 +129,7 @@ class TestPasswordResetTokenServiceIntegration:
             assert token == token.lower()
             assert all(c in "0123456789abcdef" for c in token)
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_calculate_expiration_with_different_durations(self):
         """Test expiration calculation with various durations."""
         test_durations = [
@@ -144,13 +140,12 @@ class TestPasswordResetTokenServiceIntegration:
             (60, 3600),  # 60 minutes = 1 hour
         ]
 
+        frozen_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         for minutes, expected_seconds in test_durations:
             service = PasswordResetTokenService(expiration_minutes=minutes)
-
-            before = datetime.now(UTC)
             expires_at = service.calculate_expiration()
 
-            delta = (expires_at - before).total_seconds()
+            delta = (expires_at - frozen_time).total_seconds()
 
-            # Allow 1 second tolerance
-            assert abs(delta - expected_seconds) < 2
+            # Exact match (no tolerance needed with frozen time)
+            assert delta == expected_seconds

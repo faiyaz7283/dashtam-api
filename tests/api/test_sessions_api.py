@@ -9,7 +9,8 @@ Tests the complete HTTP request/response cycle for session management:
 - DELETE /api/v1/sessions (revoke all)
 
 Architecture:
-- Uses FastAPI TestClient for HTTP-level testing
+- Uses real app with dependency overrides
+- Mocks handlers to test request/response flow
 - Tests validation, authorization, and error responses
 - Verifies RFC 7807 compliance for errors
 
@@ -19,254 +20,381 @@ Note:
     and database) is covered in integration tests.
 """
 
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid_extensions import uuid7
+from uuid import UUID
 
 import pytest
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse, Response
 from fastapi.testclient import TestClient
+from uuid_extensions import uuid7
 
-from src.presentation.routers.api.middleware.trace_middleware import TraceMiddleware
-from src.schemas.auth_schemas import AuthErrorResponse
+from src.core.result import Failure, Success
+from src.main import app
 
 
 # =============================================================================
-# Test App Fixtures - Create test endpoints that simulate real behavior
+# Test Doubles - Stub handlers and response types
 # =============================================================================
 
 
-@pytest.fixture
-def test_app():
-    """Create test FastAPI app with session-like endpoints.
+@dataclass
+class AuthenticatedUser:
+    """Result from authentication handler."""
 
-    Instead of including the real router (which requires complex DI mocking),
-    we create simplified test endpoints that verify the HTTP layer behavior.
-    """
-    app = FastAPI(title="Test App")
-    app.add_middleware(TraceMiddleware)
+    user_id: UUID
+    email: str
+    roles: list[str]
 
-    # Simulated POST /api/v1/sessions (login)
-    @app.post("/api/v1/sessions", status_code=status.HTTP_201_CREATED)
-    async def create_session(request: Request):
-        """Test endpoint simulating session creation."""
-        data = await request.json()
 
-        # Validate required fields
-        if "email" not in data:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={"detail": [{"loc": ["body", "email"], "msg": "required"}]},
-            )
-        if "password" not in data:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={"detail": [{"loc": ["body", "password"], "msg": "required"}]},
-            )
+@dataclass
+class CreateSessionResponse:
+    """Result from create session handler."""
 
-        # Simulate different auth scenarios based on email
-        email = data.get("email", "")
+    session_id: UUID
+    device_info: str | None
+    location: str | None
+    expires_at: datetime
+
+
+@dataclass
+class AuthTokens:
+    """Result from token generation handler."""
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 900
+
+
+@dataclass
+class SessionListItem:
+    """Individual session in list result."""
+
+    id: UUID
+    device_info: str | None
+    ip_address: str | None
+    location: str | None
+    created_at: datetime | None
+    last_activity_at: datetime | None
+    expires_at: datetime | None
+    is_revoked: bool
+    is_current: bool
+
+
+@dataclass
+class SessionListResult:
+    """Result from list sessions handler."""
+
+    sessions: list[SessionListItem]
+    total_count: int
+    active_count: int
+
+
+@dataclass
+class SessionResult:
+    """Result from get session handler."""
+
+    id: UUID
+    user_id: UUID
+    device_info: str | None
+    ip_address: str | None
+    location: str | None
+    created_at: datetime | None
+    last_activity_at: datetime | None
+    expires_at: datetime | None
+    is_revoked: bool
+    is_current: bool = False
+
+
+class StubAuthenticateUserHandler:
+    """Stub handler for user authentication."""
+
+    async def handle(self, cmd, request=None):
+        """Check email patterns to simulate different scenarios."""
+        email = cmd.email
+
         if "invalid" in email:
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/invalid_credentials",
-                    title="Invalid Credentials",
-                    status=401,
-                    detail="Email or password is incorrect.",
-                    instance="/api/v1/sessions",
-                ).model_dump(),
-            )
+            return Failure(error="invalid_credentials")
         if "locked" in email:
-            return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/account_locked",
-                    title="Account Locked",
-                    status=403,
-                    detail="Your account has been locked.",
-                    instance="/api/v1/sessions",
-                ).model_dump(),
-            )
+            return Failure(error="account_locked")
         if "unverified" in email:
-            return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/email_not_verified",
-                    title="Email Not Verified",
-                    status=403,
-                    detail="Please verify your email.",
-                    instance="/api/v1/sessions",
-                ).model_dump(),
-            )
+            return Failure(error="email_not_verified")
 
         # Success case
-        return {
-            "access_token": "mock_access_token",
-            "refresh_token": "mock_refresh_token",
-            "token_type": "bearer",
-            "expires_in": 900,
-        }
-
-    # Simulated GET /api/v1/sessions (list sessions)
-    @app.get("/api/v1/sessions")
-    async def list_sessions(request: Request):
-        """Test endpoint simulating session listing."""
-        auth = request.headers.get("authorization")
-        if not auth or not auth.startswith("Bearer "):
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/unauthorized",
-                    title="Unauthorized",
-                    status=401,
-                    detail="Valid authorization token required",
-                    instance="/api/v1/sessions",
-                ).model_dump(),
+        return Success(
+            value=AuthenticatedUser(
+                user_id=uuid7(),
+                email=email,
+                roles=["user"],
             )
+        )
 
-        # Return mock sessions
+
+class StubCreateSessionHandler:
+    """Stub handler for session creation."""
+
+    async def handle(self, cmd):
+        """Always return success with mock session."""
         now = datetime.now(UTC)
-        return {
-            "sessions": [
-                {
-                    "id": str(uuid7()),
-                    "device_info": "Chrome on macOS",
-                    "ip_address": "192.168.1.1",
-                    "location": "New York, US",
-                    "created_at": now.isoformat(),
-                    "last_activity_at": now.isoformat(),
-                    "expires_at": (now + timedelta(days=30)).isoformat(),
-                    "is_current": True,
-                    "is_revoked": False,
-                }
-            ],
-            "total_count": 1,
-            "active_count": 1,
-        }
-
-    # Simulated GET /api/v1/sessions/{id} (get session)
-    @app.get("/api/v1/sessions/{session_id}")
-    async def get_session(session_id: str, request: Request):
-        """Test endpoint simulating session retrieval."""
-        auth = request.headers.get("authorization")
-        if not auth or not auth.startswith("Bearer "):
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/unauthorized",
-                    title="Unauthorized",
-                    status=401,
-                    detail="Valid authorization token required",
-                    instance=f"/api/v1/sessions/{session_id}",
-                ).model_dump(),
+        return Success(
+            value=CreateSessionResponse(
+                session_id=uuid7(),
+                device_info="Chrome on macOS",
+                location="New York, US",
+                expires_at=now + timedelta(days=30),
             )
+        )
 
-        # Simulate not found for specific ID pattern
-        if "notfound" in session_id.lower():
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/not_found",
-                    title="Not Found",
-                    status=404,
-                    detail="Session not found",
-                    instance=f"/api/v1/sessions/{session_id}",
-                ).model_dump(),
+
+class StubGenerateAuthTokensHandler:
+    """Stub handler for token generation."""
+
+    async def handle(self, cmd):
+        """Always return success with mock tokens."""
+        return Success(
+            value=AuthTokens(
+                access_token="mock_access_token",
+                refresh_token="mock_refresh_token",
+                token_type="bearer",
+                expires_in=900,
             )
+        )
+
+
+class StubLogoutUserHandler:
+    """Stub handler for logout."""
+
+    async def handle(self, cmd, request=None):
+        """Always return success."""
+        return Success(value=None)
+
+
+class StubListSessionsHandler:
+    """Stub handler for listing sessions."""
+
+    async def handle(self, query):
+        """Return success with one mock session."""
+        now = datetime.now(UTC)
+        session = SessionListItem(
+            id=uuid7(),
+            device_info="Chrome on macOS",
+            ip_address="192.168.1.1",
+            location="New York, US",
+            created_at=now,
+            last_activity_at=now,
+            expires_at=now + timedelta(days=30),
+            is_revoked=False,
+            is_current=True,
+        )
+        return Success(
+            value=SessionListResult(
+                sessions=[session],
+                total_count=1,
+                active_count=1,
+            )
+        )
+
+
+class StubGetSessionHandler:
+    """Stub handler for getting a session."""
+
+    async def handle(self, query):
+        """Return not found for UUID ending in '000f', else success."""
+        if str(query.session_id).endswith("000f"):
+            return Failure(error="session_not_found")
 
         now = datetime.now(UTC)
-        return {
-            "id": session_id,
-            "device_info": "Chrome on macOS",
-            "ip_address": "192.168.1.1",
-            "location": "New York, US",
-            "created_at": now.isoformat(),
-            "last_activity_at": now.isoformat(),
-            "expires_at": (now + timedelta(days=30)).isoformat(),
-            "is_current": True,
-            "is_revoked": False,
-        }
-
-    # Simulated DELETE /api/v1/sessions/current (logout) - must be before {id}
-    @app.delete("/api/v1/sessions/current", status_code=status.HTTP_204_NO_CONTENT)
-    async def delete_current_session(request: Request):
-        """Test endpoint simulating logout."""
-        auth = request.headers.get("authorization")
-        if not auth or not auth.startswith("Bearer "):
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/unauthorized",
-                    title="Unauthorized",
-                    status=401,
-                    detail="Valid authorization token required",
-                    instance="/api/v1/sessions/current",
-                ).model_dump(),
+        return Success(
+            value=SessionResult(
+                id=query.session_id,
+                user_id=query.user_id,
+                device_info="Chrome on macOS",
+                ip_address="192.168.1.1",
+                location="New York, US",
+                created_at=now,
+                last_activity_at=now,
+                expires_at=now + timedelta(days=30),
+                is_revoked=False,
+                is_current=True,
             )
+        )
 
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    # Simulated DELETE /api/v1/sessions/{id} (revoke session)
-    @app.delete("/api/v1/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
-    async def revoke_session(session_id: str, request: Request):
-        """Test endpoint simulating session revocation."""
-        auth = request.headers.get("authorization")
-        if not auth or not auth.startswith("Bearer "):
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/unauthorized",
-                    title="Unauthorized",
-                    status=401,
-                    detail="Valid authorization token required",
-                    instance=f"/api/v1/sessions/{session_id}",
-                ).model_dump(),
-            )
+class StubRevokeSessionHandler:
+    """Stub handler for revoking a session."""
 
-        if "notfound" in session_id.lower():
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/not_found",
-                    title="Not Found",
-                    status=404,
-                    detail="Session not found",
-                    instance=f"/api/v1/sessions/{session_id}",
-                ).model_dump(),
-            )
+    async def handle(self, cmd):
+        """Return not found for UUID ending in '000f', else success."""
+        if str(cmd.session_id).endswith("000f"):
+            return Failure(error="session_not_found")
+        return Success(value=True)
 
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    # Simulated DELETE /api/v1/sessions (revoke all)
-    @app.delete("/api/v1/sessions")
-    async def revoke_all_sessions(request: Request):
-        """Test endpoint simulating revoke all sessions."""
-        auth = request.headers.get("authorization")
-        if not auth or not auth.startswith("Bearer "):
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content=AuthErrorResponse(
-                    type="https://api.dashtam.com/errors/unauthorized",
-                    title="Unauthorized",
-                    status=401,
-                    detail="Valid authorization token required",
-                    instance="/api/v1/sessions",
-                ).model_dump(),
-            )
+class StubRevokeAllSessionsHandler:
+    """Stub handler for revoking all sessions."""
 
-        return {
-            "revoked_count": 3,
-            "message": "3 session(s) revoked successfully",
-        }
+    async def handle(self, cmd):
+        """Always return success with count of 3."""
+        return Success(value=3)
 
-    return app
+
+class StubTokenService:
+    """Stub token service for extracting user/session from token."""
+
+    def __init__(self, user_id: UUID, session_id: UUID):
+        self._user_id = user_id
+        self._session_id = session_id
+
+    def validate_access_token(self, token: str):
+        """Return success with user_id and session_id."""
+        return Success(
+            value={
+                "sub": str(self._user_id),
+                "session_id": str(self._session_id),
+            }
+        )
+
+
+class StubSessionCache:
+    """Stub session cache for session revocation checks."""
+
+    def __init__(self, cache=None):
+        """Initialize stub cache (ignore actual cache parameter)."""
+        pass
+
+    async def get(self, session_id: UUID):
+        """Always return None (cache miss, fall through to database)."""
+        return None
+
+    async def set(self, session):
+        """No-op for caching."""
+        pass
+
+
+class StubSessionRepository:
+    """Stub session repository for session revocation checks."""
+
+    def __init__(self, session_id: UUID):
+        self._session_id = session_id
+
+    async def find_by_id(self, session_id: UUID):
+        """Return non-revoked session."""
+        from dataclasses import dataclass
+
+        @dataclass
+        class StubSession:
+            id: UUID
+            is_revoked: bool = False
+
+        # Return valid session if ID matches
+        if session_id == self._session_id:
+            return StubSession(id=session_id, is_revoked=False)
+        return None
+
+
+# =============================================================================
+# Fixtures
+# =============================================================================
 
 
 @pytest.fixture
-def client(test_app):
-    """Create TestClient for API tests."""
-    return TestClient(test_app, raise_server_exceptions=False)
+def mock_user_id():
+    """Generate a user ID for testing."""
+    return uuid7()
+
+
+@pytest.fixture
+def mock_session_id():
+    """Generate a session ID for testing."""
+    return uuid7()
+
+
+@pytest.fixture(autouse=True)
+def override_dependencies(mock_user_id, mock_session_id):
+    """Override app dependencies with test doubles."""
+    from src.core.container import (
+        get_authenticate_user_handler,
+        get_cache,
+        get_create_session_handler,
+        get_db_session,
+        get_generate_auth_tokens_handler,
+        get_logout_user_handler,
+        get_list_sessions_handler,
+        get_get_session_handler,
+        get_revoke_session_handler,
+        get_revoke_all_sessions_handler,
+    )
+    from unittest.mock import AsyncMock
+
+    # Override all session-related handlers
+    app.dependency_overrides[get_authenticate_user_handler] = (
+        lambda: StubAuthenticateUserHandler()
+    )
+    app.dependency_overrides[get_create_session_handler] = (
+        lambda: StubCreateSessionHandler()
+    )
+    app.dependency_overrides[get_generate_auth_tokens_handler] = (
+        lambda: StubGenerateAuthTokensHandler()
+    )
+    app.dependency_overrides[get_logout_user_handler] = lambda: StubLogoutUserHandler()
+    app.dependency_overrides[get_list_sessions_handler] = (
+        lambda: StubListSessionsHandler()
+    )
+    app.dependency_overrides[get_get_session_handler] = lambda: StubGetSessionHandler()
+    app.dependency_overrides[get_revoke_session_handler] = (
+        lambda: StubRevokeSessionHandler()
+    )
+    app.dependency_overrides[get_revoke_all_sessions_handler] = (
+        lambda: StubRevokeAllSessionsHandler()
+    )
+
+    # Override cache dependency (used for session revocation checks)
+    mock_cache = AsyncMock()
+    app.dependency_overrides[get_cache] = lambda: mock_cache
+
+    # Override db_session dependency (used for session revocation checks)
+    mock_db_session = AsyncMock()
+    app.dependency_overrides[get_db_session] = lambda: mock_db_session
+
+    # Monkeypatch get_token_service used directly in sessions router
+    # to validate Authorization header
+    import src.core.container as container_module
+
+    original_get_token_service = container_module.get_token_service
+
+    def mock_get_token_service():
+        return StubTokenService(mock_user_id, mock_session_id)
+
+    container_module.get_token_service = mock_get_token_service
+
+    # Monkeypatch SessionCache and SessionRepository used in helper functions
+    import src.infrastructure.cache as cache_module
+    import src.infrastructure.persistence.repositories as repo_module
+
+    original_redis_session_cache = cache_module.RedisSessionCache
+    original_session_repository = repo_module.SessionRepository
+
+    cache_module.RedisSessionCache = StubSessionCache
+
+    # SessionRepository needs session_id to return valid session
+    def mock_session_repository_factory(session):
+        return StubSessionRepository(mock_session_id)
+
+    repo_module.SessionRepository = mock_session_repository_factory
+
+    yield
+
+    # Cleanup
+    app.dependency_overrides.clear()
+    container_module.get_token_service = original_get_token_service
+    cache_module.RedisSessionCache = original_redis_session_cache
+    repo_module.SessionRepository = original_session_repository
+
+
+@pytest.fixture
+def client():
+    """Create TestClient for API tests using real app."""
+    return TestClient(app, raise_server_exceptions=False)
 
 
 # =============================================================================
@@ -409,8 +537,10 @@ class TestGetSession:
 
     def test_get_session_not_found(self, client):
         """Test session not found returns 404."""
+        # Use valid UUID ending in '000f' to trigger not found in stub
+        notfound_id = "00000000-0000-0000-0000-00000000000f"
         response = client.get(
-            "/api/v1/sessions/notfound-session-id",
+            f"/api/v1/sessions/{notfound_id}",
             headers={"Authorization": "Bearer mock_token"},
         )
 
@@ -447,8 +577,10 @@ class TestRevokeSession:
 
     def test_revoke_session_not_found(self, client):
         """Test revoking non-existent session returns 404."""
+        # Use valid UUID ending in '000f' to trigger not found in stub
+        notfound_id = "00000000-0000-0000-0000-00000000000f"
         response = client.delete(
-            "/api/v1/sessions/notfound-session-id",
+            f"/api/v1/sessions/{notfound_id}",
             headers={"Authorization": "Bearer mock_token"},
         )
 
@@ -466,14 +598,20 @@ class TestDeleteCurrentSession:
 
     def test_logout_unauthorized(self, client):
         """Test logout without token returns 401."""
-        response = client.delete("/api/v1/sessions/current")
+        response = client.request(
+            "DELETE",
+            "/api/v1/sessions/current",
+            json={"refresh_token": "mock_refresh_token"},
+        )
 
         assert response.status_code == 401
 
     def test_logout_success(self, client):
         """Test successful logout returns 204."""
-        response = client.delete(
+        response = client.request(
+            "DELETE",
             "/api/v1/sessions/current",
+            json={"refresh_token": "mock_refresh_token"},
             headers={"Authorization": "Bearer mock_token"},
         )
 

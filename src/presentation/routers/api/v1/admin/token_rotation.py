@@ -6,6 +6,10 @@ Endpoints:
     POST /api/v1/admin/security/rotations      - Global token rotation
     POST /api/v1/admin/users/{user_id}/rotations - Per-user token rotation
     GET  /api/v1/admin/security/config         - Get security configuration
+
+All endpoints require:
+    - JWT authentication (valid access token)
+    - Admin role (Casbin RBAC check)
 """
 
 from uuid import UUID
@@ -32,6 +36,13 @@ from src.core.container import (
 )
 from src.core.result import Failure, Success
 from src.infrastructure.persistence.repositories import SecurityConfigRepository
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
+from src.presentation.routers.api.middleware.authorization_dependencies import (
+    require_casbin_role,
+)
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.schemas.auth_schemas import AuthErrorResponse
 from src.schemas.rotation_schemas import (
@@ -73,6 +84,8 @@ router = APIRouter(tags=["Token Rotation"])
 async def create_global_rotation(
     request: Request,
     data: GlobalRotationRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    _admin_check: None = Depends(require_casbin_role("admin")),
     handler: TriggerGlobalTokenRotationHandler = Depends(
         get_trigger_global_rotation_handler
     ),
@@ -86,18 +99,20 @@ async def create_global_rotation(
 
     Grace period allows gradual transition (tokens rejected after grace expires).
 
+    Requires admin role (Casbin RBAC).
+
     Args:
         request: FastAPI request object.
         data: Rotation request with reason.
+        current_user: Authenticated admin user (from JWT).
+        _admin_check: Admin role verification (Casbin).
         handler: Global rotation handler (injected).
 
     Returns:
         GlobalRotationResponse on success (201 Created).
         JSONResponse with error on failure.
     """
-    # TODO: Add admin authentication check
-    # For now, endpoint is unprotected (will add admin auth in F1.4)
-    triggered_by = "admin"  # Will be replaced with actual admin user ID
+    triggered_by = str(current_user.user_id)
 
     command = TriggerGlobalTokenRotation(
         reason=data.reason,
@@ -153,6 +168,8 @@ async def create_user_rotation(
     request: Request,
     data: UserRotationRequest,
     user_id: UUID = Path(..., description="User ID to rotate tokens for"),
+    current_user: CurrentUser = Depends(get_current_user),
+    _admin_check: None = Depends(require_casbin_role("admin")),
     handler: TriggerUserTokenRotationHandler = Depends(
         get_trigger_user_rotation_handler
     ),
@@ -164,18 +181,21 @@ async def create_user_rotation(
     Increments user.min_token_version. Only that user's refresh tokens
     with token_version < new minimum will fail validation.
 
+    Requires admin role (Casbin RBAC).
+
     Args:
         request: FastAPI request object.
         data: Rotation request with reason.
         user_id: Target user's ID.
+        current_user: Authenticated admin user (from JWT).
+        _admin_check: Admin role verification (Casbin).
         handler: User rotation handler (injected).
 
     Returns:
         UserRotationResponse on success (201 Created).
         JSONResponse with error on failure (404/500).
     """
-    # TODO: Add admin authentication check
-    triggered_by = "admin"  # Will be replaced with actual admin user ID
+    triggered_by = str(current_user.user_id)
 
     command = TriggerUserTokenRotation(
         user_id=user_id,
@@ -232,6 +252,8 @@ async def create_user_rotation(
 )
 async def get_security_config(
     request: Request,
+    current_user: CurrentUser = Depends(get_current_user),
+    _admin_check: None = Depends(require_casbin_role("admin")),
     session: AsyncSession = Depends(get_db_session),
 ) -> SecurityConfigResponse | JSONResponse:
     """Get security configuration.
@@ -240,14 +262,17 @@ async def get_security_config(
 
     Returns current global token version and grace period settings.
 
+    Requires admin role (Casbin RBAC).
+
     Args:
         request: FastAPI request object.
+        current_user: Authenticated admin user (from JWT).
+        _admin_check: Admin role verification (Casbin).
         session: Database session (injected).
 
     Returns:
         SecurityConfigResponse with current configuration.
     """
-    # TODO: Add admin authentication check
     repo = SecurityConfigRepository(session=session)
     config = await repo.get_or_create_default()
 

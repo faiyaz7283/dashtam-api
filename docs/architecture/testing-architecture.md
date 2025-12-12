@@ -1424,6 +1424,45 @@ class TestCacheIntegration:
 7. **Don't commit failing tests**
    - Fix or skip with `@pytest.mark.skip(reason="...")`
 
+### Time-Dependent Tests
+
+**Use `freezegun` for deterministic time-dependent tests** - avoid flaky
+tolerance-based assertions.
+
+**Problem** (flaky):
+
+```python
+# ❌ Fragile: Relies on test execution speed
+def test_token_expiration():
+    before = datetime.now(UTC)
+    expires_at = service.calculate_expiration()  # 24 hours from now
+    
+    # Tolerance range can still fail
+    assert expires_at >= before + timedelta(hours=24) - timedelta(seconds=1)
+```
+
+**Solution** (deterministic):
+
+```python
+# ✅ Deterministic: Frozen time = exact assertions
+from freezegun import freeze_time
+
+@freeze_time("2024-01-01 12:00:00")
+def test_token_expiration():
+    expires_at = service.calculate_expiration()  # 24 hours from frozen time
+    expected = datetime(2024, 1, 2, 12, 0, 0, tzinfo=UTC)
+    assert expires_at == expected  # Exact match, no tolerance
+```
+
+**When to use**:
+
+- ✅ Token/session expiration tests
+- ✅ Cache TTL tests
+- ✅ Timestamp comparison tests
+- ❌ Tests measuring actual duration (use `time.perf_counter()`)
+
+**Pattern**: Apply decorator to test/class, use fixed timestamps, exact assertions.
+
 ---
 
 ## Troubleshooting
@@ -1501,4 +1540,4 @@ This testing architecture provides:
 
 ---
 
-**Created**: 2025-11-12 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-12 | **Last Updated**: 2025-12-07

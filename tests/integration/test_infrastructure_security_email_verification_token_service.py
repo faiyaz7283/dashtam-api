@@ -12,7 +12,8 @@ Architecture:
 """
 
 import pytest
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
+from freezegun import freeze_time
 
 from src.infrastructure.security.email_verification_token_service import (
     EmailVerificationTokenService,
@@ -79,27 +80,22 @@ class TestEmailVerificationTokenServiceIntegration:
         assert all(all(c in "0123456789abcdef" for c in t) for t in tokens)
         assert len(set(tokens)) == 100  # All unique
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_calculate_expiration_returns_correct_time(self):
         """Test that expiration calculation returns correct UTC time."""
         expiration_hours = 24
         service = EmailVerificationTokenService(expiration_hours=expiration_hours)
 
-        before = datetime.now(UTC)
         expires_at = service.calculate_expiration()
-        after = datetime.now(UTC)
 
-        # Expiration should be ~24 hours from now
-        expected_expiration = before + timedelta(hours=expiration_hours)
-
-        # Allow 1 second tolerance
-        assert expires_at >= expected_expiration - timedelta(seconds=1)
-        assert expires_at <= after + timedelta(hours=expiration_hours) + timedelta(
-            seconds=1
-        )
+        # Expiration should be exactly 24 hours from frozen time
+        expected_expiration = datetime(2024, 1, 2, 12, 0, 0, tzinfo=UTC)
+        assert expires_at == expected_expiration
 
         # Should be UTC timezone
         assert expires_at.tzinfo == UTC
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_verification_token_service_initialization(self):
         """Test service initialization with various parameters."""
         # Default expiration (24 hours)
@@ -112,14 +108,13 @@ class TestEmailVerificationTokenServiceIntegration:
 
         for hours in test_cases:
             service = EmailVerificationTokenService(expiration_hours=hours)
-
-            before = datetime.now(UTC)
             expires_at = service.calculate_expiration()
 
-            delta = expires_at - before
+            frozen_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+            delta = expires_at - frozen_time
 
-            # Allow 1 second tolerance
-            assert abs(delta.total_seconds() - (hours * 3600)) < 2
+            # Exact match (no tolerance needed with frozen time)
+            assert delta.total_seconds() == hours * 3600
 
     def test_verification_token_format_consistency(self):
         """Test that token format is consistent across multiple generations."""
@@ -134,6 +129,7 @@ class TestEmailVerificationTokenServiceIntegration:
             assert token == token.lower()
             assert all(c in "0123456789abcdef" for c in token)
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_calculate_expiration_with_different_durations(self):
         """Test expiration calculation with various durations."""
         test_durations = [
@@ -143,13 +139,12 @@ class TestEmailVerificationTokenServiceIntegration:
             (48, 172800),  # 48 hours
         ]
 
+        frozen_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         for hours, expected_seconds in test_durations:
             service = EmailVerificationTokenService(expiration_hours=hours)
-
-            before = datetime.now(UTC)
             expires_at = service.calculate_expiration()
 
-            delta = (expires_at - before).total_seconds()
+            delta = (expires_at - frozen_time).total_seconds()
 
-            # Allow 1 second tolerance
-            assert abs(delta - expected_seconds) < 2
+            # Exact match (no tolerance needed with frozen time)
+            assert delta == expected_seconds

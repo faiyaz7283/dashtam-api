@@ -24,10 +24,14 @@ Architecture:
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.auth_commands import VerifyEmail
+
+if TYPE_CHECKING:
+    from fastapi import Request
 from src.core.result import Failure, Result, Success
 from src.domain.events.auth_events import (
     EmailVerificationAttempted,
@@ -76,11 +80,14 @@ class VerifyEmailHandler:
         self._verification_token_repo = verification_token_repo
         self._event_bus = event_bus
 
-    async def handle(self, cmd: VerifyEmail) -> Result[UUID, str]:
+    async def handle(
+        self, cmd: VerifyEmail, request: "Request | None" = None
+    ) -> Result[UUID, str]:
         """Handle email verification command.
 
         Args:
             cmd: VerifyEmail command (token validated by Annotated types).
+            request: Optional FastAPI Request for IP/user agent tracking (PCI-DSS 10.2.7).
 
         Returns:
             Success(user_id) on successful verification.
@@ -93,6 +100,11 @@ class VerifyEmailHandler:
             - Updates User.is_verified to True.
             - Marks token as used.
         """
+        # Extract request metadata for audit trail (PCI-DSS 10.2.7)
+        metadata: dict[str, str] = {}
+        if request and request.client:
+            metadata["ip_address"] = request.client.host
+            metadata["user_agent"] = request.headers.get("user-agent", "Unknown")
         # Truncate token for logging (security)
         token_preview = cmd.token[:8] if len(cmd.token) >= 8 else cmd.token
 
@@ -102,7 +114,8 @@ class VerifyEmailHandler:
                 event_id=uuid7(),
                 occurred_at=datetime.now(UTC),
                 token=token_preview,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 2: Find token by token string
@@ -113,6 +126,7 @@ class VerifyEmailHandler:
             await self._publish_failed_event(
                 token=token_preview,
                 reason=VerifyEmailError.TOKEN_NOT_FOUND,
+                metadata=metadata,
             )
             return Failure(error=VerifyEmailError.TOKEN_NOT_FOUND)
 
@@ -121,6 +135,7 @@ class VerifyEmailHandler:
             await self._publish_failed_event(
                 token=token_preview,
                 reason=VerifyEmailError.TOKEN_EXPIRED,
+                metadata=metadata,
             )
             return Failure(error=VerifyEmailError.TOKEN_EXPIRED)
 
@@ -129,6 +144,7 @@ class VerifyEmailHandler:
             await self._publish_failed_event(
                 token=token_preview,
                 reason=VerifyEmailError.TOKEN_ALREADY_USED,
+                metadata=metadata,
             )
             return Failure(error=VerifyEmailError.TOKEN_ALREADY_USED)
 
@@ -138,6 +154,7 @@ class VerifyEmailHandler:
             await self._publish_failed_event(
                 token=token_preview,
                 reason=VerifyEmailError.USER_NOT_FOUND,
+                metadata=metadata,
             )
             return Failure(error=VerifyEmailError.USER_NOT_FOUND)
 
@@ -156,7 +173,8 @@ class VerifyEmailHandler:
                 occurred_at=datetime.now(UTC),
                 user_id=user.id,
                 email=user.email,
-            )
+            ),
+            metadata=metadata,
         )
 
         # Step 9: Return Success
@@ -166,12 +184,14 @@ class VerifyEmailHandler:
         self,
         token: str,
         reason: str,
+        metadata: dict[str, str],
     ) -> None:
         """Publish EmailVerificationFailed event.
 
         Args:
             token: Truncated token for logging.
             reason: Failure reason.
+            metadata: Request metadata for audit trail.
         """
         await self._event_bus.publish(
             EmailVerificationFailed(
@@ -179,5 +199,6 @@ class VerifyEmailHandler:
                 occurred_at=datetime.now(UTC),
                 token=token,
                 reason=reason,
-            )
+            ),
+            metadata=metadata,
         )

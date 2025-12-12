@@ -48,6 +48,8 @@ from src.domain.events.auth_events import (
     PasswordResetRequestAttempted,
     PasswordResetRequestFailed,
     PasswordResetRequestSucceeded,
+    # Token Rejected Due to Rotation
+    TokenRejectedDueToRotation,
     # User Login Events
     UserLoginAttempted,
     UserLoginFailed,
@@ -588,4 +590,26 @@ class LoggingEventHandler:
             provider_slug=event.provider_slug,
             reason=event.reason,
             needs_user_action=event.needs_user_action,
+        )
+
+    # =========================================================================
+    # Token Rejected Due to Rotation (Security Monitoring)
+    # =========================================================================
+
+    async def handle_token_rejected_due_to_rotation(
+        self,
+        event: TokenRejectedDueToRotation,
+    ) -> None:
+        """Log token rejection due to version mismatch (WARNING level).
+
+        Security monitoring event for token rotation enforcement.
+        """
+        self._logger.warning(
+            "token_rejected_due_to_rotation",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id) if event.user_id else None,
+            token_version=event.token_version,
+            required_version=event.required_version,
+            rejection_reason=event.rejection_reason,
         )

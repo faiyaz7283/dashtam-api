@@ -36,18 +36,40 @@ from src.infrastructure.providers.schwab.schwab_provider import SchwabProvider
 
 
 @pytest.fixture
-def mock_settings() -> Settings:
-    """Create mock settings for SchwabProvider."""
-    return Settings(
-        schwab_api_key="test_client_id",
-        schwab_api_secret="test_client_secret",
-        schwab_api_base_url="https://api.schwabapi.test",
-        schwab_redirect_uri="https://dashtam.local/oauth/schwab/callback",
-        # Other required settings with defaults
-        database_url="postgresql+asyncpg://test@localhost/test",
-        redis_url="redis://localhost:6379/0",
-        encryption_key="a" * 64,  # 32 bytes hex
+def mock_settings(test_settings: Settings) -> Settings:
+    """Create mock settings for SchwabProvider.
+
+    Uses test_settings from .env.test as base (includes SECRET_KEY and ENCRYPTION_KEY),
+    overriding only Schwab-specific fields for testing.
+    """
+    # Get base settings excluding Schwab fields we want to override
+    # Also exclude cors_origins which has a validator that converts str -> list[str]
+    settings_dict = test_settings.model_dump(
+        exclude={
+            "schwab_api_key",
+            "schwab_api_secret",
+            "schwab_api_base_url",
+            "schwab_redirect_uri",
+            "cors_origins",  # Validator changes type, keep original
+        }
     )
+    # Get cors_origins as comma-separated string (reverse the parse_cors_origins validator)
+    if hasattr(test_settings, "cors_origins") and isinstance(
+        test_settings.cors_origins, list
+    ):
+        settings_dict["cors_origins"] = ",".join(test_settings.cors_origins)
+    else:
+        settings_dict["cors_origins"] = "https://test.dashtam.local"
+    # Add test-specific Schwab configuration
+    settings_dict.update(
+        {
+            "schwab_api_key": "test_client_id",
+            "schwab_api_secret": "test_client_secret",
+            "schwab_api_base_url": "https://api.schwabapi.test",
+            "schwab_redirect_uri": "https://dashtam.local/oauth/schwab/callback",
+        }
+    )
+    return Settings(**settings_dict)
 
 
 @pytest.fixture
@@ -611,7 +633,12 @@ class TestProviderInitialization:
             schwab_redirect_uri="https://redirect",
             database_url="postgresql+asyncpg://test@localhost/test",
             redis_url="redis://localhost:6379/0",
-            encryption_key="a" * 64,
+            encryption_key="test-encryption-exactly-32!!!!!!",
+            secret_key="test-secret-key-minlen-32!!!****",
+            api_base_url="https://test.com",
+            callback_base_url="https://callback.com",
+            cors_origins="https://test.com",
+            verification_url_base="https://test.com",
         )
 
         with pytest.raises(ValueError, match="schwab_api_key"):
@@ -626,7 +653,12 @@ class TestProviderInitialization:
             schwab_redirect_uri="https://redirect",
             database_url="postgresql+asyncpg://test@localhost/test",
             redis_url="redis://localhost:6379/0",
-            encryption_key="a" * 64,
+            encryption_key="test-encryption-exactly-32!!!!!!",
+            secret_key="test-secret-key-minlen-32!!!****",
+            api_base_url="https://test.com",
+            callback_base_url="https://callback.com",
+            cors_origins="https://test.com",
+            verification_url_base="https://test.com",
         )
 
         with pytest.raises(ValueError, match="schwab_api_secret"):
@@ -641,7 +673,12 @@ class TestProviderInitialization:
             schwab_redirect_uri="",  # Empty
             database_url="postgresql+asyncpg://test@localhost/test",
             redis_url="redis://localhost:6379/0",
-            encryption_key="a" * 64,
+            encryption_key="test-encryption-exactly-32!!!!!!",
+            secret_key="test-secret-key-minlen-32!!!****",
+            api_base_url="https://test.com",
+            callback_base_url="https://callback.com",
+            cors_origins="https://test.com",
+            verification_url_base="https://test.com",
         )
 
         with pytest.raises(ValueError, match="schwab_redirect_uri"):

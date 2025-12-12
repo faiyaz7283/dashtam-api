@@ -28,11 +28,13 @@ def get_event_bus() -> "EventBusProtocol":
         - 'rabbitmq': RabbitMQEventBus (future, distributed)
         - 'kafka': KafkaEventBus (future, high-volume)
 
-    Event handlers are registered at startup (ALL 27 subscriptions):
-        - LoggingEventHandler: 12 events (all authentication events)
-        - AuditEventHandler: 12 events (all authentication events)
-        - EmailEventHandler: 2 SUCCEEDED events (registration, password change)
-        - SessionEventHandler: 1 SUCCEEDED event (password change)
+    Event handlers are registered at startup (ALL 70 subscriptions):
+        - LoggingEventHandler: 31 events (all authentication + provider events)
+        - AuditEventHandler: 31 events (all authentication + provider events)
+        - EmailEventHandler: 5 SUCCEEDED events (registration, password change,
+          email verification, password reset request, password reset confirm)
+        - SessionEventHandler: 3 SUCCEEDED events (password change, password reset
+          confirm, user logout)
 
     Returns:
         Event bus implementing EventBusProtocol.
@@ -54,6 +56,25 @@ def get_event_bus() -> "EventBusProtocol":
 
     from src.core.config import get_settings
     from src.domain.events.auth_events import (
+        AuthTokenRefreshAttempted,
+        AuthTokenRefreshFailed,
+        AuthTokenRefreshSucceeded,
+        EmailVerificationAttempted,
+        EmailVerificationFailed,
+        EmailVerificationSucceeded,
+        PasswordResetConfirmAttempted,
+        PasswordResetConfirmFailed,
+        PasswordResetConfirmSucceeded,
+        PasswordResetRequestAttempted,
+        PasswordResetRequestFailed,
+        PasswordResetRequestSucceeded,
+        TokenRejectedDueToRotation,
+        UserLoginAttempted,
+        UserLoginFailed,
+        UserLoginSucceeded,
+        UserLogoutAttempted,
+        UserLogoutFailed,
+        UserLogoutSucceeded,
         UserPasswordChangeAttempted,
         UserPasswordChangeFailed,
         UserPasswordChangeSucceeded,
@@ -229,6 +250,154 @@ def get_event_bus() -> "EventBusProtocol":
     )
     event_bus.subscribe(
         ProviderTokenRefreshFailed, audit_handler.handle_provider_token_refresh_failed
+    )
+
+    # User Login Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(UserLoginAttempted, logging_handler.handle_user_login_attempted)
+    event_bus.subscribe(UserLoginAttempted, audit_handler.handle_user_login_attempted)
+
+    event_bus.subscribe(UserLoginSucceeded, logging_handler.handle_user_login_succeeded)
+    event_bus.subscribe(UserLoginSucceeded, audit_handler.handle_user_login_succeeded)
+
+    event_bus.subscribe(UserLoginFailed, logging_handler.handle_user_login_failed)
+    event_bus.subscribe(UserLoginFailed, audit_handler.handle_user_login_failed)
+
+    # User Logout Events (3 events × 3 handlers = 9 subscriptions)
+    event_bus.subscribe(
+        UserLogoutAttempted, logging_handler.handle_user_logout_attempted
+    )
+    event_bus.subscribe(UserLogoutAttempted, audit_handler.handle_user_logout_attempted)
+
+    event_bus.subscribe(
+        UserLogoutSucceeded, logging_handler.handle_user_logout_succeeded
+    )
+    event_bus.subscribe(UserLogoutSucceeded, audit_handler.handle_user_logout_succeeded)
+    event_bus.subscribe(
+        UserLogoutSucceeded, session_handler.handle_user_logout_succeeded
+    )  # +1 session
+
+    event_bus.subscribe(UserLogoutFailed, logging_handler.handle_user_logout_failed)
+    event_bus.subscribe(UserLogoutFailed, audit_handler.handle_user_logout_failed)
+
+    # Email Verification Events (3 events × 3 handlers = 9 subscriptions)
+    event_bus.subscribe(
+        EmailVerificationAttempted, logging_handler.handle_email_verification_attempted
+    )
+    event_bus.subscribe(
+        EmailVerificationAttempted, audit_handler.handle_email_verification_attempted
+    )
+
+    event_bus.subscribe(
+        EmailVerificationSucceeded, logging_handler.handle_email_verification_succeeded
+    )
+    event_bus.subscribe(
+        EmailVerificationSucceeded, audit_handler.handle_email_verification_succeeded
+    )
+    event_bus.subscribe(
+        EmailVerificationSucceeded, email_handler.handle_email_verification_succeeded
+    )  # +1 email
+
+    event_bus.subscribe(
+        EmailVerificationFailed, logging_handler.handle_email_verification_failed
+    )
+    event_bus.subscribe(
+        EmailVerificationFailed, audit_handler.handle_email_verification_failed
+    )
+
+    # Auth Token Refresh Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        AuthTokenRefreshAttempted, logging_handler.handle_auth_token_refresh_attempted
+    )
+    event_bus.subscribe(
+        AuthTokenRefreshAttempted, audit_handler.handle_auth_token_refresh_attempted
+    )
+
+    event_bus.subscribe(
+        AuthTokenRefreshSucceeded, logging_handler.handle_auth_token_refresh_succeeded
+    )
+    event_bus.subscribe(
+        AuthTokenRefreshSucceeded, audit_handler.handle_auth_token_refresh_succeeded
+    )
+
+    event_bus.subscribe(
+        AuthTokenRefreshFailed, logging_handler.handle_auth_token_refresh_failed
+    )
+    event_bus.subscribe(
+        AuthTokenRefreshFailed, audit_handler.handle_auth_token_refresh_failed
+    )
+
+    # Password Reset Request Events (3 events × 3 handlers = 9 subscriptions)
+    event_bus.subscribe(
+        PasswordResetRequestAttempted,
+        logging_handler.handle_password_reset_request_attempted,
+    )
+    event_bus.subscribe(
+        PasswordResetRequestAttempted,
+        audit_handler.handle_password_reset_request_attempted,
+    )
+
+    event_bus.subscribe(
+        PasswordResetRequestSucceeded,
+        logging_handler.handle_password_reset_request_succeeded,
+    )
+    event_bus.subscribe(
+        PasswordResetRequestSucceeded,
+        audit_handler.handle_password_reset_request_succeeded,
+    )
+    event_bus.subscribe(
+        PasswordResetRequestSucceeded,
+        email_handler.handle_password_reset_request_succeeded,
+    )  # +1 email
+
+    event_bus.subscribe(
+        PasswordResetRequestFailed,
+        logging_handler.handle_password_reset_request_failed,
+    )
+    event_bus.subscribe(
+        PasswordResetRequestFailed, audit_handler.handle_password_reset_request_failed
+    )
+
+    # Password Reset Confirm Events (3 events × 4 handlers = 12 subscriptions)
+    event_bus.subscribe(
+        PasswordResetConfirmAttempted,
+        logging_handler.handle_password_reset_confirm_attempted,
+    )
+    event_bus.subscribe(
+        PasswordResetConfirmAttempted,
+        audit_handler.handle_password_reset_confirm_attempted,
+    )
+
+    event_bus.subscribe(
+        PasswordResetConfirmSucceeded,
+        logging_handler.handle_password_reset_confirm_succeeded,
+    )
+    event_bus.subscribe(
+        PasswordResetConfirmSucceeded,
+        audit_handler.handle_password_reset_confirm_succeeded,
+    )
+    event_bus.subscribe(
+        PasswordResetConfirmSucceeded,
+        email_handler.handle_password_reset_confirm_succeeded,
+    )  # +1 email
+    event_bus.subscribe(
+        PasswordResetConfirmSucceeded,
+        session_handler.handle_password_reset_confirm_succeeded,
+    )  # +1 session
+
+    event_bus.subscribe(
+        PasswordResetConfirmFailed, logging_handler.handle_password_reset_confirm_failed
+    )
+    event_bus.subscribe(
+        PasswordResetConfirmFailed, audit_handler.handle_password_reset_confirm_failed
+    )
+
+    # Token Rejected Due to Rotation (1 event × 2 handlers = 2 subscriptions)
+    event_bus.subscribe(
+        TokenRejectedDueToRotation,
+        logging_handler.handle_token_rejected_due_to_rotation,
+    )
+    event_bus.subscribe(
+        TokenRejectedDueToRotation, audit_handler.handle_token_rejected_due_to_rotation
     )
 
     return event_bus

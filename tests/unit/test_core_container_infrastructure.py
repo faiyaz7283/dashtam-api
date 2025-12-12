@@ -283,7 +283,8 @@ class TestGetEncryptionServiceContainer:
 
                 service = get_encryption_service()
 
-                mock_svc_cls.create.assert_called_once_with(valid_key)
+                # EncryptionService.create() receives bytes (key.encode())
+                mock_svc_cls.create.assert_called_once_with(valid_key.encode("utf-8"))
                 assert service == mock_svc
 
     def test_get_encryption_service_raises_on_invalid_key(self):
@@ -291,7 +292,8 @@ class TestGetEncryptionServiceContainer:
         get_encryption_service.cache_clear()
 
         with patch("src.core.container.infrastructure.settings") as mock_settings:
-            mock_settings.encryption_key = "invalid"
+            # Use valid length but will fail at EncryptionService.create()
+            mock_settings.encryption_key = "invalid-but-exactly-32-chars-x"
 
             with patch(
                 "src.infrastructure.providers.encryption_service.EncryptionService"

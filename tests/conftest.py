@@ -14,12 +14,35 @@ import pytest_asyncio
 from datetime import UTC, datetime, timedelta
 from redis.asyncio import Redis, ConnectionPool
 
+from src.core.config import Settings
 from src.domain.enums.credential_type import CredentialType
 from src.domain.value_objects.provider_credentials import ProviderCredentials
 
 
 # Configure pytest-asyncio
 pytest_plugins = ("pytest_asyncio",)
+
+
+@pytest.fixture(scope="session")
+def test_settings() -> Settings:
+    """Load settings from .env.test for unit tests.
+
+    This fixture provides the single source of truth for test configuration,
+    including SECRET_KEY and ENCRYPTION_KEY from .env.test.
+
+    Tests can override specific fields as needed while keeping keys from .env.test.
+
+    Usage:
+        def test_something(test_settings: Settings):
+            # Use test_settings.secret_key, test_settings.encryption_key
+            # Or create modified copy:
+            modified = Settings(
+                **test_settings.model_dump(),
+                redis_url="redis://custom:6379/0"
+            )
+    """
+    # Load from environment (Docker sets .env.test automatically)
+    return Settings()
 
 
 @pytest.fixture(scope="session")

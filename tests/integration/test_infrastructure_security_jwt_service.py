@@ -13,6 +13,7 @@ Architecture:
 
 import pytest
 from datetime import UTC, datetime
+from freezegun import freeze_time
 from uuid_extensions import uuid7
 
 from src.infrastructure.security.jwt_service import JWTService
@@ -129,18 +130,17 @@ class TestJWTServiceIntegration:
         # All JTIs should be unique
         assert len(set(jtis)) == 5
 
+    @freeze_time("2024-01-01 12:00:00")
     def test_generate_access_token_sets_correct_expiration(self):
         """Test that expiration is set correctly based on expiration_minutes."""
         expiration_minutes = 30
         service = JWTService(secret_key="x" * 32, expiration_minutes=expiration_minutes)
 
-        before_generation = datetime.now(UTC)
         token = service.generate_access_token(
             user_id=uuid7(),
             email="test@example.com",
             roles=["user"],
         )
-        after_generation = datetime.now(UTC)
 
         result = service.validate_access_token(token)
         assert isinstance(result, Success)
@@ -148,13 +148,13 @@ class TestJWTServiceIntegration:
         iat = datetime.fromtimestamp(result.value["iat"], UTC)
         exp = datetime.fromtimestamp(result.value["exp"], UTC)
 
-        # Expiration should be ~30 minutes from issued time
+        # Expiration should be exactly 30 minutes from issued time
         expiration_delta = exp - iat
         assert expiration_delta.total_seconds() == expiration_minutes * 60
 
-        # Issued time should be close to when token was generated (within 2 seconds)
-        assert abs((iat - before_generation).total_seconds()) < 2
-        assert abs((iat - after_generation).total_seconds()) < 2
+        # Issued time should be exactly 2024-01-01 12:00:00
+        assert iat == datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        assert exp == datetime(2024, 1, 1, 12, 30, 0, tzinfo=UTC)
 
     # =========================================================================
     # Token Validation Tests
@@ -181,21 +181,19 @@ class TestJWTServiceIntegration:
 
     def test_validate_expired_token_returns_failure(self):
         """Test that expired token validation returns Failure."""
-        service = JWTService(secret_key="x" * 32, expiration_minutes=-1)
+        service = JWTService(secret_key="x" * 32, expiration_minutes=1)
 
-        # Generate token with negative expiration (already expired)
-        token = service.generate_access_token(
-            user_id=uuid7(),
-            email="test@example.com",
-            roles=["user"],
-        )
+        # Generate token at initial time
+        with freeze_time("2024-01-01 12:00:00"):
+            token = service.generate_access_token(
+                user_id=uuid7(),
+                email="test@example.com",
+                roles=["user"],
+            )
 
-        # Small delay to ensure token is expired
-        import time
-
-        time.sleep(0.1)
-
-        result = service.validate_access_token(token)
+        # Move time forward past expiration (2 minutes later)
+        with freeze_time("2024-01-01 12:02:00"):
+            result = service.validate_access_token(token)
 
         assert isinstance(result, Failure)
         assert result.error == AuthenticationError.INVALID_TOKEN

@@ -168,6 +168,8 @@ dev-up: _check-traefik _ensure-env-dev
 	@echo "   API Docs:  https://dashtam.local/docs"
 	@echo "   Dashboard: http://localhost:8080 (Traefik)"
 	@echo ""
+	@echo "📚 MkDocs: https://docs.dashtam.local (run 'make docs-serve' to start)"
+	@echo ""
 	@echo "🐘 Database:  localhost:5432"
 	@echo "🔴 Redis:     localhost:6379"
 	@echo ""
@@ -607,12 +609,15 @@ md-check: lint-md
 docs-serve:
 	@echo "📚 Starting MkDocs live preview..."
 	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
-	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && uv run mkdocs serve --dev-addr=0.0.0.0:8001"
+	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && PYTHONUNBUFFERED=1 uv run mkdocs serve --dev-addr=0.0.0.0:8001"
 	@sleep 2
 	@echo ""
 	@echo "✅ MkDocs server started!"
-	@echo "📖 Docs: http://localhost:8001/Dashtam/"
+	@echo "📖 Docs: https://docs.dashtam.local/Dashtam/"
 	@echo "🛑 Stop: make docs-stop"
+	@echo ""
+	@echo "💡 Note: Add 'docs.dashtam.local' to /etc/hosts if needed:"
+	@echo "   echo '127.0.0.1 docs.dashtam.local' | sudo tee -a /etc/hosts"
 
 docs-build:
 	@echo "🏗️  Building documentation (strict mode)..."

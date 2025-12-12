@@ -71,6 +71,12 @@ services:
       - "traefik.http.routers.dashtam-dev.tls=true"
       - "traefik.http.routers.dashtam-dev.service=dashtam-dev"
       - "traefik.http.services.dashtam-dev.loadbalancer.server.port=8000"
+      # MkDocs documentation router (HTTPS)
+      - "traefik.http.routers.dashtam-dev-docs.rule=Host(`docs.dashtam.local`)"
+      - "traefik.http.routers.dashtam-dev-docs.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-dev-docs.tls=true"
+      - "traefik.http.routers.dashtam-dev-docs.service=dashtam-dev-docs"
+      - "traefik.http.services.dashtam-dev-docs.loadbalancer.server.port=8001"
     restart: unless-stopped
 
 networks:

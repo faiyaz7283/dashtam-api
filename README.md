@@ -86,9 +86,10 @@ sudo sh -c 'echo "127.0.0.1 docs.dashtam.local" >> /etc/hosts'
 
 ```bash
 grep "dashtam.local" /etc/hosts
-# Should show: 127.0.0.1 dashtam.local
-#              127.0.0.1 test.dashtam.local
-#              127.0.0.1 docs.dashtam.local
+# Should show: 
+# 127.0.0.1 dashtam.local
+# 127.0.0.1 test.dashtam.local
+# 127.0.0.1 docs.dashtam.local
 ```
 
 #### Step 2: Start Traefik Reverse Proxy

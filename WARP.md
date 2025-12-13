@@ -39,7 +39,7 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**v1.0 Release Milestone**: Phases 0-5 (32 features), Phase 6+ deferred to future releases.
+**v1.0.0 Released**: 2025-12-13 | **Phases 0-6 Complete** (43 features) | **GitHub**: https://github.com/faiyaz7283/Dashtam/releases/tag/v1.0.0
 
 ---
 
@@ -178,20 +178,27 @@
 - Auth override in tests: `app.dependency_overrides[get_current_user]` (not type alias)
 - Handler results wrapped in DTOs (e.g., `AccountListResult`, not raw lists)
 
-#### Phase 6: v1.0 Release Preparation (IN PROGRESS)
+#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (12/15 streams)
 
-**Status**: 5/15 streams completed
+**Release**: 2025-12-13 | **PR**: #96 → development, #97 → main | **Tag**: v1.0.0
+
+**Status**: ✅ COMPLETED - v1.0.0 released
 
 **Completed Streams**:
 
-- ✅ **F6.1**: Route Organization (PR #57cf821)
+- ✅ **F6.1**: Route Organization (commit 57cf821)
+- ✅ **F6.2**: CI/CD Fixes (commit 9702cac)
+- ✅ **F6.3**: MkDocs Local Preview (commit c4bfefb)
 - ✅ **F6.4**: Architecture Compliance Audit (PR #94)
-- ✅ **F6.5**: Security Audit (PRs #92, #93, #95) - **Grade: A (Excellent)**
+- ✅ **F6.5**: Security Audit (PR #95) - **Grade: A (Excellent)**
+- ✅ **F6.6**: Test Cleanup (commit de1b41f)
+- ✅ **F6.7**: Documentation Updates (commit ea3a8d3)
+- ✅ **F6.8**: Version Update to 1.0.0 (commit ea3a8d3)
 - ✅ **F6.9**: Migrate API Tests to Real App Pattern (commit ce44d8a)
 - ✅ **F6.10**: Adopt freezegun for Time-Dependent Tests (commit 9d61e0a)
 - ✅ **F6.12**: Admin Authentication for Protected Endpoints (commit c3bfbf4)
 
-**F6.5 Security Audit Summary** (PRs #92, #93, #95):
+**F6.5 Security Audit Summary** (PR #95):
 
 - **Audit Areas**: 6 (Encryption, JWT/Tokens, Rate Limiting, Audit Trail, Errors, Auth/Authz)
 - **Vulnerabilities**: 2 found, 100% remediation
@@ -200,7 +207,18 @@
 - **Security Grade**: A (Excellent)
 - **Compliance**: PCI-DSS, SOC 2, GDPR, NIST
 
-**Pending Streams**: See `~/references/starter/dashtam-feature-roadmap.md` for F6.2, F6.3, F6.6, F6.7, F6.8, F6.11, F6.13, F6.14, F6.15
+**Phase 6 Achievements**:
+
+- ✅ Version bumped to 1.0.0 with dynamic version reading
+- ✅ CHANGELOG.md created with comprehensive release notes
+- ✅ README.md completely rewritten (Quick Start, Security, Architecture)
+- ✅ CI/CD fixed (local CI testing, markdown linting)
+- ✅ MkDocs preview with Traefik HTTPS routing
+- ✅ 1,589 tests passing (81% coverage, 17 skipped)
+- ✅ Zero lint violations, strict type checking
+- ✅ All architecture docs verified and updated
+
+**Deferred to v1.1.0+**: F6.11 (Cache Optimization), F6.13 (API Test Coverage), F6.14 (IP Geolocation), F6.15 (Event Handler Wiring)
 
 ---
 

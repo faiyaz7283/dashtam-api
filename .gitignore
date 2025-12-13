@@ -1,16 +1,29 @@
-# Environment files (all variants except examples)
-.env
-.env/
-.env.*
-!.env.*.example
-.env.local
-.env.*.local
-.env.backup
+# Environment files in ROOT directory only (all variants except examples)
+/.env
+/.env.*
+!/.env.*.example
+/.env.local
+/.env.*.local
+/.env.backup
 
-# Certificates (self-signed, can be regenerated)
-certs/*.pem
+# Ignore .env directories (Python virtual envs) but NOT our env/ config directory
+**/.env/
+
+# Ignore ALL actual env files in env/ directory (they contain secrets)
+# Only commit .example files
+# This includes: .env.dev, .env.test, .env.ci, .env.prod
+env/.env
+env/.env.*
+!env/.env.*.example
+
+# Certificates
+# Allow self-signed dev/test certs (.pem files are committed for CI/dev/test)
+# Ignore production certs and private keys
 certs/*.key
 certs/*.crt
+certs/prod*.pem
+certs/production*.pem
+certs/staging*.pem
 
 # Python
 __pycache__/
@@ -20,8 +33,8 @@ __pycache__/
 .Python
 .venv/
 venv/
-ENV/
-env/
+# Virtual env directory (uppercase only, in subdirectories)
+[E][N][V]/
 .pytest_cache/
 .coverage
 htmlcov/
@@ -31,7 +44,6 @@ build/
 
 # UV
 .uv/
-uv.lock
 
 # Docker
 docker-compose.override.yml
@@ -60,4 +72,13 @@ coverage.xml
 
 # Local development
 .local/
-tmp/
+tmp/site/
+
+# Old implementation (for reference during clean slate development)
+DELETE/
+
+# MkDocs build output
+site/
+
+# GeoLite2 database (license prohibits redistribution)
+data/geolite2/

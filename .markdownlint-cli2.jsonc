@@ -1,0 +1,20 @@
+{
+  // markdownlint-cli2 configuration
+  // Loads rules from .markdownlint.jsonc (single source of truth)
+  
+  // Reference main config file for linting rules
+  "config": ".markdownlint.jsonc",
+  
+  // Glob patterns to ignore
+  "ignores": [
+    "node_modules/**",
+    "**/node_modules/**",
+    "docs/research/archived/**",
+    "**/archived/**",
+    ".venv/**",
+    "venv/**",
+    "site/**",
+    "build/**",
+    "dist/**"
+  ]
+}

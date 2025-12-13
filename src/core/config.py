@@ -1,293 +1,418 @@
-"""Application configuration management.
+"""
+Configuration management using Pydantic Settings.
 
-This module handles all configuration settings for the Dashtam application,
-including environment variables, database settings, and provider configurations.
-All settings are validated at startup to ensure the application has proper
-configuration before running.
+This module provides type-safe, validated configuration loading from environment
+variables. Docker compose specifies which .env file to use per environment.
 
-The settings are loaded once and cached for performance. They can be accessed
-throughout the application via the `settings` singleton.
+Architecture:
+- Flat Settings structure (no nesting)
+- All config loaded from environment variables
+- Type validation via Pydantic
+- No hard-coded values per checklist Section 22
 
-Example:
-    >>> from src.core.config import settings
-    >>> print(settings.APP_NAME)
-    'Dashtam'
-    >>> print(settings.DATABASE_URL)
-    'postgresql+asyncpg://postgres:postgres@localhost:5432/dashtam'
+Usage:
+    from src.core.config import settings
+
+    # Access config
+    db_url = settings.database_url
+    api_key = settings.schwab_api_key
+
+    # Environment detection
+    if settings.is_development:
+        # Dev-specific behavior
 """
 
-from typing import Optional, List
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, field_validator
+import tomllib
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class Settings(BaseSettings):
-    """Application settings loaded from environment variables.
+from src.core.enums import Environment
 
-    This class uses Pydantic to load, validate, and type-check all application
-    settings from environment variables or a .env file. Settings are validated
-    at startup, ensuring the application fails fast if misconfigured.
 
-    All settings have sensible defaults for development, but should be properly
-    configured for production deployment.
-
-    Attributes:
-        APP_NAME: Application name used in API responses and logging.
-        APP_VERSION: Current version of the application.
-        ENVIRONMENT: Application environment (development/staging/production).
-        DEBUG: Enable debug mode with verbose logging and auto-reload.
-        API_V1_PREFIX: URL prefix for API version 1 endpoints.
-        HOST: Host interface to bind the server to.
-        PORT: Port number for the main API server.
-        RELOAD: Enable auto-reload on code changes (development only).
-        SECRET_KEY: Secret key for JWT token signing and encryption.
-        ALGORITHM: Algorithm used for JWT token encoding.
-        ACCESS_TOKEN_EXPIRE_MINUTES: Access token TTL in minutes.
-        REFRESH_TOKEN_EXPIRE_DAYS: Refresh token TTL in days.
-        DATABASE_URL: PostgreSQL connection URL with async driver.
-        DB_ECHO: Enable SQLAlchemy query logging.
-        CORS_ORIGINS: List of allowed CORS origins.
-        SSL_CERT_FILE: Path to SSL certificate for HTTPS.
-        SSL_KEY_FILE: Path to SSL private key for HTTPS.
-        CALLBACK_SERVER_HOST: Host for OAuth callback server.
-        CALLBACK_SERVER_PORT: Port for OAuth callback server.
-        CALLBACK_SSL_CERT_FILE: SSL certificate for callback server.
-        CALLBACK_SSL_KEY_FILE: SSL private key for callback server.
-        SCHWAB_API_KEY: Charles Schwab API client ID.
-        SCHWAB_API_SECRET: Charles Schwab API client secret.
-        SCHWAB_API_BASE_URL: Base URL for Schwab API endpoints.
-        SCHWAB_REDIRECT_URI: OAuth redirect URI registered with Schwab.
-        PLAID_CLIENT_ID: Plaid API client ID (future).
-        PLAID_SECRET: Plaid API secret key (future).
-        PLAID_ENVIRONMENT: Plaid environment (sandbox/development/production).
+@lru_cache(maxsize=1)
+def _get_version_from_pyproject() -> str:
     """
+    Read application version from pyproject.toml.
 
-    # Application
-    APP_NAME: str = "Dashtam"
-    APP_VERSION: str = "0.1.0"
-    ENVIRONMENT: str = Field(default="production")
-    DEBUG: bool = Field(default=False)
-    API_V1_PREFIX: str = "/api/v1"
-
-    # Server
-    HOST: str = Field(default="0.0.0.0")
-    PORT: int = Field(default=8000)
-    RELOAD: bool = Field(default=False)
-
-    # Security
-    SECRET_KEY: str = Field(default="change-me-in-production-use-secrets-manager")
-    ENCRYPTION_KEY: str = Field(
-        default="change-me-in-production-use-secrets-manager-for-encryption"
-    )
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
-
-    # Database
-    DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/dashtam"
-    )
-    DB_ECHO: bool = Field(default=False)
-
-    # CORS
-    CORS_ORIGINS: str = Field(default="https://localhost:3000")
-
-    # SSL/TLS Configuration (HTTPS everywhere)
-    SSL_CERT_FILE: str = Field(default="certs/cert.pem")
-    SSL_KEY_FILE: str = Field(default="certs/key.pem")
-
-    # Callback Server (for OAuth providers)
-    CALLBACK_SERVER_HOST: str = Field(default="0.0.0.0")
-    CALLBACK_SERVER_PORT: int = Field(default=8182)
-    CALLBACK_SSL_CERT_FILE: str = Field(default="certs/callback_cert.pem")
-    CALLBACK_SSL_KEY_FILE: str = Field(default="certs/callback_key.pem")
-
-    # Provider Configuration - Schwab
-    SCHWAB_API_KEY: Optional[str] = Field(default=None)
-    SCHWAB_API_SECRET: Optional[str] = Field(default=None)
-    SCHWAB_API_BASE_URL: str = Field(default="https://api.schwabapi.com")
-    SCHWAB_REDIRECT_URI: str = Field(default="https://127.0.0.1:8182")
-
-    # Provider Configuration - Plaid (Future)
-    PLAID_CLIENT_ID: Optional[str] = Field(default=None)
-    PLAID_SECRET: Optional[str] = Field(default=None)
-    PLAID_ENVIRONMENT: str = Field(default="sandbox")
-
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
-    )
-
-    @field_validator("DEBUG", mode="after")
-    @classmethod
-    def set_debug_from_environment(cls, v: bool, values) -> bool:
-        """Auto-set DEBUG mode based on ENVIRONMENT if not explicitly set.
-
-        In development and staging environments, DEBUG should be True by default
-        to enable features like API documentation and detailed error messages.
-
-        Args:
-            v: Current DEBUG value
-            values: All field values including ENVIRONMENT
-
-        Returns:
-            Updated DEBUG value based on environment
-        """
-        # If DEBUG is explicitly set to True, keep it
-        if v is True:
-            return v
-
-        # Get environment from the field values
-        environment = getattr(values, "ENVIRONMENT", "production")
-
-        # Auto-enable DEBUG for development and staging
-        if environment.lower() in ["development", "dev", "staging", "stage"]:
-            return True
-
-        return v
-
-    @property
-    def cors_origins_list(self) -> List[str]:
-        """Parse CORS origins from comma-separated string to list.
-
-        This property converts the CORS_ORIGINS string (comma-separated)
-        into a list of origin URLs for use in FastAPI CORS middleware.
-
-        Returns:
-            List of validated CORS origin URLs.
-
-        Example:
-            Input (CORS_ORIGINS): "https://localhost:3000,https://app.dashtam.com"
-            Output: ["https://localhost:3000", "https://app.dashtam.com"]
-        """
-        if not self.CORS_ORIGINS or self.CORS_ORIGINS == "":
-            return ["https://localhost:3000"]  # Default
-
-        return [
-            origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()
-        ]
-
-    @field_validator("DATABASE_URL")
-    @classmethod
-    def validate_database_url(cls, v: str) -> str:
-        """Ensure DATABASE_URL uses asyncpg driver for async operations.
-
-        This validator automatically converts standard PostgreSQL URLs to use
-        the asyncpg driver, which is required for async database operations
-        with SQLAlchemy and SQLModel.
-
-        Args:
-            v: Database URL string.
-
-        Returns:
-            Database URL with asyncpg driver.
-
-        Example:
-            Input: "postgresql://user:pass@localhost/db"
-            Output: "postgresql+asyncpg://user:pass@localhost/db"
-        """
-        if "postgresql://" in v and "asyncpg" not in v:
-            return v.replace("postgresql://", "postgresql+asyncpg://")
-        if "postgresql+psycopg://" in v:
-            return v.replace("postgresql+psycopg://", "postgresql+asyncpg://")
-        return v
-
-    @field_validator(
-        "SSL_CERT_FILE",
-        "SSL_KEY_FILE",
-        "CALLBACK_SSL_CERT_FILE",
-        "CALLBACK_SSL_KEY_FILE",
-    )
-    @classmethod
-    def validate_ssl_files(cls, v: str, info) -> str:
-        """Validate that SSL certificate files exist.
-
-        This validator checks if the specified SSL certificate and key files
-        exist on the filesystem. In development, it provides helpful guidance
-        if certificates are missing.
-
-        Args:
-            v: Path to SSL certificate or key file.
-            info: Pydantic validation context.
-
-        Returns:
-            The validated file path.
-
-        Note:
-            In development, missing certificates will show a warning but won't
-            fail validation. In production, you should ensure certificates exist.
-        """
-        file_path = Path(v)
-        if not file_path.exists():
-            # In development, we'll generate these if they don't exist
-            print(f"⚠️  SSL file not found: {v}")
-            print("   Run: make generate-certs")
-        return v
-
-    @property
-    def server_url(self) -> str:
-        """Get the full HTTPS URL for the main API server.
-
-        Constructs the complete URL including protocol, host, and port
-        for the main FastAPI application server.
-
-        Returns:
-            Full HTTPS URL for the API server.
-
-        Example:
-            >>> settings.server_url
-            'https://0.0.0.0:8000'
-        """
-        return f"https://{self.HOST}:{self.PORT}"
-
-    @property
-    def callback_server_url(self) -> str:
-        """Get the full HTTPS URL for the OAuth callback server.
-
-        Constructs the complete URL including protocol, host, and port
-        for the OAuth callback server that handles provider redirects.
-
-        Returns:
-            Full HTTPS URL for the callback server.
-
-        Example:
-            >>> settings.callback_server_url
-            'https://0.0.0.0:8182'
-        """
-        return f"https://{self.CALLBACK_SERVER_HOST}:{self.CALLBACK_SERVER_PORT}"
-
-
-@lru_cache()
-def get_settings() -> Settings:
-    """Get cached application settings singleton.
-
-    This function returns a cached instance of Settings to avoid re-reading
-    and re-validating environment variables on every call. The settings are
-    loaded once at application startup and reused throughout the application
-    lifecycle.
-
-    The @lru_cache decorator ensures that only one Settings instance is created,
-    making this function act as a singleton factory.
+    This ensures version is managed in a single source of truth.
+    The function is cached to avoid repeated file I/O.
 
     Returns:
-        Application configuration instance with all settings loaded from
-        environment variables and validated according to their type annotations
-        and validators.
+        str: Application version (e.g., "1.0.0").
 
     Raises:
-        pydantic.ValidationError: If required settings are missing or invalid.
-
-    Example:
-        >>> settings = get_settings()
-        >>> print(settings.APP_NAME)
-        'Dashtam'
-        >>> print(settings.DATABASE_URL)
-        'postgresql+asyncpg://postgres:postgres@localhost:5432/dashtam'
+        FileNotFoundError: If pyproject.toml is not found.
+        KeyError: If version is not defined in pyproject.toml.
     """
-    return Settings()
+    pyproject_path = Path(__file__).parent.parent.parent / "pyproject.toml"
+    with pyproject_path.open("rb") as f:
+        pyproject = tomllib.load(f)
+    version: str = pyproject["project"]["version"]
+    return version
 
 
-# Export singleton instance for convenience
-# This allows: from src.core.config import settings
+class Settings(BaseSettings):
+    """
+    Main application settings (flat structure).
+
+    Loads configuration from environment variables.
+    Docker compose specifies which .env file to use via env_file directive.
+
+    Configuration precedence:
+        1. Environment variables (set by Docker compose from .env files)
+        2. Default values (only for non-sensitive config)
+
+    Returns:
+        Settings: Application configuration loaded from environment.
+    """
+
+    # Environment detection
+    environment: Environment = Field(
+        default=Environment.DEVELOPMENT,
+        description="Application environment (development, testing, ci, production)",
+    )
+
+    # Core application settings
+    debug: bool = Field(
+        default=False,
+        description="Enable debug mode (verbose logging, detailed errors)",
+    )
+    host: str = Field(
+        default="0.0.0.0",
+        description="Server bind host",
+    )
+    port: int = Field(
+        default=8000,
+        description="Server bind port",
+    )
+    reload: bool = Field(
+        default=False,
+        description="Enable auto-reload on code changes (development only)",
+    )
+    log_level: str = Field(
+        default="INFO",
+        description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+    )
+    aws_region: str = Field(
+        default="us-east-1",
+        description="AWS region for cloud services (e.g., CloudWatch)",
+    )
+    instance_id: str | None = Field(
+        default=None,
+        description="Instance identifier for log stream naming. Defaults to hostname if not set. "
+        "In AWS EC2, can be set to the instance ID (e.g., i-0123456789abcdef0).",
+    )
+
+    # Application metadata
+    app_name: str = Field(
+        default="Dashtam",
+        description="Application name",
+    )
+    app_version: str = Field(
+        default_factory=_get_version_from_pyproject,
+        description="Application version (read from pyproject.toml)",
+    )
+
+    # Database configuration
+    database_url: str = Field(
+        description="Database connection URL (e.g., postgresql+asyncpg://user:pass@host:port/db)",
+    )
+    db_echo: bool = Field(
+        default=False,
+        description="Log all SQL queries (useful for debugging, disabled in production)",
+    )
+
+    # Cache configuration (Redis)
+    redis_url: str = Field(
+        description="Redis connection URL (e.g., redis://host:port/db)",
+    )
+
+    # Security configuration
+    secret_key: str = Field(
+        description="Secret key for JWT token signing (must be kept secure)",
+    )
+    encryption_key: str = Field(
+        description="Encryption key for sensitive data (32 characters for AES-256)",
+    )
+    algorithm: str = Field(
+        default="HS256",
+        description="JWT signing algorithm",
+    )
+    access_token_expire_minutes: int = Field(
+        default=15,
+        description="Access token expiration time in minutes (15 recommended for security)",
+    )
+    refresh_token_expire_days: int = Field(
+        default=30,
+        description="Refresh token expiration time in days",
+    )
+    bcrypt_rounds: int = Field(
+        default=12,
+        description="Number of bcrypt hashing rounds (10-14 recommended, 12 = ~300ms)",
+    )
+
+    # API configuration
+    api_base_url: str = Field(
+        description="API base URL (e.g., https://dashtam.local)",
+    )
+    api_v1_prefix: str = Field(
+        default="/api/v1",
+        description="API v1 route prefix",
+    )
+    callback_base_url: str = Field(
+        description="OAuth callback server base URL (e.g., https://127.0.0.1:8182)",
+    )
+    verification_url_base: str = Field(
+        description="Base URL for email verification links (e.g., https://dashtam.local)",
+    )
+
+    # CORS configuration
+    cors_origins: str = Field(
+        description="Allowed CORS origins (comma-separated)",
+    )
+    cors_allow_credentials: bool = Field(
+        default=True,
+        description="Allow cookies and authentication headers in CORS requests",
+    )
+
+    # Provider configuration (optional placeholders for F4.x)
+    schwab_api_key: str | None = Field(
+        default=None,
+        description="Schwab API client ID (OAuth) - optional until Provider phase",
+    )
+    schwab_api_secret: str | None = Field(
+        default=None,
+        description="Schwab API client secret (OAuth) - optional until Provider phase",
+    )
+    schwab_api_base_url: str = Field(
+        default="https://api.schwabapi.com",
+        description="Schwab API base URL",
+    )
+    schwab_redirect_uri: str | None = Field(
+        default=None,
+        description="OAuth redirect URI for Schwab callback",
+    )
+
+    model_config = SettingsConfigDict(
+        # env_file handled by Docker compose (not coupled to specific environment)
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    @field_validator("secret_key")
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        """
+        Validate JWT secret key minimum length.
+
+        Args:
+            v: Secret key string.
+
+        Returns:
+            str: Validated secret key.
+
+        Raises:
+            ValueError: If key is shorter than 32 bytes (256 bits).
+        """
+        if len(v) < 32:
+            raise ValueError(
+                f"secret_key must be at least 32 characters (256 bits), got {len(v)}"
+            )
+        return v
+
+    @field_validator("encryption_key")
+    @classmethod
+    def validate_encryption_key(cls, v: str) -> str:
+        """
+        Validate encryption key length for AES-256.
+
+        Args:
+            v: Encryption key string.
+
+        Returns:
+            str: Validated encryption key.
+
+        Raises:
+            ValueError: If key is not exactly 32 characters (256 bits).
+        """
+        if len(v) != 32:
+            raise ValueError(
+                f"encryption_key must be exactly 32 characters (256 bits), got {len(v)}"
+            )
+        return v
+
+    @field_validator("bcrypt_rounds")
+    @classmethod
+    def validate_bcrypt_rounds(cls, v: int) -> int:
+        """
+        Validate bcrypt rounds are within safe range.
+
+        Args:
+            v: Number of bcrypt rounds.
+
+        Returns:
+            int: Validated bcrypt rounds.
+
+        Raises:
+            ValueError: If rounds are not between 4 and 31.
+        """
+        if not 4 <= v <= 31:
+            raise ValueError("bcrypt_rounds must be between 4 and 31")
+        return v
+
+    @field_validator("api_base_url", "callback_base_url", "verification_url_base")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        """
+        Remove trailing slashes from URLs.
+
+        Args:
+            v: URL string.
+
+        Returns:
+            str: URL without trailing slash.
+        """
+        return v.rstrip("/")
+
+    @field_validator("cors_origins")
+    @classmethod
+    def parse_cors_origins(cls, v: str) -> list[str]:
+        """
+        Parse comma-separated CORS origins.
+
+        Args:
+            v: Comma-separated origins string.
+
+        Returns:
+            list[str]: List of origin URLs.
+        """
+        return [origin.strip() for origin in v.split(",")]
+
+    # Convenience properties for environment checks
+    @property
+    def is_development(self) -> bool:
+        """
+        Check if running in development environment.
+
+        Returns:
+            bool: True if environment is DEVELOPMENT, False otherwise.
+        """
+        return self.environment == Environment.DEVELOPMENT
+
+    @property
+    def is_testing(self) -> bool:
+        """
+        Check if running in testing environment.
+
+        Returns:
+            bool: True if environment is TESTING, False otherwise.
+        """
+        return self.environment == Environment.TESTING
+
+    @property
+    def is_ci(self) -> bool:
+        """
+        Check if running in CI environment.
+
+        Returns:
+            bool: True if environment is CI, False otherwise.
+        """
+        return self.environment == Environment.CI
+
+    @property
+    def is_production(self) -> bool:
+        """
+        Check if running in production environment.
+
+        Returns:
+            bool: True if environment is PRODUCTION, False otherwise.
+        """
+        return self.environment == Environment.PRODUCTION
+
+    @classmethod
+    def from_secrets_manager(
+        cls,
+        secrets: "SecretsProtocol",  # type: ignore  # noqa: F821
+    ) -> "Settings":
+        """
+        Load settings from secrets manager (production environments).
+
+        This method loads all secrets from a backend (AWS Secrets Manager,
+        HashiCorp Vault, etc.) instead of environment variables.
+
+        Args:
+            secrets: Secrets manager implementing SecretsProtocol.
+
+        Returns:
+            Settings: Configuration loaded from secrets backend.
+
+        Raises:
+            SecretsError: If required secrets are missing or inaccessible.
+
+        Example:
+            >>> from src.core.container import get_secrets
+            >>> secrets = get_secrets()  # Returns AWS/Vault adapter
+            >>> settings = Settings.from_secrets_manager(secrets)
+            >>> # All config loaded from secrets backend
+        """
+        from src.core.result import Success
+
+        # Load secrets with error handling
+        def get_required(path: str) -> str:
+            result = secrets.get_secret(path)
+            if isinstance(result, Success):
+                value: str = result.value  # Type annotation for mypy
+                return value
+            raise ValueError(f"Required secret not found: {path}")
+
+        def get_optional(path: str) -> str | None:
+            result = secrets.get_secret(path)
+            if isinstance(result, Success):
+                value: str = result.value  # Type annotation for mypy
+                return value
+            return None
+
+        # Build settings from secrets
+        return cls(
+            # Core settings (still from env)
+            environment=Environment.PRODUCTION,  # Override to production
+            # Database
+            database_url=get_required("database/url"),
+            # Cache
+            redis_url=get_required("cache/redis_url"),
+            # Security
+            secret_key=get_required("security/secret_key"),
+            encryption_key=get_required("security/encryption_key"),
+            # API
+            api_base_url=get_required("api/base_url"),
+            callback_base_url=get_required("api/callback_base_url"),
+            verification_url_base=get_required("api/verification_url_base"),
+            # CORS
+            cors_origins=get_required("api/cors_origins"),
+            # Providers (optional)
+            schwab_api_key=get_optional("providers/schwab/api_key"),
+            schwab_api_secret=get_optional("providers/schwab/api_secret"),
+            schwab_redirect_uri=get_optional("providers/schwab/redirect_uri"),
+        )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """
+    Get cached settings instance.
+
+    Uses lru_cache to ensure settings are loaded only once per process.
+    This is important for performance and consistency.
+
+    Returns:
+        Settings: Cached settings instance.
+    """
+    return Settings()  # type: ignore[call-arg]  # Pydantic Settings loads from env
+
+
+# Global settings instance (singleton pattern)
 settings = get_settings()

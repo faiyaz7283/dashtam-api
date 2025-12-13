@@ -1,132 +1,79 @@
-"""Main FastAPI application for Dashtam.
+"""
+Main FastAPI application entry point.
 
-This module creates and configures the main FastAPI application with
-all routers, middleware, and event handlers.
+This module initializes the FastAPI application instance and configures
+the basic application settings. Additional routers, middleware, and
+configuration will be added as features are implemented.
+
+Created as part of F0.2 (Docker & Environment Setup) to establish a
+functional development environment with Traefik routing.
+
+Updated in F0.3 (Configuration Management) to use Pydantic Settings.
+Updated in F1.1b (User Authorization) to add Casbin enforcer initialization.
 """
 
-import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from src.core.config import settings
-from src.core.database import init_db, close_db
-from src.api.v1 import api_router
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO if settings.DEBUG else logging.WARNING,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+from src.presentation.routers.api.middleware.rate_limit_middleware import (
+    RateLimitMiddleware,
 )
-logger = logging.getLogger(__name__)
+from src.presentation.routers.api.middleware.trace_middleware import TraceMiddleware
+from src.presentation.routers.api.v1 import v1_router
+from src.presentation.routers.api.v1.errors import register_exception_handlers
+from src.presentation.routers import oauth_router, system_router
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Manage application lifecycle events.
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan context manager.
 
-    Handles startup and shutdown events for the application.
+    Handles startup and shutdown events:
+    - Startup: Initialize Casbin enforcer, load policies
+    - Shutdown: Cleanup resources (future)
+
+    Args:
+        app: FastAPI application instance.
+
+    Yields:
+        None during application lifetime.
     """
-    # Startup
-    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+    # Startup: Initialize Casbin enforcer
+    from src.core.container import init_enforcer
 
-    # Initialize database tables (development only)
-    if settings.DEBUG:
-        await init_db()
-        logger.info("Database tables initialized")
-
-    # Log available providers
-    from src.providers import ProviderRegistry
-
-    providers = ProviderRegistry.get_available_providers()
-    logger.info(f"Available providers: {list(providers.keys())}")
+    await init_enforcer()
 
     yield
 
-    # Shutdown
-    logger.info("Shutting down application")
-    await close_db()
+    # Shutdown: Cleanup (future: close connections, etc.)
 
 
-# Create FastAPI application
+# Initialize FastAPI application with settings and lifespan
 app = FastAPI(
-    title=settings.APP_NAME,
-    description="Unified financial dashboard aggregating multiple providers",
-    version=settings.APP_VERSION,
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
+    title=settings.app_name,
+    description="Secure financial data aggregation platform",
+    version=settings.app_version,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    debug=settings.debug,
     lifespan=lifespan,
 )
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Wire middleware (order matters: last added = first executed)
+# 1. TraceMiddleware: Adds X-Trace-Id for request correlation
+# 2. RateLimitMiddleware: Applies rate limiting (needs trace_id for logging)
+app.add_middleware(TraceMiddleware)
+app.add_middleware(RateLimitMiddleware)
 
-# Add trusted host middleware for security
-# Include Docker service names for internal communication
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"]
-    if settings.DEBUG
-    else ["localhost", "127.0.0.1", "app", "backend", "0.0.0.0"],
-)
+# Register global exception handlers (RFC 7807 error responses)
+register_exception_handlers(app)
 
-# Include API routers
-app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+# Include API v1 routers (RESTful resource-based endpoints)
+app.include_router(v1_router)
 
-
-@app.get("/")
-async def root():
-    """Root endpoint with API information."""
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "status": "running",
-        "docs": "/docs" if settings.DEBUG else "disabled",
-        "api": {
-            "v1": settings.API_V1_PREFIX,
-            "endpoints": {
-                "providers": f"{settings.API_V1_PREFIX}/providers",
-                "auth": f"{settings.API_V1_PREFIX}/auth",
-                "health": f"{settings.API_V1_PREFIX}/health",
-            },
-        },
-    }
-
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    from src.core.database import check_db_connection
-
-    db_healthy = await check_db_connection()
-
-    return {
-        "status": "healthy" if db_healthy else "degraded",
-        "database": "connected" if db_healthy else "disconnected",
-        "version": settings.APP_VERSION,
-    }
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    # Run with SSL in development
-    if settings.SSL_CERT_FILE and settings.SSL_KEY_FILE:
-        uvicorn.run(
-            app,
-            host=settings.HOST,
-            port=settings.PORT,
-            ssl_certfile=settings.SSL_CERT_FILE,
-            ssl_keyfile=settings.SSL_KEY_FILE,
-            reload=settings.RELOAD,
-        )
-    else:
-        uvicorn.run(app, host=settings.HOST, port=settings.PORT, reload=settings.RELOAD)
+# Include external-facing routers (OAuth callbacks, system endpoints, webhooks)
+app.include_router(oauth_router)
+app.include_router(system_router)

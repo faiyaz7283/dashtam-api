@@ -1,0 +1,110 @@
+# Docker Compose for Testing Environment (Standalone)
+# This is a completely isolated test environment that runs in parallel with development
+name: dashtam-test
+# 
+# Key differences from development:
+# - Different container names with -test suffix
+# - Different ports (8002, 5433, 6380, 8184) to avoid conflicts
+# - Ephemeral storage (tmpfs) for faster tests and clean state
+# - Separate network (dashtam-test-network)
+# - Test database with test user
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml --env-file .env.test up -d
+#   docker compose -f docker-compose.test.yml exec app pytest
+#   docker compose -f docker-compose.test.yml down
+
+services:
+  # PostgreSQL Database (Testing) - Ephemeral storage
+  postgres:
+    image: postgres:17.6-alpine3.22
+    container_name: dashtam-test-postgres
+    env_file:
+      - ../env/.env.test
+    ports:
+      - "5433:5432"  # Different external port to avoid conflict with dev
+    tmpfs:
+      # Use tmpfs for ephemeral storage - faster and ensures clean state
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashtam_test_user} -d ${POSTGRES_DB:-dashtam_test}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - dashtam-test-network
+
+  # Redis Cache (Testing) - Ephemeral storage
+  redis:
+    image: redis:8.2.1-alpine3.22
+    container_name: dashtam-test-redis
+    env_file:
+      - ../env/.env.test
+    ports:
+      - "6380:6379"  # Different external port
+    tmpfs:
+      # Ephemeral storage for test cache
+      - /data
+    command: redis-server --appendonly no  # Disable persistence for tests
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - dashtam-test-network
+
+  # Main Application (Testing)
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: dashtam-test-app
+    env_file:
+      - ../env/.env.test
+    expose:
+      - "8000"
+    volumes:
+      - ../src:/app/src:rw
+      - ../tests:/app/tests:rw
+      - ../alembic:/app/alembic:rw
+      - ../alembic.ini:/app/alembic.ini:ro
+      - ../certs:/app/certs:ro
+      - ../pyproject.toml:/app/pyproject.toml:ro
+      - ../uv.lock:/app/uv.lock:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dashtam-test-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      # Test app router (HTTPS)
+      - "traefik.http.routers.dashtam-test.rule=Host(`test.dashtam.local`)"
+      - "traefik.http.routers.dashtam-test.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-test.tls=true"
+      - "traefik.http.routers.dashtam-test.service=dashtam-test"
+      - "traefik.http.services.dashtam-test.loadbalancer.server.port=8000"
+    # Keep container running for on-demand test execution
+    # Run Alembic migrations before starting
+    command: >
+      sh -c "
+        echo 'Running Alembic migrations...' &&
+        uv run alembic upgrade head &&
+        echo 'Test environment ready. Database and Redis are available.' &&
+        echo 'Run tests with: docker compose -f docker-compose.test.yml exec app pytest' &&
+        tail -f /dev/null
+      "
+
+networks:
+  dashtam-test-network:
+    driver: bridge
+  traefik-public:
+    external: true
+
+# Note: No named volumes - all storage is ephemeral via tmpfs
+# This ensures tests always start with a clean state

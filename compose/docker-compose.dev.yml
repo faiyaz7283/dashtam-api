@@ -1,0 +1,93 @@
+name: dashtam-dev
+
+services:
+  # PostgreSQL Database (Development)
+  postgres:
+    image: postgres:17.6-alpine3.22
+    container_name: dashtam-dev-postgres
+    env_file:
+      - ../env/.env.dev
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashtam_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashtam-dev-network
+
+  # Redis Cache (Development)
+  redis:
+    image: redis:8.2.1-alpine3.22
+    container_name: dashtam-dev-redis
+    env_file:
+      - ../env/.env.dev
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashtam-dev-network
+
+  # Main Application (Development)
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: dashtam-dev-app
+    env_file:
+      - ../env/.env.dev
+    expose:
+      - "8000"
+      - "8001"
+    volumes:
+      # Mount entire project for full dev experience (mkdocs, config files, etc.)
+      - ..:/app:rw
+      # Exclude .venv from mount to avoid macOS/Linux binary conflicts
+      # Dependencies synced via Makefile commands (uv sync --all-groups)
+      - /app/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dashtam-dev-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      # Main app router (HTTPS)
+      - "traefik.http.routers.dashtam-dev.rule=Host(`dashtam.local`)"
+      - "traefik.http.routers.dashtam-dev.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-dev.tls=true"
+      - "traefik.http.routers.dashtam-dev.service=dashtam-dev"
+      - "traefik.http.services.dashtam-dev.loadbalancer.server.port=8000"
+      # MkDocs documentation router (HTTPS)
+      - "traefik.http.routers.dashtam-dev-docs.rule=Host(`docs.dashtam.local`)"
+      - "traefik.http.routers.dashtam-dev-docs.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-dev-docs.tls=true"
+      - "traefik.http.routers.dashtam-dev-docs.service=dashtam-dev-docs"
+      - "traefik.http.services.dashtam-dev-docs.loadbalancer.server.port=8001"
+    restart: unless-stopped
+
+networks:
+  dashtam-dev-network:
+    driver: bridge
+  traefik-public:
+    external: true
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local

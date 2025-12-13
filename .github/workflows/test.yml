@@ -7,8 +7,8 @@ on:
     branches: [ main, develop, development ]
 
 jobs:
-  test:
-    name: Run Tests
+  test-main:
+    name: Main Test Suite
     runs-on: ubuntu-latest
     
     steps:
@@ -18,29 +18,43 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Create .env.ci file
-        run: cp .env.ci.example .env.ci
-
-      - name: Build and run tests
+      - name: Prepare CI environment configuration
         run: |
-          docker compose -f docker-compose.ci.yml up \
-            --build \
-            --abort-on-container-exit \
-            --exit-code-from app
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          cp env/.env.ci.example env/.env.ci
+          echo "✅ CI environment configuration prepared"
+
+      - name: Start test environment
+        run: |
+          docker compose -f compose/docker-compose.ci.yml up -d --build
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for PostgreSQL..."
+          docker compose -f compose/docker-compose.ci.yml exec -T postgres pg_isready -U dashtam_test_user -d dashtam_test || sleep 2
+          echo "Services ready"
+
+      - name: Run main test suite (excludes smoke tests)
+        run: |
+          docker compose -f compose/docker-compose.ci.yml exec -T app \
+            uv run pytest tests/ -v \
+            --cov=src \
+            --cov-report=xml:/app/coverage.xml \
+            --cov-report=term-missing \
+            --junitxml=/app/test-results.xml \
+            -m "not smoke"
 
       - name: Copy coverage reports from container
         if: always()
         run: |
-          docker cp dashtam-ci-app:/app/coverage.xml ./coverage.xml || true
-          docker cp dashtam-ci-app:/app/test-results.xml ./test-results.xml || true
+          docker cp dashtam-ci-app:/app/coverage.xml ./coverage-main.xml || true
+          docker cp dashtam-ci-app:/app/test-results.xml ./test-results-main.xml || true
 
       - name: Upload coverage to Codecov
         if: always()
         uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.xml
+          files: ./coverage-main.xml
+          flags: main-tests
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
@@ -49,14 +63,66 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-main
           path: |
-            test-results.xml
-            coverage.xml
+            test-results-main.xml
+            coverage-main.xml
 
       - name: Cleanup
         if: always()
-        run: docker compose -f docker-compose.ci.yml down -v
+        run: docker compose -f compose/docker-compose.ci.yml down -v
+
+  # test-smoke:
+  #   name: Smoke Tests
+  #   runs-on: ubuntu-latest
+  #   needs: test-main  # Run after main tests pass
+  #   
+  #   # NOTE: Commented out until actual smoke tests are implemented (v1.1.0+)
+  #   # Uncomment when tests/smoke/ contains actual test files
+  #   
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #
+  #     - name: Prepare CI environment configuration
+  #       run: |
+  #         cp env/.env.ci.example env/.env.ci
+  #         echo "✅ CI environment configuration prepared"
+  #
+  #     - name: Start test environment (isolated for smoke tests)
+  #       run: |
+  #         docker compose -f compose/docker-compose.ci.yml up -d --build
+  #
+  #     - name: Wait for services to be ready
+  #       run: |
+  #         echo "Waiting for PostgreSQL..."
+  #         docker compose -f compose/docker-compose.ci.yml exec -T postgres pg_isready -U dashtam_test_user -d dashtam_test || sleep 2
+  #         echo "Services ready"
+  #
+  #     - name: Run smoke tests (isolated session)
+  #       run: |
+  #         docker compose -f compose/docker-compose.ci.yml exec -T app \
+  #           uv run pytest -m smoke -v \
+  #           --junitxml=/app/smoke-results.xml
+  #
+  #     - name: Copy smoke test results from container
+  #       if: always()
+  #       run: |
+  #         docker cp dashtam-ci-app:/app/smoke-results.xml ./smoke-results.xml || true
+  #
+  #     - name: Upload smoke test results
+  #       if: always()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: test-results-smoke
+  #         path: smoke-results.xml
+  #
+  #     - name: Cleanup
+  #       if: always()
+  #       run: docker compose -f compose/docker-compose.ci.yml down -v
 
   lint:
     name: Code Quality
@@ -76,16 +142,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv venv
-          source .venv/bin/activate
-          uv pip install -r requirements-dev.txt
+          uv sync --frozen
 
       - name: Run ruff linter
         run: |
-          source .venv/bin/activate
-          ruff check src/ tests/
+          uv run ruff check src/ tests/
 
       - name: Check code formatting
         run: |
-          source .venv/bin/activate
-          ruff format --check src/ tests/
+          uv run ruff format --check src/ tests/
+
+      - name: Run markdown linter
+        run: |
+          docker run --rm \
+            -v $(pwd):/workspace:ro \
+            -w /workspace \
+            node:24-alpine \
+            sh -c "npx markdownlint-cli2 '**/*.md' || exit 1"

@@ -1,0 +1,121 @@
+# Docker Compose for CI/CD Environment
+# Optimized for automated testing in CI pipelines (GitHub Actions, GitLab CI, Jenkins, etc.)
+#
+# Key optimizations:
+# - No port mappings (internal communication only)
+# - Ephemeral storage (tmpfs) for maximum speed
+# - Aggressive health check intervals
+# - No restart policies
+# - Optimized PostgreSQL settings for speed over durability
+# - Auto-runs tests and exits with proper status code
+#
+# Usage:
+#   docker compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
+name: dashtam-ci
+
+services:
+  # PostgreSQL Database (CI) - Speed optimized
+  postgres:
+    image: postgres:17.6-alpine3.22
+    container_name: dashtam-ci-postgres
+    env_file:
+      - ../env/.env.ci
+    # No port mapping - internal only
+    tmpfs:
+      - /var/lib/postgresql/data
+      - /var/run/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashtam_test_user} -d ${POSTGRES_DB:-dashtam_test}"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+    networks:
+      - dashtam-ci-network
+    # CI-specific PostgreSQL configuration for maximum speed
+    # ARCHITECTURE: Each CI job (test-main, test-smoke) runs in completely isolated session
+    # - Each job starts fresh PostgreSQL instance (tmpfs, ephemeral)
+    # - No data sharing between jobs (test-main → cleanup → test-smoke starts fresh)
+    # - synchronous_commit=off is SAFE because each session is atomic and isolated
+    # - Previous read-after-write issues were from single-session runs (now fixed)
+    command: >
+      postgres
+      -c synchronous_commit=off
+      -c fsync=off
+      -c full_page_writes=off
+      -c random_page_cost=1.0
+      -c shared_buffers=256MB
+      -c effective_cache_size=512MB
+      -c maintenance_work_mem=128MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c max_connections=100
+
+  # Redis Cache (CI) - Ephemeral, no persistence
+  redis:
+    image: redis:8.2.1-alpine3.22
+    container_name: dashtam-ci-redis
+    env_file:
+      - ../env/.env.ci
+    # No port mapping - internal only
+    tmpfs:
+      - /data
+    command: redis-server --appendonly no --save ""
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
+    networks:
+      - dashtam-ci-network
+
+  # Main Application (CI) - Runs tests and exits
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: dashtam-ci-app
+    env_file:
+      - ../env/.env.ci
+    # No port mapping - not needed in CI
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../alembic:/app/alembic:ro
+      - ../alembic.ini:/app/alembic.ini:ro
+      - ../certs:/app/certs:ro
+      - ../pyproject.toml:/app/pyproject.toml:ro
+      - ../uv.lock:/app/uv.lock:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dashtam-ci-network
+    # Run migrations and keep container alive for GitHub Actions to exec tests
+    command: >
+      sh -c "
+        set -e && 
+        echo '=============================================='  && 
+        echo 'Dashtam CI/CD Test Environment' && 
+        echo '=============================================='  && 
+        echo '' && 
+        echo 'Running Alembic migrations...' && 
+        uv run alembic upgrade head && 
+        echo '' && 
+        echo 'Migrations complete. Ready for tests.' && 
+        echo 'Keeping container alive for GitHub Actions...' && 
+        echo '' && 
+        tail -f /dev/null
+      "
+
+networks:
+  dashtam-ci-network:
+    driver: bridge
+
+# No named volumes - everything is ephemeral for CI
+# This ensures each run starts with a completely clean state

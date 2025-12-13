@@ -1,635 +1,437 @@
-# Dashtam - Financial Data Aggregation Platform
+# Dashtam
 
-A secure, modern financial data aggregation platform that connects to multiple financial institutions through OAuth2, providing a unified API for accessing accounts, transactions, and financial data.
+> A secure financial data aggregation API that provides unified access to multiple financial institutions, designed using clean architecture principles for scalability and maintainability
 
-## 🚀 Features
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://faiyaz7283.github.io/Dashtam/) [![Test Suite](https://github.com/faiyaz7283/Dashtam/workflows/Test%20Suite/badge.svg)](https://github.com/faiyaz7283/Dashtam/actions) [![codecov](https://codecov.io/gh/faiyaz7283/Dashtam/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/Dashtam) [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.118+-green.svg)](https://fastapi.tiangolo.com) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-- **Multi-Provider Support**: Connect to multiple financial institutions (starting with Charles Schwab)
-- **OAuth2 Authentication**: Secure authentication with financial providers
-- **Encrypted Token Storage**: All OAuth tokens are encrypted at rest
-- **Async Architecture**: Built with FastAPI and async/await for high performance
-- **Type Safety**: Full typing with Pydantic and SQLModel
-- **Docker-First**: Containerized development and deployment
-- **HTTPS Everywhere**: SSL/TLS enabled by default for all services
-- **Audit Logging**: Comprehensive audit trail for all provider operations
+---
 
-## 📋 Prerequisites
+## What is Dashtam?
 
-- Docker and Docker Compose
-- Python 3.13+ (for local development)
-- Make (for convenience commands)
-- OpenSSL (for certificate generation)
+Dashtam is a **financial data aggregation API** that provides secure, unified access to accounts and transactions across multiple financial institutions. Built with hexagonal architecture and domain-driven design, Dashtam prioritizes security, maintainability, and compliance.
 
-## 🛠️ Quick Start
+### Core Principles
 
-### 1. Clone the Repository
+**Architecture-First Development**:
+
+- **Hexagonal Architecture** - Domain logic isolated from infrastructure concerns
+- **CQRS Pattern** - Separate read and write operations for optimal performance
+- **Domain-Driven Design** - Rich domain models with business logic where it belongs
+- **Protocol-Based Design** - Structural typing with Python `Protocol` for testability
+
+**Document-Driven Development**:
+
+- Every architectural decision documented before implementation
+- Comprehensive guides for authentication, authorization, audit trails, events
+- Architecture documents reviewed and approved before coding begins
+
+**Security & Compliance**:
+
+- **PCI-DSS** compliant audit trails with immutable logging
+- **SOC 2** controls for access management and encryption
+- **GDPR** ready with data retention and audit capabilities
+- **Bank-grade security** - AES-256 encryption, bcrypt hashing, JWT authentication
+
+**Standards & Quality**:
+
+- **100% REST Compliance** - Non-negotiable RESTful API design (no controller-style endpoints)
+- **Type Safety** - Strict mypy checking, modern Python 3.13+ type hints
+- **Test Coverage** - Comprehensive test suite with unit, integration, and API tests
+- **CI/CD Pipeline** - Automated testing, linting, and type checking on every commit
+
+## Documentation
+
+📚 **[Complete Documentation](https://faiyaz7283.github.io/Dashtam/)** - Architecture guides, API reference, development workflows
+
+**API Documentation**:
+
+- **[Swagger UI](https://dashtam.local/docs)** - Interactive API exploration and testing
+- **[ReDoc](https://dashtam.local/redoc)** - Clean, readable API documentation
+- **[MkDocs](https://docs.dashtam.local/Dashtam/)** - Architecture, guides, and design decisions
+
+**Key Documentation**:
+
+- [Architecture Overview](https://faiyaz7283.github.io/Dashtam/architecture/directory-structure/) - Hexagonal architecture, layers, patterns
+- [Authentication](https://faiyaz7283.github.io/Dashtam/architecture/authentication-architecture/) - JWT + opaque refresh tokens, multi-device sessions
+- [Authorization](https://faiyaz7283.github.io/Dashtam/architecture/authorization-architecture/) - Casbin RBAC with role hierarchy
+- [Audit Trail](https://faiyaz7283.github.io/Dashtam/architecture/audit-trail-architecture/) - PCI-DSS compliant immutable logging
+- [Domain Events](https://faiyaz7283.github.io/Dashtam/architecture/domain-events-architecture/) - Event-driven workflows with 3-state pattern
+- [Error Handling](https://faiyaz7283.github.io/Dashtam/architecture/error-handling-architecture/) - Railway-oriented programming with Result types
+
+## Quick Start
+
+### Prerequisites
+
+- **Docker** and Docker Compose v2.0+
+- **Make** (optional, for convenience commands)
+- **Python 3** (for key generation during setup)
+
+> **No Python packages required** - All application code runs in Docker containers.
+
+### First-Time Setup
+
+Complete zero-to-working Dashtam in 5 steps:
+
+#### Step 1: Add Local Domains
+
+Add Dashtam domains to `/etc/hosts`:
 
 ```bash
-git clone <your-repo-url>
+sudo sh -c 'echo "127.0.0.1 dashtam.local" >> /etc/hosts'
+sudo sh -c 'echo "127.0.0.1 test.dashtam.local" >> /etc/hosts'
+sudo sh -c 'echo "127.0.0.1 docs.dashtam.local" >> /etc/hosts'
+```
+
+**Verify**:
+
+```bash
+grep "dashtam.local" /etc/hosts
+# Should show: 127.0.0.1 dashtam.local
+#              127.0.0.1 test.dashtam.local
+#              127.0.0.1 docs.dashtam.local
+```
+
+#### Step 2: Start Traefik Reverse Proxy
+
+Dashtam requires Traefik for HTTPS routing. Use the shared Traefik setup:
+
+```bash
+# Clone Docker services setup (SSH)
+git clone git@github.com:faiyazhaider/docker-services.git ~/docker-services
+cd ~/docker-services
+
+# Start Traefik
+make traefik-up
+```
+
+**If you already have the docker-services repo**:
+
+```bash
+cd ~/docker-services
+make traefik-up
+```
+
+**Verify Traefik is running**:
+
+```bash
+cd -  # Return to previous directory (or cd ~/Dashtam)
+make check
+# Should show: ✅ Traefik is running
+```
+
+> **Note**: The Traefik setup creates the `traefik-public` network required by Dashtam.
+
+#### Step 3: Clone Repository
+
+```bash
+git clone https://github.com/faiyazhaider/Dashtam.git
 cd Dashtam
 ```
 
-### 2. Initial Setup
+#### Step 4: Run Setup (Idempotent)
 
-Run the setup command to generate SSL certificates and application keys:
+Generates environment files and cryptographic keys:
 
 ```bash
 make setup
 ```
 
 This will:
-- Generate self-signed SSL certificates for HTTPS
-- Create secure encryption keys for token storage
-- Create `.env.dev` file with secure defaults
-- Create `.env.test` file for testing
 
-### 3. Configure OAuth Credentials
+- ✅ Create `env/.env.dev` from `env/.env.dev.example`
+- ✅ Generate `SECRET_KEY` (64 chars for JWT signing)
+- ✅ Generate `ENCRYPTION_KEY` (32 chars for AES-256-GCM)
+- ✅ Verify Traefik is running
 
-Edit the `.env.dev` file and add your OAuth credentials:
-
-```env
-# Charles Schwab OAuth (get from https://developer.schwab.com/)
-SCHWAB_API_KEY=your_client_id_here
-SCHWAB_API_SECRET=your_client_secret_here
-SCHWAB_REDIRECT_URI=https://127.0.0.1:8182
-```
-
-### 4. Start Development Environment
+**Optional**: Add your Schwab OAuth credentials to `env/.env.dev`:
 
 ```bash
-# Start development services
+# Edit env/.env.dev and set:
+SCHWAB_API_KEY=your_api_key_here
+SCHWAB_API_SECRET=your_api_secret_here
+```
+
+> **Note**: Provider OAuth is optional. You can test auth endpoints without it.
+
+#### Step 5: Start Development Environment
+
+```bash
 make dev-up
 ```
 
-The development environment will be available at:
-- **Main API**: https://localhost:8000
-- **OAuth Callback Server**: https://127.0.0.1:8182
-- **API Docs**: https://localhost:8000/docs
+This starts:
 
-## 📦 Project Structure
+- ✅ PostgreSQL 17.6 (port 5432)
+- ✅ Redis 8.2.1 (port 6379)
+- ✅ FastAPI app (<https://dashtam.local>)
+- ✅ Alembic migrations (run automatically)
 
-```
-Dashtam/
-├── docker/                  # Docker configuration
-│   └── Dockerfile           # Multi-stage Dockerfile
-├── src/                     # Application source code
-│   ├── api/                 # API endpoints
-│   │   └── v1/              # API version 1
-│   ├── core/                # Core functionality
-│   │   ├── config.py        # Application configuration
-│   │   ├── database.py      # Database setup
-│   │   └── init_db.py       # Database initialization
-│   ├── models/              # SQLModel database models
-│   │   ├── base.py          # Base model classes
-│   │   ├── user.py          # User model
-│   │   └── provider.py      # Provider models
-│   ├── providers/           # Financial provider implementations
-│   │   ├── base.py          # Base provider interface
-│   │   ├── registry.py      # Provider registry
-│   │   └── schwab.py        # Schwab implementation
-│   ├── services/            # Business logic services
-│   │   ├── encryption.py    # Token encryption
-│   │   └── token_service.py # Token management
-│   └── main.py              # FastAPI application
-├── scripts/                 # Utility scripts
-│   ├── generate-certs.sh    # SSL certificate generation
-│   └── generate-keys.sh     # Security key generation
-├── tests/                   # Test suite
-├── alembic/                 # Database migrations
-├── requirements.txt         # Python dependencies
-├── requirements-dev.txt     # Development dependencies
-├── docker-compose.yml       # Docker services configuration
-├── Makefile                 # Convenience commands
-└── .env.example             # Environment variables template
-```
-
-## 🔧 Development
-
-### Parallel Environments
-
-The project supports three isolated environments that can run in parallel:
-
-1. **Development** (`dev-*` commands) - For active development with hot reload
-2. **Test** (`test-*` commands) - For running automated tests
-3. **CI** (`ci-*` commands) - For continuous integration
-
-### Available Commands
+**Verify it's working**:
 
 ```bash
-# Development Environment
-make dev-up         # Start development services
-make dev-down       # Stop development services
-make dev-logs       # View development logs
-make dev-status     # Check development service status
-make dev-shell      # Open shell in dev app container
-make dev-restart    # Restart development environment
-make dev-rebuild    # Rebuild dev images from scratch
-
-# Test Environment
-make test-up        # Start test services
-make test-down      # Stop test services
-make test-status    # Check test service status
-make test-rebuild   # Rebuild test images from scratch
-make test-restart   # Restart test environment
-
-# Running Tests
-make test-verify    # Quick core functionality verification
-make test-unit      # Run unit tests
-make test-integration # Run integration tests
-make test           # Run all tests with coverage
-
-# Code Quality (runs in dev environment)
-make lint           # Run code linting (ruff check)
-make format         # Format code (ruff format)
-
-# CI/CD (run tests as they run in GitHub Actions)
-make ci-test        # Run CI tests locally
-make ci-build       # Build CI images
-make ci-down        # Clean up CI environment
-
-# Setup & Configuration
-make certs          # Generate SSL certificates
-make keys           # Generate application keys
-make setup          # Run initial setup (certs + keys + env files)
-
-# Utilities
-make status-all     # Check status of all environments
-make clean          # Clean up everything (all environments)
-
-# Database (dev environment)
-make migrate        # Run database migrations
-make migration      # Create new migration
-
-# Provider Authentication (dev environment)
-make auth-schwab    # Start Schwab OAuth flow
+curl -k https://dashtam.local/health
+# Should return: {"status":"healthy"}
 ```
 
-### Running Tests
+### What's Next?
 
-Tests run in an isolated test environment:
+After successful setup:
+
+1. **Explore API Documentation**:
+   - Swagger UI: <https://dashtam.local/docs>
+   - ReDoc: <https://dashtam.local/redoc>
+
+2. **Create a Session** (test authentication):
+
+   ```bash
+   curl -X POST https://dashtam.local/api/v1/sessions \
+     -H "Content-Type: application/json" \
+     -d '{"email": "admin@example.com", "password": "admin"}'
+   ```
+
+3. **Review Architecture** (understand how it works):
+   - Start MkDocs: `make docs-serve`
+   - Browse: <https://docs.dashtam.local/Dashtam/>
+
+4. **Run Tests** (verify everything works):
+
+   ```bash
+   make test  # All tests with coverage
+   ```
+
+### Access Points
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| API | <https://dashtam.local> | RESTful API endpoints |
+| Swagger UI | <https://dashtam.local/docs> | Interactive API documentation |
+| ReDoc | <https://dashtam.local/redoc> | Alternative API reference |
+| MkDocs | <https://docs.dashtam.local/Dashtam/> | Architecture documentation |
+| Health Check | <https://dashtam.local/health> | Service health status |
+| Traefik Dashboard | <http://localhost:8080> | Reverse proxy monitoring |
+
+> **Note**: All API endpoints use `/api/v1/` prefix. Local HTTPS uses Traefik with mkcert certificates.
+
+### Example API Calls
 
 ```bash
-# Start test environment
-make test-up
+# Create session (login)
+curl -X POST https://dashtam.local/api/v1/sessions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }'
 
-# Run all tests
-make test
+# List accounts (requires authentication)
+curl -X GET https://dashtam.local/api/v1/accounts \
+  -H "Authorization: Bearer {access_token}"
 
-# Run specific test types
-make test-unit           # Unit tests only
-make test-integration    # Integration tests only
-make test-verify         # Quick verification
-
-# Stop test environment
-make test-down
+# Initiate provider OAuth connection
+curl -X POST https://dashtam.local/api/v1/providers/schwab/oauth/initiate \
+  -H "Authorization: Bearer {access_token}"
 ```
 
-### Code Quality
+## Architecture Highlights
 
-```bash
-# Format code
-make format
+### Hexagonal Architecture
 
-# Check linting
-make lint
-
-# Run both in CI mode locally
-make ci-test
+```text
+┌─────────────────────────────────────────┐
+│ Presentation Layer (FastAPI)            │  ← HTTP, REST, Schemas
+└──────────────┬──────────────────────────┘
+               │ depends on
+               ↓
+┌─────────────────────────────────────────┐
+│ Application Layer (CQRS)                │  ← Commands, Queries, Handlers
+└──────────────┬──────────────────────────┘
+               │ depends on
+               ↓
+┌─────────────────────────────────────────┐
+│ Domain Layer (Business Logic)           │  ← Entities, Events, Protocols
+└─────────────────────────────────────────┘  ← ZERO infrastructure dependencies
+               ↑ implements
+               │
+┌─────────────────────────────────────────┐
+│ Infrastructure Layer (Adapters)         │  ← Database, Cache, Providers
+└─────────────────────────────────────────┘
 ```
 
-### Development Workflow
+**Key Patterns**:
 
-```bash
-# 1. Start development environment
-make dev-up
-
-# 2. Make changes to code (hot reload is enabled)
-
-# 3. Run tests in parallel (different ports)
-make test-up
-make test
-
-# 4. Check code quality
-make lint
-make format
-
-# 5. Clean up when done
-make dev-down
-make test-down
-```
-
-## 🏗️ Architecture
+- Domain defines **Protocols** (ports), Infrastructure implements **Adapters**
+- Application layer orchestrates with **Command/Query** handlers
+- Presentation layer is thin, delegates to Application layer
+- All dependencies point **inward** toward Domain
 
 ### Technology Stack
 
-- **Backend Framework**: FastAPI
-- **Database**: PostgreSQL with SQLModel ORM
-- **Cache**: Redis
-- **Authentication**: OAuth2 with encrypted token storage
-- **Package Management**: UV
-- **Containerization**: Docker & Docker Compose
+**Core**:
 
-### Key Components
+- **Python 3.13+** - Modern type hints, pattern matching, performance
+- **FastAPI** - Async web framework with automatic OpenAPI docs
+- **PostgreSQL 17.6** - Primary database with async SQLAlchemy
+- **Redis 8.2.1** - Caching and rate limiting
+- **UV 0.8.22** - Fast, modern Python package manager (NOT pip)
 
-1. **Provider Registry**: Dynamic provider registration system
-2. **Token Service**: Secure token storage and refresh management
-3. **Encryption Service**: AES encryption for sensitive data
-4. **Audit Logging**: Comprehensive activity tracking
+**Security**:
 
-### Database Schema
+- **JWT** - Stateless access tokens (15 min expiry)
+- **Opaque Refresh Tokens** - Bcrypt hashed, database-backed (30 day expiry)
+- **AES-256-GCM** - Provider credential encryption
+- **Bcrypt** - Password hashing (12 rounds)
+- **Casbin** - Role-based access control (admin > user > readonly)
 
-The platform uses the following main tables:
-- `users`: Application users
-- `providers`: User's provider connections
-- `provider_connections`: Connection status and sync tracking
-- `provider_tokens`: Encrypted OAuth tokens
-- `provider_audit_logs`: Audit trail of all operations
+**Infrastructure**:
 
-## 🚀 CI/CD
+- **Docker Compose** - Multi-environment orchestration (dev, test, CI)
+- **Traefik** - Reverse proxy with automatic HTTPS
+- **Alembic** - Database migrations with async support
+- **Structlog** - JSON structured logging for observability
 
-### GitHub Actions
+## Security & Compliance
 
-The project uses GitHub Actions for continuous integration:
+### Security Features
 
-- **Automated Testing**: Runs on every push to `development` branch
-- **Code Quality Checks**: Linting and formatting enforcement
-- **Branch Protection**: Development branch requires passing checks before merge
-- **Coverage Reporting**: Integrated with Codecov (when tests pass)
+**Authentication & Authorization**:
 
-### Workflow Status
+- ✅ JWT access tokens (15 min expiry) + opaque refresh tokens (30 day expiry)
+- ✅ Multi-device session management with metadata tracking
+- ✅ Role-based access control with Casbin RBAC (admin > user > readonly)
+- ✅ Email verification required before login
+- ✅ Account lockout after 5 failed login attempts
+- ✅ Emergency token rotation (global + per-user)
 
-- ✅ **Code Quality**: Automated linting (ruff) and formatting checks
-- ⚠️ **Tests**: 56 passing, 91 failing (async fixture issues being addressed)
+**Data Protection**:
 
-### Local CI Testing
+- ✅ AES-256-GCM encryption for provider credentials
+- ✅ Bcrypt password hashing (12 rounds)
+- ✅ Secrets management with multi-tier strategy (local .env → AWS Secrets Manager)
+- ✅ TLS/HTTPS required for all endpoints (Traefik with Let's Encrypt)
 
-Test your changes exactly as they'll run in CI:
+**Rate Limiting**:
 
-```bash
-# Run full CI test suite locally
-make ci-test
+- ✅ Token bucket algorithm with Redis Lua scripts (atomic, no race conditions)
+- ✅ Per-endpoint rate limits (e.g., 5 login attempts/min)
+- ✅ RFC 6585 compliant headers (X-RateLimit-*, Retry-After)
+- ✅ Fail-open strategy (never blocks if Redis fails)
 
-# Check status
-make ci-down
-```
+**Audit & Monitoring**:
 
-### Branch Protection
+- ✅ Immutable audit trail with 3-state pattern (ATTEMPT → SUCCEEDED/FAILED)
+- ✅ Structured JSON logging with correlation IDs
+- ✅ Complete audit history for all provider operations
+- ✅ 7-year audit retention (PCI-DSS requirement)
 
-The `development` branch is protected with:
-- Required status checks (Code Quality must pass)
-- Pull request reviews recommended
-- Branch must be up to date before merging
+### Compliance
 
-## 🔐 Security
+**PCI-DSS** (Payment Card Industry Data Security Standard):
 
-- **HTTPS Only**: All services use SSL/TLS
-- **Encrypted Storage**: OAuth tokens are encrypted using AES-256
-- **Secure Keys**: Cryptographically secure key generation
-- **Token Rotation**: Automatic token refresh with rotation support
-- **Audit Trail**: All provider operations are logged
-- **Environment Isolation**: Separate dev, test, and CI environments
+- Immutable audit logs with semantic accuracy (who, what, when, why, outcome)
+- 7-year retention for all provider access attempts
+- Strong cryptography (AES-256, bcrypt, TLS 1.3)
 
-## 🌐 API Documentation
+**SOC 2** (Service Organization Control):
 
-### Base URL
-```
-https://localhost:8000/api/v1
-```
+- Role-based access control with audit trails
+- Multi-factor authentication ready
+- Automated security updates and patching
 
-### Available Endpoints
+**GDPR** (General Data Protection Regulation):
 
-#### System & Health
-- `GET /` - Root endpoint with API information
-- `GET /health` - Health check endpoint
-- `GET /api/v1/health` - API version health check
+- Complete audit trail for data access
+- Data retention policies documented
+- User consent tracking ready
 
-#### Provider Management
-- `GET /api/v1/providers/available` - List all available provider types
-- `GET /api/v1/providers/configured` - List configured providers ready to use
-- `POST /api/v1/providers/create` - Create a new provider instance
-- `GET /api/v1/providers/` - List user's provider instances
-- `GET /api/v1/providers/{provider_id}` - Get specific provider details
-- `DELETE /api/v1/providers/{provider_id}` - Delete a provider instance
+### Error Handling
 
-#### OAuth Authentication
-- `GET /api/v1/auth/{provider_id}/authorize` - Get OAuth authorization URL
-- `GET /api/v1/auth/{provider_id}/authorize/redirect` - Redirect to OAuth page
-- `GET /api/v1/auth/{provider_id}/callback` - Handle OAuth callback (internal)
-- `POST /api/v1/auth/{provider_id}/refresh` - Manually refresh tokens
-- `GET /api/v1/auth/{provider_id}/status` - Get token status
-- `DELETE /api/v1/auth/{provider_id}/disconnect` - Disconnect provider
+**Railway-Oriented Programming**:
 
-#### Financial Data (Coming Soon)
-- `GET /api/v1/accounts` - Get all connected accounts
-- `GET /api/v1/accounts/{account_id}` - Get specific account details
-- `GET /api/v1/transactions` - Get transactions across all accounts
-- `GET /api/v1/balances` - Get account balances
+- Domain functions return `Result[T, E]` (no exceptions)
+- Explicit error handling at every layer
+- Type-safe error propagation
 
-### 🔐 Complete OAuth Connection Flow
+**RFC 7807 Problem Details**:
 
-#### Step 1: Create a Provider Instance
+- Standardized error responses for HTTP APIs
+- Machine-readable error codes
+- Human-readable error messages with context
 
-First, create a provider instance for the user. This doesn't connect to the provider yet, it just creates a record in your system.
+## Development
+
+### Common Commands
 
 ```bash
-curl -X POST https://localhost:8000/api/v1/providers/create \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider_key": "schwab",
-    "alias": "My Schwab Account"
-  }' \
-  --insecure
+# Development Environment
+make dev-up          # Start all services (app, postgres, redis)
+make dev-down        # Stop all services
+make dev-logs        # View application logs
+make dev-shell       # Open shell in app container
+make dev-restart     # Restart all services
+
+# Testing
+make test            # Run all tests with coverage report
+make test-unit       # Unit tests only (domain, application)
+make test-integration # Integration tests (database, cache, APIs)
+make test-api        # API endpoint tests
+
+# CI/CD (Local)
+make ci-test-local   # Full CI suite (tests + lint + type-check)
+make ci-test         # Tests only (matches GitHub Actions)
+make ci-lint         # Linting only
+
+# Code Quality
+make lint            # Run ruff linter
+make format          # Format code with ruff
+make type-check      # Run mypy type checking
+
+# Documentation
+make docs-serve      # Start MkDocs live preview (https://docs.dashtam.local/Dashtam/)
+make docs-build      # Build static documentation (strict mode)
+make lint-md FILE=<file> # Lint markdown file
+
+# Database
+make migrate         # Apply database migrations
+make db-shell        # Open PostgreSQL shell
 ```
 
-**Response:**
-```json
-{
-  "id": "81f8773a-3e63-4003-8206-d1e0fb1dba6c",
-  "provider_key": "schwab",
-  "alias": "My Schwab Account",
-  "status": "pending",
-  "is_connected": false,
-  "needs_reconnection": true,
-  "connected_at": null,
-  "last_sync_at": null,
-  "accounts_count": 0
-}
-```
+### Local Development
 
-Save the `id` field - you'll need it for the next steps.
+**Environment Files**:
 
-#### Step 2: Get Authorization URL
+- `env/.env.dev` - Development configuration
+- `env/.env.test` - Test configuration
+- `env/.env.dev.example` - Template with all available settings
 
-Use the provider ID to get the OAuth authorization URL:
+**Key Configuration**:
 
 ```bash
-curl https://localhost:8000/api/v1/auth/{provider_id}/authorize \
-  --insecure
+# Required for OAuth
+SCHWAB_API_KEY=your_api_key_here
+SCHWAB_API_SECRET=your_api_secret_here
+
+# Generated by make setup
+SECRET_KEY=<jwt-signing-key>
+ENCRYPTION_KEY=<aes-256-key>
 ```
 
-Replace `{provider_id}` with the ID from Step 1.
+**Troubleshooting**:
 
-**Response:**
-```json
-{
-  "auth_url": "https://api.schwabapi.com/v1/oauth/authorize?...",
-  "message": "Visit this URL to authorize My Schwab Account"
-}
-```
+- If services don't start: `make dev-down && make dev-up`
+- If tests fail: Check test environment is running (`make test-up`)
+- If SSL errors: Regenerate certificates (`make certs FORCE=1`)
+- For orphan containers: Add `--remove-orphans` to docker-compose commands
 
-#### Step 3: Authorize with Provider
+## License
 
-1. Copy the `auth_url` from the response
-2. Open it in your web browser
-3. Log in to your Schwab account
-4. Review and approve the permissions
-5. You'll be redirected to `https://127.0.0.1:8182`
+[MIT License](LICENSE) - See LICENSE file for details.
 
-**Note**: Your browser will show a security warning about the self-signed certificate. This is expected. Click "Advanced" and "Proceed to 127.0.0.1 (unsafe)".
+## Support
 
-#### Step 4: OAuth Callback
+- 📚 [Documentation](https://faiyaz7283.github.io/Dashtam/)
+- 🐛 [Issue Tracker](https://github.com/faiyazhaider/Dashtam/issues)
+- 💬 [Discussions](https://github.com/faiyazhaider/Dashtam/discussions)
 
-The callback server automatically:
-1. Receives the authorization code from Schwab
-2. Forwards it to the main API
-3. Exchanges the code for access/refresh tokens
-4. Stores tokens securely (encrypted)
-5. Shows a success page
+---
 
-#### Step 5: Verify Connection
-
-Check that the provider is now connected:
-
-```bash
-curl https://localhost:8000/api/v1/providers/{provider_id} \
-  --insecure | python3 -m json.tool
-```
-
-**Response:**
-```json
-{
-  "id": "81f8773a-3e63-4003-8206-d1e0fb1dba6c",
-  "provider_key": "schwab",
-  "alias": "My Schwab Account",
-  "status": "connected",
-  "is_connected": true,
-  "needs_reconnection": false,
-  "connected_at": "2024-01-24T12:00:00",
-  "last_sync_at": null,
-  "accounts_count": 0
-}
-```
-
-### 🔍 Interactive API Documentation
-
-FastAPI provides automatic interactive API documentation. When running in development mode:
-
-- **Swagger UI**: https://localhost:8000/docs
-- **ReDoc**: https://localhost:8000/redoc
-
-These interfaces allow you to:
-- Browse all available endpoints
-- See request/response schemas
-- Test endpoints directly from the browser
-- View detailed parameter descriptions
-
-### 📝 API Examples
-
-#### List Available Providers
-```bash
-curl https://localhost:8000/api/v1/providers/available \
-  --insecure | python3 -m json.tool
-```
-
-#### List Your Connected Providers
-```bash
-curl https://localhost:8000/api/v1/providers/ \
-  --insecure | python3 -m json.tool
-```
-
-#### Check Token Status
-```bash
-curl https://localhost:8000/api/v1/auth/{provider_id}/status \
-  --insecure | python3 -m json.tool
-```
-
-#### Manually Refresh Tokens
-```bash
-curl -X POST https://localhost:8000/api/v1/auth/{provider_id}/refresh \
-  --insecure
-```
-
-#### Disconnect a Provider
-```bash
-curl -X DELETE https://localhost:8000/api/v1/auth/{provider_id}/disconnect \
-  --insecure
-```
-
-#### Delete a Provider Instance
-```bash
-curl -X DELETE https://localhost:8000/api/v1/providers/{provider_id} \
-  --insecure
-```
-
-### 🔧 Testing with Curl
-
-For all HTTPS requests in development, use the `--insecure` flag to bypass SSL certificate verification:
-
-```bash
-curl --insecure https://localhost:8000/api/v1/health
-```
-
-For pretty JSON output, pipe to Python:
-
-```bash
-curl --insecure https://localhost:8000/api/v1/providers/available | python3 -m json.tool
-```
-
-## 🚢 Deployment
-
-### Production Considerations
-
-1. **Environment Variables**: Use a secure secrets manager
-2. **SSL Certificates**: Use proper certificates from a CA
-3. **Database**: Use managed PostgreSQL service
-4. **Redis**: Use managed Redis service
-5. **Monitoring**: Add application monitoring (Datadog, New Relic, etc.)
-6. **Backup**: Implement database backup strategy
-
-### Docker Production Build
-
-```bash
-docker build --target production -f docker/Dockerfile -t dashtam:prod .
-```
-
-## 📝 Configuration
-
-### Environment Variables
-
-Key environment variables (see `.env.example` for full list):
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql+asyncpg://...` |
-| `SECRET_KEY` | Application secret key | Auto-generated |
-| `ENCRYPTION_KEY` | Token encryption key | Auto-generated |
-| `SCHWAB_API_KEY` | Schwab OAuth client ID | None |
-| `SCHWAB_API_SECRET` | Schwab OAuth client secret | None |
-| `DEBUG` | Enable debug mode | `false` |
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-## 📄 License
-
-[Your License Here]
-
-## 🆘 Troubleshooting
-
-### OAuth Flow Issues
-
-**"Invalid host header" Error**
-- This occurs when the TrustedHostMiddleware blocks requests
-- Solution: Ensure Docker services are running properly
-- The fix is already applied in the codebase
-
-**"greenlet_spawn has not been called" Error**
-- This is an async SQLAlchemy error
-- Happens when relationships aren't properly loaded
-- Solution: Restart the backend service
-  ```bash
-  docker restart dashtam-app
-  ```
-
-**Callback Server Not Receiving OAuth Callback**
-- Check if callback server is running:
-  ```bash
-  docker logs dashtam-callback
-  ```
-- Ensure SSL certificates exist:
-  ```bash
-  ls -la certs/
-  ```
-- Verify redirect URI matches exactly: `https://127.0.0.1:8182`
-
-**"Connection Error" from Callback Server**
-- This means the callback server can't reach the backend
-- Check both services are running:
-  ```bash
-  docker ps | grep dashtam
-  ```
-- Check backend logs:
-  ```bash
-  docker logs dashtam-app --tail 50
-  ```
-
-### Common Issues
-
-**Port Already in Use**
-```bash
-# Check what's using the ports
-lsof -i :5432  # PostgreSQL
-lsof -i :6379  # Redis
-lsof -i :8000  # Main app
-lsof -i :8182  # Callback server
-
-# Clean up everything
-make clean
-```
-
-**SSL Certificate Issues**
-```bash
-# Regenerate certificates
-rm -rf certs/*.pem
-make certs
-```
-
-**Database Connection Issues**
-```bash
-# Check database logs
-docker logs dashtam-postgres
-
-# Recreate database
-make clean
-make up
-```
-
-**Token Encryption Issues**
-```bash
-# Regenerate encryption keys (WARNING: will invalidate existing tokens)
-make keys
-make restart
-```
-
-**Provider Not Showing as Connected**
-1. Check the provider status:
-   ```bash
-   curl https://localhost:8000/api/v1/providers/{provider_id} --insecure
-   ```
-2. Check token status:
-   ```bash
-   curl https://localhost:8000/api/v1/auth/{provider_id}/status --insecure
-   ```
-3. Try manually refreshing tokens:
-   ```bash
-   curl -X POST https://localhost:8000/api/v1/auth/{provider_id}/refresh --insecure
-   ```
-
-## 📞 Support
-
-For issues, questions, or contributions, please open an issue on GitHub.
-
-## 🎯 Roadmap
-
-- [ ] Add more financial providers (Chase, Bank of America, Fidelity)
-- [ ] Implement Plaid integration
-- [ ] Add transaction categorization
-- [ ] Build web UI dashboard
-- [ ] Add portfolio analytics
-- [ ] Implement real-time notifications
-- [ ] Add export functionality (CSV, JSON, etc.)
+**Built by [Faiyaz Haider](https://github.com/faiyazhaider)**

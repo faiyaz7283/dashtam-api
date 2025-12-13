@@ -1,398 +1,780 @@
-.PHONY: help dev-up dev-down dev-build dev-rebuild dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status test-up test-down test-build test-rebuild test-restart test-status test-logs test-shell test-db-shell test-redis-cli test test-unit test-integration test-coverage test-file test-clean ci-test ci-build ci-clean lint format migrate migration certs keys setup clean auth-schwab check ps status-all
+.PHONY: help setup keys-generate keys-validate dev-up dev-down dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status dev-build dev-rebuild test-up test-down test-restart test-logs test-shell test-build test-rebuild test test-unit test-integration test-api test-smoke ci-test-local ci-test ci-lint lint format lint-md lint-md-check lint-md-fix md-check docs-serve docs-build docs-stop migrate migrate-create migrate-down migrate-history migrate-current clean status-all ps check
 
-# Default target - show help
+# ==============================================================================
+# HELP
+# ==============================================================================
+
+.DEFAULT_GOAL := help
+
 help:
 	@echo "🎯 Dashtam - Financial Data Aggregation Platform"
 	@echo ""
-	@echo "Available commands:"
+	@echo "📋 Quick Start:"
+	@echo "  1. Start Traefik:     cd ~/docker-services/traefik && make up"
+	@echo "  2. Start dev:         make dev-up"
+	@echo "  3. Run migrations:    make migrate"
+	@echo "  4. View app:          https://dashtam.local"
 	@echo ""
-	@echo "🚀 Development Environment (port 8000):"
-	@echo "  make dev-up         - Start development environment"
-	@echo "  make dev-down       - Stop development environment"
-	@echo "  make dev-build      - Build development images"
-	@echo "  make dev-rebuild    - Rebuild from scratch (no cache)"
-	@echo "  make dev-logs       - Show development logs"
-	@echo "  make dev-shell      - Shell in dev app container"
-	@echo "  make dev-db-shell   - PostgreSQL shell (dev)"
-	@echo "  make dev-redis-cli  - Redis CLI (dev)"
-	@echo "  make dev-restart    - Restart development environment"
-	@echo "  make dev-status     - Show development service status"
+	@echo "🚀 Development (https://dashtam.local):"
+	@echo "  make dev-up          - Start development environment"
+	@echo "  make dev-down        - Stop development environment"
+	@echo "  make dev-logs        - View development logs (follow)"
+	@echo "  make dev-shell       - Shell into app container"
+	@echo "  make dev-db-shell    - PostgreSQL shell"
+	@echo "  make dev-redis-cli   - Redis CLI"
+	@echo "  make dev-restart     - Restart development environment"
+	@echo "  make dev-build       - Build development containers"
+	@echo "  make dev-rebuild     - Rebuild containers (no cache)"
+	@echo "  make dev-status      - Show service status"
 	@echo ""
-	@echo "🧪 Test Environment (port 8001):"
-	@echo "  make test-up        - Start test environment"
-	@echo "  make test-down      - Stop test environment"
-	@echo "  make test-build     - Build test images"
-	@echo "  make test-rebuild   - Rebuild from scratch (no cache)"
-	@echo "  make test-restart   - Restart test environment"
-	@echo "  make test-status    - Show test service status"
-	@echo "  make test-logs      - Show test logs"
-	@echo "  make test-shell     - Shell in test app container"
-	@echo "  make test-db-shell  - PostgreSQL shell (test)"
-	@echo "  make test-redis-cli - Redis CLI (test)"
+	@echo "🧪 Testing (https://test.dashtam.local):"
+	@echo "  make test-up         - Start test environment"
+	@echo "  make test-down       - Stop test environment"
+	@echo "  make test-restart    - Restart test environment"
+	@echo "  make test-build      - Build test containers"
+	@echo "  make test-rebuild    - Rebuild containers (no cache)"
+	@echo "  make test            - Run all tests with coverage"
+	@echo "  make test-unit       - Unit tests only"
+	@echo "  make test-integration - Integration tests only"
+	@echo "  make test-api        - API tests only"
+	@echo "  make test-smoke      - Smoke tests (E2E)"
+	@echo "  make test-logs       - View test logs"
+	@echo "  make test-shell      - Shell into test container"
 	@echo ""
-	@echo "🔐 Provider Auth (uses dev environment):"
-	@echo "  make auth-schwab    - Start Schwab OAuth flow"
-	@echo "🔬 Testing Commands:"
-	@echo "  make test           - Run all tests with coverage"
-	@echo "  make test-unit      - Run unit tests only"
-	@echo "  make test-integration - Run integration tests only"
-	@echo "  make test-coverage  - Run tests with HTML coverage report"
-	@echo "  make test-file      - Run a specific test file"
-	@echo "  make test-clean     - Clean test environment"
+	@echo "  💡 All test commands support ARGS parameter:"
+	@echo "     make test-unit ARGS=\"-k test_encryption\" - Run specific tests"
+	@echo "     make test ARGS=\"--lf\"                     - Last failed only"
+	@echo "     make test-api ARGS=\"-x\"                   - Stop on first failure"
 	@echo ""
-	@echo "🤖 CI/CD Commands:"
-	@echo "  make ci-test        - Run CI test suite (like GitHub Actions)"
-	@echo "  make ci-build       - Build CI images"
-	@echo "  make ci-clean       - Clean CI environment"
+	@echo "🤖 CI/CD:"
+	@echo "  make ci-test-local   - Full CI suite (tests + lint + type-check)"
+	@echo "  make ci-test         - Tests only (matches GitHub Actions)"
+	@echo "  make ci-lint         - Linting only (matches GitHub Actions)"
 	@echo ""
-	@echo "✨ Code Quality (uses dev environment):"
-	@echo "  make lint           - Run linters"
-	@echo "  make format         - Format code"
+	@echo "✨ Code Quality:"
+	@echo "  make lint            - Run Python linters (ruff)"
+	@echo "  make format          - Format Python code (ruff)"
+	@echo "  make type-check      - Type check with mypy (strict)"
+	@echo "  make lint-md FILE=path/to/file.md - Lint markdown (flexible)"
+	@echo "  make lint-md-fix     - Fix markdown issues (with safety)"
 	@echo ""
-	@echo "📦 Database (uses dev environment):"
-	@echo "  make migrate        - Run database migrations"
-	@echo "  make migration      - Create new migration"
+	@echo "📚 Documentation:"
+	@echo "  make docs-serve      - Start MkDocs live preview"
+	@echo "  make docs-build      - Build static docs (strict mode)"
+	@echo "  make docs-stop       - Stop MkDocs server"
 	@echo ""
-	@echo "🔧 Setup & Global Utilities:"
-	@echo "  make setup          - Initial setup (certs, keys)"
-	@echo "  make certs          - Generate SSL certificates"
-	@echo "  make keys           - Generate secure application keys"
-	@echo "  make clean          - Clean ALL environments"
-	@echo "  make status-all     - Show status of all environments"
-	@echo "  make ps             - Show all Dashtam containers"
+	@echo "📦 Database:"
+	@echo "  make migrate         - Apply pending migrations"
+	@echo "  make migrate-create  - Create new migration"
+	@echo "  make migrate-down    - Rollback last migration"
+	@echo "  make migrate-history - Show migration history"
+	@echo "  make migrate-current - Show current version"
 	@echo ""
-	@echo "🔐 Provider Auth:"
-	@echo "  make auth-schwab - Start Schwab OAuth flow"
+	@echo "🔧 Setup & Utilities:"
+	@echo "  make setup           - First-time setup (idempotent)"
+	@echo "  make keys-generate   - Generate keys in env/.env.dev (ENV=dev FORCE=1)"
+	@echo "  make keys-validate   - Validate keys in env file (ENV=dev)"
+	@echo "  make check           - Verify Traefik is running"
+	@echo "  make status-all      - Show all environment status"
+	@echo "  make ps              - Show all Dashtam containers"
+	@echo "  make clean           - Stop and clean ALL environments"
+	@echo ""
+	@echo "📚 Full docs: https://faiyaz7283.github.io/Dashtam/"
 
-# ============================================================================
-# DEVELOPMENT ENVIRONMENT COMMANDS
-# ============================================================================
+# ==============================================================================
+# SETUP & KEY GENERATION
+# ==============================================================================
 
-# Start development environment
-dev-up:
+setup:
+	@echo "🚀 Dashtam First-Time Setup"
+	@echo ""
+	@echo "📝 Step 1: Creating env/.env.dev from template..."
+	@if [ -f env/.env.dev ]; then \
+		echo "  ℹ️  env/.env.dev already exists - skipping"; \
+	else \
+		cp env/.env.dev.example env/.env.dev; \
+		echo "  ✅ Created env/.env.dev"; \
+	fi
+	@echo ""
+	@echo "🔐 Step 2: Generating cryptographic keys..."
+	@$(MAKE) keys-generate ENV=dev
+	@echo ""
+	@echo "🔍 Step 3: Checking Traefik..."
+	@$(MAKE) _check-traefik-verbose || true
+	@echo ""
+	@echo "✅ Setup complete!"
+	@echo ""
+	@echo "📝 Next steps:"
+	@echo "  1. Add your provider credentials to env/.env.dev:"
+	@echo "     - SCHWAB_API_KEY=your_key"
+	@echo "     - SCHWAB_API_SECRET=your_secret"
+	@echo ""
+	@echo "  2. Start Traefik (if not running):"
+	@echo "     cd ~/docker-services/traefik && make up"
+	@echo ""
+	@echo "  3. Start development environment:"
+	@echo "     make dev-up"
+
+keys-generate:
+	@ENV_FILE=env/.env.$${ENV:-dev}; \
+	if [ ! -f "$$ENV_FILE" ]; then \
+		echo "❌ Error: $$ENV_FILE not found"; \
+		echo "   Run 'make setup' first or create the file from template"; \
+		exit 1; \
+	fi; \
+	SECRET_EXISTS=$$(grep -c "^SECRET_KEY=your-secret-key-will-be-generated" $$ENV_FILE || true); \
+	ENCRYPTION_EXISTS=$$(grep -c "^ENCRYPTION_KEY=your-encryption-key-will-be-generated" $$ENV_FILE || true); \
+	if [ "$${FORCE:-0}" != "1" ] && [ "$$SECRET_EXISTS" = "0" ] && [ "$$ENCRYPTION_EXISTS" = "0" ]; then \
+		echo "  ℹ️  Keys already exist in $$ENV_FILE"; \
+		echo "     Use FORCE=1 to regenerate: make keys-generate ENV=$${ENV:-dev} FORCE=1"; \
+		exit 0; \
+	fi; \
+	SECRET_KEY=$$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))'); \
+	ENCRYPTION_KEY=$$(python3 -c 'import secrets; print(secrets.token_urlsafe(24)[:32])'); \
+	if [ "$$SECRET_EXISTS" != "0" ] || [ "$${FORCE:-0}" = "1" ]; then \
+		sed -i.bak "s|^SECRET_KEY=.*|SECRET_KEY=$$SECRET_KEY|" $$ENV_FILE; \
+		rm -f $${ENV_FILE}.bak; \
+		echo "  ✅ Generated SECRET_KEY (64 chars)"; \
+	fi; \
+	if [ "$$ENCRYPTION_EXISTS" != "0" ] || [ "$${FORCE:-0}" = "1" ]; then \
+		sed -i.bak "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$$ENCRYPTION_KEY|" $$ENV_FILE; \
+		rm -f $${ENV_FILE}.bak; \
+		echo "  ✅ Generated ENCRYPTION_KEY (32 chars)"; \
+	fi; \
+	if [ "$${FORCE:-0}" = "1" ]; then \
+		echo "  ⚠️  Keys regenerated - restart services for changes to take effect"; \
+	fi
+
+keys-validate:
+	@ENV_FILE=env/.env.$${ENV:-dev}; \
+	if [ ! -f "$$ENV_FILE" ]; then \
+		echo "❌ Error: $$ENV_FILE not found"; \
+		exit 1; \
+	fi; \
+	python3 -c "import sys, re; content = open('$$ENV_FILE').read(); s = re.search(r'^SECRET_KEY=(.+)$$', content, re.M); e = re.search(r'^ENCRYPTION_KEY=(.+)$$', content, re.M); sys.exit(1) if not s or not e else None; sk, ek = s.group(1), e.group(1); sys.exit(1) if 'your-secret' in sk.lower() or 'your-encryption' in ek.lower() or len(sk) < 32 or len(ek) != 32 else (print(f'✅ SECRET_KEY: {len(sk)} chars (minimum 32)'), print(f'✅ ENCRYPTION_KEY: {len(ek)} chars (exactly 32)'), print(f'✅ All keys valid in $$ENV_FILE'))"
+
+# ==============================================================================
+# DEVELOPMENT ENVIRONMENT
+# ==============================================================================
+
+dev-up: _check-traefik _ensure-env-dev
 	@echo "🚀 Starting DEVELOPMENT environment..."
-	@docker compose -f docker-compose.dev.yml --env-file .env.dev up -d
+	@docker compose -f compose/docker-compose.dev.yml up -d
+	@echo ""
+	@echo "📦 Syncing dependencies (including MkDocs)..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
+	@echo ""
 	@echo "✅ Development services started!"
 	@echo ""
-	@echo "📡 Main App:  https://localhost:8000"
-	@echo "📡 API Docs:  https://localhost:8000/docs"
-	@echo "📡 Callback:  https://127.0.0.1:8182"
-	@echo "🐘 PostgreSQL: localhost:5432"
-	@echo "🔴 Redis:      localhost:6379"
+	@echo "🌐 Access:"
+	@echo "   App:       https://dashtam.local"
+	@echo "   API Docs:  https://dashtam.local/docs"
+	@echo "   Dashboard: http://localhost:8080 (Traefik)"
 	@echo ""
-	@echo "📋 View logs: make dev-logs"
-	@echo "🐚 Open shell: make dev-shell"
+	@echo "📚 MkDocs: https://docs.dashtam.local (run 'make docs-serve' to start)"
+	@echo ""
+	@echo "🐘 Database:  localhost:5432"
+	@echo "🔴 Redis:     localhost:6379"
+	@echo ""
+	@echo "📋 Commands:"
+	@echo "   Logs:  make dev-logs"
+	@echo "   Shell: make dev-shell"
 
-# Stop development environment
 dev-down:
 	@echo "🛑 Stopping DEVELOPMENT environment..."
-	@docker compose -f docker-compose.dev.yml down
-	@echo "✅ Development environment stopped"
+	@docker compose -f compose/docker-compose.dev.yml down
+	@echo "✅ Development stopped"
 
-# Build development images
-dev-build:
-	@echo "🏗️  Building DEVELOPMENT images..."
-	@docker compose -f docker-compose.dev.yml --env-file .env.dev build
-	@echo "✅ Development images built"
-
-# Rebuild development images from scratch (no cache)
-dev-rebuild:
-	@echo "🔄 Rebuilding DEVELOPMENT images from scratch..."
-	@echo "  → Removing problematic .env directory (if exists)..."
-	@if [ -d ".env" ]; then rm -rf .env && echo "    ✓ Removed .env directory"; fi
-	@echo "  → Stopping containers..."
-	@docker compose -f docker-compose.dev.yml down 2>/dev/null || true
-	@echo "  → Removing old images..."
-	@docker rmi dashtam-dev-app dashtam-dev-callback dashtam-app dashtam-callback 2>/dev/null || true
-	@echo "  → Building with --no-cache..."
-	@docker compose -f docker-compose.dev.yml --env-file .env.dev build --no-cache
-	@echo "✅ Development images rebuilt from scratch"
-
-# Show development logs (follow mode)
 dev-logs:
-	@docker compose -f docker-compose.dev.yml logs -f
+	@docker compose -f compose/docker-compose.dev.yml logs -f
 
-# Show specific dev service logs
-dev-logs-%:
-	@docker compose -f docker-compose.dev.yml logs -f $*
+dev-shell:
+	@docker compose -f compose/docker-compose.dev.yml exec app /bin/bash
 
-# Restart development environment
+dev-db-shell:
+	@docker compose -f compose/docker-compose.dev.yml exec postgres psql -U dashtam_user -d dashtam
+
+dev-redis-cli:
+	@docker compose -f compose/docker-compose.dev.yml exec redis redis-cli
+
 dev-restart: dev-down dev-up
 
-# Show development service status
 dev-status:
-	@echo "📊 Development Environment Status:"
-	@docker compose -f docker-compose.dev.yml ps
+	@echo "📊 Development Status:"
+	@docker compose -f compose/docker-compose.dev.yml ps
 
-# Open shell in dev app container
-dev-shell:
-	@docker compose -f docker-compose.dev.yml exec app /bin/bash
+dev-build: _check-traefik _ensure-env-dev
+	@echo "🔨 Building DEVELOPMENT containers..."
+	@docker compose -f compose/docker-compose.dev.yml build
+	@echo "✅ Development containers built"
 
-# Open PostgreSQL shell (dev)
-dev-db-shell:
-	@docker compose -f docker-compose.dev.yml exec postgres psql -U dashtam_user -d dashtam
+dev-rebuild: _check-traefik _ensure-env-dev
+	@echo "🔨 Rebuilding DEVELOPMENT containers (no cache)..."
+	@docker compose -f compose/docker-compose.dev.yml build --no-cache
+	@echo "📦 Restarting with fresh dependencies..."
+	@docker compose -f compose/docker-compose.dev.yml down
+	@docker compose -f compose/docker-compose.dev.yml up -d
+	@echo "📦 Syncing dependencies (including MkDocs)..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
+	@echo "✅ Development containers rebuilt"
 
-# Open Redis CLI (dev)
-dev-redis-cli:
-	@docker compose -f docker-compose.dev.yml exec redis redis-cli
+# ==============================================================================
+# TEST ENVIRONMENT
+# ==============================================================================
 
-# ============================================================================
-# TEST ENVIRONMENT COMMANDS
-# ============================================================================
-
-# Start test environment
-test-up:
+test-up: _check-traefik _ensure-env-test
 	@echo "🧪 Starting TEST environment..."
-	@docker compose -f docker-compose.test.yml --env-file .env.test up -d
-	@echo "⏳ Waiting for services to be healthy..."
-	@sleep 5
+	@docker compose -f compose/docker-compose.test.yml up -d
+	@sleep 3
+	@echo ""
 	@echo "✅ Test services started!"
 	@echo ""
-	@echo "📡 Test App:  http://localhost:8001"
-	@echo "📡 Callback:  http://127.0.0.1:8183"
-	@echo "🐘 PostgreSQL: localhost:5433"
-	@echo "🔴 Redis:      localhost:6380"
+	@echo "🌐 Access:"
+	@echo "   App:  https://test.dashtam.local"
 	@echo ""
-	@echo "🚀 Initializing test database..."
-	@docker compose -f docker-compose.test.yml exec -T app uv run python src/core/init_test_db.py
-	@echo "✅ Test environment ready!"
+	@echo "🐘 Database:  localhost:5433"
+	@echo "🔴 Redis:     localhost:6380"
 	@echo ""
 	@echo "🧪 Run tests: make test"
-	@echo "🐚 Open shell: make test-shell"
 
-# Stop test environment
 test-down:
 	@echo "🛑 Stopping TEST environment..."
-	@docker compose -f docker-compose.test.yml down
-	@echo "✅ Test environment stopped"
+	@docker compose -f compose/docker-compose.test.yml down
+	@echo "✅ Test stopped"
 
-# Restart test environment
+test-logs:
+	@docker compose -f compose/docker-compose.test.yml logs -f
+
+test-shell:
+	@docker compose -f compose/docker-compose.test.yml exec app /bin/bash
+
+test-build: _check-traefik _ensure-env-test
+	@echo "🔨 Building TEST containers..."
+	@docker compose -f compose/docker-compose.test.yml build
+	@echo "✅ Test containers built"
+
+test-rebuild: _check-traefik _ensure-env-test
+	@echo "🔨 Rebuilding TEST containers (no cache)..."
+	@docker compose -f compose/docker-compose.test.yml build --no-cache
+	@echo "✅ Test containers rebuilt"
+
 test-restart: test-down test-up
 
-# Show test service status
-test-status:
-	@echo "📊 Test Environment Status:"
-	@docker compose -f docker-compose.test.yml ps
+# ==============================================================================
+# TESTING
+# ==============================================================================
+# 
+# All test commands support optional ARGS parameter for pytest arguments.
+# 
+# Examples:
+#   make test                                    # All tests with coverage
+#   make test ARGS="-v --tb=short"               # Custom verbosity
+#   make test-unit ARGS="-k test_encryption"     # Specific test pattern
+#   make test-integration ARGS="-x"              # Stop on first failure
+#   make test-api ARGS="--lf"                    # Last failed tests only
+# 
+# ==============================================================================
 
-# Build test images
-test-build:
-	@echo "🏗️  Building TEST images..."
-	@docker compose -f docker-compose.test.yml --env-file .env.test build
-	@echo "✅ Test images built"
-
-# Rebuild test images from scratch (no cache)
-test-rebuild:
-	@echo "🔄 Rebuilding TEST images from scratch..."
-	@echo "  → Removing problematic .env directory (if exists)..."
-	@if [ -d ".env" ]; then rm -rf .env && echo "    ✓ Removed .env directory"; fi
-	@echo "  → Stopping containers..."
-	@docker compose -f docker-compose.test.yml down 2>/dev/null || true
-	@echo "  → Removing old images..."
-	@docker rmi dashtam-test-app dashtam-test-callback dashtam-app dashtam-callback 2>/dev/null || true
-	@echo "  → Building with --no-cache..."
-	@docker compose -f docker-compose.test.yml --env-file .env.test build --no-cache
-	@echo "✅ Test images rebuilt from scratch"
-
-# Show test logs (follow mode)
-test-logs:
-	@docker compose -f docker-compose.test.yml logs -f
-
-# Show specific test service logs
-test-logs-%:
-	@docker compose -f docker-compose.test.yml logs -f $*
-
-# Open shell in test app container
-test-shell:
-	@docker compose -f docker-compose.test.yml exec app /bin/bash
-
-# Open PostgreSQL shell (test)
-test-db-shell:
-	@docker compose -f docker-compose.test.yml exec postgres psql -U dashtam_test_user -d dashtam_test
-
-# Open Redis CLI (test)
-test-redis-cli:
-	@docker compose -f docker-compose.test.yml exec redis redis-cli
-
-# ============================================================================
-# SETUP & UTILITIES
-# ============================================================================
-
-# Generate SSL certificates
-certs:
-	@echo "🔐 Generating SSL certificates..."
-	@bash scripts/generate-certs.sh
-	@echo "✅ SSL certificates generated in certs/"
-
-# Generate secure keys
-keys:
-	@echo "🔑 Generating secure application keys..."
-	@bash scripts/generate-keys.sh
-	@echo "✅ Secure keys generated"
-
-# Initial setup - run this first!
-setup: certs keys
-	@echo ""
-	@echo "🎯 Initial setup complete!"
-	@echo ""
-	@echo "Next steps:"
-	@echo "  1. Copy .env.dev.example to .env.dev (if not exists)"
-	@echo "  2. Add your Schwab OAuth credentials to .env.dev"
-	@echo "  3. Run: make dev-build"
-	@echo "  4. Run: make dev-up"
-	@echo ""
-	@echo "Your services will be available at:"
-	@echo "  • Main App: https://localhost:8000"
-	@echo "  • API Docs: https://localhost:8000/docs"
-	@echo "  • Callback: https://127.0.0.1:8182"
-
-# Clean up everything (both dev and test)
-clean:
-	@echo "🧹 Cleaning up ALL environments..."
-	@echo "  → Stopping and removing dev containers..."
-	@docker compose -f docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
-	@echo "  → Stopping and removing test containers..."
-	@docker compose -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
-	@echo "  → Removing Docker images..."
-	@docker rmi dashtam-dev-app dashtam-dev-callback 2>/dev/null || true
-	@docker rmi dashtam-test-app dashtam-test-callback 2>/dev/null || true
-	@docker rmi dashtam-app dashtam-callback 2>/dev/null || true
-	@echo "  → Removing problematic .env directory (if exists)..."
-	@if [ -d ".env" ]; then rm -rf .env && echo "    ✓ Removed .env directory"; fi
-	@echo "  → Pruning Docker build cache..."
-	@docker builder prune -f 2>/dev/null || true
-	@echo "✅ Cleanup complete!"
-
-# ============================================================================
-# TESTING COMMANDS
-# ============================================================================
-
-# Run all tests with coverage (auto-starts test env if needed)
 test:
 	@echo "🧪 Running all tests with coverage..."
-	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing
+	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html $(ARGS)
 
-# Run unit tests only
 test-unit:
 	@echo "🧪 Running unit tests..."
-	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f docker-compose.test.yml exec -T app uv run pytest tests/unit/ -v
+	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/unit/ -v $(ARGS)
 
-# Run integration tests only
 test-integration:
 	@echo "🧪 Running integration tests..."
-	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v
+	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v $(ARGS)
 
-# Run tests with HTML coverage report
-test-coverage:
-	@echo "📊 Running tests with HTML coverage..."
-	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@docker compose -f docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=html --cov-report=term-missing
-	@echo "📋 Coverage report generated in htmlcov/index.html"
+test-api:
+	@echo "🧪 Running API tests..."
+	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/api/ -v $(ARGS)
 
-# Run specific test file
-test-file:
-	@echo "🧪 Running specific test file..."
-	@docker compose -f docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
-	@read -p "Enter test file path (e.g., tests/unit/test_encryption.py): " file; \
-	docker compose -f docker-compose.test.yml exec -T app uv run pytest "$$file" -v
+test-smoke:
+	@echo "🔥 Running smoke tests (E2E)..."
+	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/ -v $(ARGS)
 
-# Clean test environment (removes containers and ephemeral data)
-test-clean:
-	@echo "🧺 Cleaning test environment..."
-	@docker compose -f docker-compose.test.yml down -v
-	@echo "✅ Test environment cleaned!"
+# ==============================================================================
+# CI/CD
+# ==============================================================================
+# 
+# ci-test-local  - Full CI suite locally (tests + lint + type-check)
+# ci-test        - Tests only (matches GitHub Actions test-main job)
+# ci-lint        - Linting only (matches GitHub Actions lint job)
+# 
+# All CI commands match GitHub Actions behavior for accurate local debugging.
+# ==============================================================================
 
-# ============================================================================
-# CODE QUALITY COMMANDS
-# ============================================================================
+ci-test-local: _ensure-env-ci
+	@echo "🤖 Running FULL CI suite locally (tests + lint + type-check)..."
+	@echo ""
+	@echo "📝 Step 1: Starting CI environment..."
+	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@echo ""
+	@echo "⏳ Step 2: Waiting for services..."
+	@sleep 3
+	@docker compose -f compose/docker-compose.ci.yml exec -T postgres pg_isready -U dashtam_test_user -d dashtam_test || sleep 2
+	@echo "✅ Services ready"
+	@echo ""
+	@echo "🧪 Step 3: Running tests (excludes smoke)..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app \
+		uv run pytest tests/ -v \
+		--cov=src \
+		--cov-report=term-missing \
+		--cov-report=html \
+		-m "not smoke" || (echo "❌ Tests failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🔍 Step 4: Running linter..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff check src/ tests/ || (echo "❌ Lint failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "✨ Step 5: Checking code formatting..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff format --check src/ tests/ || (echo "❌ Format check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🔍 Step 6: Running type checks..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run mypy src || (echo "❌ Type check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🛑 Step 7: Cleanup..."
+	@docker compose -f compose/docker-compose.ci.yml down -v
+	@echo ""
+	@echo "✅ Full CI suite passed!"
 
-# Run linters (uses dev environment)
-lint:
+ci-test: _ensure-env-ci
+	@echo "🤖 Running CI tests (matches GitHub Actions test-main job)..."
+	@echo ""
+	@echo "📝 Starting CI environment..."
+	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@echo ""
+	@echo "⏳ Waiting for services..."
+	@sleep 3
+	@docker compose -f compose/docker-compose.ci.yml exec -T postgres pg_isready -U dashtam_test_user -d dashtam_test || sleep 2
+	@echo "✅ Services ready"
+	@echo ""
+	@echo "🧪 Running tests (excludes smoke tests)..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app \
+		uv run pytest tests/ -v \
+		--cov=src \
+		--cov-report=term-missing \
+		--cov-report=html \
+		-m "not smoke" || (echo "❌ Tests failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🛑 Cleanup..."
+	@docker compose -f compose/docker-compose.ci.yml down -v
+	@echo ""
+	@echo "✅ CI tests passed!"
+
+ci-lint: _ensure-env-ci
+	@echo "🔍 Running CI linting (matches GitHub Actions lint job)..."
+	@echo ""
+	@echo "📝 Starting CI environment..."
+	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@echo ""
+	@echo "⏳ Waiting for app container..."
+	@sleep 3
+	@echo ""
+	@echo "🔍 Running ruff linter..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff check src/ tests/ || (echo "❌ Lint failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "✨ Checking code formatting..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff format --check src/ tests/ || (echo "❌ Format check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "📝 Running markdown linter..."
+	@docker run --rm \
+		-v $(PWD):/workspace:ro \
+		-w /workspace \
+		node:24-alpine \
+		sh -c "npx markdownlint-cli2 '**/*.md' || exit 1" || (echo "❌ Markdown lint failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@echo ""
+	@echo "🛑 Cleanup..."
+	@docker compose -f compose/docker-compose.ci.yml down -v
+	@echo ""
+	@echo "✅ CI linting passed!"
+
+# ==============================================================================
+# CODE QUALITY
+# ==============================================================================
+
+lint: dev-up
 	@echo "🔍 Running linters..."
-	@docker compose -f docker-compose.dev.yml exec app uv run ruff check src/ tests/
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff check src/ tests/
 
-# Format code (uses dev environment)
-format:
+format: dev-up
 	@echo "✨ Formatting code..."
-	@docker compose -f docker-compose.dev.yml exec app uv run ruff format src/ tests/
-	@docker compose -f docker-compose.dev.yml exec app uv run ruff check --fix src/ tests/
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff format src/ tests/
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run ruff check --fix src/ tests/
 
-# ============================================================================
-# DATABASE COMMANDS
-# ============================================================================
+type-check: dev-up
+	@echo "🔍 Running type checks with mypy..."
+	@docker compose -f compose/docker-compose.dev.yml exec -w /app app uv run mypy src
 
-# Database migrations (uses dev environment)
+# ==============================================================================
+# MARKDOWN LINTING
+# ==============================================================================
+# 
+# Professional markdown linting with flexible targeting and safety controls.
+# 
+# Commands:
+#   lint-md      - Check markdown files (non-destructive, CI-friendly)
+#   lint-md-fix  - Fix markdown issues with safety controls
+# 
+# Targeting Options (apply to both commands):
+#   (none)                          - All markdown files in project
+#   FILE=path/to/file.md            - Single file
+#   FILES="file1.md file2.md"       - Multiple specific files
+#   DIR=docs/guides                 - Entire directory
+#   DIRS="docs tests"               - Multiple directories
+#   PATTERN="docs/**/*.md"          - Custom glob pattern
+#   PATHS="README.md docs/"         - Mixed files and directories
+# 
+# Safety Options (lint-md-fix only):
+#   DRY_RUN=1                       - Preview changes without applying
+#   DIFF=1                          - Generate patch file for manual review
+# 
+# Examples:
+#   make lint-md                              # Check all files
+#   make lint-md FILE=README.md               # Check single file
+#   make lint-md DIR=docs/guides              # Check directory
+#   make lint-md-fix DRY_RUN=1                # Preview all fixes
+#   make lint-md-fix FILE=README.md           # Fix single file (prompt)
+#   make lint-md-fix DIR=docs DIFF=1          # Generate patch for docs/
+# 
+# ==============================================================================
+
+# Configuration
+MARKDOWN_LINT_IMAGE := node:24-alpine
+MARKDOWN_LINT_CMD := npx markdownlint-cli2
+MARKDOWN_BASE_PATTERN := '**/*.md'
+# Note: Ignore patterns are configured in .markdownlint-cli2.jsonc
+
+# ----------------------------------------------------------------------------
+# Helper: Build lint target from parameters
+# ----------------------------------------------------------------------------
+define build_lint_target
+	$(eval LINT_TARGET := )
+	$(eval TARGET_DESC := )
+	
+	$(if $(FILE),\
+		$(eval LINT_TARGET := '$(FILE)')\
+		$(eval TARGET_DESC := $(FILE)))
+	
+	$(if $(FILES),\
+		$(eval LINT_TARGET := $(FILES))\
+		$(eval TARGET_DESC := $(FILES)))
+	
+	$(if $(DIR),\
+		$(eval LINT_TARGET := '$(DIR)/**/*.md')\
+		$(eval TARGET_DESC := $(DIR)/))
+	
+	$(if $(DIRS),\
+		$(eval LINT_TARGET := $(foreach dir,$(DIRS),'$(dir)/**/*.md'))\
+		$(eval TARGET_DESC := $(DIRS)))
+	
+	$(if $(PATTERN),\
+		$(eval LINT_TARGET := '$(PATTERN)')\
+		$(eval TARGET_DESC := $(PATTERN)))
+	
+	$(if $(PATHS),\
+		$(eval LINT_TARGET := $(PATHS))\
+		$(eval TARGET_DESC := $(PATHS)))
+	
+	$(if $(LINT_TARGET),,\
+		$(eval LINT_TARGET := $(MARKDOWN_BASE_PATTERN))\
+		$(eval TARGET_DESC := all markdown files))
+endef
+
+# ----------------------------------------------------------------------------
+# Command: lint-md
+# ----------------------------------------------------------------------------
+lint-md:
+	@$(call build_lint_target)
+	@echo "🔍 Linting: $(TARGET_DESC)"
+	@docker run --rm \
+		-v $(PWD):/workspace:ro \
+		-w /workspace \
+		$(MARKDOWN_LINT_IMAGE) \
+		sh -c "$(MARKDOWN_LINT_CMD) $(LINT_TARGET) || exit 1"
+	@echo "✅ Markdown linting complete!"
+
+# CI-friendly alias (identical to lint-md)
+lint-md-check: lint-md
+
+# ----------------------------------------------------------------------------
+# Command: lint-md-fix
+# ----------------------------------------------------------------------------
+lint-md-fix:
+	@$(call build_lint_target)
+	@$(call _lint_md_fix_execute)
+
+# ----------------------------------------------------------------------------
+# Helper: Execute lint-md-fix based on mode
+# ----------------------------------------------------------------------------
+define _lint_md_fix_execute
+	@if [ "$(DRY_RUN)" = "1" ]; then \
+		$(call _lint_md_fix_dry_run); \
+	elif [ "$(DIFF)" = "1" ]; then \
+		$(call _lint_md_fix_diff); \
+	else \
+		$(call _lint_md_fix_apply); \
+	fi
+endef
+
+# ----------------------------------------------------------------------------
+# Helper: Dry-run mode (preview changes)
+# ----------------------------------------------------------------------------
+define _lint_md_fix_dry_run
+	echo "🔍 DRY RUN: Previewing changes for $(TARGET_DESC)..."; \
+	echo "   (no files will be modified)"; \
+	echo ""; \
+	docker run --rm \
+		-v $(PWD):/workspace:ro \
+		-w /workspace \
+		$(MARKDOWN_LINT_IMAGE) \
+		sh -c "$(MARKDOWN_LINT_CMD) --fix --dry-run $(LINT_TARGET) 2>&1 \
+			| grep -E '(would fix|Error|Warning)' \
+			|| echo '   ✅ No fixable issues found'"; \
+	echo ""; \
+	echo "💡 To apply fixes, run without DRY_RUN:"; \
+	echo "   make lint-md-fix $(if $(FILE),FILE=$(FILE))$(if $(DIR),DIR=$(DIR))$(if $(PATTERN),PATTERN=$(PATTERN))"
+endef
+
+# ----------------------------------------------------------------------------
+# Helper: DIFF mode (generate patch file)
+# ----------------------------------------------------------------------------
+define _lint_md_fix_diff
+	echo "📝 Generating diff patch for $(TARGET_DESC)..."; \
+	echo ""; \
+	timestamp=$$(date +%Y%m%d_%H%M%S); \
+	patch_file="markdown-lint-fix_$$timestamp.patch"; \
+	echo "📄 Patch file: $$patch_file"; \
+	echo ""; \
+	docker run --rm \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		$(MARKDOWN_LINT_IMAGE) \
+		sh -c "git diff > /tmp/before.patch && \
+			$(MARKDOWN_LINT_CMD) --fix $(LINT_TARGET) && \
+			git diff > /workspace/$$patch_file && \
+			git checkout -- . && \
+			cat /workspace/$$patch_file"; \
+	echo ""; \
+	echo "✅ Patch generated: $$patch_file"; \
+	echo ""; \
+	echo "📖 Next steps:"; \
+	echo "   1. Review patch: cat $$patch_file"; \
+	echo "   2. Apply patch:  git apply $$patch_file"; \
+	echo "   3. Verify:       make lint-md"; \
+	echo "   4. Commit:       git add . && git commit -m 'docs: fix markdown linting'"
+endef
+
+# ----------------------------------------------------------------------------
+# Helper: Apply mode (fix with confirmation)
+# ----------------------------------------------------------------------------
+define _lint_md_fix_apply
+	echo "⚠️  WARNING: This will modify markdown files!"; \
+	echo ""; \
+	echo "   Target: $(TARGET_DESC)"; \
+	echo ""; \
+	echo "   Changes will be applied immediately."; \
+	echo "   Review changes with 'git diff' after running."; \
+	echo ""; \
+	echo "💡 Tip: Use DRY_RUN=1 to preview, or DIFF=1 to generate patch"; \
+	echo "   Example: make lint-md-fix $(if $(FILE),FILE=$(FILE))$(if $(DIR),DIR=$(DIR)) DRY_RUN=1"; \
+	echo ""; \
+	read -p "Continue with fix? (yes/no): " confirm; \
+	if [ "$$confirm" != "yes" ]; then \
+		echo "❌ Operation cancelled"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "🔧 Fixing markdown files: $(TARGET_DESC)..."; \
+	docker run --rm \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		$(MARKDOWN_LINT_IMAGE) \
+		$(MARKDOWN_LINT_CMD) --fix $(LINT_TARGET); \
+	echo ""; \
+	echo "✅ Auto-fix complete!"; \
+	echo ""; \
+	echo "📖 Next steps:"; \
+	echo "   1. Review changes:  git diff"; \
+	echo "   2. Verify linting:  make lint-md"; \
+	echo "   3. Commit changes:  git add . && git commit -m 'docs: fix markdown linting'"; \
+	echo "   4. Rollback if needed: git checkout -- ."
+endef
+
+# Convenience alias
+md-check: lint-md
+
+# ==============================================================================
+# DOCUMENTATION
+# ==============================================================================
+
+docs-serve:
+	@echo "📚 Starting MkDocs live preview..."
+	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@echo "📦 Ensuring MkDocs dependencies..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
+	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && PYTHONUNBUFFERED=1 uv run mkdocs serve --dev-addr=0.0.0.0:8001"
+	@sleep 2
+	@echo ""
+	@echo "✅ MkDocs server started!"
+	@echo "📖 Docs: https://docs.dashtam.local/Dashtam/"
+	@echo "🛑 Stop: make docs-stop"
+	@echo ""
+	@echo "💡 Note: Add 'docs.dashtam.local' to /etc/hosts if needed:"
+	@echo "   echo '127.0.0.1 docs.dashtam.local' | sudo tee -a /etc/hosts"
+
+docs-build:
+	@echo "🏭️  Building documentation (strict mode)..."
+	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@echo "📦 Ensuring MkDocs dependencies..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build --strict
+	@echo "✅ Documentation built to site/"
+
+docs-stop:
+	@echo "🛑 Stopping MkDocs server..."
+	@docker compose -f compose/docker-compose.dev.yml restart app
+	@echo "✅ MkDocs stopped"
+
+# ==============================================================================
+# DATABASE MIGRATIONS
+# ==============================================================================
+
 migrate:
-	@echo "📊 Running database migrations..."
-	@docker compose -f docker-compose.dev.yml exec app uv run alembic upgrade head
+	@echo "📊 Applying migrations..."
+	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run alembic upgrade head
+	@echo "✅ Migrations applied"
 
-# Create new migration (uses dev environment)
-migration:
-	@echo "📝 Creating new migration..."
-	@read -p "Enter migration message: " msg; \
-	docker compose -f docker-compose.dev.yml exec app uv run alembic revision --autogenerate -m "$$msg"
+migrate-create:
+	@echo "📝 Creating migration..."
+	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@if [ -z "$(MSG)" ]; then \
+		echo "❌ Error: MSG parameter required"; \
+		echo "Usage: make migrate-create MSG=\"your migration message\""; \
+		exit 1; \
+	fi
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run alembic revision --autogenerate -m "$(MSG)"
+	@echo "✅ Migration created (review before applying!)"
 
-# ============================================================================
-# PROVIDER AUTH & UTILITIES
-# ============================================================================
+migrate-down:
+	@echo "⚠️  Rolling back last migration..."
+	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@read -p "Confirm rollback? (yes/no): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		docker compose -f compose/docker-compose.dev.yml exec app uv run alembic downgrade -1; \
+		echo "✅ Migration rolled back"; \
+	else \
+		echo "❌ Cancelled"; \
+	fi
 
-# Start Schwab OAuth flow (uses dev environment)
-auth-schwab:
-	@echo "🔐 Starting Schwab OAuth flow..."
-	@echo ""
-	@curl -sk https://localhost:8000/api/v1/auth/schwab/authorize | python3 -m json.tool
-	@echo ""
-	@echo "✅ Visit the URL above to authorize with Schwab"
-	@echo "📡 The callback will be captured on https://127.0.0.1:8182"
+migrate-history:
+	@echo "📜 Migration history:"
+	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run alembic history --verbose
 
-# Check Docker setup
-check:
-	@echo "🔍 Checking Docker setup..."
-	@docker --version
-	@docker compose --version
-	@echo ""
-	@echo "✅ Docker setup looks good!"
+migrate-current:
+	@echo "🔍 Current migration:"
+	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@docker compose -f compose/docker-compose.dev.yml exec app uv run alembic current --verbose
 
-# ============================================================================
-# CI/CD COMMANDS
-# ============================================================================
-
-# Run CI test suite (simulates GitHub Actions locally)
-ci-test:
-	@echo "🤖 Running CI test suite..."
-	@if [ ! -f .env.ci ]; then cp .env.ci.example .env.ci; fi
-	@docker compose -f docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from app
-	@echo "✅ CI tests completed"
-
-# Build CI images
-ci-build:
-	@echo "🏗️  Building CI images..."
-	@docker compose -f docker-compose.ci.yml build
-	@echo "✅ CI images built"
-
-# Clean CI environment
-ci-clean:
-	@echo "🧹 Cleaning CI environment..."
-	@docker compose -f docker-compose.ci.yml down -v --remove-orphans
-	@docker rmi dashtam-ci-app 2>/dev/null || true
-	@echo "✅ CI environment cleaned"
-
-# ============================================================================
+# ==============================================================================
 # UTILITIES
-# ============================================================================
+# ==============================================================================
 
-# Show all running containers (dev + test)
-ps:
-	@echo "📊 All Dashtam Containers:"
-	@docker ps -a --filter "name=dashtam" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+check:
+	@echo "🔍 Checking setup..."
+	@echo ""
+	@echo "Docker:"
+	@docker --version
+	@docker compose version
+	@echo ""
+	@echo "Traefik:"
+	@$(MAKE) _check-traefik-verbose
+	@echo ""
+	@echo "✅ All checks passed!"
 
-# Global status for all environments
 status-all:
-	@echo "================ Development ================"
-	@docker compose -f docker-compose.dev.yml ps || true
-	@echo "\n==================== Test ==================="
-	@docker compose -f docker-compose.test.yml ps || true
-	@echo "\n================ Docker (all) ==============="
+	@echo "=============== Development ==============="
+	@docker compose -f compose/docker-compose.dev.yml ps 2>/dev/null || echo "Not running"
+	@echo ""
+	@echo "================== Test ==================="
+	@docker compose -f compose/docker-compose.test.yml ps 2>/dev/null || echo "Not running"
+	@echo ""
+	@echo "================ Traefik =================="
+	@docker ps --filter "name=traefik" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null || echo "Not running"
+
+ps:
+	@echo "📊 Dashtam Containers:"
 	@docker ps -a --filter "name=dashtam" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+clean:
+	@echo "⚠️  DESTRUCTIVE: This will DELETE all data!"
+	@echo ""
+	@read -p "Type 'DELETE ALL DATA' to confirm: " confirm; \
+	if [ "$$confirm" != "DELETE ALL DATA" ]; then \
+		echo "❌ Cancelled"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "🧹 Cleaning all environments..."
+	@docker compose -f compose/docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
+	@docker compose -f compose/docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
+	@docker compose -f compose/docker-compose.ci.yml down -v --remove-orphans 2>/dev/null || true
+	@echo "✅ Cleanup complete"
+
+# ==============================================================================
+# INTERNAL HELPERS
+# ==============================================================================
+
+# Check if Traefik is running
+_check-traefik:
+	@docker ps | grep -q traefik || { \
+		echo "❌ Traefik not running!"; \
+		echo ""; \
+		echo "Start Traefik:"; \
+		echo "  cd ~/docker-services/traefik && make up"; \
+		echo ""; \
+		exit 1; \
+	}
+
+# Check Traefik with verbose output
+_check-traefik-verbose:
+	@if docker ps | grep -q traefik; then \
+		echo "✅ Traefik is running"; \
+		docker ps --filter "name=traefik" --format "   {{.Names}}: {{.Status}}"; \
+	else \
+		echo "❌ Traefik not running"; \
+		echo "   Start: cd ~/docker-services/traefik && make up"; \
+	fi
+
+# Ensure .env.dev exists (idempotent copy from example)
+_ensure-env-dev:
+	@if [ ! -f env/.env.dev ]; then \
+		echo "📋 Creating env/.env.dev from example..."; \
+		cp env/.env.dev.example env/.env.dev; \
+		echo "✅ Created env/.env.dev"; \
+		echo "⚠️  Update with your secrets before first run!"; \
+	fi
+
+# Ensure .env.test exists (idempotent copy from example)
+_ensure-env-test:
+	@if [ ! -f env/.env.test ]; then \
+		echo "📋 Creating env/.env.test from example..."; \
+		cp env/.env.test.example env/.env.test; \
+		echo "✅ Created env/.env.test"; \
+	fi
+
+# Ensure .env.ci exists (idempotent copy from example)
+_ensure-env-ci:
+	@if [ ! -f env/.env.ci ]; then \
+		echo "📋 Creating env/.env.ci from example..."; \
+		cp env/.env.ci.example env/.env.ci; \
+		echo "✅ Created env/.env.ci"; \
+	fi

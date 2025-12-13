@@ -1,402 +1,562 @@
-"""Global pytest configuration and fixtures for Dashtam tests.
+"""Pytest configuration for async testing.
 
-This module provides test configuration, fixtures, and utilities used across
-all test modules in the Dashtam project. It follows the same configuration
-patterns as the main application while providing test-specific overrides.
+This configuration ensures:
+1. Async tests run in isolated event loops
+2. Proper cleanup between tests
+3. No race conditions between async tests
+4. Database fixtures are properly isolated
+5. Cache fixtures bypass singleton for test isolation
 """
 
-import asyncio
-import os
-from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock
-
 import pytest
-from fastapi.testclient import TestClient
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlmodel import SQLModel
+import asyncio
+import pytest_asyncio
+from datetime import UTC, datetime, timedelta
+from redis.asyncio import Redis, ConnectionPool
 
-from tests.test_config import TestSettings, get_test_settings
-from src.core.database import get_session
-from src.main import app
-from src.models.user import User
-from src.models.provider import Provider, ProviderConnection, ProviderStatus
+from src.core.config import Settings
+from src.domain.enums.credential_type import CredentialType
+from src.domain.value_objects.provider_credentials import ProviderCredentials
+
+
+# Configure pytest-asyncio
+pytest_plugins = ("pytest_asyncio",)
 
 
 @pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+def test_settings() -> Settings:
+    """Load settings from .env.test for unit tests.
+
+    This fixture provides the single source of truth for test configuration,
+    including SECRET_KEY and ENCRYPTION_KEY from .env.test.
+
+    Tests can override specific fields as needed while keeping keys from .env.test.
+
+    Usage:
+        def test_something(test_settings: Settings):
+            # Use test_settings.secret_key, test_settings.encryption_key
+            # Or create modified copy:
+            modified = Settings(
+                **test_settings.model_dump(),
+                redis_url="redis://custom:6379/0"
+            )
+    """
+    # Load from environment (Docker sets .env.test automatically)
+    return Settings()
+
+
+@pytest.fixture(scope="session")
+def event_loop_policy():
+    """Set event loop policy for all tests.
+
+    Using the default policy ensures compatibility across platforms.
+    """
+    return asyncio.get_event_loop_policy()
+
+
+@pytest.fixture(scope="function")
+def event_loop(event_loop_policy):
+    """Create a new event loop for each test function.
+
+    This ensures complete isolation between tests:
+    - No shared state between tests
+    - Each test gets a fresh event loop
+    - Proper cleanup after each test
+
+    Scope is 'function' to ensure a new loop per test.
+    """
+    loop = event_loop_policy.new_event_loop()
     yield loop
-    loop.close()
+
+    # Cleanup: Close the loop after test
+    try:
+        loop.close()
+    except Exception:
+        pass  # Loop might already be closed
 
 
-@pytest.fixture(scope="session")
-def test_settings() -> TestSettings:
-    """Provide test-specific settings loaded from .env.test file.
-
-    Returns:
-        TestSettings instance with all configuration loaded from environment
-        variables and .env.test file, following the same patterns as main app.
-    """
-    return get_test_settings()
+# Test helper functions for domain entities
+# Sentinel for "use default expiration"
+_DEFAULT_EXPIRY = object()
 
 
-@pytest.fixture(scope="session")
-async def test_engine(test_settings: TestSettings):
-    """Create test database engine using settings from .env.test.
+def create_credentials(
+    encrypted_data: bytes = b"encrypted_token_data",
+    credential_type: CredentialType = CredentialType.OAUTH2,
+    expires_at: datetime | None | object = _DEFAULT_EXPIRY,
+) -> ProviderCredentials:
+    """Helper to create ProviderCredentials for testing.
 
     Args:
-        test_settings: Test configuration loaded from .env.test
+        encrypted_data: Encrypted credential data (default: test data).
+        credential_type: Type of credential (default: OAuth2).
+        expires_at: Expiration time.
+            - Default: 1 hour from now
+            - None: Never expires
+            - datetime: Specific expiration time
 
-    Yields:
-        AsyncEngine configured for testing with proper connection pooling
+    Returns:
+        ProviderCredentials instance for testing.
+
+    Usage:
+        # Default (OAuth2, expires in 1 hour)
+        creds = create_credentials()
+
+        # Never expires (explicit None)
+        creds = create_credentials(expires_at=None)
+
+        # Custom expiration
+        creds = create_credentials(expires_at=datetime.now(UTC) + timedelta(days=1))
     """
-    # Ensure we're using test database
-    assert test_settings.is_test_environment, "Must be in test environment"
-    assert "dashtam_test" in test_settings.DATABASE_URL, "Must use test database"
+    # Set default expiration if not provided
+    if expires_at is _DEFAULT_EXPIRY:
+        expires_at = datetime.now(UTC) + timedelta(hours=1)
 
-    engine = create_async_engine(
-        test_settings.test_database_url,
-        echo=test_settings.DB_ECHO,
-        future=True,
-        pool_pre_ping=True,
-        # Use smaller pool for testing
-        pool_size=2,
-        max_overflow=5,
+    return ProviderCredentials(
+        encrypted_data=encrypted_data,
+        credential_type=credential_type,
+        expires_at=expires_at,  # type: ignore[arg-type]
     )
 
-    yield engine
-    await engine.dispose()
 
-
-@pytest.fixture(scope="session")
-async def setup_test_database(test_engine, test_settings):
-    """Set up test database with tables using our initialization script approach.
-
-    This fixture integrates with our init_test_db.py script to ensure consistent
-    database setup patterns across manual runs and automated testing.
-    """
-    # Import here to avoid circular imports
-    from src.core.init_test_db import (
-        check_test_database_connection,
-        create_test_tables,
-        verify_test_tables,
-        prepare_test_database_constraints,
-    )
-
-    # Safety check - ensure we're working with test database
-    assert test_settings.is_test_environment, "Safety check: must be test environment"
-
-    # Use the same initialization logic as our script for consistency
-    if not await check_test_database_connection(test_engine, test_settings):
-        pytest.fail("Test database connection failed during fixture setup")
-
-    # Apply test database optimizations
-    await prepare_test_database_constraints(test_engine)
-
-    # Create tables using our standardized approach
-    await create_test_tables(test_engine, test_settings)
-
-    # Verify setup
-    await verify_test_tables(test_engine)
-
-    yield
-
-    # Cleanup after all tests - drop all tables for clean slate
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-
-@pytest.fixture
-async def db_session(
-    test_engine, setup_test_database, test_settings
-) -> AsyncGenerator[AsyncSession, None]:
-    """Provide a database session for testing with transaction rollback.
-
-    Each test gets a fresh session with automatic rollback for isolation.
-    This follows the same async session patterns as the main application.
-
-    Args:
-        test_engine: Test database engine
-        setup_test_database: Ensures database is set up
-        test_settings: Test configuration
-
-    Yields:
-        AsyncSession for database operations in tests
-    """
-    # Create session maker following the same pattern as main app
-    async_session_maker = async_sessionmaker(
-        test_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autocommit=False,
-        autoflush=False,
-    )
-
-    async with async_session_maker() as session:
-        # Start a transaction for test isolation
-        transaction = await session.begin()
-
-        try:
-            yield session
-        finally:
-            # Always rollback to ensure test isolation
-            await transaction.rollback()
-            await session.close()
-
-
-@pytest.fixture
-def override_get_session(db_session: AsyncSession, test_settings: TestSettings):
-    """Override the get_session dependency for testing.
-
-    This fixture replaces the main app's database dependency with our
-    test session, following the same dependency injection patterns.
-    """
-
-    async def _override_get_session():
-        yield db_session
-
-    # Store original dependency
-    original_dependency = app.dependency_overrides.get(get_session)
-
-    # Override with test session
-    app.dependency_overrides[get_session] = _override_get_session
-
-    yield
-
-    # Restore original dependency or clear override
-    if original_dependency:
-        app.dependency_overrides[get_session] = original_dependency
-    else:
-        app.dependency_overrides.pop(get_session, None)
-
-
-@pytest.fixture
-async def async_client(
-    override_get_session, test_settings: TestSettings
-) -> AsyncGenerator[AsyncClient, None]:
-    """Provide an async HTTP client for API testing.
-
-    This client is configured to work with the test application instance
-    and uses the test database session.
-
-    Args:
-        override_get_session: Ensures test database session is used
-        test_settings: Test configuration
-
-    Yields:
-        AsyncClient for making HTTP requests to test app
-    """
-    async with AsyncClient(
-        app=app, base_url=f"http://test:{test_settings.PORT}"
-    ) as client:
-        yield client
-
-
-@pytest.fixture
-def sync_client(
-    override_get_session, test_settings: TestSettings
-) -> Generator[TestClient, None, None]:
-    """Provide a synchronous HTTP client for API testing.
-
-    Args:
-        override_get_session: Ensures test database session is used
-        test_settings: Test configuration
-
-    Yields:
-        TestClient for making synchronous HTTP requests
-    """
-    with TestClient(app) as client:
-        yield client
-
-
-# Test data fixtures following Dashtam patterns
-@pytest.fixture
-async def test_user(db_session: AsyncSession) -> User:
-    """Create a test user following Dashtam user model patterns.
-
-    Args:
-        db_session: Test database session
-
-    Returns:
-        User instance saved to test database
-    """
-    user = User(email="test@example.com", name="Test User", is_verified=True)
-    db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
-    return user
-
-
-@pytest.fixture
-async def test_provider(db_session: AsyncSession, test_user: User) -> Provider:
-    """Create a test provider instance following Dashtam provider patterns.
-
-    Args:
-        db_session: Test database session
-        test_user: Test user who owns this provider
-
-    Returns:
-        Provider instance saved to test database
-    """
-    provider = Provider(
-        user_id=test_user.id, provider_key="schwab", alias="Test Schwab Account"
-    )
-    db_session.add(provider)
-    await db_session.commit()
-    await db_session.refresh(provider)
-    return provider
-
-
-@pytest.fixture
-async def test_provider_with_connection(
-    db_session: AsyncSession, test_provider: Provider
-) -> Provider:
-    """Create a test provider with active connection.
-
-    Args:
-        db_session: Test database session
-        test_provider: Base provider instance
-
-    Returns:
-        Provider with active connection relationship loaded
-    """
-    connection = ProviderConnection(
-        provider_id=test_provider.id,
-        status=ProviderStatus.ACTIVE,
-        accounts_count=2,
-        accounts_list=["test_account_1", "test_account_2"],
-    )
-    db_session.add(connection)
-    await db_session.commit()
-
-    # Refresh to load the relationship
-    await db_session.refresh(test_provider)
-    return test_provider
-
-
-@pytest.fixture
-def mock_encryption_service(test_settings: TestSettings):
-    """Provide a mock encryption service for testing.
-
-    Uses fast, deterministic encryption suitable for testing.
-
-    Args:
-        test_settings: Test configuration
-
-    Returns:
-        Mock encryption service with predictable behavior
-    """
-    service = AsyncMock()
-
-    # Provide deterministic encryption for testing
-    service.encrypt.side_effect = lambda data: f"encrypted_{data}"
-    service.decrypt.side_effect = (
-        lambda data: data.replace("encrypted_", "")
-        if data.startswith("encrypted_")
-        else data
-    )
-
-    return service
-
-
-@pytest.fixture
-def mock_schwab_api_responses(test_settings: TestSettings):
-    """Provide mock responses for Schwab API calls.
-
-    Args:
-        test_settings: Test configuration
-
-    Returns:
-        Dictionary of mock API responses for testing
-    """
-    return {
-        "token_response": {
-            "access_token": "mock_access_token_12345",
-            "refresh_token": "mock_refresh_token_67890",
-            "expires_in": 3600,
-            "token_type": "Bearer",
-            "scope": "api",
-        },
-        "auth_url": (
-            f"{test_settings.SCHWAB_API_BASE_URL}/oauth/authorize"
-            f"?response_type=code&client_id={test_settings.SCHWAB_API_KEY}"
-            f"&redirect_uri={test_settings.SCHWAB_REDIRECT_URI}"
-            f"&scope=api&state=test_state"
-        ),
-        "user_info": {
-            "user_id": "test_schwab_user_123",
-            "account_numbers": ["12345678", "87654321"],
-        },
-    }
-
-
-@pytest.fixture
-def sample_test_data(test_settings: TestSettings):
-    """Provide sample test data following Dashtam data patterns.
-
-    Args:
-        test_settings: Test configuration
-
-    Returns:
-        Dictionary of sample data for various test scenarios
-    """
-    return {
-        "user_data": {
-            "email": "testuser@example.com",
-            "name": "Test User",
-            "is_verified": True,
-        },
-        "provider_data": {
-            "provider_key": "schwab",
-            "alias": "Personal Brokerage Account",
-        },
-        "token_data": {
-            "access_token": "sample_access_token_testing_123",
-            "refresh_token": "sample_refresh_token_testing_456",
-            "expires_in": 3600,
-            "id_token": "sample_id_token_testing_789",
-            "scope": "api",
-            "token_type": "Bearer",
-        },
-    }
-
-
-# Pytest configuration
+# Pytest markers for different test types
 def pytest_configure(config):
-    """Configure pytest with custom markers and settings.
-
-    This follows pytest best practices and sets up test environment.
-    """
-    config.addinivalue_line("markers", "unit: mark test as a unit test")
-    config.addinivalue_line("markers", "integration: mark test as an integration test")
-    config.addinivalue_line("markers", "e2e: mark test as an end-to-end test")
-    config.addinivalue_line("markers", "slow: mark test as slow running")
-    config.addinivalue_line("markers", "database: mark test as requiring database")
-
-    # Set test environment variables
-    os.environ["TESTING"] = "1"
-    os.environ["ENVIRONMENT"] = "testing"
+    """Register custom markers."""
+    config.addinivalue_line("markers", "unit: Unit tests with mocked dependencies")
+    config.addinivalue_line(
+        "markers", "integration: Integration tests with real database"
+    )
+    config.addinivalue_line("markers", "smoke: End-to-end smoke tests")
+    config.addinivalue_line("markers", "asyncio: Async test that requires event loop")
 
 
+# Test execution configuration
 def pytest_collection_modifyitems(config, items):
-    """Automatically mark tests based on their location.
+    """Automatically add asyncio marker to async test functions.
 
-    This provides automatic test categorization based on directory structure.
+    This ensures all async tests are properly marked even if
+    the developer forgets to add @pytest.mark.asyncio.
     """
     for item in items:
-        # Auto-mark tests based on directory structure
-        item_path = str(item.fspath)
+        if asyncio.iscoroutinefunction(item.function):
+            item.add_marker(pytest.mark.asyncio)
 
-        if "unit" in item_path:
-            item.add_marker(pytest.mark.unit)
-        elif "integration" in item_path:
-            item.add_marker(pytest.mark.integration)
-            item.add_marker(
-                pytest.mark.database
-            )  # Integration tests typically need database
-        elif "e2e" in item_path:
-            item.add_marker(pytest.mark.e2e)
-            item.add_marker(pytest.mark.slow)  # E2E tests are typically slower
-            item.add_marker(pytest.mark.database)  # E2E tests need database
+
+# Database test isolation helper
+@pytest_asyncio.fixture
+async def isolated_database_session():
+    """Provide an isolated database session for integration tests.
+
+    Each test gets its own transaction that's rolled back after the test,
+    ensuring no data persists between tests.
+
+    This pattern prevents:
+    - Data leakage between tests
+    - Test order dependencies
+    - Race conditions in parallel test execution
+    """
+    from src.infrastructure.persistence.database import Database
+    from src.core.config import settings
+
+    # Use test database (from settings)
+    db = Database(
+        database_url=settings.database_url  # Uses DATABASE_URL from .env.test
+    )
+
+    async with db.get_session() as session:
+        # Start a transaction
+        async with session.begin():
+            # Create a savepoint for rollback
+            savepoint = await session.begin_nested()
+
+            yield session
+
+            # Rollback to savepoint after test
+            await savepoint.rollback()
+
+    # Cleanup
+    await db.close()
+
+
+# Cache test isolation helpers (matches database pattern)
+@pytest_asyncio.fixture
+async def redis_test_client():
+    """Provide a fresh Redis client for each test.
+
+    This fixture bypasses the singleton pattern used in production
+    to ensure complete isolation between tests. Each test gets its
+    own Redis connection that's properly cleaned up.
+
+    This matches the database test pattern where tests create fresh
+    Database instances instead of using the singleton.
+
+    Pattern:
+    - Production: Singleton with connection pool (efficient)
+    - Tests: Fresh instances per test (isolated)
+    """
+    from src.core.config import settings
+
+    # Create fresh connection pool (bypass singleton)
+    pool = ConnectionPool.from_url(
+        settings.redis_url,
+        max_connections=10,  # Smaller pool for tests
+        decode_responses=True,
+        socket_keepalive=True,
+        socket_connect_timeout=5,
+        retry_on_timeout=True,
+    )
+
+    # Create fresh Redis client
+    client = Redis(connection_pool=pool)
+
+    # Verify connection
+    await client.ping()  # type: ignore[misc]
+
+    yield client
+
+    # Cleanup: Close client and disconnect pool
+    await client.aclose()
+    await pool.disconnect()
+
+
+@pytest_asyncio.fixture
+async def cache_adapter(redis_test_client):
+    """Provide a cache adapter for each test.
+
+    Uses the redis_test_client fixture to ensure test isolation.
+    Each test gets a fresh RedisAdapter instance with its own
+    Redis connection.
+
+    Usage:
+        async def test_something(cache_adapter):
+            result = await cache_adapter.set("key", "value", ttl=60)
+            assert result.is_success
+    """
+    from src.infrastructure.cache.redis_adapter import RedisAdapter
+
+    return RedisAdapter(redis_client=redis_test_client)
+
+
+@pytest_asyncio.fixture
+async def session_cache(cache_adapter):
+    """Provide a RedisSessionCache for each test.
+
+    Uses the cache_adapter fixture to ensure test isolation.
+    Each test gets a fresh session cache instance.
+
+    Usage:
+        async def test_something(session_cache):
+            await session_cache.set(session_data)
+            result = await session_cache.get(session_id)
+    """
+    from src.infrastructure.cache.session_cache import RedisSessionCache
+
+    return RedisSessionCache(cache=cache_adapter)
+
+
+@pytest_asyncio.fixture
+async def test_database():
+    """Provide a test database instance for integration tests.
+
+    Returns a Database instance that can create multiple independent sessions.
+    Used for audit durability tests where separate sessions are required.
+
+    This fixture provides the Database object (not a session), allowing
+    tests to create multiple separate sessions as needed for testing
+    session isolation scenarios.
+
+    Usage:
+        async def test_something(test_database):
+            async with test_database.get_session() as session1:
+                # Use session1
+            async with test_database.get_session() as session2:
+                # Use session2 (separate from session1)
+    """
+    from src.infrastructure.persistence.database import Database
+    from src.core.config import settings
+
+    db = Database(database_url=settings.database_url, echo=settings.db_echo)
+    yield db
+    await db.close()
+
+
+# Async timeout configuration
+@pytest.fixture
+def async_timeout():
+    """Default timeout for async operations in tests.
+
+    Returns 5 seconds by default, but can be overridden in specific tests.
+    This prevents tests from hanging indefinitely on async operations.
+    """
+    return 5.0
+
+
+# Mock factory helpers for consistent test isolation
+@pytest.fixture
+def mock_async_context_manager():
+    """Factory for creating mock async context managers.
+
+    Useful for mocking database sessions, connections, etc.
+    """
+    from unittest.mock import AsyncMock, MagicMock
+
+    def factory(return_value=None):
+        """Create a mock that works as async context manager."""
+        mock = MagicMock()
+        mock.__aenter__ = AsyncMock(return_value=return_value or mock)
+        mock.__aexit__ = AsyncMock(return_value=None)
+        return mock
+
+    return factory
+
+
+# Container mocking (for unit tests that need to mock infrastructure)
+@pytest.fixture
+def mock_container_dependencies():
+    """Mock all container dependencies for unit tests.
+
+    Use this fixture in unit tests that need to mock infrastructure dependencies.
+    Integration tests should NOT use this - they create fresh instances directly.
+
+    Returns:
+        dict: Dictionary of mock dependencies (cache, secrets, database)
+
+    Example:
+        @pytest.mark.asyncio
+        async def test_handler(mock_container_dependencies):
+            # Handler uses mocked container dependencies
+            handler = RegisterUserHandler()
+            result = await handler.handle(command)
+
+            # Verify mock calls
+            assert mock_container_dependencies["cache"].set.called
+    """
+    from unittest.mock import AsyncMock, Mock, patch
+    from src.core.result import Success
+
+    mocks = {
+        "cache": AsyncMock(),
+        "secrets": Mock(),
+        "database": Mock(),
+    }
+
+    # Configure default mock behaviors
+    mocks["cache"].get.return_value = Success(value=None)
+    mocks["cache"].set.return_value = Success(value=None)
+    mocks["secrets"].get_secret.return_value = "mock-secret"
+
+    # Patch container functions
+    with patch("src.core.container.get_cache", return_value=mocks["cache"]):
+        with patch("src.core.container.get_secrets", return_value=mocks["secrets"]):
+            with patch(
+                "src.core.container.get_database", return_value=mocks["database"]
+            ):
+                yield mocks
+
+
+# =============================================================================
+# Reusable Mock Fixtures
+# =============================================================================
+# These mock fixtures are used across unit and integration tests.
+# They provide consistent mock behavior for cross-cutting concerns.
+
+
+@pytest.fixture
+def mock_logger():
+    """Provide a mock logger for testing.
+
+    Returns a Mock object with standard logging methods (info, debug, error, warning).
+    Use this when testing components that require a logger dependency.
+
+    Usage:
+        def test_something(mock_logger):
+            service = MyService(logger=mock_logger)
+            service.do_something()
+            mock_logger.info.assert_called_once()
+    """
+    from unittest.mock import Mock
+
+    logger = Mock()
+    logger.info = Mock()
+    logger.debug = Mock()
+    logger.error = Mock()
+    logger.warning = Mock()
+    return logger
+
+
+@pytest_asyncio.fixture
+async def mock_audit():
+    """Provide a mock audit service for testing.
+
+    Returns an AsyncMock with standard audit methods.
+    Use this when testing components that record audit logs.
+
+    Usage:
+        async def test_something(mock_audit):
+            service = MyService(audit=mock_audit)
+            await service.do_something()
+            mock_audit.record.assert_called_once()
+    """
+    from unittest.mock import AsyncMock
+
+    audit = AsyncMock()
+    audit.record = AsyncMock(return_value=None)
+    return audit
+
+
+@pytest_asyncio.fixture
+async def mock_event_bus():
+    """Provide a mock event bus for testing.
+
+    Returns an AsyncMock with standard event bus methods.
+    Use this when testing components that publish domain events.
+
+    Usage:
+        async def test_something(mock_event_bus):
+            service = MyService(event_bus=mock_event_bus)
+            await service.do_something()
+            mock_event_bus.publish.assert_called()
+    """
+    from unittest.mock import AsyncMock
+
+    event_bus = AsyncMock()
+    event_bus.publish = AsyncMock(return_value=None)
+    event_bus.subscribe = AsyncMock(return_value=None)
+    return event_bus
+
+
+@pytest_asyncio.fixture
+async def mock_cache():
+    """Provide a mock cache for testing.
+
+    Returns an AsyncMock with standard cache methods.
+    Use this when testing components that use caching but don't need real Redis.
+
+    For tests that need real Redis, use `cache_adapter` fixture instead.
+
+    Usage:
+        async def test_something(mock_cache):
+            service = MyService(cache=mock_cache)
+            await service.do_something()
+            mock_cache.set.assert_called()
+    """
+    from unittest.mock import AsyncMock
+
+    cache = AsyncMock()
+    cache.get = AsyncMock(return_value=None)  # Cache miss by default
+    cache.set = AsyncMock(return_value=None)
+    cache.delete = AsyncMock(return_value=None)
+    cache.delete_pattern = AsyncMock(return_value=None)
+    return cache
+
+
+# =============================================================================
+# Provider Fixtures (for FK constraints in integration tests)
+# =============================================================================
+
+
+@pytest_asyncio.fixture
+async def schwab_provider(test_database):
+    """Fixture providing the seeded schwab provider ID.
+
+    Returns the (provider_id, slug) tuple of the seeded 'schwab' provider.
+    Most tests should use this for FK constraint satisfaction when they
+    don't care about which provider is used.
+
+    Usage:
+        async def test_connection(test_database, schwab_provider):
+            provider_id, provider_slug = schwab_provider
+            connection = create_test_connection(
+                provider_id=provider_id,
+                provider_slug=provider_slug,
+                ...
+            )
+    """
+    from sqlalchemy import select
+    from src.infrastructure.persistence.models.provider import Provider as ProviderModel
+
+    async with test_database.get_session() as session:
+        stmt = select(ProviderModel).where(ProviderModel.slug == "schwab")
+        result = await session.execute(stmt)
+        provider = result.scalar_one()
+        return provider.id, provider.slug
+
+
+@pytest.fixture
+def provider_factory(test_database):
+    """Factory fixture for creating unique test providers.
+
+    Use this when tests need multiple different providers or need to
+    test provider-specific filtering logic.
+
+    Returns an async function that creates a unique provider and returns
+    (provider_id, slug) tuple.
+
+    Usage:
+        async def test_multiple_providers(test_database, provider_factory):
+            provider1_id, slug1 = await provider_factory("fidelity")
+            provider2_id, slug2 = await provider_factory("vanguard")
+    """
+    import uuid
+    from uuid_extensions import uuid7
+    from src.infrastructure.persistence.models.provider import Provider as ProviderModel
+
+    async def _create_provider(slug_prefix="test"):
+        async with test_database.get_session() as session:
+            provider_id = uuid7()
+            unique_slug = f"{slug_prefix}_{uuid.uuid4().hex[:8]}"
+            now = datetime.now(UTC)
+
+            provider = ProviderModel(
+                id=provider_id,
+                slug=unique_slug,
+                name=f"Test Provider {unique_slug}",
+                credential_type=CredentialType.OAUTH2.value,
+                is_active=True,
+                created_at=now,
+                updated_at=now,
+            )
+            session.add(provider)
+            await session.commit()
+            return provider_id, unique_slug
+
+    return _create_provider
+
+
+# Test data cleanup tracker
+@pytest.fixture
+def cleanup_tracker():
+    """Track items that need cleanup after test.
+
+    Usage:
+        def test_something(cleanup_tracker):
+            resource = create_resource()
+            cleanup_tracker.add(resource.cleanup)
+            # test continues...
+    """
+
+    class CleanupTracker:
+        def __init__(self):
+            self.cleanups = []
+
+        def add(self, cleanup_func):
+            """Add a cleanup function to be called after test."""
+            self.cleanups.append(cleanup_func)
+
+        async def cleanup_all(self):
+            """Execute all cleanup functions."""
+            for cleanup in reversed(self.cleanups):
+                try:
+                    if asyncio.iscoroutinefunction(cleanup):
+                        await cleanup()
+                    else:
+                        cleanup()
+                except Exception as e:
+                    # Log but don't fail test on cleanup errors
+                    print(f"Cleanup error: {e}")
+
+    tracker = CleanupTracker()  # type: ignore[no-untyped-call]
+    yield tracker
+
+    # Run cleanup after test
+    asyncio.run(tracker.cleanup_all())  # type: ignore[no-untyped-call]

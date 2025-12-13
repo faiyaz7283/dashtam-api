@@ -1,0 +1,83 @@
+# Docker and build artifacts
+**/.dockerignore
+**/Dockerfile*
+**/docker-compose*.yml
+.git/
+.github/
+.gitignore
+
+# Environment files - NEVER copy these into images
+# They should be mounted at runtime
+.env
+.env.*
+!.env.*.example
+.env.backup
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+.tox/
+.hypothesis/
+
+# Virtual environments
+venv/
+ENV/
+.venv/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation and configs (mounted at runtime)
+*.md
+!README.md
+docs/
+LICENSE
+Makefile
+Makefile.workflows
+
+# Test files (not needed in production)
+tests/
+.pytest_cache/
+
+# CI/CD
+.github/
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# SSL certificates (mounted at runtime)
+certs/*.pem
+
+# Backup files
+*.backup
+backup/
+backups/
+
+# Compose and env directories (not needed in images)
+compose/
+env/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

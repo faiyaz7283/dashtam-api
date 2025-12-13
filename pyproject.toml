@@ -1,0 +1,131 @@
+[project]
+name = "dashtam"
+version = "1.0.0"
+description = "A secure financial data aggregation platform built with hexagonal architecture, CQRS, and domain-driven design"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.16.5",
+    "asyncpg>=0.30.0",
+    "boto3>=1.40.45",
+    "casbin>=1.43.0",
+    "casbin-async-sqlalchemy-adapter>=1.15.0",
+    "cryptography>=46.0.2",
+    "email-validator>=2.3.0",
+    "fastapi>=0.118.0",
+    "geoip2>=5.1.0",
+    "httpx>=0.28.1",
+    "passlib[bcrypt]>=1.7.4",
+    "psycopg[binary,pool]>=3.2.10",
+    "pydantic-settings>=2.11.0",
+    "pyjwt>=2.10.1",
+    "python-dateutil>=2.9.0.post0",
+    "python-dotenv>=1.1.1",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.20",
+    "pytz>=2025.2",
+    "redis>=7.0.0",
+    "requests>=2.32.5",
+    "sqlmodel>=0.0.25",
+    "structlog>=25.5.0",
+    "urllib3>=2.5.0",
+    "user-agents>=2.2.0",
+    "uuid7>=0.1.0",
+    "uvicorn[standard]>=0.37.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "boto3-stubs[logs]>=1.40.73",
+    "fakeredis[lua]>=2.32.0",
+    "freezegun>=1.5.5",
+    "httpx>=0.28.1",
+    "moto[logs,secretsmanager]>=5.1.16",
+    "mypy>=1.18.2",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+    "pytest-httpx>=0.35.0",
+    "ruff>=0.13.3",
+    "types-passlib>=1.7.7.20250602",
+    "types-python-dateutil>=2.9.0.20250822",
+    "types-pytz>=2025.2.0.20250809",
+    "types-requests>=2.32.4.20250913",
+]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-awesome-pages-plugin>=2.10.1",
+    "mkdocs-material>=9.6.22",
+    "mkdocs-mermaid2-plugin>=1.2.3",
+    "mkdocstrings[python]>=0.30.1",
+]
+
+# =============================================================================
+# Coverage Configuration
+# =============================================================================
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    # Initialization scripts (not typically tested)
+    "src/core/init_db.py",
+    "src/core/init_test_db.py",
+    # Rate limiter co-located tests (independent bounded context, tested separately)
+    "src/rate_limiter/tests/*",
+    # Rate limiter models base (used for type hints, not instantiated directly)
+    "src/rate_limiter/models/base.py",
+]
+
+[tool.coverage.report]
+precision = 0
+skip_covered = false
+skip_empty = true
+show_missing = true
+# Uncomment to fail CI if coverage is below threshold
+# fail_under = 76
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# =============================================================================
+# Type Checking Configuration
+# =============================================================================
+[tool.mypy]
+# Use Python version from project configuration
+# No need to specify python_version - mypy will use the environment's version
+files = ["src", "tests"]
+exclude = [
+    "DELETE/",
+    "htmlcov/",
+    "site/",
+    ".venv/",
+    "venv/",
+]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_reexport = true
+
+# Per-module options for third-party libraries without stubs
+[[tool.mypy.overrides]]
+module = [
+    "uvicorn",
+    "passlib.*",
+    "jose",
+    "fakeredis.*",
+    "alembic.*",
+    "sqlalchemy.*",
+    "asyncpg.*",
+    "casbin",
+    "casbin_async_sqlalchemy_adapter",
+    "user_agents",
+    "user_agents.*",
+    "uuid_extensions",
+]
+ignore_missing_imports = true
+
+# Test files: relax strict typing (common practice)
+# Test functions are simple, pytest fixtures are hard to annotate properly
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_untyped_decorators = false

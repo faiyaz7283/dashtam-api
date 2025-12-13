@@ -53,7 +53,8 @@ services:
     volumes:
       # Mount entire project for full dev experience (mkdocs, config files, etc.)
       - ..:/app:rw
-      # Exclude .venv to prevent host/container conflicts (anonymous volume takes precedence)
+      # Exclude .venv from mount to avoid macOS/Linux binary conflicts
+      # Dependencies synced via Makefile commands (uv sync --all-groups)
       - /app/.venv
     depends_on:
       postgres:

@@ -10,6 +10,8 @@ Tests cover:
 """
 
 import os
+import tomllib
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -146,6 +148,12 @@ class TestSettingsLoading:
 
     def test_settings_defaults(self, base_test_env):
         """Test Settings default values."""
+        # Read expected version from pyproject.toml (single source of truth)
+        pyproject_path = Path(__file__).parent.parent.parent / "pyproject.toml"
+        with pyproject_path.open("rb") as f:
+            pyproject = tomllib.load(f)
+        expected_version = pyproject["project"]["version"]
+
         with patch.dict(os.environ, base_test_env, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
@@ -157,7 +165,7 @@ class TestSettingsLoading:
             assert settings.reload is False  # default
             assert settings.log_level == "INFO"  # default
             assert settings.app_name == "Dashtam"  # default
-            assert settings.app_version == "0.1.0"  # default
+            assert settings.app_version == expected_version  # from pyproject.toml
             assert settings.algorithm == "HS256"  # default
             assert settings.access_token_expire_minutes == 15  # default (updated F6.5)
             assert settings.refresh_token_expire_days == 30  # default

@@ -148,14 +148,15 @@ make test
 
 ### Development Workflow
 
-1. **Read feature requirements** from roadmap
-2. **Follow development checklist** (`~/starter/development-checklist.md`)
-3. **Plan implementation** with TODO list
-4. **Get user approval** before coding
-5. **Implement feature** following architecture patterns
-6. **Test incrementally** (unit → integration → API)
-7. **Document changes** (architecture docs, API flows)
-8. **Commit with conventional commits** (`feat:`, `fix:`, `docs:`)
+1. **Create feature branch** from `development`
+2. **Research architecture** - Identify layers, patterns, dependencies
+3. **Plan implementation** - Create TODO list, get approval
+4. **Implement feature** - Follow hexagonal architecture, CQRS, protocols
+5. **Test incrementally** - Unit → integration → API (85%+ coverage target)
+6. **Verify quality** - `make lint && make format && make type-check`
+7. **Document changes** - Update architecture docs, add usage guides
+8. **Commit with conventional commits** - `feat:`, `fix:`, `docs:`
+9. **Create pull request** to `development` branch
 
 ## Development Guides
 
@@ -168,30 +169,16 @@ make test
 
 ### Architecture Documentation Status
 
-✅ **Complete**:
+✅ **Complete** - All core architecture components:
 
-- Directory structure and layer organization
-- Dependency injection container pattern
-- Error handling with Result types
-- Testing architecture with container mocking
-- Audit trail with semantic accuracy (ATTEMPT → OUTCOME)
-- Database setup with async SQLAlchemy
-- Cache implementation with Redis
-- Domain events with in-memory event bus
-- Secrets management multi-tier strategy
-- Structured logging with JSON output
-
-🚧 **In Progress**:
-
-- Audit semantic accuracy implementation (Phase 6/9)
-- Feature implementation (F0.9 Audit Trail)
-- Domain models and repositories
-
-📋 **Planned**:
-
-- Authentication & authorization
-- Financial provider integrations
-- Transaction aggregation
+- **Foundation**: Directory structure, dependency injection, error handling
+- **Security**: Authentication (JWT + refresh tokens), authorization (Casbin RBAC), rate limiting
+- **Data Layer**: Database (async PostgreSQL), cache (Redis), repositories
+- **Domain**: Entities (User, Account, Transaction), value objects, domain events
+- **Application**: CQRS handlers (commands + queries), event handlers
+- **Infrastructure**: Audit trail (PCI-DSS compliant), structured logging, secrets management
+- **Providers**: Schwab OAuth integration, account/transaction sync
+- **Testing**: 1,589 tests (81% coverage), integration tests, API tests
 
 ## Contributing
 
@@ -208,4 +195,4 @@ See `~/starter/development-checklist.md` for the complete feature development wo
 
 ---
 
-**Created**: 2025-11-13  | **Last Updated**: 2025-11-17
+**Created**: 2025-11-13 | **Last Updated**: 2025-12-12

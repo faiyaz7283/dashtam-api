@@ -161,6 +161,9 @@ dev-up: _check-traefik _ensure-env-dev
 	@echo "🚀 Starting DEVELOPMENT environment..."
 	@docker compose -f compose/docker-compose.dev.yml up -d
 	@echo ""
+	@echo "📦 Syncing dependencies (including MkDocs)..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
+	@echo ""
 	@echo "✅ Development services started!"
 	@echo ""
 	@echo "🌐 Access:"
@@ -208,6 +211,11 @@ dev-build: _check-traefik _ensure-env-dev
 dev-rebuild: _check-traefik _ensure-env-dev
 	@echo "🔨 Rebuilding DEVELOPMENT containers (no cache)..."
 	@docker compose -f compose/docker-compose.dev.yml build --no-cache
+	@echo "📦 Restarting with fresh dependencies..."
+	@docker compose -f compose/docker-compose.dev.yml down
+	@docker compose -f compose/docker-compose.dev.yml up -d
+	@echo "📦 Syncing dependencies (including MkDocs)..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
 	@echo "✅ Development containers rebuilt"
 
 # ==============================================================================
@@ -609,6 +617,8 @@ md-check: lint-md
 docs-serve:
 	@echo "📚 Starting MkDocs live preview..."
 	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@echo "📦 Ensuring MkDocs dependencies..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
 	@docker compose -f compose/docker-compose.dev.yml exec -d app sh -c "cd /app && PYTHONUNBUFFERED=1 uv run mkdocs serve --dev-addr=0.0.0.0:8001"
 	@sleep 2
 	@echo ""
@@ -620,8 +630,10 @@ docs-serve:
 	@echo "   echo '127.0.0.1 docs.dashtam.local' | sudo tee -a /etc/hosts"
 
 docs-build:
-	@echo "🏗️  Building documentation (strict mode)..."
+	@echo "🏭️  Building documentation (strict mode)..."
 	@docker compose -f compose/docker-compose.dev.yml ps -q app > /dev/null 2>&1 || make dev-up
+	@echo "📦 Ensuring MkDocs dependencies..."
+	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
 	@docker compose -f compose/docker-compose.dev.yml exec app uv run mkdocs build --strict
 	@echo "✅ Documentation built to site/"
 

@@ -5,6 +5,7 @@
 **External Reference**:
 
 - `~/references/starter/dashtam-feature-roadmap.md` - Feature roadmap with Phase 2-6 implementation details
+- `~/references/dashtam-production-deployment-options.md` - Production deployment options, costs, TLS/auth, CI/CD, IaC
 
 ---
 

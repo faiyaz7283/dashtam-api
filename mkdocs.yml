@@ -114,10 +114,14 @@ plugins:
 nav:
   - Home: index.md
   - API Reference:
+    - Account Operations: api/account-operations.md
     - Authentication: api/authentication.md
+    - Provider Connection: api/provider-connection.md
     - Token Rotation: api/admin-token-rotation.md
+    - Transaction Operations: api/transaction-operations.md
   - Architecture:
     - Account Domain: architecture/account-domain-model.md
+    - API Design Patterns: architecture/api-design-patterns.md
     - Audit Trail: architecture/audit-trail-architecture.md
     - Authentication: architecture/authentication-architecture.md
     - Authorization: architecture/authorization-architecture.md
@@ -129,6 +133,8 @@ nav:
     - Domain Events: architecture/domain-events-architecture.md
     - Error Handling: architecture/error-handling-architecture.md
     - Provider Domain: architecture/provider-domain-model.md
+    - Provider Integration: architecture/provider-integration-architecture.md
+    - Provider OAuth: architecture/provider-oauth-architecture.md
     - Rate Limiting: architecture/rate-limit-architecture.md
     - Repository Pattern: architecture/repository-pattern.md
     - Secrets Management: architecture/secrets-management-architecture.md
@@ -137,10 +143,22 @@ nav:
     - Testing: architecture/testing-architecture.md
     - Token Breach Rotation: architecture/token-breach-rotation-architecture.md
     - Transaction Domain: architecture/transaction-domain-model.md
+    - Validation: architecture/validation-architecture.md
   - Guides:
     - Audit Usage Patterns: guides/audit-usage-patterns.md
+    - Authentication Usage: guides/authentication-usage.md
+    - Authorization Usage: guides/authorization-usage.md
+    - Cache Usage: guides/cache-usage.md
     - Database Seeding: guides/database-seeding.md
+    - Database Usage: guides/database-usage.md
+    - Dependency Injection Usage: guides/dependency-injection-usage.md
     - Domain Events Usage: guides/domain-events-usage.md
     - Enum Security: guides/enum-security-guidelines.md
     - Error Handling Usage: guides/error-handling-usage.md
     - Import Guidelines: guides/import-guidelines.md
+    - Key Management: guides/key-management.md
+    - Local CI Testing: guides/local-ci-testing.md
+    - Rate Limit Usage: guides/rate-limit-usage.md
+    - Secrets Management Usage: guides/secrets-management-usage.md
+    - Session Management Usage: guides/session-management-usage.md
+    - Structured Logging Usage: guides/structured-logging-usage.md

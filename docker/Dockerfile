@@ -99,34 +99,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # TODO F0.4: Re-enable automatic migrations once Alembic is initialized
 # NOTE: Remove --ssl-certfile/--ssl-keyfile (Traefik handles SSL termination)
 CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port 8000"]
-
-# =============================================================================
-# Callback Server Stage - OAuth callback handler
-# =============================================================================
-FROM python:3.13-slim AS callback
-
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
-
-# Install minimal dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd -r appuser -g 1000 && \
-    useradd -r -u 1000 -g appuser -m -s /bin/bash appuser
-
-WORKDIR /app
-
-# Install required Python packages
-RUN pip install --no-cache-dir requests urllib3
-
-# Copy callback server
-COPY --chown=appuser:appuser callback_server.py ./
-
-# Switch to non-root user
-USER appuser
-
-# Run callback server
-CMD ["python", "-u", "callback_server.py"]

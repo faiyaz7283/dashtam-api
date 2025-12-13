@@ -113,31 +113,6 @@ services:
         tail -f /dev/null
       "
 
-  # OAuth Callback Server (CI) - Required for OAuth tests
-  callback:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      target: callback
-    container_name: dashtam-ci-callback
-    env_file:
-      - ../env/.env.ci
-    # No port mapping - internal communication only in CI
-    volumes:
-      - ../certs:/app/certs:ro
-    depends_on:
-      - app
-    networks:
-      - dashtam-ci-network
-    # Keep running for OAuth callback handling during tests
-    # Note: In test environment, we just keep the container alive
-    # The actual callback handling is done through the app's routing
-    command: >
-      sh -c "
-        echo 'CI callback server ready for OAuth tests.' &&
-        tail -f /dev/null
-      "
-
 networks:
   dashtam-ci-network:
     driver: bridge

@@ -22,12 +22,36 @@ Usage:
         # Dev-specific behavior
 """
 
+import tomllib
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.core.enums import Environment
+
+
+@lru_cache(maxsize=1)
+def _get_version_from_pyproject() -> str:
+    """
+    Read application version from pyproject.toml.
+
+    This ensures version is managed in a single source of truth.
+    The function is cached to avoid repeated file I/O.
+
+    Returns:
+        str: Application version (e.g., "1.0.0").
+
+    Raises:
+        FileNotFoundError: If pyproject.toml is not found.
+        KeyError: If version is not defined in pyproject.toml.
+    """
+    pyproject_path = Path(__file__).parent.parent.parent / "pyproject.toml"
+    with pyproject_path.open("rb") as f:
+        pyproject = tomllib.load(f)
+    version: str = pyproject["project"]["version"]
+    return version
 
 
 class Settings(BaseSettings):
@@ -88,8 +112,8 @@ class Settings(BaseSettings):
         description="Application name",
     )
     app_version: str = Field(
-        default="0.1.0",
-        description="Application version",
+        default_factory=_get_version_from_pyproject,
+        description="Application version (read from pyproject.toml)",
     )
 
     # Database configuration

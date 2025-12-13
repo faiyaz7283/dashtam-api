@@ -100,31 +100,6 @@ services:
         tail -f /dev/null
       "
 
-  # OAuth Callback Server (Testing)
-  # TODO: Re-enable during Provider/Schwab phase (F4.x)
-  # callback:
-  #   build:
-  #     context: ..
-  #     dockerfile: docker/Dockerfile
-  #     target: callback
-  #   container_name: dashtam-test-callback
-  #   env_file:
-  #     - ../env/.env.test
-  #   ports:
-  #     - "8184:8182"  # Different external port
-  #   volumes:
-  #     - ../certs:/app/certs:ro
-  #   depends_on:
-  #     - app
-  #   networks:
-  #     - dashtam-test-network
-  #   command: >
-  #     sh -c "
-  #       echo 'Test callback server ready.' &&
-  #       tail -f /dev/null
-  #     "
-
-
 networks:
   dashtam-test-network:
     driver: bridge

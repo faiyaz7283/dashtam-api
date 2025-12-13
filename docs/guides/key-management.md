@@ -5,10 +5,12 @@
 This guide covers cryptographic key management for Dashtam across all environments (development, testing, production). Proper key management is critical for security - keys protect JWT tokens, encrypt sensitive data, and secure user passwords.
 
 **Key Types**:
+
 - **SECRET_KEY**: JWT token signing (HMAC-SHA256, ≥32 characters)
 - **ENCRYPTION_KEY**: Provider credentials encryption (AES-256-GCM, exactly 32 characters)
 
 **Key Security Principles**:
+
 - ✅ **Never commit keys to version control**
 - ✅ **Use different keys for each environment**
 - ✅ **Rotate keys regularly (quarterly minimum)**
@@ -26,15 +28,18 @@ This guide covers cryptographic key management for Dashtam across all environmen
 **Algorithm**: HMAC-SHA256
 
 **Requirements**:
+
 - **Minimum length**: 32 characters (256 bits)
 - **Recommended length**: 64 characters (512 bits)
 - **Character set**: URL-safe base64 (A-Z, a-z, 0-9, -, _)
 
 **What it protects**:
+
 - JWT access tokens (prevents token forgery)
 - JWT claims (user_id, role, session_id, token_version)
 
 **Example**:
+
 ```bash
 # Good (64 characters)
 SECRET_KEY=dG9rZW4tc2lnbmluZy1rZXktZm9yLWRhc2h0YW0tcHJvZHVjdGlvbi1lbnZpcm9ubWVudC1oaWdobHktc2VjcmV0
@@ -44,6 +49,7 @@ SECRET_KEY=mysecret  # Only 8 characters - INSECURE
 ```
 
 **Validation**:
+
 ```python
 # src/core/config.py
 @field_validator("secret_key")
@@ -54,6 +60,7 @@ def validate_secret_key(cls, v: str) -> str:
 ```
 
 **Security Impact if Compromised**:
+
 - ⚠️ **HIGH RISK**: Attacker can forge valid JWT tokens
 - ⚠️ Attacker can impersonate any user
 - ⚠️ Attacker can escalate privileges (change role claim)
@@ -69,15 +76,18 @@ def validate_secret_key(cls, v: str) -> str:
 **Algorithm**: AES-256-GCM (authenticated encryption)
 
 **Requirements**:
+
 - **Exact length**: 32 characters (256 bits) - NO MORE, NO LESS
 - **Character set**: Any printable ASCII (but URL-safe base64 recommended)
 
 **What it protects**:
+
 - Provider OAuth access tokens (Schwab, Plaid)
 - Provider OAuth refresh tokens
 - Any encrypted ProviderCredentials value objects
 
 **Example**:
+
 ```bash
 # Good (exactly 32 characters)
 ENCRYPTION_KEY=AES-256-key-for-provider-cred!
@@ -88,6 +98,7 @@ ENCRYPTION_KEY=this-is-way-too-long-for-aes-256  # 42 characters - REJECTED
 ```
 
 **Validation**:
+
 ```python
 # src/core/config.py
 @field_validator("encryption_key")
@@ -98,6 +109,7 @@ def validate_encryption_key(cls, v: str) -> str:
 ```
 
 **Security Impact if Compromised**:
+
 - ⚠️ **CRITICAL RISK**: Attacker can decrypt all provider credentials
 - ⚠️ Attacker gains access to users' financial accounts
 - ⚠️ Requires immediate key rotation + credential re-encryption
@@ -131,6 +143,7 @@ def validate_encryption_key(cls, v: str) -> str:
 #### Setup Process
 
 **1. First-time setup (automatic)**:
+
 ```bash
 make setup
 # Creates env/.env.dev from template
@@ -138,6 +151,7 @@ make setup
 ```
 
 **2. Manual key generation (if needed)**:
+
 ```bash
 make keys-generate ENV=dev
 # Generates keys only if placeholders exist
@@ -145,6 +159,7 @@ make keys-generate ENV=dev
 ```
 
 **3. Force key regeneration (rare)**:
+
 ```bash
 make keys-generate ENV=dev FORCE=1
 # WARNING: Invalidates all sessions and encrypted data
@@ -154,6 +169,7 @@ make keys-generate ENV=dev FORCE=1
 #### Key Generation Algorithm
 
 **Makefile implementation**:
+
 ```makefile
 keys-generate:
     SECRET_KEY=$$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')
@@ -161,10 +177,12 @@ keys-generate:
 ```
 
 **Explanation**:
+
 - **SECRET_KEY**: 48 random bytes → base64 → 64 characters
 - **ENCRYPTION_KEY**: 24 random bytes → base64 → truncate to 32 characters
 
 **Why this approach**:
+
 - `secrets.token_urlsafe()` uses cryptographically secure random number generator (CSPRNG)
 - Generates URL-safe base64 (no special characters that break environment variables)
 - Deterministic length (always 64 chars for SECRET_KEY, 32 for ENCRYPTION_KEY)
@@ -172,6 +190,7 @@ keys-generate:
 #### Validation
 
 **Check generated keys**:
+
 ```bash
 make keys-validate ENV=dev
 # Output:
@@ -194,6 +213,7 @@ graph LR
 ```
 
 **Important Notes**:
+
 - ✅ `.env.dev` is in `.gitignore` (never committed)
 - ✅ Keys are unique per developer's machine
 - ✅ Safe to regenerate anytime during development
@@ -218,13 +238,15 @@ ENCRYPTION_KEY=test-key-for-encryption-32-ch!@#
 ```
 
 **Why fixed keys for testing?**
+
 - ✅ **Deterministic**: Tests produce same results every run
 - ✅ **Fast**: No key generation overhead
 - ✅ **Simple**: No key management complexity in CI/CD
 - ✅ **Isolated**: Test keys never used in other environments
 
 **Security Notice**:
-```
+
+```text
 ⚠️  WARNING: These keys are publicly visible in version control
 ⚠️  NEVER use test keys in development or production
 ⚠️  Test keys are intentionally weak for speed (bcrypt_rounds=4)
@@ -233,6 +255,7 @@ ENCRYPTION_KEY=test-key-for-encryption-32-ch!@#
 #### Test Key Usage
 
 **In test fixtures**:
+
 ```python
 # tests/conftest.py
 @pytest.fixture
@@ -247,6 +270,7 @@ def test_settings():
 ```
 
 **Why not use settings directly?**
+
 - Unit tests should test config validation (need invalid keys)
 - Integration tests use `.env.test` via container
 - Config tests require hardcoded values to test validators
@@ -271,18 +295,21 @@ env:
 ```
 
 **How to add secrets**:
+
 1. Go to repository → Settings → Secrets and variables → Actions
 2. Add secrets:
    - `CI_SECRET_KEY`: Generate with `python3 -c 'import secrets; print(secrets.token_urlsafe(48))'`
    - `CI_ENCRYPTION_KEY`: Generate with `python3 -c 'import secrets; print(secrets.token_urlsafe(24)[:32])'`
 
 **CI key requirements**:
+
 - ✅ Different from development keys
 - ✅ Different from production keys
 - ✅ Only used in GitHub Actions
 - ✅ Rotated quarterly
 
 **Security features**:
+
 - ✅ Encrypted at rest by GitHub
 - ✅ Never exposed in logs
 - ✅ Access controlled by repository permissions
@@ -383,11 +410,13 @@ graph TD
 ### 3.1 When to Rotate Keys
 
 **Scheduled rotation** (proactive):
+
 - ✅ **Every 90 days** (quarterly) - Best practice
 - ✅ **Every 180 days** (semi-annually) - Minimum acceptable
 - ✅ **Every 365 days** (annually) - Only for low-risk environments
 
 **Immediate rotation** (reactive):
+
 - ⚠️ **Key exposure**: Key accidentally committed to Git
 - ⚠️ **Security incident**: Suspected breach or compromise
 - ⚠️ **Employee departure**: Developer with key access leaves
@@ -401,6 +430,7 @@ graph TD
 **Impact**: Low (only affects local development)
 
 **Procedure**:
+
 ```bash
 # 1. Regenerate keys
 make keys-generate ENV=dev FORCE=1
@@ -414,11 +444,13 @@ make keys-validate ENV=dev
 ```
 
 **Post-rotation checklist**:
+
 - [ ] All sessions invalidated (expected)
 - [ ] Can login with new JWT tokens
 - [ ] Can connect provider accounts (new encryption)
 
 **Rollback** (if needed):
+
 ```bash
 # Restore from backup
 cp env/.env.dev.bak env/.env.dev
@@ -432,6 +464,7 @@ make dev-restart
 **Impact**: HIGH - All users must re-authenticate
 
 **Preparation**:
+
 1. **Schedule maintenance window** (low-traffic period)
 2. **Notify users** (email 24 hours in advance)
 3. **Backup current key** (manual export from AWS)
@@ -439,7 +472,8 @@ make dev-restart
 
 **Rotation Procedure**:
 
-**Step 1: Create new secret version**
+**Step 1: Create new secret version**:
+
 ```bash
 aws secretsmanager update-secret \
     --secret-id dashtam/production/secret_key \
@@ -447,13 +481,15 @@ aws secretsmanager update-secret \
     --region us-east-1
 ```
 
-**Step 2: Clear application cache**
+**Step 2: Clear application cache**:
+
 ```python
 # POST /api/v1/admin/cache/clear
 await cache.clear("secrets:*")  # Clear cached secrets
 ```
 
-**Step 3: Restart application**
+**Step 3: Restart application**:
+
 ```bash
 # Kubernetes
 kubectl rollout restart deployment dashtam-api
@@ -465,13 +501,15 @@ aws ecs update-service \
     --force-new-deployment
 ```
 
-**Step 4: Verify new key loaded**
+**Step 4: Verify new key loaded**:
+
 ```bash
 # Check logs for successful secret fetch
 kubectl logs -l app=dashtam-api | grep "Loaded secrets from AWS"
 ```
 
-**Step 5: Monitor for issues**
+**Step 5: Monitor for issues**:
+
 ```bash
 # Watch error rates
 aws cloudwatch get-metric-statistics \
@@ -484,12 +522,14 @@ aws cloudwatch get-metric-statistics \
 ```
 
 **Post-rotation verification**:
+
 - [ ] Users can login (new JWT tokens issued)
 - [ ] Old JWT tokens rejected (401 Unauthorized)
 - [ ] No increase in error rates
 - [ ] Audit logs show successful authentication
 
 **Rollback procedure** (if issues):
+
 ```bash
 # Restore previous secret version
 aws secretsmanager update-secret-version-stage \
@@ -511,6 +551,7 @@ kubectl rollout restart deployment dashtam-api
 **Complexity**: HIGH - Requires database migration
 
 **Preparation**:
+
 1. **Schedule extended maintenance window** (2-4 hours)
 2. **Notify users** (email 1 week in advance)
 3. **Backup database** (full backup + WAL archiving)
@@ -518,7 +559,8 @@ kubectl rollout restart deployment dashtam-api
 
 **Rotation Procedure**:
 
-**Step 1: Create new encryption key**
+**Step 1: Create new encryption key**:
+
 ```bash
 aws secretsmanager create-secret \
     --name dashtam/production/encryption_key_new \
@@ -526,7 +568,8 @@ aws secretsmanager create-secret \
     --region us-east-1
 ```
 
-**Step 2: Run re-encryption migration**
+**Step 2: Run re-encryption migration**:
+
 ```python
 # scripts/rotate_encryption_key.py
 """Re-encrypt all provider credentials with new key.
@@ -572,7 +615,8 @@ if __name__ == "__main__":
     asyncio.run(rotate_encryption_key())
 ```
 
-**Step 3: Update secret in AWS**
+**Step 3: Update secret in AWS**:
+
 ```bash
 # Replace old key with new key
 aws secretsmanager update-secret \
@@ -586,12 +630,14 @@ aws secretsmanager delete-secret \
     --force-delete-without-recovery
 ```
 
-**Step 4: Restart application**
+**Step 4: Restart application**:
+
 ```bash
 kubectl rollout restart deployment dashtam-api
 ```
 
-**Step 5: Verify re-encryption**
+**Step 5: Verify re-encryption**:
+
 ```sql
 -- Check all credentials encrypted with new key
 SELECT 
@@ -605,12 +651,14 @@ WHERE encrypted_credentials IS NOT NULL;
 ```
 
 **Post-rotation verification**:
+
 - [ ] All provider connections decrypt successfully
 - [ ] Users can sync account data
 - [ ] No increase in provider API errors
 - [ ] Database integrity check passes
 
 **Rollback procedure** (if issues):
+
 ```bash
 # 1. Restore database from backup
 pg_restore -d dashtam_production backup.dump
@@ -635,11 +683,13 @@ kubectl rollout restart deployment dashtam-api
 **Backup strategy**: No backup needed
 
 **Rationale**:
+
 - Keys are environment-specific (not shared)
 - Can regenerate with `make keys-generate ENV=dev FORCE=1`
 - Loss only affects local development (no production impact)
 
 **Recovery**:
+
 ```bash
 make keys-generate ENV=dev FORCE=1
 make dev-restart
@@ -654,6 +704,7 @@ make dev-restart
 #### Backup Procedure
 
 **1. Export keys from AWS Secrets Manager**:
+
 ```bash
 # Export SECRET_KEY
 aws secretsmanager get-secret-value \
@@ -669,6 +720,7 @@ aws secretsmanager get-secret-value \
 ```
 
 **2. Encrypt backup files**:
+
 ```bash
 # Use GPG with strong passphrase
 gpg --symmetric --cipher-algo AES256 secret_key.backup.txt
@@ -678,6 +730,7 @@ gpg --symmetric --cipher-algo AES256 encryption_key.backup.txt
 ```
 
 **3. Store encrypted backups securely**:
+
 ```bash
 # Option 1: S3 bucket with encryption
 aws s3 cp secret_key.backup.txt.gpg \
@@ -691,6 +744,7 @@ aws s3 cp secret_key.backup.txt.gpg \
 ```
 
 **4. Delete plaintext files**:
+
 ```bash
 # Secure deletion (3-pass overwrite)
 shred -vfz -n 3 secret_key.backup.txt encryption_key.backup.txt
@@ -699,11 +753,13 @@ shred -vfz -n 3 secret_key.backup.txt encryption_key.backup.txt
 #### Recovery Procedure
 
 **When to recover**:
+
 - AWS Secrets Manager catastrophic failure (rare)
 - Accidental secret deletion
 - Disaster recovery scenario
 
 **Recovery steps**:
+
 ```bash
 # 1. Retrieve encrypted backup
 aws s3 cp s3://dashtam-backups/keys/20250101/secret_key.backup.txt.gpg .
@@ -730,12 +786,14 @@ shred -vfz -n 3 secret_key.backup.txt
 ### 5.1 Key Generation
 
 **DO ✅**:
+
 - Use `make keys-generate` (CSPRNG via `secrets` module)
 - Generate unique keys per environment
 - Use URL-safe base64 encoding (no special characters)
 - Meet minimum length requirements
 
 **DON'T ❌**:
+
 - Manually create keys (predictable patterns)
 - Reuse keys across environments
 - Use weak entropy sources (date, username, etc.)
@@ -746,6 +804,7 @@ shred -vfz -n 3 secret_key.backup.txt
 ### 5.2 Key Storage
 
 **DO ✅**:
+
 - Store in environment variables (12-Factor App)
 - Use `.env` files for local development
 - Use AWS Secrets Manager for production
@@ -753,6 +812,7 @@ shred -vfz -n 3 secret_key.backup.txt
 - Encrypt backups with GPG (AES-256)
 
 **DON'T ❌**:
+
 - Commit keys to Git (even private repos)
 - Store keys in config files (checked into version control)
 - Share keys via email/Slack
@@ -764,12 +824,14 @@ shred -vfz -n 3 secret_key.backup.txt
 ### 5.3 Key Usage
 
 **DO ✅**:
+
 - Validate key length at application startup
 - Use keys only for intended purpose (SECRET_KEY for JWT, ENCRYPTION_KEY for AES)
 - Cache decrypted secrets in memory (not on disk)
 - Clear secret cache after rotation
 
 **DON'T ❌**:
+
 - Log keys (even encrypted)
 - Return keys in API responses
 - Store keys in database
@@ -781,6 +843,7 @@ shred -vfz -n 3 secret_key.backup.txt
 ### 5.4 Key Rotation
 
 **DO ✅**:
+
 - Rotate keys quarterly (90 days) minimum
 - Rotate immediately after suspected compromise
 - Test rotation in staging first
@@ -788,6 +851,7 @@ shred -vfz -n 3 secret_key.backup.txt
 - Keep audit trail of all rotations
 
 **DON'T ❌**:
+
 - Rotate during peak traffic
 - Skip pre-rotation testing
 - Forget to backup before rotation
@@ -805,6 +869,7 @@ shred -vfz -n 3 secret_key.backup.txt
 **Cause**: SECRET_KEY in `.env` file is too short.
 
 **Solution**:
+
 ```bash
 # Regenerate keys
 make keys-generate ENV=dev FORCE=1
@@ -820,6 +885,7 @@ make keys-validate ENV=dev
 **Cause**: ENCRYPTION_KEY is not exactly 32 characters.
 
 **Solution**:
+
 ```bash
 # Option 1: Regenerate
 make keys-generate ENV=dev FORCE=1
@@ -837,6 +903,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24)[:32])"
 **Cause**: SECRET_KEY changed, old JWT tokens no longer valid.
 
 **Solution**: Expected behavior after key rotation. Users must:
+
 1. Logout (if still logged in)
 2. Login again (new JWT tokens issued)
 
@@ -849,6 +916,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24)[:32])"
 **Cause**: ENCRYPTION_KEY changed, cannot decrypt existing credentials.
 
 **Solution**:
+
 ```bash
 # Option 1: Restore old key (if backup exists)
 # See "Key Backup & Recovery" section
@@ -867,6 +935,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24)[:32])"
 **Cause**: IAM permissions or network issues.
 
 **Debug steps**:
+
 ```bash
 # 1. Check IAM permissions
 aws secretsmanager get-secret-value \
@@ -883,6 +952,7 @@ echo $AWS_REGION  # Should match secret region
 ```
 
 **Common fixes**:
+
 - Attach `secretsmanager:GetSecretValue` policy to IAM role
 - Enable VPC endpoint for Secrets Manager
 - Check security group allows HTTPS (443) outbound
@@ -892,6 +962,7 @@ echo $AWS_REGION  # Should match secret region
 ### 6.2 Validation Commands
 
 **Check key lengths**:
+
 ```bash
 # Development
 make keys-validate ENV=dev
@@ -904,6 +975,7 @@ make keys-validate ENV=test
 ```
 
 **Manual validation**:
+
 ```bash
 # Check SECRET_KEY length
 grep SECRET_KEY env/.env.dev | awk -F'=' '{print length($2)}'
@@ -934,12 +1006,14 @@ grep ENCRYPTION_KEY env/.env.dev | awk -F'=' '{print length($2)}'
 ### 7.2 Audit Trail
 
 **Key events to log**:
+
 - ✅ Key generation (timestamp, environment, generated by)
 - ✅ Key access (timestamp, principal, secret name, result)
 - ✅ Key rotation (timestamp, old version, new version, rotated by)
 - ✅ Key deletion (timestamp, secret name, deleted by)
 
 **AWS Secrets Manager audit**:
+
 ```bash
 # Query CloudTrail for secret access
 aws cloudtrail lookup-events \
@@ -949,6 +1023,7 @@ aws cloudtrail lookup-events \
 ```
 
 **Application-level audit**:
+
 ```python
 # src/infrastructure/audit/audit_service.py
 await audit.record(
@@ -971,22 +1046,26 @@ await audit.record(
 ### Key Management Checklist
 
 **Development** ✅:
+
 - [ ] Run `make setup` for first-time setup
 - [ ] Keys generated with `make keys-generate`
 - [ ] Keys validated with `make keys-validate`
 - [ ] `.env.dev` in `.gitignore`
 
 **Testing** ✅:
+
 - [ ] Fixed test keys in `.env.test.example`
 - [ ] Test keys NEVER used in production
 - [ ] Test keys committed to version control (intentional)
 
 **CI/CD** ✅:
+
 - [ ] Keys stored in GitHub Secrets
 - [ ] Different keys than development/production
 - [ ] Rotated quarterly
 
 **Production** ✅:
+
 - [ ] Keys stored in AWS Secrets Manager
 - [ ] Different keys than all other environments
 - [ ] Encrypted backups in S3
@@ -995,6 +1074,7 @@ await audit.record(
 - [ ] CloudTrail logging enabled
 
 **Security** ✅:
+
 - [ ] Never commit keys to Git
 - [ ] Generate keys cryptographically (not manually)
 - [ ] Meet length requirements (SECRET_KEY ≥32, ENCRYPTION_KEY =32)
@@ -1026,7 +1106,7 @@ make keys-validate ENV=test  # Testing
 
 ### File Locations
 
-```
+```text
 env/
 ├── .env.dev.example        # Development template (committed)
 ├── .env.dev                # Development keys (gitignored)

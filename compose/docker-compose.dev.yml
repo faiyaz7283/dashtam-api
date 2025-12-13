@@ -53,7 +53,8 @@ services:
     volumes:
       # Mount entire project for full dev experience (mkdocs, config files, etc.)
       - ..:/app:rw
-      # Exclude .venv to prevent host/container conflicts (anonymous volume takes precedence)
+      # Exclude .venv from mount to avoid macOS/Linux binary conflicts
+      # Dependencies synced via Makefile commands (uv sync --all-groups)
       - /app/.venv
     depends_on:
       postgres:
@@ -71,27 +72,13 @@ services:
       - "traefik.http.routers.dashtam-dev.tls=true"
       - "traefik.http.routers.dashtam-dev.service=dashtam-dev"
       - "traefik.http.services.dashtam-dev.loadbalancer.server.port=8000"
+      # MkDocs documentation router (HTTPS)
+      - "traefik.http.routers.dashtam-dev-docs.rule=Host(`docs.dashtam.local`)"
+      - "traefik.http.routers.dashtam-dev-docs.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-dev-docs.tls=true"
+      - "traefik.http.routers.dashtam-dev-docs.service=dashtam-dev-docs"
+      - "traefik.http.services.dashtam-dev-docs.loadbalancer.server.port=8001"
     restart: unless-stopped
-
-  # OAuth Callback Server (Development)
-  callback:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      target: callback
-    container_name: dashtam-dev-callback
-    env_file:
-      - ../env/.env.dev
-    ports:
-      - "8182:8182"
-    volumes:
-      - ../certs:/app/certs:ro
-    depends_on:
-      - app
-    networks:
-      - dashtam-dev-network
-    restart: unless-stopped
-
 
 networks:
   dashtam-dev-network:

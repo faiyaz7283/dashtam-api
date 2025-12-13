@@ -10,6 +10,7 @@ Dashtam implements a **defense-in-depth validation strategy** with two distinct 
 This architecture ensures data integrity at every layer while maintaining clean separation of concerns and following the **DRY (Don't Repeat Yourself)** principle through centralized validation logic.
 
 **Key Principles**:
+
 - **Fail-Fast**: Invalid configuration prevents application startup
 - **Defense-in-Depth**: Multiple validation layers (API → Schema → Value Object → Entity)
 - **Type Safety**: Annotated types with automatic validation
@@ -168,6 +169,7 @@ class UserCreate(BaseModel):
 ```
 
 FastAPI automatically:
+
 1. Parses request body JSON
 2. Validates against schema
 3. Returns 422 Unprocessable Entity if validation fails
@@ -176,6 +178,7 @@ FastAPI automatically:
 #### Request Schema Examples
 
 **User Registration**:
+
 ```python
 class UserCreate(BaseModel):
     """User registration request."""
@@ -195,6 +198,7 @@ class UserCreate(BaseModel):
 ```
 
 **Email Verification**:
+
 ```python
 class VerifyEmailRequest(BaseModel):
     """Email verification request."""
@@ -202,6 +206,7 @@ class VerifyEmailRequest(BaseModel):
 ```
 
 **Token Refresh**:
+
 ```python
 class RefreshTokenRequest(BaseModel):
     """Token refresh request."""
@@ -266,6 +271,7 @@ class Email:
 ```
 
 **Key Features**:
+
 - `frozen=True` → Immutable (cannot be modified after creation)
 - `__post_init__` → Validation runs automatically after `__init__`
 - `object.__setattr__` → Required to set normalized value on frozen dataclass
@@ -275,11 +281,13 @@ class Email:
 **Location**: `src/domain/value_objects/email.py`
 
 **Validation**:
+
 - Uses `email-validator` library (RFC-compliant)
 - Normalizes to lowercase
 - Checks format only (no deliverability check for performance)
 
 **Example**:
+
 ```python
 >>> email = Email("User@Example.COM")
 >>> email.value
@@ -294,6 +302,7 @@ ValueError: Invalid email: ...
 **Location**: `src/domain/value_objects/password.py`
 
 **Requirements**:
+
 - At least 8 characters
 - At least one uppercase letter
 - At least one lowercase letter
@@ -301,6 +310,7 @@ ValueError: Invalid email: ...
 - At least one special character (`!@#$%^&*(),.?":{}|<>`)
 
 **Example**:
+
 ```python
 >>> password = Password("SecurePass123!")
 >>> str(password)
@@ -317,11 +327,13 @@ ValueError: Password must be at least 8 characters
 **Location**: `src/domain/value_objects/money.py`
 
 **Validation**:
+
 - Uses `Decimal` for precision (no float rounding errors)
 - Validates currency code (ISO 4217)
 - Prevents negative amounts for certain operations
 
 **Example**:
+
 ```python
 >>> money = Money(amount=Decimal("100.50"), currency="USD")
 >>> money.amount
@@ -336,6 +348,7 @@ ValueError: Amount cannot be negative
 **Location**: `src/domain/value_objects/provider_credentials.py`
 
 **Validation**:
+
 - Opaque (encrypted) credentials
 - Validates encryption integrity (AES-256-GCM authentication tag)
 - Never exposes plaintext credentials
@@ -393,12 +406,14 @@ class User:
 #### User Entity Business Rules
 
 **Business Rule 1**: Email verification required before login
+
 ```python
 def can_login(self) -> bool:
     return self.is_verified and self.is_active and not self.is_locked()
 ```
 
 **Business Rule 2**: Lock account after 5 failed login attempts
+
 ```python
 def increment_failed_login(self) -> None:
     self.failed_login_attempts += 1
@@ -407,6 +422,7 @@ def increment_failed_login(self) -> None:
 ```
 
 **Business Rule 3**: Reset lockout on successful login
+
 ```python
 def reset_failed_login(self) -> None:
     self.failed_login_attempts = 0
@@ -418,6 +434,7 @@ def reset_failed_login(self) -> None:
 **Location**: `src/domain/entities/provider_connection.py`
 
 **State Transition Validation**:
+
 ```python
 def mark_as_connecting(self) -> Result[None, str]:
     """Transition to CONNECTING state."""
@@ -428,6 +445,7 @@ def mark_as_connecting(self) -> Result[None, str]:
 ```
 
 **Valid State Transitions**:
+
 - `DISCONNECTED` → `CONNECTING`
 - `CONNECTING` → `CONNECTED` or `FAILED`
 - `CONNECTED` → `SYNCING` or `DISCONNECTING`
@@ -440,6 +458,7 @@ def mark_as_connecting(self) -> Result[None, str]:
 **Location**: `src/domain/entities/account.py`
 
 **Balance Update Validation**:
+
 ```python
 def update_balance(self, new_balance: Money) -> Result[None, str]:
     """Update account balance with validation."""
@@ -497,15 +516,17 @@ def validate_email(v: str) -> str:
 
 #### Available Validators
 
-**1. Email Validator**
+**1. Email Validator**:
 
 **Location**: `src/domain/validators.py:validate_email`
 
 **Validation**:
+
 - RFC-compliant email pattern
 - Normalizes to lowercase
 
 **Usage**:
+
 ```python
 # In domain/types.py
 Email = Annotated[
@@ -515,15 +536,17 @@ Email = Annotated[
 ]
 ```
 
-**2. Password Validator**
+**2. Password Validator**:
 
 **Location**: `src/domain/validators.py:validate_strong_password`
 
 **Validation**:
+
 - At least 8 characters
 - Contains uppercase, lowercase, digit, special character
 
 **Usage**:
+
 ```python
 # In domain/types.py
 Password = Annotated[
@@ -533,15 +556,17 @@ Password = Annotated[
 ]
 ```
 
-**3. Token Format Validator**
+**3. Token Format Validator**:
 
 **Location**: `src/domain/validators.py:validate_token_format`
 
 **Validation**:
+
 - Hexadecimal string (used for email verification, password reset)
 - Pattern: `^[a-fA-F0-9]+$`
 
 **Usage**:
+
 ```python
 # In domain/types.py
 VerificationToken = Annotated[
@@ -551,15 +576,17 @@ VerificationToken = Annotated[
 ]
 ```
 
-**4. Refresh Token Format Validator**
+**4. Refresh Token Format Validator**:
 
 **Location**: `src/domain/validators.py:validate_refresh_token_format`
 
 **Validation**:
+
 - urlsafe base64 format (opaque token)
 - Pattern: `^[A-Za-z0-9_-]+$`
 
 **Usage**:
+
 ```python
 # In domain/types.py
 RefreshToken = Annotated[
@@ -576,6 +603,7 @@ RefreshToken = Annotated[
 **Purpose**: Define validation once, use everywhere.
 
 **Pattern**:
+
 ```python
 from typing import Annotated
 from pydantic import Field, AfterValidator
@@ -589,6 +617,7 @@ Email = Annotated[
 ```
 
 **Usage across codebase**:
+
 ```python
 # In schemas/user_schemas.py
 class UserCreate(BaseModel):
@@ -642,6 +671,7 @@ def authenticate_user(email: str, password: str) -> Result[User, str]:
 ```
 
 **Usage** (forces error handling):
+
 ```python
 result = authenticate_user(email, password)
 
@@ -657,6 +687,7 @@ user = result.value
 #### Why Result Types?
 
 **Problem with exceptions**:
+
 ```python
 def authenticate_user(email: str, password: str) -> User:
     # Hidden error paths - caller doesn't know what exceptions to catch!
@@ -666,6 +697,7 @@ def authenticate_user(email: str, password: str) -> User:
 ```
 
 **Solution with Result types**:
+
 ```python
 def authenticate_user(email: str, password: str) -> Result[User, AuthError]:
     # Explicit error path - caller MUST handle Success/Failure
@@ -763,6 +795,7 @@ async def login(
 **Location**: `src/domain/types.py`
 
 **Example**:
+
 ```python
 Email = Annotated[
     str,
@@ -786,6 +819,7 @@ class UserCreate(BaseModel):
 **Location**: `src/domain/value_objects/`
 
 **Example**:
+
 ```python
 @dataclass(frozen=True)
 class Email:
@@ -807,6 +841,7 @@ class Email:
 **Location**: `src/domain/entities/`
 
 **Example**:
+
 ```python
 def can_login(self) -> bool:
     """Business rule: verified + active + not locked."""
@@ -824,6 +859,7 @@ def can_login(self) -> bool:
 **Location**: Domain entities, application handlers
 
 **Example**:
+
 ```python
 def authenticate(email: str, pwd: str) -> Result[User, AuthError]:
     if invalid:
@@ -842,6 +878,7 @@ def authenticate(email: str, pwd: str) -> Result[User, AuthError]:
 **Location**: `src/core/config.py`
 
 **Example**:
+
 ```python
 @field_validator("secret_key")
 @classmethod
@@ -1124,7 +1161,8 @@ async def test_register_user_weak_password(client: TestClient):
 
 ### DO ✅
 
-**1. Use Annotated Types for Reusable Validation**
+**1. Use Annotated Types for Reusable Validation**:
+
 ```python
 Email = Annotated[str, Field(...), AfterValidator(validate_email)]
 
@@ -1133,14 +1171,16 @@ class UserCreate(BaseModel):
     email: Email
 ```
 
-**2. Validate at the Appropriate Layer**
+**2. Validate at the Appropriate Layer**:
+
 - Configuration → Startup validation
 - Request format → API boundary (schemas)
 - Domain concepts → Value objects
 - Business rules → Entity methods
 - Operation results → Result types
 
-**3. Return Result Types from Domain/Application**
+**3. Return Result Types from Domain/Application**:
+
 ```python
 def authenticate(email, pwd) -> Result[User, AuthError]:
     if invalid:
@@ -1148,14 +1188,16 @@ def authenticate(email, pwd) -> Result[User, AuthError]:
     return Success(value=user)
 ```
 
-**4. Use Immutable Value Objects**
+**4. Use Immutable Value Objects**:
+
 ```python
 @dataclass(frozen=True)
 class Email:
     value: str
 ```
 
-**5. Fail-Fast on Configuration Errors**
+**5. Fail-Fast on Configuration Errors**:
+
 ```python
 @field_validator("secret_key")
 def validate_secret_key(cls, v: str) -> str:
@@ -1168,7 +1210,8 @@ def validate_secret_key(cls, v: str) -> str:
 
 ### DON'T ❌
 
-**1. Don't Duplicate Validation Logic**
+**1. Don't Duplicate Validation Logic**:
+
 ```python
 # ❌ WRONG: Validation in multiple places
 def validate_email_in_schema(email: str):
@@ -1181,7 +1224,8 @@ def validate_email_in_handler(email: str):
 Email = Annotated[str, AfterValidator(validate_email)]
 ```
 
-**2. Don't Raise Exceptions in Domain/Application Layers**
+**2. Don't Raise Exceptions in Domain/Application Layers**:
+
 ```python
 # ❌ WRONG: Hidden exception
 def authenticate(email, pwd) -> User:
@@ -1192,7 +1236,8 @@ def authenticate(email, pwd) -> Result[User, AuthError]:
     return Failure(error=AuthError.INVALID_CREDENTIALS)
 ```
 
-**3. Don't Mix Validation Concerns**
+**3. Don't Mix Validation Concerns**:
+
 ```python
 # ❌ WRONG: Business rule in value object
 @dataclass(frozen=True)
@@ -1206,7 +1251,8 @@ class User:
         return not self.email.endswith("@competitor.com")
 ```
 
-**4. Don't Skip Validation at Any Layer**
+**4. Don't Skip Validation at Any Layer**:
+
 ```python
 # ❌ WRONG: Assume data is valid
 def handle(self, cmd: RegisterUser):
@@ -1218,7 +1264,8 @@ class RegisterUser(BaseModel):
     email: Email  # Validated automatically
 ```
 
-**5. Don't Return Raw Exceptions to API**
+**5. Don't Return Raw Exceptions to API**:
+
 ```python
 # ❌ WRONG: Expose internal exceptions
 @router.post("/users")
@@ -1265,11 +1312,13 @@ async def register(data: UserCreate):
 Dashtam's validation architecture implements **defense-in-depth** with 5 runtime layers and 1 startup layer:
 
 **Startup Validation** (Configuration):
+
 - Pydantic `@field_validator` in `config.py`
 - Fail-fast: Application refuses to start if invalid
 - 5 validators: secret_key, encryption_key, bcrypt_rounds, URLs, CORS
 
 **Runtime Validation** (Multi-Layered):
+
 1. **API Boundary**: Request schema validation (FastAPI + Pydantic)
 2. **Value Objects**: Domain concept validation (`__post_init__`)
 3. **Entity Methods**: Business rule enforcement
@@ -1277,6 +1326,7 @@ Dashtam's validation architecture implements **defense-in-depth** with 5 runtime
 5. **Result Types**: Explicit error handling (Railway-Oriented Programming)
 
 **Key Principles**:
+
 - **DRY**: Validation defined once in `validators.py`, reused via Annotated types
 - **Type Safety**: Pydantic + Result types ensure type correctness
 - **Explicit Errors**: No hidden exceptions, all errors in type signatures
@@ -1284,6 +1334,7 @@ Dashtam's validation architecture implements **defense-in-depth** with 5 runtime
 - **Testable**: Each layer independently testable
 
 **Architecture Documents**:
+
 - Configuration: `docs/architecture/database-architecture.md` (Settings)
 - Error Handling: `docs/architecture/error-handling-architecture.md` (Result types)
 - Domain Model: `docs/architecture/*-domain-model.md` (Value objects, entities)

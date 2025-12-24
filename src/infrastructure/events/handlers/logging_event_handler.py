@@ -41,6 +41,10 @@ from src.domain.events.auth_events import (
     EmailVerificationAttempted,
     EmailVerificationFailed,
     EmailVerificationSucceeded,
+    # Global Token Rotation Events
+    GlobalTokenRotationAttempted,
+    GlobalTokenRotationFailed,
+    GlobalTokenRotationSucceeded,
     # Password Reset Events
     PasswordResetConfirmAttempted,
     PasswordResetConfirmFailed,
@@ -66,12 +70,30 @@ from src.domain.events.auth_events import (
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
+    # User Token Rotation Events
+    UserTokenRotationAttempted,
+    UserTokenRotationFailed,
+    UserTokenRotationSucceeded,
+)
+from src.domain.events.authorization_events import (
+    # Role Assignment Events
+    RoleAssignmentAttempted,
+    RoleAssignmentFailed,
+    RoleAssignmentSucceeded,
+    # Role Revocation Events
+    RoleRevocationAttempted,
+    RoleRevocationFailed,
+    RoleRevocationSucceeded,
 )
 from src.domain.events.provider_events import (
     # Provider Connection Events
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
+    # Provider Disconnection Events
+    ProviderDisconnectionAttempted,
+    ProviderDisconnectionFailed,
+    ProviderDisconnectionSucceeded,
     # Provider Token Refresh Events (OAuth)
     ProviderTokenRefreshAttempted,
     ProviderTokenRefreshFailed,
@@ -612,4 +634,246 @@ class LoggingEventHandler:
             token_version=event.token_version,
             required_version=event.required_version,
             rejection_reason=event.rejection_reason,
+        )
+
+    # =========================================================================
+    # Global Token Rotation Event Handlers
+    # =========================================================================
+
+    async def handle_global_token_rotation_attempted(
+        self,
+        event: GlobalTokenRotationAttempted,
+    ) -> None:
+        """Log global token rotation attempt (INFO level)."""
+        self._logger.info(
+            "global_token_rotation_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            triggered_by=event.triggered_by,
+            reason=event.reason,
+        )
+
+    async def handle_global_token_rotation_succeeded(
+        self,
+        event: GlobalTokenRotationSucceeded,
+    ) -> None:
+        """Log successful global token rotation (INFO level)."""
+        self._logger.info(
+            "global_token_rotation_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            triggered_by=event.triggered_by,
+            previous_version=event.previous_version,
+            new_version=event.new_version,
+            reason=event.reason,
+            grace_period_seconds=event.grace_period_seconds,
+        )
+
+    async def handle_global_token_rotation_failed(
+        self,
+        event: GlobalTokenRotationFailed,
+    ) -> None:
+        """Log failed global token rotation (WARNING level)."""
+        self._logger.warning(
+            "global_token_rotation_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            triggered_by=event.triggered_by,
+            reason=event.reason,
+            failure_reason=event.failure_reason,
+        )
+
+    # =========================================================================
+    # User Token Rotation Event Handlers
+    # =========================================================================
+
+    async def handle_user_token_rotation_attempted(
+        self,
+        event: UserTokenRotationAttempted,
+    ) -> None:
+        """Log user token rotation attempt (INFO level)."""
+        self._logger.info(
+            "user_token_rotation_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            triggered_by=event.triggered_by,
+            reason=event.reason,
+        )
+
+    async def handle_user_token_rotation_succeeded(
+        self,
+        event: UserTokenRotationSucceeded,
+    ) -> None:
+        """Log successful user token rotation (INFO level)."""
+        self._logger.info(
+            "user_token_rotation_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            triggered_by=event.triggered_by,
+            previous_version=event.previous_version,
+            new_version=event.new_version,
+            reason=event.reason,
+        )
+
+    async def handle_user_token_rotation_failed(
+        self,
+        event: UserTokenRotationFailed,
+    ) -> None:
+        """Log failed user token rotation (WARNING level)."""
+        self._logger.warning(
+            "user_token_rotation_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            triggered_by=event.triggered_by,
+            reason=event.reason,
+            failure_reason=event.failure_reason,
+        )
+
+    # =========================================================================
+    # Role Assignment Event Handlers
+    # =========================================================================
+
+    async def handle_role_assignment_attempted(
+        self,
+        event: RoleAssignmentAttempted,
+    ) -> None:
+        """Log role assignment attempt (INFO level)."""
+        self._logger.info(
+            "role_assignment_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            role=event.role,
+            assigned_by=str(event.assigned_by),
+        )
+
+    async def handle_role_assignment_succeeded(
+        self,
+        event: RoleAssignmentSucceeded,
+    ) -> None:
+        """Log successful role assignment (INFO level)."""
+        self._logger.info(
+            "role_assignment_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            role=event.role,
+            assigned_by=str(event.assigned_by),
+        )
+
+    async def handle_role_assignment_failed(
+        self,
+        event: RoleAssignmentFailed,
+    ) -> None:
+        """Log failed role assignment (WARNING level)."""
+        self._logger.warning(
+            "role_assignment_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            role=event.role,
+            assigned_by=str(event.assigned_by),
+            reason=event.reason,
+        )
+
+    # =========================================================================
+    # Role Revocation Event Handlers
+    # =========================================================================
+
+    async def handle_role_revocation_attempted(
+        self,
+        event: RoleRevocationAttempted,
+    ) -> None:
+        """Log role revocation attempt (INFO level)."""
+        self._logger.info(
+            "role_revocation_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            role=event.role,
+            revoked_by=str(event.revoked_by),
+            reason=event.reason,
+        )
+
+    async def handle_role_revocation_succeeded(
+        self,
+        event: RoleRevocationSucceeded,
+    ) -> None:
+        """Log successful role revocation (INFO level)."""
+        self._logger.info(
+            "role_revocation_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            role=event.role,
+            revoked_by=str(event.revoked_by),
+            reason=event.reason,
+        )
+
+    async def handle_role_revocation_failed(
+        self,
+        event: RoleRevocationFailed,
+    ) -> None:
+        """Log failed role revocation (WARNING level)."""
+        self._logger.warning(
+            "role_revocation_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            role=event.role,
+            revoked_by=str(event.revoked_by),
+            reason=event.reason,
+        )
+
+    # =========================================================================
+    # Provider Disconnection Event Handlers
+    # =========================================================================
+
+    async def handle_provider_disconnection_attempted(
+        self,
+        event: ProviderDisconnectionAttempted,
+    ) -> None:
+        """Log provider disconnection attempt (INFO level)."""
+        self._logger.info(
+            "provider_disconnection_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+            provider_id=str(event.provider_id),
+            provider_slug=event.provider_slug,
+        )
+
+    async def handle_provider_disconnection_succeeded(
+        self,
+        event: ProviderDisconnectionSucceeded,
+    ) -> None:
+        """Log successful provider disconnection (INFO level)."""
+        self._logger.info(
+            "provider_disconnection_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+            provider_id=str(event.provider_id),
+            provider_slug=event.provider_slug,
+        )
+
+    async def handle_provider_disconnection_failed(
+        self,
+        event: ProviderDisconnectionFailed,
+    ) -> None:
+        """Log failed provider disconnection (WARNING level)."""
+        self._logger.warning(
+            "provider_disconnection_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+            provider_id=str(event.provider_id),
+            provider_slug=event.provider_slug,
+            reason=event.reason,
         )

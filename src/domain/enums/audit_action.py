@@ -203,6 +203,66 @@ class AuditAction(str, Enum):
         - user_id: User whose token was rejected (if known)
     """
 
+    # Global Token Rotation Events (Security - Emergency Token Invalidation)
+    GLOBAL_TOKEN_ROTATION_ATTEMPTED = "global_token_rotation_attempted"
+    """Global token rotation attempt initiated (all tokens).
+
+    Context should include:
+        - triggered_by: Who triggered rotation (admin ID or "system")
+        - reason: Why rotation triggered (security_breach, scheduled, manual)
+    """
+
+    GLOBAL_TOKEN_ROTATION_SUCCEEDED = "global_token_rotation_succeeded"
+    """Global token rotation completed successfully (SUCCESS).
+
+    Context should include:
+        - triggered_by: Who triggered rotation
+        - previous_version: Previous global minimum token version
+        - new_version: New global minimum token version
+        - reason: Why rotation was triggered
+        - grace_period_seconds: Grace period before full enforcement
+    """
+
+    GLOBAL_TOKEN_ROTATION_FAILED = "global_token_rotation_failed"
+    """Global token rotation failed.
+
+    Context should include:
+        - triggered_by: Who triggered rotation
+        - reason: Original reason for rotation attempt
+        - failure_reason: Why rotation failed (e.g., "config_not_found")
+    """
+
+    # User Token Rotation Events (Security - Per-User Token Invalidation)
+    USER_TOKEN_ROTATION_ATTEMPTED = "user_token_rotation_attempted"
+    """Per-user token rotation attempt initiated.
+
+    Context should include:
+        - user_id: User whose tokens are being rotated
+        - triggered_by: Who triggered rotation (user_id, admin_id, or "system")
+        - reason: Why rotation triggered (password_change, suspicious_activity, manual)
+    """
+
+    USER_TOKEN_ROTATION_SUCCEEDED = "user_token_rotation_succeeded"
+    """Per-user token rotation completed successfully (SUCCESS).
+
+    Context should include:
+        - user_id: User whose tokens were rotated
+        - triggered_by: Who triggered rotation
+        - previous_version: Previous user minimum token version
+        - new_version: New user minimum token version
+        - reason: Why rotation was triggered
+    """
+
+    USER_TOKEN_ROTATION_FAILED = "user_token_rotation_failed"
+    """Per-user token rotation failed.
+
+    Context should include:
+        - user_id: User whose tokens were being rotated
+        - triggered_by: Who triggered rotation
+        - reason: Original reason for rotation attempt
+        - failure_reason: Why rotation failed (e.g., "user_not_found")
+    """
+
     # Email Verification Events
     USER_EMAIL_VERIFICATION_ATTEMPTED = "user_email_verification_attempted"
     """User attempted to verify email.

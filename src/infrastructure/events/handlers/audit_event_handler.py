@@ -52,6 +52,10 @@ from src.domain.events.auth_events import (
     EmailVerificationAttempted,
     EmailVerificationFailed,
     EmailVerificationSucceeded,
+    # Global Token Rotation Events
+    GlobalTokenRotationAttempted,
+    GlobalTokenRotationFailed,
+    GlobalTokenRotationSucceeded,
     # Password Reset Events
     PasswordResetConfirmAttempted,
     PasswordResetConfirmFailed,
@@ -77,12 +81,30 @@ from src.domain.events.auth_events import (
     UserRegistrationAttempted,
     UserRegistrationFailed,
     UserRegistrationSucceeded,
+    # User Token Rotation Events
+    UserTokenRotationAttempted,
+    UserTokenRotationFailed,
+    UserTokenRotationSucceeded,
+)
+from src.domain.events.authorization_events import (
+    # Role Assignment Events
+    RoleAssignmentAttempted,
+    RoleAssignmentFailed,
+    RoleAssignmentSucceeded,
+    # Role Revocation Events
+    RoleRevocationAttempted,
+    RoleRevocationFailed,
+    RoleRevocationSucceeded,
 )
 from src.domain.events.provider_events import (
     # Provider Connection Events
     ProviderConnectionAttempted,
     ProviderConnectionFailed,
     ProviderConnectionSucceeded,
+    # Provider Disconnection Events
+    ProviderDisconnectionAttempted,
+    ProviderDisconnectionFailed,
+    ProviderDisconnectionSucceeded,
     # Provider Token Refresh Events (OAuth)
     ProviderTokenRefreshAttempted,
     ProviderTokenRefreshFailed,
@@ -1074,5 +1096,445 @@ class AuditEventHandler:
                 "token_version": event.token_version,
                 "required_version": event.required_version,
                 "rejection_reason": event.rejection_reason,
+            },
+        )
+
+    # =========================================================================
+    # Global Token Rotation Event Handlers
+    # =========================================================================
+
+    async def handle_global_token_rotation_attempted(
+        self,
+        event: GlobalTokenRotationAttempted,
+    ) -> None:
+        """Record global token rotation attempt audit (ATTEMPT).
+
+        Args:
+            event: GlobalTokenRotationAttempted event.
+
+        Audit Record:
+            - action: GLOBAL_TOKEN_ROTATION_ATTEMPTED
+            - user_id: None (system-level operation)
+            - resource_type: "token"
+            - context: {triggered_by, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.GLOBAL_TOKEN_ROTATION_ATTEMPTED,
+            user_id=None,  # System-level operation
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "triggered_by": event.triggered_by,
+                "reason": event.reason,
+            },
+        )
+
+    async def handle_global_token_rotation_succeeded(
+        self,
+        event: GlobalTokenRotationSucceeded,
+    ) -> None:
+        """Record successful global token rotation audit (SUCCESS).
+
+        Args:
+            event: GlobalTokenRotationSucceeded event.
+
+        Audit Record:
+            - action: GLOBAL_TOKEN_ROTATION_SUCCEEDED
+            - user_id: None (system-level operation)
+            - resource_type: "token"
+            - context: {triggered_by, previous_version, new_version, reason, grace_period_seconds}
+        """
+        await self._create_audit_record(
+            action=AuditAction.GLOBAL_TOKEN_ROTATION_SUCCEEDED,
+            user_id=None,  # System-level operation
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "triggered_by": event.triggered_by,
+                "previous_version": event.previous_version,
+                "new_version": event.new_version,
+                "reason": event.reason,
+                "grace_period_seconds": event.grace_period_seconds,
+            },
+        )
+
+    async def handle_global_token_rotation_failed(
+        self,
+        event: GlobalTokenRotationFailed,
+    ) -> None:
+        """Record failed global token rotation audit (FAILURE).
+
+        Args:
+            event: GlobalTokenRotationFailed event.
+
+        Audit Record:
+            - action: GLOBAL_TOKEN_ROTATION_FAILED
+            - user_id: None (system-level operation)
+            - resource_type: "token"
+            - context: {triggered_by, reason, failure_reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.GLOBAL_TOKEN_ROTATION_FAILED,
+            user_id=None,  # System-level operation
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "triggered_by": event.triggered_by,
+                "reason": event.reason,
+                "failure_reason": event.failure_reason,
+            },
+        )
+
+    # =========================================================================
+    # User Token Rotation Event Handlers
+    # =========================================================================
+
+    async def handle_user_token_rotation_attempted(
+        self,
+        event: UserTokenRotationAttempted,
+    ) -> None:
+        """Record user token rotation attempt audit (ATTEMPT).
+
+        Args:
+            event: UserTokenRotationAttempted event.
+
+        Audit Record:
+            - action: USER_TOKEN_ROTATION_ATTEMPTED
+            - user_id: UUID of user whose tokens are being rotated
+            - resource_type: "token"
+            - context: {triggered_by, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_TOKEN_ROTATION_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "triggered_by": event.triggered_by,
+                "reason": event.reason,
+            },
+        )
+
+    async def handle_user_token_rotation_succeeded(
+        self,
+        event: UserTokenRotationSucceeded,
+    ) -> None:
+        """Record successful user token rotation audit (SUCCESS).
+
+        Args:
+            event: UserTokenRotationSucceeded event.
+
+        Audit Record:
+            - action: USER_TOKEN_ROTATION_SUCCEEDED
+            - user_id: UUID of user whose tokens were rotated
+            - resource_type: "token"
+            - context: {triggered_by, previous_version, new_version, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_TOKEN_ROTATION_SUCCEEDED,
+            user_id=event.user_id,
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "triggered_by": event.triggered_by,
+                "previous_version": event.previous_version,
+                "new_version": event.new_version,
+                "reason": event.reason,
+            },
+        )
+
+    async def handle_user_token_rotation_failed(
+        self,
+        event: UserTokenRotationFailed,
+    ) -> None:
+        """Record failed user token rotation audit (FAILURE).
+
+        Args:
+            event: UserTokenRotationFailed event.
+
+        Audit Record:
+            - action: USER_TOKEN_ROTATION_FAILED
+            - user_id: UUID of user whose tokens were being rotated
+            - resource_type: "token"
+            - context: {triggered_by, reason, failure_reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.USER_TOKEN_ROTATION_FAILED,
+            user_id=event.user_id,
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "triggered_by": event.triggered_by,
+                "reason": event.reason,
+                "failure_reason": event.failure_reason,
+            },
+        )
+
+    # =========================================================================
+    # Role Assignment Event Handlers
+    # =========================================================================
+
+    async def handle_role_assignment_attempted(
+        self,
+        event: RoleAssignmentAttempted,
+    ) -> None:
+        """Record role assignment attempt audit (ATTEMPT).
+
+        Args:
+            event: RoleAssignmentAttempted event.
+
+        Audit Record:
+            - action: ROLE_ASSIGNMENT_ATTEMPTED
+            - user_id: UUID of user receiving role
+            - resource_type: "user"
+            - context: {role, assigned_by}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ROLE_ASSIGNMENT_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "role": event.role,
+                "assigned_by": str(event.assigned_by),
+            },
+        )
+
+    async def handle_role_assignment_succeeded(
+        self,
+        event: RoleAssignmentSucceeded,
+    ) -> None:
+        """Record successful role assignment audit (SUCCESS).
+
+        Args:
+            event: RoleAssignmentSucceeded event.
+
+        Audit Record:
+            - action: ROLE_ASSIGNED
+            - user_id: UUID of user who received role
+            - resource_type: "user"
+            - context: {role, assigned_by}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ROLE_ASSIGNED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "role": event.role,
+                "assigned_by": str(event.assigned_by),
+            },
+        )
+
+    async def handle_role_assignment_failed(
+        self,
+        event: RoleAssignmentFailed,
+    ) -> None:
+        """Record failed role assignment audit (FAILURE).
+
+        Args:
+            event: RoleAssignmentFailed event.
+
+        Audit Record:
+            - action: ROLE_ASSIGNMENT_FAILED
+            - user_id: UUID of user targeted for role
+            - resource_type: "user"
+            - context: {role, assigned_by, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ROLE_ASSIGNMENT_FAILED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "role": event.role,
+                "assigned_by": str(event.assigned_by),
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Role Revocation Event Handlers
+    # =========================================================================
+
+    async def handle_role_revocation_attempted(
+        self,
+        event: RoleRevocationAttempted,
+    ) -> None:
+        """Record role revocation attempt audit (ATTEMPT).
+
+        Args:
+            event: RoleRevocationAttempted event.
+
+        Audit Record:
+            - action: ROLE_REVOCATION_ATTEMPTED
+            - user_id: UUID of user losing role
+            - resource_type: "user"
+            - context: {role, revoked_by, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ROLE_REVOCATION_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "role": event.role,
+                "revoked_by": str(event.revoked_by),
+                "reason": event.reason,
+            },
+        )
+
+    async def handle_role_revocation_succeeded(
+        self,
+        event: RoleRevocationSucceeded,
+    ) -> None:
+        """Record successful role revocation audit (SUCCESS).
+
+        Args:
+            event: RoleRevocationSucceeded event.
+
+        Audit Record:
+            - action: ROLE_REVOKED
+            - user_id: UUID of user who lost role
+            - resource_type: "user"
+            - context: {role, revoked_by, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ROLE_REVOKED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "role": event.role,
+                "revoked_by": str(event.revoked_by),
+                "reason": event.reason,
+            },
+        )
+
+    async def handle_role_revocation_failed(
+        self,
+        event: RoleRevocationFailed,
+    ) -> None:
+        """Record failed role revocation audit (FAILURE).
+
+        Args:
+            event: RoleRevocationFailed event.
+
+        Audit Record:
+            - action: ROLE_REVOCATION_FAILED
+            - user_id: UUID of user targeted for revocation
+            - resource_type: "user"
+            - context: {role, revoked_by, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ROLE_REVOCATION_FAILED,
+            user_id=event.user_id,
+            resource_type="user",
+            resource_id=event.user_id,
+            context={
+                "event_id": str(event.event_id),
+                "role": event.role,
+                "revoked_by": str(event.revoked_by),
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Provider Disconnection Event Handlers
+    # =========================================================================
+
+    async def handle_provider_disconnection_attempted(
+        self,
+        event: ProviderDisconnectionAttempted,
+    ) -> None:
+        """Record provider disconnection attempt audit (ATTEMPT).
+
+        Args:
+            event: ProviderDisconnectionAttempted event.
+
+        Audit Record:
+            - action: PROVIDER_DISCONNECTION_ATTEMPTED
+            - user_id: UUID of user initiating disconnection
+            - resource_type: "provider"
+            - context: {connection_id, provider_id, provider_slug}
+        """
+        await self._create_audit_record(
+            action=AuditAction.PROVIDER_DISCONNECTION_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="provider",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+                "provider_id": str(event.provider_id),
+                "provider_slug": event.provider_slug,
+            },
+        )
+
+    async def handle_provider_disconnection_succeeded(
+        self,
+        event: ProviderDisconnectionSucceeded,
+    ) -> None:
+        """Record successful provider disconnection audit (SUCCESS).
+
+        Args:
+            event: ProviderDisconnectionSucceeded event.
+
+        Audit Record:
+            - action: PROVIDER_DISCONNECTED
+            - user_id: UUID of user who disconnected
+            - resource_type: "provider"
+            - context: {connection_id, provider_id, provider_slug}
+        """
+        await self._create_audit_record(
+            action=AuditAction.PROVIDER_DISCONNECTED,
+            user_id=event.user_id,
+            resource_type="provider",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+                "provider_id": str(event.provider_id),
+                "provider_slug": event.provider_slug,
+            },
+        )
+
+    async def handle_provider_disconnection_failed(
+        self,
+        event: ProviderDisconnectionFailed,
+    ) -> None:
+        """Record failed provider disconnection audit (FAILURE).
+
+        Args:
+            event: ProviderDisconnectionFailed event.
+
+        Audit Record:
+            - action: PROVIDER_DISCONNECTION_FAILED
+            - user_id: UUID of user who attempted disconnection
+            - resource_type: "provider"
+            - context: {connection_id, provider_id, provider_slug, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.PROVIDER_DISCONNECTION_FAILED,
+            user_id=event.user_id,
+            resource_type="provider",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+                "provider_id": str(event.provider_id),
+                "provider_slug": event.provider_slug,
+                "reason": event.reason,
             },
         )

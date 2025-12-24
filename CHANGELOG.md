@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-12-24
+
+### Fixed
+
+- **F6.15**: Event Handler Wiring Completion
+  - Wired 30 missing event handler subscriptions (100 total subscriptions now registered)
+  - Added 6 new AuditAction enums for token rotation workflows
+  - Fixed 10 syntax errors in logging event handler (extra quotes in type hints)
+  - Added registry verification test to prevent future handler drift
+  - Added 5 integration tests for new event flows (419 total integration tests)
+  - Updated test expectations for deferred operational events (RateLimitCheck, Session events)
+
+### Changed
+
+- Updated container docstring with final event counts and workflow breakdown
+- Updated WARP.md with F6.15 completion summary
+- Removed temporary event-handler-inventory.md file (working document)
+- All 1,597 tests passing (17 skipped), coverage maintained at 81%
+
 ## [1.0.0] - 2025-12-12
 
 ### Added
@@ -122,5 +141,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Type Safety**: Strict mypy checking with modern Python 3.13+ type hints
 - **Code Quality**: Automated formatting (ruff), linting, and type checking in CI/CD
 
-[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/faiyaz7283/Dashtam/releases/tag/v1.0.0

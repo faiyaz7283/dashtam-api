@@ -22,7 +22,16 @@ from src.domain.events import DomainEvent
 class TestEventRegistryCompleteness:
     """Test that all domain events are registered with handlers."""
 
-    def test_all_events_have_handlers(self) -> None:
+    @pytest.fixture(scope="class")
+    def event_bus(self):
+        """Shared event bus for all tests in this class.
+        
+        Using class scope to avoid repeated container initialization
+        which can cause OOM in CI environments.
+        """
+        return get_event_bus()
+
+    def test_all_events_have_handlers(self, event_bus) -> None:
         """Verify every DomainEvent subclass has at least one handler registered.
 
         This test ensures completeness of event handler wiring in the container.
@@ -38,8 +47,7 @@ class TestEventRegistryCompleteness:
             - RateLimitCheck events (3): Low priority, operational only
             - Session events (8): Lightweight telemetry, no audit requirement
         """
-        # Get event bus with all handlers registered
-        event_bus = get_event_bus()
+        # Use injected event_bus fixture (class scope for memory efficiency)
 
         # Get all DomainEvent subclasses using reflection
         all_event_classes = _get_all_event_subclasses()
@@ -89,7 +97,7 @@ class TestEventRegistryCompleteness:
             )
             pytest.fail(error_msg)
 
-    def test_registry_count_matches_documentation(self) -> None:
+    def test_registry_count_matches_documentation(self, event_bus) -> None:
         """Verify total subscription count matches container docstring.
 
         The container docstring claims 100 total subscriptions. This test
@@ -99,7 +107,6 @@ class TestEventRegistryCompleteness:
             This is a documentation consistency check. Update docstring if
             subscription count changes.
         """
-        event_bus = get_event_bus()
 
         # Count total subscriptions (sum of all handlers across all events)
         total_subscriptions = sum(
@@ -114,7 +121,7 @@ class TestEventRegistryCompleteness:
             f"got {total_subscriptions}. Update container docstring if count changed."
         )
 
-    def test_critical_events_have_audit_and_logging(self) -> None:
+    def test_critical_events_have_audit_and_logging(self, event_bus) -> None:
         """Verify critical security events have both audit AND logging handlers.
 
         Critical events (3-state ATTEMPT → OUTCOME pattern) MUST have both
@@ -124,7 +131,6 @@ class TestEventRegistryCompleteness:
             PCI-DSS 10.2: All authentication attempts must be logged AND audited
             SOC 2 CC6.1: Security events require audit trail
         """
-        event_bus = get_event_bus()
 
         # Critical security events (3-state pattern)
         critical_event_names = [

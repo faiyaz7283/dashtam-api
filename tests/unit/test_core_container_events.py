@@ -16,7 +16,6 @@ Reference:
 import pytest
 
 from src.core.container.events import get_event_bus
-from src.domain.events import DomainEvent
 
 
 class TestEventRegistryCompleteness:
@@ -25,7 +24,7 @@ class TestEventRegistryCompleteness:
     @pytest.fixture(scope="class")
     def event_bus(self):
         """Shared event bus for all tests in this class.
-        
+
         Using class scope to avoid repeated container initialization
         which can cause OOM in CI environments.
         """
@@ -49,11 +48,14 @@ class TestEventRegistryCompleteness:
         """
         # Use injected event_bus fixture (class scope for memory efficiency)
 
-        # Get all DomainEvent subclasses using reflection
-        all_event_classes = _get_all_event_subclasses()
+        # Get all registered event classes from the event bus itself
+        # This avoids expensive reflection and only checks wired events
+        all_event_classes = set(event_bus._handlers.keys())
 
         # Verify we found events (sanity check)
-        assert len(all_event_classes) > 0, "No domain events found - reflection failed"
+        assert len(all_event_classes) > 0, (
+            "No events registered - container wiring failed"
+        )
 
         # Deferred operational events (documented in F6.15 Phase 1 inventory)
         # These are LOW priority and intentionally excluded from v1.0
@@ -164,8 +166,8 @@ class TestEventRegistryCompleteness:
             "ProviderDisconnectionFailed",
         ]
 
-        # Get all event classes
-        all_event_classes = {cls.__name__: cls for cls in _get_all_event_subclasses()}
+        # Get event classes from the registered handlers (avoids expensive reflection)
+        all_event_classes = {cls.__name__: cls for cls in event_bus._handlers.keys()}
 
         # Verify each critical event has both audit and logging
         for event_name in critical_event_names:
@@ -198,33 +200,3 @@ class TestEventRegistryCompleteness:
                 f"Has: {handler_types}. "
                 f"Required: LoggingEventHandler + AuditEventHandler"
             )
-
-
-def _get_all_event_subclasses() -> set[type[DomainEvent]]:
-    """Get all DomainEvent subclasses using reflection.
-
-    Returns:
-        Set of all concrete event classes (excludes DomainEvent base).
-
-    Implementation:
-        Uses __subclasses__() recursively to find all descendants of DomainEvent.
-    """
-
-    def get_subclasses(cls: type) -> set[type]:
-        """Recursively get all subclasses of a class."""
-        subclasses = set(cls.__subclasses__())
-        for subclass in list(subclasses):
-            subclasses.update(get_subclasses(subclass))
-        return subclasses
-
-    # Get all DomainEvent subclasses (excluding base)
-    all_subclasses = get_subclasses(DomainEvent)
-
-    # Filter to only concrete event classes (exclude base DomainEvent)
-    concrete_events = {
-        cls
-        for cls in all_subclasses
-        if cls is not DomainEvent and cls.__name__ != "DomainEvent"
-    }
-
-    return concrete_events

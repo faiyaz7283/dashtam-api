@@ -19,17 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added 5 integration tests for new event flows (419 total integration tests)
   - Updated test expectations for deferred operational events (RateLimitCheck, Session events)
 
-### Documentation
+### Changed
 
 - Updated container docstring with final event counts and workflow breakdown
 - Updated WARP.md with F6.15 completion summary
 - Removed temporary event-handler-inventory.md file (working document)
-
-### Testing
-
-- All 1,597 tests passing (17 skipped)
-- Coverage maintained at 81%
-- Zero lint violations, strict type checking clean
+- All 1,597 tests passing (17 skipped), coverage maintained at 81%
 
 ## [1.0.0] - 2025-12-12
 

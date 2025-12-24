@@ -40,7 +40,7 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**v1.0.0 Released**: 2025-12-13 | **Phases 0-6 Complete** (43 features) | **GitHub**: https://github.com/faiyaz7283/Dashtam/releases/tag/v1.0.0
+**v1.0.0 Released**: 2025-12-13 | **Phases 0-6 Complete** (43 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.0.0>
 
 ---
 
@@ -179,11 +179,11 @@
 - Auth override in tests: `app.dependency_overrides[get_current_user]` (not type alias)
 - Handler results wrapped in DTOs (e.g., `AccountListResult`, not raw lists)
 
-#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (12/15 streams)
+#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (13/15 streams)
 
 **Release**: 2025-12-13 | **PR**: #96 → development, #97 → main | **Tag**: v1.0.0
 
-**Status**: ✅ COMPLETED - v1.0.0 released
+**Status**: ✅ COMPLETED - v1.0.0 released | **Post-Release**: F6.15 completed 2025-12-24
 
 **Completed Streams**:
 
@@ -198,6 +198,7 @@
 - ✅ **F6.9**: Migrate API Tests to Real App Pattern (commit ce44d8a)
 - ✅ **F6.10**: Adopt freezegun for Time-Dependent Tests (commit 9d61e0a)
 - ✅ **F6.12**: Admin Authentication for Protected Endpoints (commit c3bfbf4)
+- ✅ **F6.15**: Event Handler Wiring Completion (2025-12-24) - **100 subscriptions wired**
 
 **F6.5 Security Audit Summary** (PR #95):
 
@@ -219,7 +220,18 @@
 - ✅ Zero lint violations, strict type checking
 - ✅ All architecture docs verified and updated
 
-**Deferred to v1.1.0+**: F6.11 (Cache Optimization), F6.13 (API Test Coverage), F6.14 (IP Geolocation), F6.15 (Event Handler Wiring)
+**F6.15 Event Handler Wiring Summary** (completed 2025-12-24):
+
+- ✅ **Inventory**: 54 domain events defined, 26 missing handlers identified
+- ✅ **Handler Methods**: Added 15 methods each to LoggingEventHandler + AuditEventHandler
+- ✅ **Audit Actions**: Added 6 new AuditAction enums (token rotation)
+- ✅ **Container Wiring**: 30 new subscriptions (15 events × 2 handlers)
+- ✅ **Registry Test**: Verification test ensures all events have handlers (prevents drift)
+- ✅ **Integration Tests**: 5 end-to-end event flow tests added (419 total passing)
+- ✅ **Documentation**: Container docstring + WARP.md updated with final counts
+- ✅ **Result**: 100 total subscriptions, 46 events fully wired (15 workflows + 1 operational)
+
+**Deferred to v1.1.0+**: F6.11 (Cache Optimization), F6.13 (API Test Coverage), F6.14 (IP Geolocation)
 
 ---
 

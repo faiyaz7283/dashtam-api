@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Phase 1**: Integration tests for sync handlers (test_sync_handlers.py) - 10 tests covering account/transaction sync with provider data mapping, upsert logic, and error handling
   - **Phase 2**: Unit tests for auth flow handlers (test_auth_flow_handlers.py) - 12 tests covering logout, token refresh, email verification, and password reset error paths
   - **Phase 3**: Unit tests for core validation (test_core_validation.py) - 22 tests covering validate_not_empty, validate_email, validate_min_length, validate_max_length functions
-  - **Phase 4**: Unit tests for value objects (test_value_objects_email_password.py) - 15 tests covering Email and Password validation, __str__, __repr__, and error handling
+  - **Phase 4**: Unit tests for value objects (test_value_objects_email_password.py) - 15 tests covering Email and Password validation, `__str__`, `__repr__`, and error handling
   - Increased overall project coverage from 83% to 86% (+3%)
   - Total test count increased from 1,682 to 1,731 tests (+49)
   - Coverage improvements: sync_transactions_handler.py (22% → covered), sync_accounts_handler.py (30% → covered), core/validation.py (17% → 100%)

@@ -29,7 +29,7 @@ class TestEmailValueObject:
     def test_email_normalizes_to_lowercase(self):
         """Test Email normalizes to lowercase."""
         email = Email("User@Example.COM")
-        
+
         # email-validator normalizes the domain, not necessarily the local part
         assert email.value.lower() == "user@example.com"
 

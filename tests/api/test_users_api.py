@@ -59,14 +59,14 @@ class StubRegisterUserHandler:
 @pytest.fixture(autouse=True)
 def override_dependencies():
     """Override app dependencies with test doubles.
-    
+
     Uses autouse=True to automatically apply to all tests in this module.
     """
     # Note: Individual tests will override with specific behaviors
     # This just ensures cleanup happens
-    
+
     yield
-    
+
     # Cleanup after each test
     app.dependency_overrides.clear()
 
@@ -111,7 +111,6 @@ class TestCreateUser:
         assert "message" in data
         assert "verify" in data["message"].lower()
 
-
     def test_create_user_duplicate_email(self, client):
         """Should return 409 Conflict when email already registered."""
         # Setup: Stub handler returns duplicate error
@@ -139,7 +138,6 @@ class TestCreateUser:
         assert "already registered" in data["detail"].lower()
         assert data["instance"] == "/api/v1/users"
 
-
     def test_create_user_validation_error(self, client):
         """Should return 400 Bad Request on domain validation failure."""
         # Setup: Stub handler returns validation error
@@ -164,9 +162,11 @@ class TestCreateUser:
         assert data["type"] == "https://api.dashtam.com/errors/validation-error"
         assert data["title"] == "Validation Error"
         assert data["status"] == 400
-        assert "password" in data["detail"].lower() or "12 characters" in data["detail"].lower()
+        assert (
+            "password" in data["detail"].lower()
+            or "12 characters" in data["detail"].lower()
+        )
         assert data["instance"] == "/api/v1/users"
-
 
     def test_create_user_invalid_email_format(self, client):
         """Should return 422 Unprocessable Entity for invalid email format."""
@@ -304,4 +304,3 @@ class TestCreateUser:
         # Note: X-Trace-ID only present if trace_id exists in context
         # In test environment without middleware, it may be None
         # This test just ensures no error when trace_id is None
-

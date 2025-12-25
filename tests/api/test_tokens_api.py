@@ -84,7 +84,7 @@ class StubRefreshAccessTokenHandler:
 @pytest.fixture(autouse=True)
 def override_dependencies():
     """Override app dependencies with test doubles.
-    
+
     Uses autouse=True to automatically apply to all tests in this module.
     """
     yield

@@ -106,7 +106,9 @@ class TestAccountsEdgeCases:
         from src.core.container import get_list_accounts_by_user_handler
 
         app.dependency_overrides[get_list_accounts_by_user_handler] = (
-            lambda: MockListAccountsByUserHandler(error="Sync too soon, try again later")
+            lambda: MockListAccountsByUserHandler(
+                error="Sync too soon, try again later"
+            )
         )
 
         response = client.get("/api/v1/accounts")
@@ -122,7 +124,9 @@ class TestAccountsEdgeCases:
         from src.core.container import get_list_accounts_by_user_handler
 
         app.dependency_overrides[get_list_accounts_by_user_handler] = (
-            lambda: MockListAccountsByUserHandler(error="Invalid account type specified")
+            lambda: MockListAccountsByUserHandler(
+                error="Invalid account type specified"
+            )
         )
 
         response = client.get("/api/v1/accounts")
@@ -132,4 +136,3 @@ class TestAccountsEdgeCases:
         assert data["status"] == 400
 
         app.dependency_overrides.pop(get_list_accounts_by_user_handler, None)
-

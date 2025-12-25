@@ -124,7 +124,9 @@ class TestTransactionsEdgeCases:
         from src.core.container import get_sync_transactions_handler
 
         app.dependency_overrides[get_sync_transactions_handler] = (
-            lambda: MockSyncTransactionsHandler(error="Sync recently synced, wait before retrying")
+            lambda: MockSyncTransactionsHandler(
+                error="Sync recently synced, wait before retrying"
+            )
         )
 
         response = client.post(
@@ -176,7 +178,9 @@ class TestTransactionsEdgeCases:
 
         app.dependency_overrides.pop(get_sync_transactions_handler, None)
 
-    def test_list_transactions_by_account_date_range_error(self, client, mock_account_id):
+    def test_list_transactions_by_account_date_range_error(
+        self, client, mock_account_id
+    ):
         """GET /api/v1/accounts/{id}/transactions handles date range errors."""
         from src.core.container import get_list_transactions_by_date_range_handler
 

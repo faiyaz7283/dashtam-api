@@ -72,7 +72,7 @@ class StubConfirmPasswordResetHandler:
 @pytest.fixture(autouse=True)
 def override_dependencies():
     """Override app dependencies with test doubles.
-    
+
     Uses autouse=True to automatically apply to all tests in this module.
     """
     yield
@@ -197,7 +197,9 @@ class TestCreatePasswordReset:
         assert response.status_code == 201
         data = response.json()
         assert "message" in data
-        assert "password" in data["message"].lower() or "reset" in data["message"].lower()
+        assert (
+            "password" in data["message"].lower() or "reset" in data["message"].lower()
+        )
 
     def test_create_password_reset_token_not_found(self, client):
         """Should return 404 Not Found for invalid token."""

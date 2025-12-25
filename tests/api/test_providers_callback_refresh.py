@@ -195,7 +195,9 @@ class TestOAuthCallback:
 
         assert response.status_code == 400
         data = response.json()
-        assert "corrupted" in data["detail"].lower() or "state" in data["detail"].lower()
+        assert (
+            "corrupted" in data["detail"].lower() or "state" in data["detail"].lower()
+        )
 
         app.dependency_overrides.pop(get_cache, None)
 
@@ -219,7 +221,10 @@ class TestOAuthCallback:
 
         assert response.status_code == 404
         data = response.json()
-        assert "provider" in data["detail"].lower() and "not supported" in data["detail"].lower()
+        assert (
+            "provider" in data["detail"].lower()
+            and "not supported" in data["detail"].lower()
+        )
 
         app.dependency_overrides.pop(get_cache, None)
 
@@ -356,7 +361,7 @@ class TestOAuthCallback:
             "/api/v1/providers/callback?code=test_code&state=valid_state"
         )
 
-        # Provider/connection errors return 502 Bad Gateway  
+        # Provider/connection errors return 502 Bad Gateway
         assert response.status_code == 502
         data = response.json()
         assert data["status"] == 502

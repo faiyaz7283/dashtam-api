@@ -63,7 +63,7 @@ class StubVerifyEmailHandler:
 @pytest.fixture(autouse=True)
 def override_dependencies():
     """Override app dependencies with test doubles.
-    
+
     Uses autouse=True to automatically apply to all tests in this module.
     """
     yield
@@ -105,7 +105,9 @@ class TestCreateEmailVerification:
         assert response.status_code == 201
         data = response.json()
         assert "message" in data
-        assert "email" in data["message"].lower() or "verified" in data["message"].lower()
+        assert (
+            "email" in data["message"].lower() or "verified" in data["message"].lower()
+        )
 
     def test_create_email_verification_token_not_found(self, client):
         """Should return 404 Not Found for invalid token."""

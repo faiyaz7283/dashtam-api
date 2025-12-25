@@ -124,6 +124,43 @@ class CacheKeys:
         """
         return f"{self.prefix}:accounts:user:{user_id}"
 
+    def security_global_version(self) -> str:
+        """Security global token version cache key.
+
+        Pattern: {prefix}:security:global_version
+
+        Returns:
+            Cache key string.
+
+        Example:
+            "dashtam:security:global_version"
+
+        Note:
+            Used for token breach rotation (F1.3b).
+            Caches global_min_token_version for fast JWT validation.
+        """
+        return f"{self.prefix}:security:global_version"
+
+    def security_user_version(self, user_id: UUID) -> str:
+        """Security user token version cache key.
+
+        Pattern: {prefix}:security:user_version:{user_id}
+
+        Args:
+            user_id: User UUID.
+
+        Returns:
+            Cache key string.
+
+        Example:
+            "dashtam:security:user_version:123e4567-e89b-12d3-a456-426614174000"
+
+        Note:
+            Used for token breach rotation (F1.3b).
+            Caches user.min_token_version for fast JWT validation.
+        """
+        return f"{self.prefix}:security:user_version:{user_id}"
+
     def namespace_from_key(self, key: str) -> str:
         """Extract cache namespace from key for metrics tracking.
 

@@ -42,7 +42,9 @@ from src.domain.events.auth_events import (
     AuthTokenRefreshSucceeded,
     TokenRejectedDueToRotation,
 )
+from src.domain.entities.security_config import SecurityConfig
 from src.domain.protocols import (
+    CacheProtocol,
     RefreshTokenData,
     RefreshTokenRepository,
     RefreshTokenServiceProtocol,
@@ -51,6 +53,8 @@ from src.domain.protocols import (
     UserRepository,
 )
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
+from src.infrastructure.cache.cache_keys import CacheKeys
+from src.infrastructure.cache.cache_metrics import CacheMetrics
 
 
 class RefreshError:
@@ -96,6 +100,10 @@ class RefreshAccessTokenHandler:
         token_service: TokenGenerationProtocol,
         refresh_token_service: RefreshTokenServiceProtocol,
         event_bus: EventBusProtocol,
+        cache: CacheProtocol | None = None,
+        cache_keys: CacheKeys | None = None,
+        cache_metrics: CacheMetrics | None = None,
+        cache_ttl: int = 60,
     ) -> None:
         """Initialize refresh handler with dependencies.
 
@@ -106,6 +114,10 @@ class RefreshAccessTokenHandler:
             token_service: JWT token generation service.
             refresh_token_service: Refresh token generation/verification service.
             event_bus: Event bus for publishing domain events.
+            cache: Optional cache for security config (MEDIUM priority optimization).
+            cache_keys: Optional cache key builder.
+            cache_metrics: Optional cache metrics tracker.
+            cache_ttl: Cache TTL in seconds (default: 60 = 1 minute).
         """
         self._user_repo = user_repo
         self._refresh_token_repo = refresh_token_repo
@@ -113,6 +125,10 @@ class RefreshAccessTokenHandler:
         self._token_service = token_service
         self._refresh_token_service = refresh_token_service
         self._event_bus = event_bus
+        self._cache = cache
+        self._cache_keys = cache_keys
+        self._cache_metrics = cache_metrics
+        self._cache_ttl = cache_ttl
 
     async def handle(
         self, cmd: RefreshAccessToken, request: "Request | None" = None
@@ -196,7 +212,8 @@ class RefreshAccessTokenHandler:
             return Failure(error=RefreshError.USER_NOT_FOUND)
 
         # Step 7b: Verify token version meets requirements (breach rotation check)
-        security_config = await self._security_config_repo.get_or_create_default()
+        # Use cache-first approach for security config (MEDIUM priority optimization)
+        security_config = await self._get_cached_security_config()
         required_version = max(
             security_config.global_min_token_version,
             user.min_token_version,
@@ -359,3 +376,90 @@ class RefreshAccessTokenHandler:
             ),
             metadata=metadata,
         )
+
+    async def _get_cached_security_config(self) -> SecurityConfig:
+        """Get security config with cache-first strategy.
+
+        Cache-first pattern:
+        1. Try cache (fail-open)
+        2. If miss, fetch from database
+        3. Update cache on success
+
+        Returns:
+            SecurityConfig from cache or database.
+
+        Note:
+            Uses global_min_token_version caching for faster JWT validation.
+            Cache TTL is intentionally short (1 minute) for security.
+        """
+        import json
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Step 1: Try cache (only if cache infrastructure available)
+        if self._cache and self._cache_keys:
+            try:
+                cache_key = self._cache_keys.security_global_version()
+                result = await self._cache.get(cache_key)
+
+                if isinstance(result, Success) and result.value:
+                    # Cache hit - track metrics
+                    if self._cache_metrics:
+                        self._cache_metrics.record_hit("security")
+
+                    cached_data = json.loads(result.value)
+                    return SecurityConfig(
+                        id=cached_data["id"],
+                        global_min_token_version=cached_data["global_min_token_version"],
+                        grace_period_seconds=cached_data["grace_period_seconds"],
+                        last_rotation_at=(
+                            datetime.fromisoformat(cached_data["last_rotation_at"])
+                            if cached_data.get("last_rotation_at")
+                            else None
+                        ),
+                        last_rotation_reason=cached_data.get("last_rotation_reason"),
+                        created_at=datetime.fromisoformat(cached_data["created_at"]),
+                        updated_at=datetime.fromisoformat(cached_data["updated_at"]),
+                    )
+            except Exception as e:
+                # Fail-open: Cache error should not block validation
+                logger.warning(
+                    "security_config_cache_read_error",
+                    extra={"error": str(e)},
+                )
+
+            # Cache miss - track metrics
+            if self._cache_metrics:
+                self._cache_metrics.record_miss("security")
+
+        # Step 2: Cache miss or cache disabled - fetch from database
+        config = await self._security_config_repo.get_or_create_default()
+
+        # Step 3: Update cache on success (fail-open)
+        if self._cache and self._cache_keys:
+            try:
+                cache_key = self._cache_keys.security_global_version()
+                cache_value = json.dumps({
+                    "id": config.id,
+                    "global_min_token_version": config.global_min_token_version,
+                    "grace_period_seconds": config.grace_period_seconds,
+                    "last_rotation_at": (
+                        config.last_rotation_at.isoformat()
+                        if config.last_rotation_at
+                        else None
+                    ),
+                    "last_rotation_reason": config.last_rotation_reason,
+                    "created_at": config.created_at.isoformat(),
+                    "updated_at": config.updated_at.isoformat(),
+                })
+
+                await self._cache.set(cache_key, cache_value, ttl=self._cache_ttl)
+            except Exception as e:
+                # Fail-open: Cache write failure should not block response
+                logger.warning(
+                    "security_config_cache_write_error",
+                    extra={"error": str(e)},
+                )
+
+        return config

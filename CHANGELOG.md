@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Added - API Test Coverage
 
 - **F6.13**: API Test Coverage Improvement
   - Added 62 new API tests across 7 test files (test_users_api.py, test_tokens_api.py, test_password_resets_api.py, test_email_verifications_api.py, test_providers_callback_refresh.py, test_accounts_edge_cases.py, test_transactions_edge_cases.py)

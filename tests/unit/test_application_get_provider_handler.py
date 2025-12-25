@@ -61,15 +61,26 @@ def create_test_connection(
 
 def create_handler(
     repo_mock: AsyncMock | None = None,
-) -> tuple[GetProviderConnectionHandler, AsyncMock]:
-    """Create handler with mocked dependencies."""
+    cache_mock: AsyncMock | None = None,
+) -> tuple[GetProviderConnectionHandler, AsyncMock, AsyncMock]:
+    """Create handler with mocked dependencies.
+    
+    Returns:
+        Tuple of (handler, repo_mock, cache_mock)
+    """
     repo = repo_mock or AsyncMock(spec=ProviderConnectionRepository)
+    cache = cache_mock or AsyncMock()
+    
+    # Configure cache mock to return None by default (cache miss)
+    cache.get.return_value = None
+    cache.set.return_value = None
 
     handler = GetProviderConnectionHandler(
         connection_repo=repo,
+        connection_cache=cache,
     )
 
-    return handler, repo
+    return handler, repo, cache
 
 
 # =============================================================================
@@ -81,7 +92,7 @@ def create_handler(
 async def test_get_provider_connection_success():
     """Test successful provider connection retrieval."""
     # Arrange
-    handler, repo = create_handler()
+    handler, repo, cache = create_handler()
     user_id = uuid7()
     connection = create_test_connection(user_id=user_id)
     repo.find_by_id.return_value = connection
@@ -110,7 +121,7 @@ async def test_get_provider_connection_success():
 async def test_get_provider_connection_returns_dto_not_entity():
     """Test that handler returns DTO, not domain entity."""
     # Arrange
-    handler, repo = create_handler()
+    handler, repo, cache = create_handler()
     user_id = uuid7()
     connection = create_test_connection(user_id=user_id)
     repo.find_by_id.return_value = connection
@@ -137,7 +148,7 @@ async def test_get_provider_connection_returns_dto_not_entity():
 async def test_get_provider_connection_includes_timestamps():
     """Test that DTO includes timestamps."""
     # Arrange
-    handler, repo = create_handler()
+    handler, repo, cache = create_handler()
     user_id = uuid7()
     connection = create_test_connection(user_id=user_id)
     repo.find_by_id.return_value = connection
@@ -166,7 +177,7 @@ async def test_get_provider_connection_includes_timestamps():
 async def test_get_provider_connection_fails_when_not_found():
     """Test retrieval fails when connection doesn't exist."""
     # Arrange
-    handler, repo = create_handler()
+    handler, repo, cache = create_handler()
     repo.find_by_id.return_value = None
 
     query = GetProviderConnection(
@@ -191,7 +202,7 @@ async def test_get_provider_connection_fails_when_not_found():
 async def test_get_provider_connection_fails_when_not_owned():
     """Test retrieval fails when user doesn't own the connection."""
     # Arrange
-    handler, repo = create_handler()
+    handler, repo, cache = create_handler()
     connection = create_test_connection(user_id=uuid7())  # Different user
     repo.find_by_id.return_value = connection
 
@@ -217,7 +228,7 @@ async def test_get_provider_connection_fails_when_not_owned():
 async def test_get_provider_connection_with_different_statuses():
     """Test retrieval returns correct status for various connection states."""
     # Arrange
-    handler, repo = create_handler()
+    handler, repo, cache = create_handler()
     user_id = uuid7()
 
     statuses = [

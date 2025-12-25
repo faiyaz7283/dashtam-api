@@ -277,27 +277,27 @@ test-restart: test-down test-up
 
 test:
 	@echo "🧪 Running all tests with coverage..."
-	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
 	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html $(ARGS)
 
 test-unit:
 	@echo "🧪 Running unit tests..."
-	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
 	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/unit/ -v $(ARGS)
 
 test-integration:
 	@echo "🧪 Running integration tests..."
-	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
 	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v $(ARGS)
 
 test-api:
 	@echo "🧪 Running API tests..."
-	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
 	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/api/ -v $(ARGS)
 
 test-smoke:
 	@echo "🔥 Running smoke tests (E2E)..."
-	@docker compose -f compose/docker-compose.test.yml ps -q app > /dev/null 2>&1 || make test-up
+	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
 	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/ -v $(ARGS)
 
 # ==============================================================================

@@ -20,15 +20,18 @@ This document defines the cache key patterns and TTL strategies for Dashtam's ap
 **TTL**: 5 minutes (300 seconds)
 
 **Invalidation Triggers**:
+
 - User data updated (email, password, roles changed)
 - User deleted
 
 **Example**:
-```
+
+```text
 dashtam:user:123e4567-e89b-12d3-a456-426614174000
 ```
 
 **Use Cases**:
+
 - Authentication lookup (email → user)
 - Authorization checks (user roles)
 - Profile displays
@@ -44,16 +47,19 @@ dashtam:user:123e4567-e89b-12d3-a456-426614174000
 **TTL**: 5 minutes (300 seconds)
 
 **Invalidation Triggers**:
+
 - Connection status changed (connected, disconnected, expired)
 - Credentials refreshed
 - Connection deleted
 
 **Example**:
-```
+
+```text
 dashtam:provider:conn:456e7890-e89b-12d3-a456-426614174001
 ```
 
 **Use Cases**:
+
 - Provider status checks
 - OAuth token validation
 - Connection management API calls
@@ -69,15 +75,18 @@ dashtam:provider:conn:456e7890-e89b-12d3-a456-426614174001
 **TTL**: 5 minutes (300 seconds)
 
 **Invalidation Triggers**:
+
 - Manual account sync requested
 - TTL expires (stale data acceptable for read performance)
 
 **Example**:
-```
+
+```text
 dashtam:schwab:accounts:123e4567-e89b-12d3-a456-426614174000
 ```
 
 **Use Cases**:
+
 - Account list API calls
 - Reduce Schwab API rate limit pressure
 
@@ -94,15 +103,18 @@ dashtam:schwab:accounts:123e4567-e89b-12d3-a456-426614174000
 **TTL**: 5 minutes (300 seconds)
 
 **Invalidation Triggers**:
+
 - Manual transaction sync requested
 - TTL expires
 
 **Example**:
-```
+
+```text
 dashtam:schwab:tx:789e0123-e89b-12d3-a456-426614174002:2025-01-01:2025-01-31
 ```
 
 **Use Cases**:
+
 - Transaction list API calls with date ranges
 - Reduce Schwab API rate limit pressure
 - Immutable historical data (safe to cache aggressively)
@@ -120,15 +132,18 @@ dashtam:schwab:tx:789e0123-e89b-12d3-a456-426614174002:2025-01-01:2025-01-31
 **TTL**: 5 minutes (300 seconds)
 
 **Invalidation Triggers**:
+
 - Account created/updated/deleted for user
 - Manual account sync requested
 
 **Example**:
-```
+
+```text
 dashtam:accounts:user:123e4567-e89b-12d3-a456-426614174000
 ```
 
 **Use Cases**:
+
 - Account list API calls
 - Dashboard displays
 
@@ -145,6 +160,7 @@ dashtam:accounts:user:123e4567-e89b-12d3-a456-426614174000
 **TTL**: 1 minute (60 seconds)
 
 **Use Cases**:
+
 - Token breach rotation (hybrid versioning)
 - Emergency token invalidation
 
@@ -302,6 +318,7 @@ class CacheKeys:
 ```
 
 **Usage**:
+
 ```python
 from src.core.container import get_settings
 from src.infrastructure.cache.cache_keys import CacheKeys
@@ -333,19 +350,23 @@ Based on cache hit rate assumptions (70-90% after warm-up):
 ## Testing Strategy
 
 ### Cache Hit/Miss Tests (Integration)
+
 - Verify cache miss triggers database/API lookup
 - Verify cache hit returns cached value
 - Verify cache invalidation removes stale data
 
 ### Fail-Open Tests (Integration)
+
 - Verify Redis down = no errors (fallback to DB/API)
 - Verify cache write failure = no errors (request completes)
 
 ### TTL Tests (Integration)
+
 - Verify expired cache entries trigger refresh
 - Verify fresh cache entries return cached value
 
 ### Key Construction Tests (Unit)
+
 - Verify CacheKeys utility generates correct patterns
 - Verify UUID → string conversion
 

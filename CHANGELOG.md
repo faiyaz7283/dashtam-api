@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-12-25
+
+### Added
+
+- **F6.15**: IP Geolocation Integration with MaxMind GeoIP2
+  - Integrated MaxMind GeoLite2-City database for IP-to-location resolution
+  - Added `IPLocationEnricher` infrastructure adapter with lazy-loaded database reader
+  - Session metadata now includes geographic information (city, country, coordinates) for public IPs
+  - **Features**: City-level geolocation, fail-open behavior, private IP detection, lazy loading
+  - **Performance**: ~10-20ms database lookups (in-memory file), first lookup loads database
+  - **Configuration**: `GEOIP_DB_PATH` setting for database file path (can be disabled by setting to None)
+  - **Database**: GeoLite2-City.mmdb (~60MB, mounted via Docker volume at `/app/data/geoip/`)
+  - Added 15 comprehensive integration tests (test_location_enricher.py) covering:
+    - Private IP detection (no lookup for RFC 1918 addresses)
+    - Public IP lookup with real database (skips if database not available)
+    - Location string formatting ("City, CC" or "CC" only)
+    - Fail-open error handling (missing database, invalid IPs, database errors)
+    - Lazy loading behavior and database initialization
+    - Protocol compliance (LocationEnrichmentResult structure)
+  - Updated both enrichers (device + location) to use LoggerProtocol dependency injection for architecture consistency
+  - Added container wiring with logger injection for enrichers in `get_create_session_handler`
+  - Updated session management documentation with GeoIP2 setup guide (9 new sections, 135 lines)
+  - **Documentation**: Setup instructions, database download process, configuration options, troubleshooting guide
+  - Total test count increased from 1,731 to 1,746 tests (+15)
+  - Overall coverage maintained at 86%
+  - All quality checks passing: 1,744 tests (19 skipped), 86% coverage, zero lint violations
+
+### Changed
+
+- Refactored `device_enricher.py` and `location_enricher.py` to use `LoggerProtocol` injection instead of raw Python logger
+- Updated `auth_handlers.py` container to inject logger into both enrichers
+- Added latitude and longitude extraction to location enricher (populated from GeoIP2 response)
+- Updated `session-management-usage.md` with section renumbering (added section 9 for GeoIP2, shifted others)
+- Updated documentation "Last Updated" date to 2025-12-25
+
 ## [1.0.3] - 2025-12-25
 
 ### Added
@@ -197,7 +232,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Type Safety**: Strict mypy checking with modern Python 3.13+ type hints
 - **Code Quality**: Automated formatting (ruff), linting, and type checking in CI/CD
 
-[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.0...v1.0.1

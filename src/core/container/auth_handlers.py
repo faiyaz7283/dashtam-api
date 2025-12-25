@@ -25,6 +25,7 @@ from src.core.container.infrastructure import (
     get_cache_metrics,
     get_db_session,
     get_email_service,
+    get_logger,
     get_password_service,
     get_token_service,
 )
@@ -221,8 +222,9 @@ async def get_create_session_handler(
     session_repo = SessionRepository(session=session)
     user_repo = UserRepository(session=session)
     session_cache = RedisSessionCache(cache=get_cache())
-    device_enricher = UserAgentDeviceEnricher()
-    location_enricher = IPLocationEnricher()
+    logger = get_logger()
+    device_enricher = UserAgentDeviceEnricher(logger=logger)
+    location_enricher = IPLocationEnricher(logger=logger)
     event_bus = get_event_bus()
 
     return CreateSessionHandler(

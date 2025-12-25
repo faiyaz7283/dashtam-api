@@ -7,15 +7,11 @@ Reference:
     - docs/architecture/session-management-architecture.md
 """
 
-import logging
-
 from user_agents import parse as parse_user_agent
 from user_agents.parsers import UserAgent
 
+from src.domain.protocols.logger_protocol import LoggerProtocol
 from src.domain.protocols.session_enricher_protocol import DeviceEnrichmentResult
-
-
-logger = logging.getLogger(__name__)
 
 
 class UserAgentDeviceEnricher:
@@ -31,6 +27,14 @@ class UserAgentDeviceEnricher:
         - Non-blocking: Pure string parsing (<1ms)
         - Best-effort: Unknown agents return partial data
     """
+
+    def __init__(self, logger: LoggerProtocol) -> None:
+        """Initialize device enricher.
+
+        Args:
+            logger: Logger for error/debug messages.
+        """
+        self._logger = logger
 
     async def enrich(self, user_agent: str) -> DeviceEnrichmentResult:
         """Parse user agent string to extract device information.
@@ -78,9 +82,10 @@ class UserAgentDeviceEnricher:
             )
 
         except Exception as e:
-            logger.warning(
+            self._logger.warning(
                 "Failed to parse user agent",
-                extra={"user_agent": user_agent[:100], "error": str(e)},
+                user_agent=user_agent[:100],
+                error=str(e),
             )
             return DeviceEnrichmentResult()
 

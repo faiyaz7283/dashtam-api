@@ -25,7 +25,9 @@ Reference:
 """
 
 import base64
+import json
 from datetime import date
+from uuid import UUID
 
 import httpx
 import structlog
@@ -33,6 +35,9 @@ import structlog
 from src.core.config import Settings
 from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
+from src.domain.protocols.cache_protocol import CacheProtocol
+from src.infrastructure.cache.cache_keys import CacheKeys
+from src.infrastructure.cache.cache_metrics import CacheMetrics
 from src.domain.errors import (
     ProviderAuthenticationError,
     ProviderError,
@@ -84,12 +89,18 @@ class SchwabProvider:
         self,
         *,
         settings: Settings,
+        cache: CacheProtocol | None = None,
+        cache_keys: CacheKeys | None = None,
+        cache_metrics: CacheMetrics | None = None,
         timeout: float = 30.0,
     ) -> None:
         """Initialize Schwab provider.
 
         Args:
             settings: Application settings with Schwab configuration.
+            cache: Optional cache for API response caching.
+            cache_keys: Optional cache key utility.
+            cache_metrics: Optional metrics tracker.
             timeout: HTTP request timeout in seconds.
 
         Raises:
@@ -104,6 +115,10 @@ class SchwabProvider:
 
         self._settings = settings
         self._timeout = timeout
+        self._cache = cache
+        self._cache_keys = cache_keys
+        self._cache_metrics = cache_metrics
+        self._cache_ttl = settings.cache_schwab_ttl
 
         # Initialize API clients and mappers
         self._accounts_api = SchwabAccountsAPI(
@@ -415,13 +430,16 @@ class SchwabProvider:
     async def fetch_accounts(
         self,
         access_token: str,
+        user_id: UUID | None = None,
     ) -> Result[list[ProviderAccountData], ProviderError]:
         """Fetch all accounts for the authenticated user.
 
+        Uses cache-first strategy if cache is enabled and user_id provided.
         Delegates to SchwabAccountsAPI for HTTP and SchwabAccountMapper for mapping.
 
         Args:
             access_token: Valid Schwab access token.
+            user_id: Optional user ID for caching (required for cache).
 
         Returns:
             Success(list[ProviderAccountData]): Account data from Schwab.
@@ -432,6 +450,35 @@ class SchwabProvider:
             "schwab_fetch_accounts_started",
             provider=self.slug,
         )
+
+        # Try cache first if enabled
+        if self._cache and self._cache_keys and user_id:
+            cache_key = self._cache_keys.schwab_accounts(user_id)
+            cache_result = await self._cache.get(cache_key)
+
+            if isinstance(cache_result, Success) and cache_result.value:
+                # Cache hit
+                if self._cache_metrics:
+                    self._cache_metrics.record_hit("schwab")
+                try:
+                    cached_data = json.loads(cache_result.value)
+                    accounts = [ProviderAccountData(**acc) for acc in cached_data]
+                    logger.debug(
+                        "schwab_fetch_accounts_cache_hit",
+                        provider=self.slug,
+                        user_id=str(user_id),
+                    )
+                    return Success(value=accounts)
+                except (json.JSONDecodeError, TypeError, ValueError) as e:
+                    logger.warning(
+                        "schwab_cache_deserialize_error",
+                        error=str(e),
+                    )
+                    # Continue to API fetch on deserialization error
+
+            # Cache miss
+            if self._cache_metrics:
+                self._cache_metrics.record_miss("schwab")
 
         # Fetch raw JSON from Schwab API
         result = await self._accounts_api.get_accounts(
@@ -447,6 +494,25 @@ class SchwabProvider:
 
         # Map raw JSON to ProviderAccountData
         accounts = self._account_mapper.map_accounts(raw_accounts)
+
+        # Populate cache if enabled
+        if self._cache and self._cache_keys and user_id:
+            cache_key = self._cache_keys.schwab_accounts(user_id)
+            try:
+                # Serialize to JSON (ProviderAccountData is a dataclass)
+                cache_data = json.dumps([acc.__dict__ for acc in accounts])
+                await self._cache.set(cache_key, cache_data, ttl=self._cache_ttl)
+                logger.debug(
+                    "schwab_fetch_accounts_cached",
+                    provider=self.slug,
+                    user_id=str(user_id),
+                )
+            except (TypeError, ValueError) as e:
+                logger.warning(
+                    "schwab_cache_serialize_error",
+                    error=str(e),
+                )
+                # Fail-open: cache write failure doesn't affect response
 
         logger.info(
             "schwab_fetch_accounts_succeeded",

@@ -179,7 +179,7 @@
 - Auth override in tests: `app.dependency_overrides[get_current_user]` (not type alias)
 - Handler results wrapped in DTOs (e.g., `AccountListResult`, not raw lists)
 
-#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (13/15 streams)
+#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (14/15 streams)
 
 **Release**: 2025-12-13 | **PR**: #96 → development, #97 → main | **Tag**: v1.0.0
 
@@ -231,7 +231,19 @@
 - ✅ **Documentation**: Container docstring + WARP.md updated with final counts
 - ✅ **Result**: 100 total subscriptions, 46 events fully wired (15 workflows + 1 operational)
 
-**Deferred to v1.1.0+**: F6.11 (Cache Optimization), F6.13 (API Test Coverage), F6.14 (IP Geolocation)
+- ✅ **F6.13**: API Test Coverage Improvement (2025-12-25) - **62 tests added, 92% API coverage**
+
+**F6.13 API Test Coverage Summary** (completed 2025-12-25):
+
+- ✅ **Phase 1-7**: Systematic coverage improvement across 8 API endpoint files
+- ✅ **Test Files Created**: 7 new test files (test_users_api.py, test_tokens_api.py, test_password_resets_api.py, test_email_verifications_api.py, test_providers_callback_refresh.py, test_accounts_edge_cases.py, test_transactions_edge_cases.py)
+- ✅ **Coverage Improvements**: users.py (46% → 100%), tokens.py (50% → 100%), password_resets.py (48% → 100%), email_verifications.py (50% → 100%), providers.py (60% → 87%), accounts.py (91% → 94%)
+- ✅ **API v1 Layer**: 92% coverage (exceeds 85% target)
+- ✅ **Overall Coverage**: 81% → 83% (+2%)
+- ✅ **Total Tests**: 1597 → 1659 (+62 tests)
+- ✅ **Quality**: Zero lint violations, strict type checking passing
+
+**Deferred to v1.1.0+**: F6.11 (Cache Optimization), F6.14 (IP Geolocation)
 
 ---
 

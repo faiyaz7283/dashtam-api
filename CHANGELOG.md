@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - API Test Coverage
+
+- **F6.13**: API Test Coverage Improvement
+  - Added 62 new API tests across 7 test files (test_users_api.py, test_tokens_api.py, test_password_resets_api.py, test_email_verifications_api.py, test_providers_callback_refresh.py, test_accounts_edge_cases.py, test_transactions_edge_cases.py)
+  - Improved API v1 layer coverage from 81% to 92% (exceeds 85% target)
+  - Increased overall project coverage from 81% to 83%
+  - Total test count increased from 1,597 to 1,659 tests (+62)
+  - Coverage improvements: users.py (46% → 100%), tokens.py (50% → 100%), password_resets.py (48% → 100%), email_verifications.py (50% → 100%), providers.py (60% → 87%), accounts.py (91% → 94%)
+  - All quality checks passing: zero lint violations, strict type checking, all tests passing
+
 ## [1.0.1] - 2025-12-24
 
 ### Fixed

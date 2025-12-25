@@ -179,11 +179,11 @@
 - Auth override in tests: `app.dependency_overrides[get_current_user]` (not type alias)
 - Handler results wrapped in DTOs (e.g., `AccountListResult`, not raw lists)
 
-#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (14/15 streams)
+#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (15/15 streams)
 
 **Release**: 2025-12-13 | **PR**: #96 → development, #97 → main | **Tag**: v1.0.0
 
-**Status**: ✅ COMPLETED - v1.0.0 released | **Post-Release**: F6.15 completed 2025-12-24
+**Status**: ✅ COMPLETED - v1.0.0 released | **Post-Release**: All streams completed (v1.0.1-v1.1.0)
 
 **Completed Streams**:
 
@@ -198,7 +198,11 @@
 - ✅ **F6.9**: Migrate API Tests to Real App Pattern (commit ce44d8a)
 - ✅ **F6.10**: Adopt freezegun for Time-Dependent Tests (commit 9d61e0a)
 - ✅ **F6.12**: Admin Authentication for Protected Endpoints (commit c3bfbf4)
-- ✅ **F6.15**: Event Handler Wiring Completion (2025-12-24) - **100 subscriptions wired**
+- ✅ **F6.15a**: Event Handler Wiring Completion (2025-12-24) - **100 subscriptions wired**
+- ✅ **F6.13**: API Test Coverage Improvement (2025-12-25) - **62 tests, 92% API coverage**
+- ✅ **F6.11**: Cache Optimization (2025-12-25) - **4 cache layers, metrics & key management**
+- ✅ **F6.14**: Application Handler Test Coverage (2025-12-25) - **49 tests, 86% coverage**
+- ✅ **F6.15**: IP Geolocation Integration (2025-12-25) - **MaxMind GeoIP2, 15 tests**
 
 **F6.5 Security Audit Summary** (PR #95):
 
@@ -273,7 +277,22 @@
 - ✅ **Bug Fixes**: Fixed docker-compose.test.yml uv.lock mount (read-only → read-write)
 - ✅ **Quality**: Zero lint violations, strict type checking passing
 
-**Deferred to v1.1.0+**: F6.15 (IP Geolocation)
+- ✅ **F6.15**: IP Geolocation Integration (2025-12-25) - **MaxMind GeoIP2, v1.1.0 released**
+
+**F6.15 IP Geolocation Summary** (completed 2025-12-25):
+
+- ✅ **Phases 1-8**: Complete integration with MaxMind GeoLite2-City database
+- ✅ **Infrastructure**: IPLocationEnricher with lazy-loaded GeoIP2 reader, fail-open behavior
+- ✅ **Features**: City-level geolocation, private IP detection, latitude/longitude extraction
+- ✅ **Performance**: ~10-20ms lookups (in-memory file), first lookup loads database
+- ✅ **Configuration**: GEOIP_DB_PATH setting (default: `/app/data/geoip/GeoLite2-City.mmdb`)
+- ✅ **Architecture Refactor**: Both enrichers (device + location) now use LoggerProtocol injection
+- ✅ **Test Coverage**: 15 integration tests covering all scenarios (private IPs, fail-open, lazy loading)
+- ✅ **Documentation**: Updated session-management-usage.md with 135 lines of GeoIP2 setup guide
+- ✅ **Total Tests**: 1731 → 1746 (+15 tests, 13 passed + 2 skipped if database unavailable)
+- ✅ **Overall Coverage**: 86% maintained
+- ✅ **Quality**: Zero lint violations, strict type checking, all tests passing
+- ✅ **Release**: v1.1.0 (minor version bump for new feature)
 
 ---
 
@@ -1627,4 +1646,4 @@ grep -r "if not is_valid" src/           # Validation duplicates
 
 ---
 
-**Last Updated**: 2025-12-04
+**Last Updated**: 2025-12-25

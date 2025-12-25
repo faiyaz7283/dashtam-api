@@ -154,6 +154,13 @@ class Settings(BaseSettings):
         description="Security config (token versions) cache TTL in seconds (default: 1 minute)",
     )
 
+    # Geolocation configuration
+    geoip_db_path: str | None = Field(
+        default="/app/data/geoip/GeoLite2-City.mmdb",
+        description="Path to MaxMind GeoIP2 database file (GeoLite2-City.mmdb). "
+        "Set to None to disable geolocation enrichment.",
+    )
+
     # Security configuration
     secret_key: str = Field(
         description="Secret key for JWT token signing (must be kept secure)",

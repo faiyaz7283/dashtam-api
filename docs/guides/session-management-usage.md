@@ -390,26 +390,182 @@ class DeviceEnricher:
         return f"{browser} on {os}"
 ```
 
-### Location Enrichment (Optional)
+### Location Enrichment (IP Geolocation)
 
 ```python
 from src.infrastructure.enrichers import IPLocationEnricher
 
 class IPLocationEnricher:
-    """Resolve IP to location (requires MaxMind GeoIP2)."""
+    """Resolve IP to location using MaxMind GeoIP2."""
     
     async def enrich(self, ip_address: str) -> LocationEnrichmentResult:
+        """Resolve IP address to geographic location.
+        
+        Returns:
+            LocationEnrichmentResult with city, country, coordinates.
+            Returns empty for private IPs or if database not available.
+        """
         if self._is_private_ip(ip_address):
             return LocationEnrichmentResult()  # No location for private IPs
         
-        # TODO: Integrate with geolocation service (F6.15)
-        # For now, returns empty result
-        return LocationEnrichmentResult()
+        # Lookup in MaxMind GeoLite2-City database
+        response = self._reader.city(ip_address)
+        
+        return LocationEnrichmentResult(
+            location=f"{response.city.name}, {response.country.iso_code}",
+            city=response.city.name,
+            country_code=response.country.iso_code,
+            latitude=response.location.latitude,
+            longitude=response.location.longitude,
+        )
 ```
+
+**Behavior**:
+
+- **Private IPs**: Returns empty (no meaningful location for RFC 1918 addresses)
+- **Fail-open**: Returns empty on errors (never blocks session creation)
+- **Lazy loading**: Database loaded on first lookup
+- **Performance**: ~10-20ms for database lookup (in-memory file)
 
 ---
 
-## 9. Testing Sessions
+## 9. GeoIP2 Setup (IP Geolocation)
+
+### Overview
+
+Dashtam uses **MaxMind GeoLite2-City** database for IP geolocation. This enriches sessions with
+geographic information (city, country, coordinates) for public IP addresses.
+
+**Features**:
+
+- **Free**: GeoLite2 database is free with MaxMind account
+- **Accurate**: City-level geolocation for most IPs
+- **Fast**: In-memory database lookups (~10-20ms)
+- **Fail-open**: Sessions create even if geolocation fails
+- **Optional**: Geolocation can be disabled without breaking sessions
+
+### Setup Instructions
+
+#### Step 1: Sign Up for MaxMind Account
+
+1. Go to <https://www.maxmind.com/en/geolite2/signup>
+2. Create free GeoLite2 account
+3. Verify email address
+
+#### Step 2: Download GeoLite2-City Database
+
+1. Log in to MaxMind account
+2. Navigate to **Download Files** section
+3. Locate **GeoLite2 City**
+4. Click **Download GZIP** (e.g., `GeoLite2-City_20251223.tar.gz`)
+
+#### Step 3: Extract and Place Database File
+
+```bash
+# Extract tar.gz
+tar -xzvf GeoLite2-City_20251223.tar.gz
+
+# Copy .mmdb file to project
+cp GeoLite2-City_20251223/GeoLite2-City.mmdb /path/to/Dashtam/data/geoip/
+```
+
+**Directory Structure**:
+
+```text
+Dashtam/
+├── data/
+│   └── geoip/
+│       └── GeoLite2-City.mmdb  # Database file (~60MB)
+├── src/
+└── tests/
+```
+
+#### Step 4: Configure Database Path
+
+Database path is configured in `.env` files:
+
+```bash
+# env/.env.dev
+GEOIP_DB_PATH=/app/data/geoip/GeoLite2-City.mmdb
+
+# env/.env.test
+GEOIP_DB_PATH=/app/data/geoip/GeoLite2-City.mmdb
+
+# env/.env.prod
+GEOIP_DB_PATH=/app/data/geoip/GeoLite2-City.mmdb
+```
+
+**Disabling Geolocation** (optional):
+
+```bash
+# Set to empty string or comment out
+GEOIP_DB_PATH=
+```
+
+#### Step 5: Verify Installation
+
+```python
+# In Docker container
+from src.infrastructure.enrichers import IPLocationEnricher
+from src.infrastructure.logging.console_adapter import ConsoleLoggerAdapter
+
+logger = ConsoleLoggerAdapter()
+enricher = IPLocationEnricher(logger=logger)
+
+# Test with Google Public DNS
+result = await enricher.enrich("8.8.8.8")
+print(result.location)  # Should print: "US" or "Mountain View, US"
+```
+
+### Database Updates
+
+**Manual Updates** (current approach):
+
+1. Download new database from MaxMind monthly
+2. Replace `data/geoip/GeoLite2-City.mmdb`
+3. Restart application (database is lazy-loaded)
+
+**Automated Updates** (planned for v1.1.0):
+
+- F7.3: Background job system will automate monthly database updates
+- Zero-downtime updates with atomic file replacement
+
+### Configuration Options
+
+```python
+# src/core/config.py
+class Settings:
+    geoip_db_path: str | None = "/app/data/geoip/GeoLite2-City.mmdb"
+```
+
+**Behavior by Configuration**:
+
+| `geoip_db_path` | Behavior |
+|----------------|----------|
+| Valid path | IP geolocation enabled |
+| `None` or empty | IP geolocation disabled (location always empty) |
+| Invalid path | Warning logged, geolocation disabled |
+
+### Volume Mounts (Docker)
+
+The database file is accessible in all Docker environments:
+
+```yaml
+# compose/docker-compose.dev.yml
+services:
+  app:
+    volumes:
+      - ..:/app  # Mounts entire project (includes data/geoip/)
+```
+
+**Path Mapping**:
+
+- **Host**: `/Users/you/Dashtam/data/geoip/GeoLite2-City.mmdb`
+- **Container**: `/app/data/geoip/GeoLite2-City.mmdb`
+
+---
+
+## 10. Testing Sessions
 
 ### Unit Testing Handler
 
@@ -466,7 +622,7 @@ def test_revoke_session(client: TestClient, auth_headers, other_session):
 
 ---
 
-## 10. Common Patterns
+## 11. Common Patterns
 
 ### Pattern 1: Get Current Session from JWT
 
@@ -521,7 +677,7 @@ async def admin_list_user_sessions(
 
 ---
 
-## Troubleshooting
+## 12. Troubleshooting
 
 ### Session not found after login
 
@@ -542,6 +698,68 @@ async def admin_list_user_sessions(
 2. Check SESSION_TIER_LIMITS configuration
 3. Check count_active query filters is_revoked=False
 
+### Location is always empty/null
+
+1. **Check database file exists**:
+
+   ```bash
+   # In container
+   ls -lh /app/data/geoip/GeoLite2-City.mmdb
+   ```
+
+2. **Check GEOIP_DB_PATH setting**:
+
+   ```bash
+   echo $GEOIP_DB_PATH
+   ```
+
+3. **Check logs for warnings**:
+
+   ```text
+   "GeoIP database file not found"
+   "GeoIP database not configured"
+   "Failed to initialize GeoIP database"
+   ```
+
+4. **Verify with test IP**:
+
+   ```python
+   result = await enricher.enrich("8.8.8.8")  # Google DNS
+   # Should return location if working
+   ```
+
+5. **Check IP is public** (not private):
+   - Private IPs (192.168.x.x, 10.x.x.x, 127.0.0.1) always return empty location
+   - Use public IP for testing (e.g., 8.8.8.8)
+
+### Geolocation is slow (>100ms)
+
+1. **Check database is being reused** (lazy loading):
+   - First lookup: ~20-50ms (loads database)
+   - Subsequent lookups: ~5-10ms (reuses loaded database)
+
+2. **Check disk I/O**:
+   - Database file should be cached in memory by OS
+   - SSD recommended for Docker volume mounts
+
+3. **Check Docker volume mount performance**:
+   - Consider copying database into container image for production
+
+### Tests skip geolocation tests
+
+**Expected behavior** - Tests skip if database not available:
+
+```text
+test_public_ip_lookup_with_real_database SKIPPED
+test_ip_not_in_database_returns_empty SKIPPED
+```
+
+**To run these tests**:
+
+1. Ensure database exists at `/app/data/geoip/GeoLite2-City.mmdb` in test container
+2. Database is automatically mounted via project directory volume
+3. Tests will pass if database accessible, skip if not
+
 ---
 
-**Created**: 2025-12-05 | **Last Updated**: 2025-12-05
+**Created**: 2025-12-05 | **Last Updated**: 2025-12-25

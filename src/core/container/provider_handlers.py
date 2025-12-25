@@ -15,7 +15,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.container.events import get_event_bus
-from src.core.container.infrastructure import get_db_session
+from src.core.container.infrastructure import get_cache, get_db_session
 
 if TYPE_CHECKING:
     from src.application.commands.handlers.connect_provider_handler import (
@@ -140,24 +140,29 @@ async def get_get_provider_connection_handler(
 
     Creates handler with:
     - ProviderConnectionRepository (request-scoped)
+    - ProviderConnectionCache (app-scoped, cache-first strategy)
 
     Returns:
         GetProviderConnectionHandler instance.
 
     Reference:
         - docs/architecture/cqrs-pattern.md
+        - docs/architecture/cache-key-patterns.md
     """
     from src.application.queries.handlers.get_provider_handler import (
         GetProviderConnectionHandler,
     )
+    from src.infrastructure.cache import RedisProviderConnectionCache
     from src.infrastructure.persistence.repositories import (
         ProviderConnectionRepository,
     )
 
     connection_repo = ProviderConnectionRepository(session=session)
+    connection_cache = RedisProviderConnectionCache(cache=get_cache())
 
     return GetProviderConnectionHandler(
         connection_repo=connection_repo,
+        connection_cache=connection_cache,
     )
 
 

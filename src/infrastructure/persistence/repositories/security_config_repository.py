@@ -4,15 +4,20 @@ Adapter for hexagonal architecture.
 Maps between domain SecurityConfig entity and database SecurityConfig model.
 """
 
+import logging
 from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.entities.security_config import SecurityConfig
+from src.domain.protocols import CacheProtocol
+from src.infrastructure.cache.cache_keys import CacheKeys
 from src.infrastructure.persistence.models.security_config import (
     SecurityConfig as SecurityConfigModel,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SecurityConfigRepository:
@@ -35,13 +40,22 @@ class SecurityConfigRepository:
         ...     print(config.global_min_token_version)
     """
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        cache: CacheProtocol | None = None,
+        cache_keys: CacheKeys | None = None,
+    ) -> None:
         """Initialize repository with database session.
 
         Args:
             session: SQLAlchemy async session.
+            cache: Optional cache for invalidation.
+            cache_keys: Optional cache key builder.
         """
         self.session = session
+        self._cache = cache
+        self._cache_keys = cache_keys
 
     async def get(self) -> SecurityConfig | None:
         """Get the security configuration.
@@ -140,6 +154,9 @@ class SecurityConfigRepository:
         await self.session.commit()
         await self.session.refresh(config_model)
 
+        # Phase 7: Invalidate security config cache
+        await self._invalidate_security_cache()
+
         return self._to_domain(config_model)
 
     async def update_grace_period(
@@ -198,3 +215,20 @@ class SecurityConfigRepository:
             created_at=config_model.created_at,
             updated_at=config_model.updated_at,
         )
+
+    async def _invalidate_security_cache(self) -> None:
+        """Invalidate security config cache.
+
+        Called after global_min_token_version is updated.
+        Ensures cached security config is removed for immediate propagation.
+        """
+        if self._cache and self._cache_keys:
+            try:
+                cache_key = self._cache_keys.security_global_version()
+                await self._cache.delete(cache_key)
+            except Exception as e:
+                # Fail-open: Cache invalidation failure should not block response
+                logger.warning(
+                    "security_config_cache_invalidation_error",
+                    extra={"error": str(e)},
+                )

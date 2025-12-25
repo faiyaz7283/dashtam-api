@@ -26,11 +26,18 @@ from sqlalchemy import select
 from src.core.container import get_event_bus
 from src.domain.enums.audit_action import AuditAction
 from src.domain.events.auth_events import (
-    UserRegistrationSucceeded,
+    GlobalTokenRotationSucceeded,
     UserPasswordChangeSucceeded,
+    UserRegistrationSucceeded,
+    UserTokenRotationSucceeded,
+)
+from src.domain.events.authorization_events import (
+    RoleAssignmentSucceeded,
+    RoleRevocationSucceeded,
 )
 from src.domain.events.provider_events import (
     ProviderConnectionSucceeded,
+    ProviderDisconnectionSucceeded,
     ProviderTokenRefreshFailed,
 )
 from src.infrastructure.persistence.models.audit_log import AuditLog
@@ -442,6 +449,200 @@ class TestEventDataIntegrity:
             assert log is not None
             assert log.ip_address is None  # Optional field not in SUCCEEDED event
             assert log.context["initiated_by"] == "admin"
+
+
+@pytest.mark.integration
+class TestF615NewEventFlows:
+    """Test new event flows added in F6.15.
+
+    Tests verify that events wired in F6.15 (GlobalTokenRotation,
+    UserTokenRotation, RoleAssignment, RoleRevocation,
+    ProviderDisconnection) correctly trigger audit and logging handlers.
+    """
+
+    @pytest.mark.asyncio
+    async def test_global_token_rotation_succeeded_creates_audit_record(
+        self, test_database
+    ):
+        """Test GlobalTokenRotationSucceeded → audit record created."""
+        # Arrange
+        event_bus = get_event_bus()
+        admin_id = uuid7()
+        event = GlobalTokenRotationSucceeded(
+            triggered_by=str(admin_id),
+            previous_version=5,
+            new_version=6,
+            reason="security_breach_suspected",
+            grace_period_seconds=300,
+        )
+
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
+
+        # Assert - Audit record created
+        async with test_database.get_session() as session:
+            stmt = select(AuditLog).where(
+                AuditLog.action == AuditAction.GLOBAL_TOKEN_ROTATION_SUCCEEDED
+            )
+            result = await session.execute(stmt)
+            logs = result.scalars().all()
+
+            assert len(logs) >= 1
+            log = logs[-1]  # Get most recent
+            assert log.action == AuditAction.GLOBAL_TOKEN_ROTATION_SUCCEEDED
+            assert log.resource_type == "token"
+            assert log.context["triggered_by"] == str(admin_id)
+            assert log.context["previous_version"] == 5
+            assert log.context["new_version"] == 6
+            assert log.context["reason"] == "security_breach_suspected"
+
+    @pytest.mark.asyncio
+    async def test_user_token_rotation_succeeded_creates_audit_record(
+        self, test_database
+    ):
+        """Test UserTokenRotationSucceeded → audit record created."""
+        # Arrange
+        event_bus = get_event_bus()
+        user_id = uuid7()
+        admin_id = uuid7()
+        event = UserTokenRotationSucceeded(
+            user_id=user_id,
+            triggered_by=str(admin_id),
+            previous_version=3,
+            new_version=4,
+            reason="suspicious_activity",
+        )
+
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
+
+        # Assert - Audit record created
+        async with test_database.get_session() as session:
+            stmt = select(AuditLog).where(
+                AuditLog.user_id == user_id,
+                AuditLog.action == AuditAction.USER_TOKEN_ROTATION_SUCCEEDED,
+            )
+            result = await session.execute(stmt)
+            logs = result.scalars().all()
+
+            assert len(logs) == 1
+            log = logs[0]
+            assert log.action == AuditAction.USER_TOKEN_ROTATION_SUCCEEDED
+            assert log.user_id == user_id
+            assert log.resource_type == "token"
+            assert log.context["triggered_by"] == str(admin_id)
+            assert log.context["previous_version"] == 3
+            assert log.context["new_version"] == 4
+
+    @pytest.mark.asyncio
+    async def test_role_assignment_succeeded_creates_audit_record(self, test_database):
+        """Test RoleAssignmentSucceeded → audit record created."""
+        # Arrange
+        event_bus = get_event_bus()
+        user_id = uuid7()
+        admin_id = uuid7()
+        event = RoleAssignmentSucceeded(
+            user_id=user_id, role="admin", assigned_by=admin_id
+        )
+
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
+
+        # Assert - Audit record created
+        async with test_database.get_session() as session:
+            stmt = select(AuditLog).where(
+                AuditLog.user_id == user_id,
+                AuditLog.action == AuditAction.ROLE_ASSIGNED,
+            )
+            result = await session.execute(stmt)
+            logs = result.scalars().all()
+
+            assert len(logs) == 1
+            log = logs[0]
+            assert log.action == AuditAction.ROLE_ASSIGNED
+            assert log.user_id == user_id
+            assert log.resource_type == "user"
+            assert log.resource_id == user_id  # Role assignment records user_id
+            assert log.context["role"] == "admin"
+            assert log.context["assigned_by"] == str(admin_id)
+
+    @pytest.mark.asyncio
+    async def test_role_revocation_succeeded_creates_audit_record(self, test_database):
+        """Test RoleRevocationSucceeded → audit record created."""
+        # Arrange
+        event_bus = get_event_bus()
+        user_id = uuid7()
+        admin_id = uuid7()
+        event = RoleRevocationSucceeded(
+            user_id=user_id,
+            role="admin",
+            revoked_by=admin_id,
+            reason="policy_violation",
+        )
+
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
+
+        # Assert - Audit record created
+        async with test_database.get_session() as session:
+            stmt = select(AuditLog).where(
+                AuditLog.user_id == user_id,
+                AuditLog.action == AuditAction.ROLE_REVOKED,
+            )
+            result = await session.execute(stmt)
+            logs = result.scalars().all()
+
+            assert len(logs) == 1
+            log = logs[0]
+            assert log.action == AuditAction.ROLE_REVOKED
+            assert log.user_id == user_id
+            assert log.resource_type == "user"
+            assert log.resource_id == user_id
+            assert log.context["role"] == "admin"
+            assert log.context["revoked_by"] == str(admin_id)
+            assert log.context["reason"] == "policy_violation"
+
+    @pytest.mark.asyncio
+    async def test_provider_disconnection_succeeded_creates_audit_record(
+        self, test_database
+    ):
+        """Test ProviderDisconnectionSucceeded → audit record created."""
+        # Arrange
+        event_bus = get_event_bus()
+        user_id = uuid7()
+        provider_id = uuid7()
+        connection_id = uuid7()
+        event = ProviderDisconnectionSucceeded(
+            user_id=user_id,
+            connection_id=connection_id,
+            provider_id=provider_id,
+            provider_slug="schwab",
+        )
+
+        # Act - Pass session to avoid "Event loop is closed" error
+        async with test_database.get_session() as session:
+            await event_bus.publish(event, session=session)
+
+        # Assert - Audit record created
+        async with test_database.get_session() as session:
+            stmt = select(AuditLog).where(
+                AuditLog.user_id == user_id,
+                AuditLog.action == AuditAction.PROVIDER_DISCONNECTED,
+            )
+            result = await session.execute(stmt)
+            logs = result.scalars().all()
+
+            assert len(logs) == 1
+            log = logs[0]
+            assert log.action == AuditAction.PROVIDER_DISCONNECTED
+            assert log.user_id == user_id
+            assert log.resource_type == "provider"
+            assert log.resource_id == connection_id
+            assert log.context["provider_slug"] == "schwab"
 
 
 @pytest.mark.integration

@@ -14,6 +14,13 @@
   // Each phase shows its subset (e.g., Phase 2: 8-11) maintaining context
   "MD029": false,
   
+  // Disable duplicate heading check (MD024)
+  // Rationale: We follow Keep a Changelog format (https://keepachangelog.com) which
+  // requires duplicate headings (Added, Changed, Fixed) under each version section.
+  // This is industry standard. The value of catching accidental duplicates in other
+  // docs is minimal compared to constant false positives in CHANGELOG.md.
+  "MD024": false,
+  
   // Keep other important rules enabled
   "MD032": true,  // Blank lines around lists
   "MD060": false, // Table column alignment - disabled, renders fine

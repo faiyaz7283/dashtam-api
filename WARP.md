@@ -5,6 +5,7 @@
 **External Reference**:
 
 - `~/references/starter/dashtam-feature-roadmap.md` - Feature roadmap with Phase 2-6 implementation details
+- `~/references/dashtam-production-deployment-options.md` - Production deployment options, costs, TLS/auth, CI/CD, IaC
 
 ---
 
@@ -39,7 +40,7 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**v1.0 Release Milestone**: Phases 0-5 (32 features), Phase 6+ deferred to future releases.
+**v1.0.0 Released**: 2025-12-13 | **Phases 0-6 Complete** (43 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.0.0>
 
 ---
 
@@ -178,20 +179,28 @@
 - Auth override in tests: `app.dependency_overrides[get_current_user]` (not type alias)
 - Handler results wrapped in DTOs (e.g., `AccountListResult`, not raw lists)
 
-#### Phase 6: v1.0 Release Preparation (IN PROGRESS)
+#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (14/15 streams)
 
-**Status**: 5/15 streams completed
+**Release**: 2025-12-13 | **PR**: #96 → development, #97 → main | **Tag**: v1.0.0
+
+**Status**: ✅ COMPLETED - v1.0.0 released | **Post-Release**: F6.15 completed 2025-12-24
 
 **Completed Streams**:
 
-- ✅ **F6.1**: Route Organization (PR #57cf821)
+- ✅ **F6.1**: Route Organization (commit 57cf821)
+- ✅ **F6.2**: CI/CD Fixes (commit 9702cac)
+- ✅ **F6.3**: MkDocs Local Preview (commit c4bfefb)
 - ✅ **F6.4**: Architecture Compliance Audit (PR #94)
-- ✅ **F6.5**: Security Audit (PRs #92, #93, #95) - **Grade: A (Excellent)**
+- ✅ **F6.5**: Security Audit (PR #95) - **Grade: A (Excellent)**
+- ✅ **F6.6**: Test Cleanup (commit de1b41f)
+- ✅ **F6.7**: Documentation Updates (commit ea3a8d3)
+- ✅ **F6.8**: Version Update to 1.0.0 (commit ea3a8d3)
 - ✅ **F6.9**: Migrate API Tests to Real App Pattern (commit ce44d8a)
 - ✅ **F6.10**: Adopt freezegun for Time-Dependent Tests (commit 9d61e0a)
 - ✅ **F6.12**: Admin Authentication for Protected Endpoints (commit c3bfbf4)
+- ✅ **F6.15**: Event Handler Wiring Completion (2025-12-24) - **100 subscriptions wired**
 
-**F6.5 Security Audit Summary** (PRs #92, #93, #95):
+**F6.5 Security Audit Summary** (PR #95):
 
 - **Audit Areas**: 6 (Encryption, JWT/Tokens, Rate Limiting, Audit Trail, Errors, Auth/Authz)
 - **Vulnerabilities**: 2 found, 100% remediation
@@ -200,7 +209,71 @@
 - **Security Grade**: A (Excellent)
 - **Compliance**: PCI-DSS, SOC 2, GDPR, NIST
 
-**Pending Streams**: See `~/references/starter/dashtam-feature-roadmap.md` for F6.2, F6.3, F6.6, F6.7, F6.8, F6.11, F6.13, F6.14, F6.15
+**Phase 6 Achievements**:
+
+- ✅ Version bumped to 1.0.0 with dynamic version reading
+- ✅ CHANGELOG.md created with comprehensive release notes
+- ✅ README.md completely rewritten (Quick Start, Security, Architecture)
+- ✅ CI/CD fixed (local CI testing, markdown linting)
+- ✅ MkDocs preview with Traefik HTTPS routing
+- ✅ 1,589 tests passing (81% coverage, 17 skipped)
+- ✅ Zero lint violations, strict type checking
+- ✅ All architecture docs verified and updated
+
+**F6.15 Event Handler Wiring Summary** (completed 2025-12-24):
+
+- ✅ **Inventory**: 54 domain events defined, 26 missing handlers identified
+- ✅ **Handler Methods**: Added 15 methods each to LoggingEventHandler + AuditEventHandler
+- ✅ **Audit Actions**: Added 6 new AuditAction enums (token rotation)
+- ✅ **Container Wiring**: 30 new subscriptions (15 events × 2 handlers)
+- ✅ **Registry Test**: Verification test ensures all events have handlers (prevents drift)
+- ✅ **Integration Tests**: 5 end-to-end event flow tests added (419 total passing)
+- ✅ **Documentation**: Container docstring + WARP.md updated with final counts
+- ✅ **Result**: 100 total subscriptions, 46 events fully wired (15 workflows + 1 operational)
+
+- ✅ **F6.13**: API Test Coverage Improvement (2025-12-25) - **62 tests added, 92% API coverage**
+
+**F6.13 API Test Coverage Summary** (completed 2025-12-25):
+
+- ✅ **Phase 1-7**: Systematic coverage improvement across 8 API endpoint files
+- ✅ **Test Files Created**: 7 new test files (test_users_api.py, test_tokens_api.py, test_password_resets_api.py, test_email_verifications_api.py, test_providers_callback_refresh.py, test_accounts_edge_cases.py, test_transactions_edge_cases.py)
+- ✅ **Coverage Improvements**: users.py (46% → 100%), tokens.py (50% → 100%), password_resets.py (48% → 100%), email_verifications.py (50% → 100%), providers.py (60% → 87%), accounts.py (91% → 94%)
+- ✅ **API v1 Layer**: 92% coverage (exceeds 85% target)
+- ✅ **Overall Coverage**: 81% → 83% (+2%)
+- ✅ **Total Tests**: 1597 → 1659 (+62 tests)
+- ✅ **Quality**: Zero lint violations, strict type checking passing
+
+- ✅ **F6.11**: Cache Optimization (2025-12-25) - **4 cache layers, metrics & key management**
+
+**F6.11 Cache Optimization Summary** (completed 2025-12-25):
+
+- ✅ **Phases 1-9**: Complete implementation with performance verification
+- ✅ **Cache Infrastructure**: CacheMetrics (thread-safe tracking), CacheKeys (centralized patterns)
+- ✅ **Provider Connection Cache**: ~10x faster (<5ms vs ~50ms), 5-min TTL
+- ✅ **Schwab API Cache**: 70-90% reduction in external API calls, 5-min TTL
+- ✅ **Account List Cache**: 50-70% reduction in DB queries, unfiltered lists only
+- ✅ **Security Config Cache**: Reduced token refresh DB load, 1-min TTL (security-sensitive)
+- ✅ **Test Coverage**: 13 integration tests (cache_optimization, cache_provider_connection, cache_performance)
+- ✅ **Documentation**: cache-key-patterns.md (354 lines), cache-usage.md updated
+- ✅ **Performance Verified**: >20% improvement cache hit vs miss, fail-open confirmed
+- ✅ **Total Tests**: 1659 → 1672 (+13 tests, 9 commits)
+- ✅ **Overall Coverage**: 83% maintained, zero regressions
+- ❌ **Phase 3 Skipped**: User Data Cache deferred to v1.1.0+ (low ROI)
+
+- ✅ **F6.14**: Application Handler Test Coverage Improvement (2025-12-25) - **49 tests added, 86% coverage**
+
+**F6.14 Application Handler Test Coverage Summary** (completed 2025-12-25):
+
+- ✅ **Phase 1-5**: Systematic coverage improvement across application layer handlers
+- ✅ **Test Files Created**: 4 new test files (test_sync_handlers.py, test_auth_flow_handlers.py, test_core_validation.py, test_value_objects_email_password.py)
+- ✅ **Coverage Improvements**: sync_transactions_handler.py (22% → 100%), sync_accounts_handler.py (30% → 100%), auth flow handlers (45-54% → 100%), core/validation.py (17% → 100%)
+- ✅ **Application Layer**: Exceeds 85% target
+- ✅ **Overall Coverage**: 83% → 86% (+3%)
+- ✅ **Total Tests**: 1672 → 1731 (+49 tests)
+- ✅ **Bug Fixes**: Fixed docker-compose.test.yml uv.lock mount (read-only → read-write)
+- ✅ **Quality**: Zero lint violations, strict type checking passing
+
+**Deferred to v1.1.0+**: F6.15 (IP Geolocation)
 
 ---
 

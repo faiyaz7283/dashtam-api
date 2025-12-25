@@ -129,6 +129,30 @@ class Settings(BaseSettings):
     redis_url: str = Field(
         description="Redis connection URL (e.g., redis://host:port/db)",
     )
+    cache_key_prefix: str = Field(
+        default="dashtam",
+        description="Cache key prefix for namespacing (prevents collisions with other apps)",
+    )
+    cache_user_ttl: int = Field(
+        default=300,
+        description="User data cache TTL in seconds (default: 5 minutes)",
+    )
+    cache_provider_ttl: int = Field(
+        default=300,
+        description="Provider connection cache TTL in seconds (default: 5 minutes)",
+    )
+    cache_schwab_ttl: int = Field(
+        default=300,
+        description="Schwab API response cache TTL in seconds (default: 5 minutes)",
+    )
+    cache_accounts_ttl: int = Field(
+        default=300,
+        description="Account list cache TTL in seconds (default: 5 minutes)",
+    )
+    cache_security_ttl: int = Field(
+        default=60,
+        description="Security config (token versions) cache TTL in seconds (default: 1 minute)",
+    )
 
     # Security configuration
     secret_key: str = Field(

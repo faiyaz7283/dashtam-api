@@ -28,13 +28,23 @@ def get_event_bus() -> "EventBusProtocol":
         - 'rabbitmq': RabbitMQEventBus (future, distributed)
         - 'kafka': KafkaEventBus (future, high-volume)
 
-    Event handlers are registered at startup (ALL 70 subscriptions):
-        - LoggingEventHandler: 31 events (all authentication + provider events)
-        - AuditEventHandler: 31 events (all authentication + provider events)
+    Event handlers are registered at startup (ALL 100 subscriptions):
+        - LoggingEventHandler: 46 events (ALL ATTEMPT/SUCCEEDED/FAILED for 15 workflows +
+          1 operational event: TokenRejectedDueToRotation)
+        - AuditEventHandler: 46 events (ALL ATTEMPT/SUCCEEDED/FAILED for 15 workflows +
+          1 operational event: TokenRejectedDueToRotation)
         - EmailEventHandler: 5 SUCCEEDED events (registration, password change,
           email verification, password reset request, password reset confirm)
         - SessionEventHandler: 3 SUCCEEDED events (password change, password reset
           confirm, user logout)
+
+    F6.15 Complete: All 46 events fully wired (15 critical workflows):
+        Authentication (7): Registration, Login, Logout, PasswordChange, EmailVerification,
+            PasswordResetRequest, PasswordResetConfirm, AuthTokenRefresh
+        Authorization (4): GlobalTokenRotation, UserTokenRotation, RoleAssignment,
+            RoleRevocation
+        Provider (3): ProviderConnection, ProviderDisconnection, ProviderTokenRefresh
+        Operational (1): TokenRejectedDueToRotation
 
     Returns:
         Event bus implementing EventBusProtocol.
@@ -62,6 +72,9 @@ def get_event_bus() -> "EventBusProtocol":
         EmailVerificationAttempted,
         EmailVerificationFailed,
         EmailVerificationSucceeded,
+        GlobalTokenRotationAttempted,
+        GlobalTokenRotationFailed,
+        GlobalTokenRotationSucceeded,
         PasswordResetConfirmAttempted,
         PasswordResetConfirmFailed,
         PasswordResetConfirmSucceeded,
@@ -81,11 +94,25 @@ def get_event_bus() -> "EventBusProtocol":
         UserRegistrationAttempted,
         UserRegistrationFailed,
         UserRegistrationSucceeded,
+        UserTokenRotationAttempted,
+        UserTokenRotationFailed,
+        UserTokenRotationSucceeded,
+    )
+    from src.domain.events.authorization_events import (
+        RoleAssignmentAttempted,
+        RoleAssignmentFailed,
+        RoleAssignmentSucceeded,
+        RoleRevocationAttempted,
+        RoleRevocationFailed,
+        RoleRevocationSucceeded,
     )
     from src.domain.events.provider_events import (
         ProviderConnectionAttempted,
         ProviderConnectionFailed,
         ProviderConnectionSucceeded,
+        ProviderDisconnectionAttempted,
+        ProviderDisconnectionFailed,
+        ProviderDisconnectionSucceeded,
         ProviderTokenRefreshAttempted,
         ProviderTokenRefreshFailed,
         ProviderTokenRefreshSucceeded,
@@ -398,6 +425,146 @@ def get_event_bus() -> "EventBusProtocol":
     )
     event_bus.subscribe(
         TokenRejectedDueToRotation, audit_handler.handle_token_rejected_due_to_rotation
+    )
+
+    # Global Token Rotation Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        GlobalTokenRotationAttempted,
+        logging_handler.handle_global_token_rotation_attempted,
+    )
+    event_bus.subscribe(
+        GlobalTokenRotationAttempted,
+        audit_handler.handle_global_token_rotation_attempted,
+    )
+
+    event_bus.subscribe(
+        GlobalTokenRotationSucceeded,
+        logging_handler.handle_global_token_rotation_succeeded,
+    )
+    event_bus.subscribe(
+        GlobalTokenRotationSucceeded,
+        audit_handler.handle_global_token_rotation_succeeded,
+    )
+
+    event_bus.subscribe(
+        GlobalTokenRotationFailed,
+        logging_handler.handle_global_token_rotation_failed,
+    )
+    event_bus.subscribe(
+        GlobalTokenRotationFailed,
+        audit_handler.handle_global_token_rotation_failed,
+    )
+
+    # User Token Rotation Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        UserTokenRotationAttempted,
+        logging_handler.handle_user_token_rotation_attempted,
+    )
+    event_bus.subscribe(
+        UserTokenRotationAttempted,
+        audit_handler.handle_user_token_rotation_attempted,
+    )
+
+    event_bus.subscribe(
+        UserTokenRotationSucceeded,
+        logging_handler.handle_user_token_rotation_succeeded,
+    )
+    event_bus.subscribe(
+        UserTokenRotationSucceeded,
+        audit_handler.handle_user_token_rotation_succeeded,
+    )
+
+    event_bus.subscribe(
+        UserTokenRotationFailed,
+        logging_handler.handle_user_token_rotation_failed,
+    )
+    event_bus.subscribe(
+        UserTokenRotationFailed,
+        audit_handler.handle_user_token_rotation_failed,
+    )
+
+    # Role Assignment Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        RoleAssignmentAttempted,
+        logging_handler.handle_role_assignment_attempted,
+    )
+    event_bus.subscribe(
+        RoleAssignmentAttempted,
+        audit_handler.handle_role_assignment_attempted,
+    )
+
+    event_bus.subscribe(
+        RoleAssignmentSucceeded,
+        logging_handler.handle_role_assignment_succeeded,
+    )
+    event_bus.subscribe(
+        RoleAssignmentSucceeded,
+        audit_handler.handle_role_assignment_succeeded,
+    )
+
+    event_bus.subscribe(
+        RoleAssignmentFailed,
+        logging_handler.handle_role_assignment_failed,
+    )
+    event_bus.subscribe(
+        RoleAssignmentFailed,
+        audit_handler.handle_role_assignment_failed,
+    )
+
+    # Role Revocation Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        RoleRevocationAttempted,
+        logging_handler.handle_role_revocation_attempted,
+    )
+    event_bus.subscribe(
+        RoleRevocationAttempted,
+        audit_handler.handle_role_revocation_attempted,
+    )
+
+    event_bus.subscribe(
+        RoleRevocationSucceeded,
+        logging_handler.handle_role_revocation_succeeded,
+    )
+    event_bus.subscribe(
+        RoleRevocationSucceeded,
+        audit_handler.handle_role_revocation_succeeded,
+    )
+
+    event_bus.subscribe(
+        RoleRevocationFailed,
+        logging_handler.handle_role_revocation_failed,
+    )
+    event_bus.subscribe(
+        RoleRevocationFailed,
+        audit_handler.handle_role_revocation_failed,
+    )
+
+    # Provider Disconnection Events (3 events × 2 handlers = 6 subscriptions)
+    event_bus.subscribe(
+        ProviderDisconnectionAttempted,
+        logging_handler.handle_provider_disconnection_attempted,
+    )
+    event_bus.subscribe(
+        ProviderDisconnectionAttempted,
+        audit_handler.handle_provider_disconnection_attempted,
+    )
+
+    event_bus.subscribe(
+        ProviderDisconnectionSucceeded,
+        logging_handler.handle_provider_disconnection_succeeded,
+    )
+    event_bus.subscribe(
+        ProviderDisconnectionSucceeded,
+        audit_handler.handle_provider_disconnection_succeeded,
+    )
+
+    event_bus.subscribe(
+        ProviderDisconnectionFailed,
+        logging_handler.handle_provider_disconnection_failed,
+    )
+    event_bus.subscribe(
+        ProviderDisconnectionFailed,
+        audit_handler.handle_provider_disconnection_failed,
     )
 
     return event_bus

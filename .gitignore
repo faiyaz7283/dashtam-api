@@ -82,3 +82,4 @@ site/
 
 # GeoLite2 database (license prohibits redistribution)
 data/geolite2/
+data/geoip/*.mmdb

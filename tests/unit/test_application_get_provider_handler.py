@@ -64,13 +64,13 @@ def create_handler(
     cache_mock: AsyncMock | None = None,
 ) -> tuple[GetProviderConnectionHandler, AsyncMock, AsyncMock]:
     """Create handler with mocked dependencies.
-    
+
     Returns:
         Tuple of (handler, repo_mock, cache_mock)
     """
     repo = repo_mock or AsyncMock(spec=ProviderConnectionRepository)
     cache = cache_mock or AsyncMock()
-    
+
     # Configure cache mock to return None by default (cache miss)
     cache.get.return_value = None
     cache.set.return_value = None

@@ -411,7 +411,9 @@ class RefreshAccessTokenHandler:
                     cached_data = json.loads(result.value)
                     return SecurityConfig(
                         id=cached_data["id"],
-                        global_min_token_version=cached_data["global_min_token_version"],
+                        global_min_token_version=cached_data[
+                            "global_min_token_version"
+                        ],
                         grace_period_seconds=cached_data["grace_period_seconds"],
                         last_rotation_at=(
                             datetime.fromisoformat(cached_data["last_rotation_at"])
@@ -440,19 +442,21 @@ class RefreshAccessTokenHandler:
         if self._cache and self._cache_keys:
             try:
                 cache_key = self._cache_keys.security_global_version()
-                cache_value = json.dumps({
-                    "id": config.id,
-                    "global_min_token_version": config.global_min_token_version,
-                    "grace_period_seconds": config.grace_period_seconds,
-                    "last_rotation_at": (
-                        config.last_rotation_at.isoformat()
-                        if config.last_rotation_at
-                        else None
-                    ),
-                    "last_rotation_reason": config.last_rotation_reason,
-                    "created_at": config.created_at.isoformat(),
-                    "updated_at": config.updated_at.isoformat(),
-                })
+                cache_value = json.dumps(
+                    {
+                        "id": config.id,
+                        "global_min_token_version": config.global_min_token_version,
+                        "grace_period_seconds": config.grace_period_seconds,
+                        "last_rotation_at": (
+                            config.last_rotation_at.isoformat()
+                            if config.last_rotation_at
+                            else None
+                        ),
+                        "last_rotation_reason": config.last_rotation_reason,
+                        "created_at": config.created_at.isoformat(),
+                        "updated_at": config.updated_at.isoformat(),
+                    }
+                )
 
                 await self._cache.set(cache_key, cache_value, ttl=self._cache_ttl)
             except Exception as e:

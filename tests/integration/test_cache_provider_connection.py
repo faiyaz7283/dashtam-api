@@ -68,9 +68,9 @@ async def test_provider_connection_cache_miss_then_hit(
     # Setup: Create user for FK constraint
     async with test_database.get_session() as session:
         user_id = await create_user_in_db(session)
-    
+
     provider_id, provider_slug = schwab_provider
-    
+
     # Create test provider connection with credentials (required for ACTIVE status)
     credentials = ProviderCredentials(
         encrypted_data=b"test_encrypted_credentials",
@@ -97,7 +97,7 @@ async def test_provider_connection_cache_miss_then_hit(
     # Create handler with cache
     cache = cache_adapter
     connection_cache = RedisProviderConnectionCache(cache=cache)
-    
+
     async with test_database.get_session() as session:
         repo = ProviderConnectionRepository(session=session)
         handler = GetProviderConnectionHandler(
@@ -150,9 +150,9 @@ async def test_provider_connection_cache_invalidation(
     # Setup: Create user for FK constraint
     async with test_database.get_session() as session:
         user_id = await create_user_in_db(session)
-    
+
     provider_id, provider_slug = schwab_provider
-    
+
     # Create and save connection with credentials
     credentials = ProviderCredentials(
         encrypted_data=b"test_encrypted_credentials",
@@ -201,7 +201,7 @@ async def test_provider_connection_cache_exists(
 ) -> None:
     """Test cache exists check for quick validation."""
     provider_id, provider_slug = schwab_provider
-    
+
     connection = ProviderConnection(
         id=uuid7(),
         user_id=uuid7(),  # No FK constraint for this test (not saving to DB)

@@ -35,12 +35,63 @@ if TYPE_CHECKING:
     from src.domain.protocols.rate_limit_protocol import RateLimitProtocol
     from src.domain.protocols.secrets_protocol import SecretsProtocol
     from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
+    from src.infrastructure.cache.cache_keys import CacheKeys
+    from src.infrastructure.cache.cache_metrics import CacheMetrics
     from src.infrastructure.providers.encryption_service import EncryptionService
 
 
 # ============================================================================
 # Application-Scoped Dependencies (Singletons)
 # ============================================================================
+
+
+@lru_cache()
+def get_cache_keys() -> "CacheKeys":
+    """Get cache keys utility singleton (app-scoped).
+
+    Returns CacheKeys instance for consistent cache key construction.
+    Uses configurable prefix from settings.
+
+    Returns:
+        CacheKeys utility for key construction.
+
+    Usage:
+        # Application Layer (direct use)
+        keys = get_cache_keys()
+        cache_key = keys.user(user_id)
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        keys: CacheKeys = Depends(get_cache_keys)
+    """
+    from src.infrastructure.cache.cache_keys import CacheKeys
+
+    return CacheKeys(prefix=settings.cache_key_prefix)
+
+
+@lru_cache()
+def get_cache_metrics() -> "CacheMetrics":
+    """Get cache metrics singleton (app-scoped).
+
+    Returns CacheMetrics instance for tracking cache hit/miss/error rates.
+    Metrics are in-memory and thread-safe.
+
+    Returns:
+        CacheMetrics instance for metrics tracking.
+
+    Usage:
+        # Application Layer (direct use)
+        metrics = get_cache_metrics()
+        metrics.record_hit("user")
+        stats = metrics.get_stats("user")
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        metrics: CacheMetrics = Depends(get_cache_metrics)
+    """
+    from src.infrastructure.cache.cache_metrics import CacheMetrics
+
+    return CacheMetrics()
 
 
 @lru_cache()

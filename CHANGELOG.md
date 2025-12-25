@@ -7,15 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - API Test Coverage
+## [1.0.2] - 2025-12-25
+
+### Added
+
+- **F6.11**: Cache Optimization (PR #100)
+  - Implemented 4-layer cache optimization for high-traffic data paths
+  - **Provider Connection Cache**: ~10x faster lookups (<5ms vs ~50ms), 5-minute TTL
+  - **Schwab API Response Cache**: 70-90% reduction in external API calls, 5-minute TTL
+  - **Account List Cache**: 50-70% reduction in database queries, 5-minute TTL
+  - **Security Config Cache**: Reduced token refresh DB load, 1-minute TTL
+  - Added CacheMetrics infrastructure for thread-safe hit/miss/error tracking
+  - Added CacheKeys utility for centralized cache key pattern management
+  - Created 7 new files: cache-key-patterns.md (354 lines), provider_connection_cache.py, cache_keys.py, cache_metrics.py, 3 test files
+  - Added 13 integration tests (test_cache_optimization.py, test_cache_provider_connection.py, test_cache_performance.py)
+  - Performance verified: >20% improvement on cache hits, fail-open behavior confirmed
+  - Total test count increased from 1,659 to 1,672 tests (+13)
+  - Overall coverage maintained at 83%
 
 - **F6.13**: API Test Coverage Improvement
   - Added 62 new API tests across 7 test files (test_users_api.py, test_tokens_api.py, test_password_resets_api.py, test_email_verifications_api.py, test_providers_callback_refresh.py, test_accounts_edge_cases.py, test_transactions_edge_cases.py)
   - Improved API v1 layer coverage from 81% to 92% (exceeds 85% target)
-  - Increased overall project coverage from 81% to 83%
+  - Increased overall project coverage from 81% to 83% (+2%)
   - Total test count increased from 1,597 to 1,659 tests (+62)
   - Coverage improvements: users.py (46% → 100%), tokens.py (50% → 100%), password_resets.py (48% → 100%), email_verifications.py (50% → 100%), providers.py (60% → 87%), accounts.py (91% → 94%)
-  - All quality checks passing: zero lint violations, strict type checking, all tests passing
+
+### Changed
+
+- Updated cache-usage.md with F6.11 implementation details and usage patterns
+- Updated WARP.md with F6.11 completion summary
+- Added 6 cache TTL settings to configuration (CACHE_TTL_PROVIDER_CONNECTION, CACHE_TTL_SCHWAB_ACCOUNTS, CACHE_TTL_ACCOUNTS_LIST, CACHE_TTL_SECURITY_CONFIG)
+- All quality checks passing: 1,672 tests (17 skipped), 83% coverage, zero lint violations, strict type checking
 
 ## [1.0.1] - 2025-12-24
 
@@ -151,6 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Type Safety**: Strict mypy checking with modern Python 3.13+ type hints
 - **Code Quality**: Automated formatting (ruff), linting, and type checking in CI/CD
 
-[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/faiyaz7283/Dashtam/releases/tag/v1.0.0

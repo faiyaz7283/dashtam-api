@@ -21,6 +21,8 @@ from src.core.config import settings
 from src.core.container.events import get_event_bus
 from src.core.container.infrastructure import (
     get_cache,
+    get_cache_keys,
+    get_cache_metrics,
     get_db_session,
     get_email_service,
     get_password_service,
@@ -178,7 +180,11 @@ async def get_generate_auth_tokens_handler(
     from src.infrastructure.security.refresh_token_service import RefreshTokenService
 
     refresh_token_repo = RefreshTokenRepository(session=session)
-    security_config_repo = SecurityConfigRepository(session=session)
+    security_config_repo = SecurityConfigRepository(
+        session=session,
+        cache=get_cache(),
+        cache_keys=get_cache_keys(),
+    )
     token_service = get_token_service()
     refresh_token_service = RefreshTokenService()
 
@@ -258,7 +264,7 @@ async def get_refresh_token_handler(
     """Get RefreshAccessToken command handler (request-scoped).
 
     Returns:
-        RefreshAccessTokenHandler instance.
+        RefreshAccessTokenHandler instance with cache support.
     """
     from src.application.commands.handlers.refresh_access_token_handler import (
         RefreshAccessTokenHandler,
@@ -272,10 +278,19 @@ async def get_refresh_token_handler(
 
     user_repo = UserRepository(session=session)
     refresh_token_repo = RefreshTokenRepository(session=session)
-    security_config_repo = SecurityConfigRepository(session=session)
+    security_config_repo = SecurityConfigRepository(
+        session=session,
+        cache=get_cache(),
+        cache_keys=get_cache_keys(),
+    )
     token_service = get_token_service()
     refresh_token_service = RefreshTokenService()
     event_bus = get_event_bus()
+
+    # Phase 7: Security config cache (MEDIUM priority optimization)
+    cache = get_cache()
+    cache_keys = get_cache_keys()
+    cache_metrics = get_cache_metrics()
 
     return RefreshAccessTokenHandler(
         user_repo=user_repo,
@@ -284,6 +299,10 @@ async def get_refresh_token_handler(
         token_service=token_service,
         refresh_token_service=refresh_token_service,
         event_bus=event_bus,
+        cache=cache,
+        cache_keys=cache_keys,
+        cache_metrics=cache_metrics,
+        cache_ttl=settings.cache_security_ttl,
     )
 
 
@@ -499,7 +518,11 @@ async def get_trigger_global_rotation_handler(
     )
     from src.infrastructure.persistence.repositories import SecurityConfigRepository
 
-    security_config_repo = SecurityConfigRepository(session=session)
+    security_config_repo = SecurityConfigRepository(
+        session=session,
+        cache=get_cache(),
+        cache_keys=get_cache_keys(),
+    )
     event_bus = get_event_bus()
 
     return TriggerGlobalTokenRotationHandler(

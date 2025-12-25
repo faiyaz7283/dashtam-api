@@ -19,6 +19,9 @@ from uuid import UUID
 from src.application.queries.provider_queries import GetProviderConnection
 from src.core.result import Failure, Result, Success
 from src.domain.enums.connection_status import ConnectionStatus
+from src.domain.protocols.provider_connection_cache_protocol import (
+    ProviderConnectionCache,
+)
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
@@ -71,9 +74,11 @@ class GetProviderConnectionHandler:
     """Handler for GetProviderConnection query.
 
     Retrieves a single provider connection by ID with ownership check.
+    Uses cache-first strategy for performance.
 
     Dependencies (injected via constructor):
         - ProviderConnectionRepository: For data retrieval
+        - ProviderConnectionCache: For fast lookups
 
     Returns:
         Result[ProviderConnectionResult, str]: Success(DTO) or Failure(error)
@@ -82,20 +87,26 @@ class GetProviderConnectionHandler:
     def __init__(
         self,
         connection_repo: ProviderConnectionRepository,
+        connection_cache: ProviderConnectionCache,
     ) -> None:
         """Initialize handler with dependencies.
 
         Args:
             connection_repo: Provider connection repository.
+            connection_cache: Provider connection cache.
         """
         self._connection_repo = connection_repo
+        self._connection_cache = connection_cache
 
     async def handle(
         self, query: GetProviderConnection
     ) -> Result[ProviderConnectionResult, str]:
         """Handle GetProviderConnection query.
 
-        Retrieves connection, verifies ownership, and maps to DTO.
+        Uses cache-first strategy:
+        1. Try cache
+        2. Fall back to database
+        3. Populate cache on miss
 
         Args:
             query: GetProviderConnection query with connection and user IDs.
@@ -104,8 +115,16 @@ class GetProviderConnectionHandler:
             Success(ProviderConnectionResult): Connection found and owned by user.
             Failure(error): Connection not found or not owned by user.
         """
-        # Fetch connection
-        connection = await self._connection_repo.find_by_id(query.connection_id)
+        # Step 1: Try cache first
+        connection = await self._connection_cache.get(query.connection_id)
+
+        # Step 2: Fall back to database
+        if connection is None:
+            connection = await self._connection_repo.find_by_id(query.connection_id)
+
+            # Populate cache on miss (if found)
+            if connection is not None:
+                await self._connection_cache.set(connection)
 
         # Verify exists
         if connection is None:

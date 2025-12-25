@@ -14,6 +14,7 @@ Reference:
     - docs/architecture/account-domain-model.md
 """
 
+import json
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -22,7 +23,11 @@ from src.application.queries.account_queries import (
     ListAccountsByUser,
 )
 from src.application.queries.handlers.get_account_handler import AccountResult
+from src.core.config import settings
 from src.core.result import Failure, Result, Success
+from src.domain.protocols.cache_protocol import CacheProtocol
+from src.infrastructure.cache.cache_keys import CacheKeys
+from src.infrastructure.cache.cache_metrics import CacheMetrics
 from src.domain.enums.account_type import AccountType
 from src.domain.protocols.account_repository import AccountRepository
 from src.domain.protocols.provider_connection_repository import (
@@ -185,25 +190,43 @@ class ListAccountsByUserHandler:
     """Handler for ListAccountsByUser query.
 
     Retrieves all accounts for a user across all provider connections.
+    Uses cache-first strategy for performance.
 
     Dependencies (injected via constructor):
         - AccountRepository: For account retrieval
+        - CacheProtocol: Optional cache for account list caching
+        - CacheKeys: Optional cache key utility
+        - CacheMetrics: Optional metrics tracker
 
     Returns:
         Result[AccountListResult, str]: Success(DTO) or Failure(error)
     """
 
-    def __init__(self, account_repo: AccountRepository) -> None:
+    def __init__(
+        self,
+        account_repo: AccountRepository,
+        cache: CacheProtocol | None = None,
+        cache_keys: CacheKeys | None = None,
+        cache_metrics: CacheMetrics | None = None,
+    ) -> None:
         """Initialize handler with dependencies.
 
         Args:
             account_repo: Account repository.
+            cache: Optional cache for account list caching.
+            cache_keys: Optional cache key utility.
+            cache_metrics: Optional metrics tracker.
         """
         self._account_repo = account_repo
+        self._cache = cache
+        self._cache_keys = cache_keys
+        self._cache_metrics = cache_metrics
+        self._cache_ttl = settings.cache_accounts_ttl
 
     async def handle(self, query: ListAccountsByUser) -> Result[AccountListResult, str]:
         """Handle ListAccountsByUser query.
 
+        Uses cache-first strategy if cache is enabled.
         Retrieves all accounts for user and maps to DTOs.
 
         Args:
@@ -213,6 +236,32 @@ class ListAccountsByUserHandler:
             Success(AccountListResult): Accounts found.
             Failure(error): Error occurred (rare, DB-level issues only).
         """
+        # Try cache first if enabled and no filters (cache only unfiltered lists)
+        if (
+            self._cache
+            and self._cache_keys
+            and not query.account_type
+            and not query.active_only
+        ):
+            cache_key = self._cache_keys.account_list(query.user_id)
+            cache_result = await self._cache.get(cache_key)
+
+            if isinstance(cache_result, Success) and cache_result.value:
+                # Cache hit
+                if self._cache_metrics:
+                    self._cache_metrics.record_hit("accounts")
+                try:
+                    cached_data = json.loads(cache_result.value)
+                    dto = AccountListResult(**cached_data)
+                    return Success(value=dto)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    # Continue to DB fetch on deserialization error
+                    pass
+
+            # Cache miss
+            if self._cache_metrics:
+                self._cache_metrics.record_miss("accounts")
+
         # Parse account_type filter if provided
         account_type: AccountType | None = None
         if query.account_type:
@@ -295,5 +344,59 @@ class ListAccountsByUserHandler:
             active_count=active_count,
             total_balance_by_currency=total_balance_by_currency,
         )
+
+        # Populate cache if enabled and no filters
+        if (
+            self._cache
+            and self._cache_keys
+            and not query.account_type
+            and not query.active_only
+        ):
+            cache_key = self._cache_keys.account_list(query.user_id)
+            try:
+                # Serialize DTO to JSON
+                # Convert dataclasses to dict, handling nested AccountResult objects
+                cache_data = {
+                    "accounts": [
+                        {
+                            "id": str(acc.id),
+                            "connection_id": str(acc.connection_id),
+                            "provider_account_id": acc.provider_account_id,
+                            "account_number_masked": acc.account_number_masked,
+                            "name": acc.name,
+                            "account_type": acc.account_type,
+                            "currency": acc.currency,
+                            "balance_amount": str(acc.balance_amount),
+                            "balance_currency": acc.balance_currency,
+                            "available_balance_amount": (
+                                str(acc.available_balance_amount)
+                                if acc.available_balance_amount is not None
+                                else None
+                            ),
+                            "available_balance_currency": acc.available_balance_currency,
+                            "is_active": acc.is_active,
+                            "is_investment": acc.is_investment,
+                            "is_bank": acc.is_bank,
+                            "is_retirement": acc.is_retirement,
+                            "is_credit": acc.is_credit,
+                            "last_synced_at": (
+                                acc.last_synced_at.isoformat()
+                                if acc.last_synced_at
+                                else None
+                            ),
+                            "created_at": acc.created_at.isoformat(),
+                            "updated_at": acc.updated_at.isoformat(),
+                        }
+                        for acc in dto.accounts
+                    ],
+                    "total_count": dto.total_count,
+                    "active_count": dto.active_count,
+                    "total_balance_by_currency": dto.total_balance_by_currency,
+                }
+                cache_json = json.dumps(cache_data)
+                await self._cache.set(cache_key, cache_json, ttl=self._cache_ttl)
+            except (TypeError, ValueError):
+                # Fail-open: cache write failure doesn't affect response
+                pass
 
         return Success(value=dto)

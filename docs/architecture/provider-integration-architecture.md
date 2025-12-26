@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Purpose**: Define how Dashtam integrates with external financial providers (Schwab, Plaid, Chase, etc.) using hexagonal architecture patterns.
+**Purpose**: Define how Dashtam integrates with external financial providers (Schwab, Chase, Fidelity, etc.) using hexagonal architecture patterns.
 
 **Problem**: Financial providers have different APIs, authentication mechanisms, and data formats. We need:
 
@@ -41,8 +41,8 @@ flowchart TB
 
     subgraph Infrastructure["Infrastructure Layer (Adapters)"]
         SP["SchwabProvider<br/>(adapter)"]
-        PLP["PlaidProvider<br/>(future)"]
         CHP["ChaseProvider<br/>(future)"]
+        FP["FidelityProvider<br/>(future)"]
         ENC["EncryptionService<br/>(AES-256-GCM)"]
         MAP["AccountMapper<br/>TransactionMapper"]
     end
@@ -84,7 +84,7 @@ class ProviderProtocol(Protocol):
     
     @property
     def slug(self) -> str:
-        """Unique provider identifier (e.g., 'schwab', 'plaid')."""
+        """Unique provider identifier (e.g., 'schwab', 'chase')."""
         ...
     
     async def exchange_code_for_tokens(
@@ -181,7 +181,7 @@ def get_provider(slug: str) -> ProviderProtocol:
     """Factory for provider adapters.
     
     Args:
-        slug: Provider identifier (e.g., 'schwab', 'plaid').
+        slug: Provider identifier (e.g., 'schwab', 'chase').
         
     Returns:
         Provider adapter implementing ProviderProtocol.
@@ -568,33 +568,33 @@ src/
 
 ## Adding a New Provider
 
-To add a new provider (e.g., Plaid):
+To add a new provider (e.g., Chase):
 
 1. **Create provider directory**:
 
    ```text
-   src/infrastructure/providers/plaid/
+   src/infrastructure/providers/chase/
    ```
 
 2. **Implement ProviderProtocol**:
 
    ```python
-   class PlaidProvider:
+   class ChaseProvider:
        @property
        def slug(self) -> str:
-           return "plaid"
+           return "chase"
        
        async def exchange_code_for_tokens(self, code: str) -> OAuthTokens:
-           # Plaid Link token exchange
+           # Chase OAuth token exchange
            ...
    ```
 
 3. **Create mappers**:
 
    ```python
-   class PlaidAccountMapper:
-       def map(self, plaid_data: dict) -> Account:
-           # Map Plaid account format to domain Account
+   class ChaseAccountMapper:
+       def map(self, chase_data: dict) -> Account:
+           # Map Chase account format to domain Account
            ...
    ```
 
@@ -605,7 +605,7 @@ To add a new provider (e.g., Plaid):
    def get_provider(slug: str) -> ProviderProtocol:
        match slug:
            case "schwab": return SchwabProvider()
-           case "plaid": return PlaidProvider()  # Add new case
+           case "chase": return ChaseProvider()  # Add new case
            case _: raise ProviderNotFoundError(slug)
    ```
 
@@ -613,9 +613,9 @@ To add a new provider (e.g., Plaid):
 
    ```python
    # src/core/config.py
-   plaid_client_id: str | None = None
-   plaid_secret: str | None = None
-   plaid_environment: str = "sandbox"  # sandbox, development, production
+   chase_api_key: str | None = None
+   chase_api_secret: str | None = None
+   chase_redirect_uri: str | None = None
    ```
 
 ---

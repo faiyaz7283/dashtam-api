@@ -31,11 +31,11 @@ def get_provider(slug: str) -> "ProviderProtocol":
         - 'schwab': Charles Schwab (OAuth, Trader API)
 
     Future providers (not yet implemented):
-        - 'plaid': Plaid (aggregator)
+        - 'chase': Chase Bank (OAuth)
         - 'yodlee': Yodlee (aggregator)
 
     Args:
-        slug: Provider identifier (e.g., 'schwab', 'plaid').
+        slug: Provider identifier (e.g., 'schwab', 'chase').
 
     Returns:
         Provider adapter implementing ProviderProtocol.
@@ -69,9 +69,9 @@ def get_provider(slug: str) -> "ProviderProtocol":
             return SchwabProvider(settings=settings)
 
         # Future providers:
-        # case "plaid":
-        #     from src.infrastructure.providers.plaid import PlaidProvider
-        #     return PlaidProvider(settings=settings)
+        # case "chase":
+        #     from src.infrastructure.providers.chase import ChaseProvider
+        #     return ChaseProvider(settings=settings)
 
         case _:
             raise ValueError(f"Unknown provider: {slug}. Supported: 'schwab'")

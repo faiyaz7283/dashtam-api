@@ -14,7 +14,7 @@ The Account domain model represents individual financial accounts (brokerage, ch
 
 ### Design Goals
 
-1. **Provider Agnostic**: Account structure works for any provider (Schwab, Chase, Plaid)
+1. **Provider Agnostic**: Account structure works for any provider (Schwab, Chase, Fidelity)
 2. **Financial Precision**: Use Decimal for all monetary amounts (never float)
 3. **Currency Aware**: Support multi-currency accounts with ISO 4217 codes
 4. **Domain Purity**: Zero infrastructure imports in domain layer

@@ -391,7 +391,7 @@ All errors follow RFC 7807 Problem Details format:
 | Provider | Slug | Status |
 |----------|------|--------|
 | Charles Schwab | `schwab` | Active |
-| Plaid | `plaid` | Planned (Phase 6) |
+| Chase Bank | `chase` | Planned (Phase 7) |
 
 ---
 

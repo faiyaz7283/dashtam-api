@@ -1,6 +1,6 @@
 """Provider domain entity.
 
-Represents a financial data provider (Schwab, Chase, Plaid, etc.)
+Represents a financial data provider (Schwab, Chase, Fidelity, etc.)
 that users can connect to for data aggregation.
 
 This is a relatively static entity - providers are typically seeded

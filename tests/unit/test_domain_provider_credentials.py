@@ -310,7 +310,7 @@ class TestProviderCredentialsSupportsRefresh:
         assert credentials.supports_refresh() is True
 
     def test_supports_refresh_true_for_link_token(self):
-        """Test supports_refresh returns True for Plaid link tokens."""
+        """Test supports_refresh returns True for aggregator link tokens."""
         # Arrange
         credentials = create_credentials(credential_type=CredentialType.LINK_TOKEN)
 

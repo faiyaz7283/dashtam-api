@@ -4,7 +4,7 @@ Seeds default providers (Schwab) into the providers table.
 Idempotent via slug uniqueness check - safe to run on every migration.
 
 Schwab is the initial provider Dashtam ships with. Future providers
-(Plaid, Chase, etc.) can be added here or via admin APIs.
+(Chase, Fidelity, etc.) can be added here or via admin APIs.
 
 Reference:
     - docs/architecture/provider-domain-model.md
@@ -32,11 +32,11 @@ DEFAULT_PROVIDERS = [
     },
     # Future providers can be added here:
     # {
-    #     "slug": "plaid",
-    #     "name": "Plaid",
-    #     "credential_type": "link_token",
-    #     "description": "Connect bank accounts via Plaid.",
-    #     "website_url": "https://plaid.com",
+    #     "slug": "chase",
+    #     "name": "Chase Bank",
+    #     "credential_type": "oauth2",
+    #     "description": "Connect your Chase Bank accounts.",
+    #     "website_url": "https://www.chase.com",
     #     "is_active": False,  # Not yet implemented
     # },
 ]

@@ -1,7 +1,7 @@
 """ProviderProtocol for financial provider adapters.
 
 Port (interface) for hexagonal architecture.
-Infrastructure layer implements this protocol for each provider (Schwab, Plaid, etc.).
+Infrastructure layer implements this protocol for each provider (Schwab, Chase, etc.).
 
 This protocol defines the contract that all financial providers must implement,
 regardless of their authentication mechanism (OAuth, API key, etc.) or API structure.
@@ -151,7 +151,7 @@ class ProviderTransactionData:
 class ProviderProtocol(Protocol):
     """Protocol (port) for financial provider adapters.
 
-    Each financial provider (Schwab, Plaid, Chase, etc.) implements this
+    Each financial provider (Schwab, Chase, Fidelity, etc.) implements this
     protocol to integrate with Dashtam. The protocol is auth-agnostic -
     OAuth providers implement exchange_code_for_tokens, API-key providers
     may have different initialization.
@@ -191,7 +191,7 @@ class ProviderProtocol(Protocol):
         Must be lowercase, alphanumeric with underscores.
 
         Returns:
-            Provider slug (e.g., "schwab", "plaid", "chase").
+            Provider slug (e.g., "schwab", "chase", "fidelity").
 
         Example:
             >>> provider.slug

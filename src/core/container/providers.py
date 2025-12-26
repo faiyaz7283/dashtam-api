@@ -53,10 +53,10 @@ def get_provider(slug: str) -> "ProviderProtocol":
 
     Currently supported providers:
         - 'schwab': Charles Schwab (OAuth, Trader API)
+        - 'alpaca': Alpaca (API Key, Trading API)
 
     Future providers (not yet implemented):
-        - 'alpaca': Alpaca (API Key, Trading API)
-        - 'chase': Chase Bank (OAuth)
+        - 'chase': Chase Bank (OAuth/file import)
 
     Args:
         slug: Provider identifier (e.g., 'schwab', 'alpaca').
@@ -68,10 +68,15 @@ def get_provider(slug: str) -> "ProviderProtocol":
         ValueError: If provider slug is unknown or provider not configured.
 
     Usage:
-        # Application Layer (sync handlers - auth-agnostic)
+        # Sync handlers (auth-agnostic - works for all providers)
         from src.core.container import get_provider
         provider = get_provider("schwab")
         result = await provider.fetch_accounts(credentials)
+
+        # OAuth callbacks (check capability first)
+        provider = get_provider("schwab")
+        if is_oauth_provider(provider):
+            tokens = await provider.exchange_code_for_tokens(code)
 
     Reference:
         - docs/architecture/provider-integration-architecture.md
@@ -89,13 +94,15 @@ def get_provider(slug: str) -> "ProviderProtocol":
 
             return SchwabProvider(settings=settings)
 
-        # Future providers:
-        # case "alpaca":
-        #     from src.infrastructure.providers.alpaca import AlpacaProvider
-        #     return AlpacaProvider(settings=settings)
+        case "alpaca":
+            from src.infrastructure.providers.alpaca import AlpacaProvider
+
+            # Note: Alpaca uses API Key authentication, not OAuth.
+            # Credentials are passed per-request via credentials dict.
+            return AlpacaProvider(settings=settings)
 
         case _:
-            raise ValueError(f"Unknown provider: {slug}. Supported: 'schwab'")
+            raise ValueError(f"Unknown provider: {slug}. Supported: 'schwab', 'alpaca'")
 
 
 def is_oauth_provider(

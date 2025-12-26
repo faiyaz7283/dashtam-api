@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2025-12-26
+
+### Added
+
+- **F7.1**: Alpaca Provider Integration
+  - Implemented `AlpacaProvider` adapter with auth-agnostic `ProviderProtocol` (first API Key provider)
+  - Added `AlpacaAccountsAPI` client for account and positions endpoints
+  - Added `AlpacaTransactionsAPI` client for activities endpoint
+  - Added mappers: `AlpacaAccountMapper`, `AlpacaHoldingMapper`, `AlpacaTransactionMapper`
+  - **Authentication**: API Key headers (`APCA-API-KEY-ID`, `APCA-API-SECRET-KEY`) - no OAuth flow
+  - **Environment Support**: Paper (`paper-api.alpaca.markets`) and Live (`api.alpaca.markets`)
+  - **Features**: Account sync, holdings/positions sync, transaction/activities sync
+  - **Credential Structure**: `{"api_key": "...", "api_secret": "..."}`
+  - Added 101 tests with 100% coverage on all Alpaca provider code
+  - Added database seed for Alpaca provider with `credential_type: api_key`
+  - Added container factory registration for Alpaca provider
+
+### Documentation
+
+- Added "Phase 3b: API-Key Provider Implementation" section to `adding-new-providers.md`
+  - Key differences table comparing OAuth vs API-Key providers
+  - Complete Alpaca provider example with code snippets
+  - API client authentication pattern with custom headers
+  - Container registration pattern for API-Key providers
+  - Database seed configuration for non-OAuth credential types
+
+### Changed
+
+- Total test count increased from 1,978 to 2,079 tests (+101)
+- Overall coverage maintained at 87%+
+
 ## [1.2.1] - 2025-12-26
 
 ### Changed

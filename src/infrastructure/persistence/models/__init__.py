@@ -33,6 +33,10 @@ from src.infrastructure.persistence.models.provider_connection import (
     ProviderConnection as ProviderConnectionModel,
 )
 from src.infrastructure.persistence.models.account import Account as AccountModel
+from src.infrastructure.persistence.models.balance_snapshot import (
+    BalanceSnapshot as BalanceSnapshotModel,
+)
+from src.infrastructure.persistence.models.holding import Holding as HoldingModel
 from src.infrastructure.persistence.models.transaction import (
     Transaction as TransactionModel,
 )
@@ -44,14 +48,16 @@ from src.infrastructure.persistence.models.user import User
 __all__ = [
     "AccountModel",
     "AuditLog",
+    "BalanceSnapshotModel",
     "CasbinRule",
-    "User",
-    "Session",
-    "RefreshToken",
     "EmailVerificationToken",
+    "HoldingModel",
     "PasswordResetToken",
     "ProviderConnectionModel",
     "ProviderModel",
+    "RefreshToken",
     "SecurityConfig",
+    "Session",
     "TransactionModel",
+    "User",
 ]

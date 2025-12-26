@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from src.domain.enums.credential_type import CredentialType
+from src.domain.enums.provider_category import ProviderCategory
 
 
 @dataclass
@@ -29,6 +30,7 @@ class Provider:
         id: Unique provider identifier.
         slug: URL-safe identifier (e.g., "schwab", "chase"). Unique.
         name: Human-readable name (e.g., "Charles Schwab").
+        category: Type of provider (brokerage, bank, credit_card, etc.).
         credential_type: Default authentication mechanism for this provider.
         description: Optional description for UI display.
         logo_url: Optional URL to provider logo for UI.
@@ -42,6 +44,7 @@ class Provider:
         ...     id=uuid7(),
         ...     slug="schwab",
         ...     name="Charles Schwab",
+        ...     category=ProviderCategory.BROKERAGE,
         ...     credential_type=CredentialType.OAUTH2,
         ...     is_active=True,
         ... )
@@ -52,6 +55,7 @@ class Provider:
     id: UUID
     slug: str
     name: str
+    category: ProviderCategory
     credential_type: CredentialType
     description: str | None = None
     logo_url: str | None = None

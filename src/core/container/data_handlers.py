@@ -1,9 +1,10 @@
 """Data handler dependency factories.
 
-Request-scoped handler instances for account and transaction operations:
+Request-scoped handler instances for account, holding, and transaction operations:
 - Account queries (get, list by connection, list by user)
+- Holding queries (list by account, list by user)
 - Transaction queries (get, list by account, list by date range, list security)
-- Sync commands (accounts, transactions)
+- Sync commands (accounts, holdings, transactions)
 
 Reference:
     See docs/architecture/cqrs-pattern.md for handler patterns.
@@ -22,6 +23,9 @@ if TYPE_CHECKING:
     from src.application.commands.handlers.sync_accounts_handler import (
         SyncAccountsHandler,
     )
+    from src.application.commands.handlers.sync_holdings_handler import (
+        SyncHoldingsHandler,
+    )
     from src.application.commands.handlers.sync_transactions_handler import (
         SyncTransactionsHandler,
     )
@@ -32,6 +36,10 @@ if TYPE_CHECKING:
     from src.application.queries.handlers.list_accounts_handler import (
         ListAccountsByConnectionHandler,
         ListAccountsByUserHandler,
+    )
+    from src.application.queries.handlers.list_holdings_handler import (
+        ListHoldingsByAccountHandler,
+        ListHoldingsByUserHandler,
     )
     from src.application.queries.handlers.list_transactions_handler import (
         ListSecurityTransactionsHandler,
@@ -379,6 +387,123 @@ async def get_sync_transactions_handler(
         connection_repo=connection_repo,
         account_repo=account_repo,
         transaction_repo=transaction_repo,
+        encryption_service=encryption_service,
+        provider=provider,
+        event_bus=event_bus,
+    )
+
+
+# ============================================================================
+# Holding Query Handler Factories (Request-Scoped)
+# ============================================================================
+
+
+async def get_list_holdings_by_account_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListHoldingsByAccountHandler":
+    """Get ListHoldingsByAccount query handler (request-scoped).
+
+    Creates handler with:
+    - HoldingRepository (request-scoped)
+    - AccountRepository (request-scoped for ownership chain)
+    - ProviderConnectionRepository (request-scoped for ownership verification)
+
+    Returns:
+        ListHoldingsByAccountHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.list_holdings_handler import (
+        ListHoldingsByAccountHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        HoldingRepository,
+        ProviderConnectionRepository,
+    )
+
+    holding_repo = HoldingRepository(session=session)
+    account_repo = AccountRepository(session=session)
+    connection_repo = ProviderConnectionRepository(session=session)
+
+    return ListHoldingsByAccountHandler(
+        holding_repo=holding_repo,
+        account_repo=account_repo,
+        connection_repo=connection_repo,
+    )
+
+
+async def get_list_holdings_by_user_handler(
+    session: AsyncSession = Depends(get_db_session),
+) -> "ListHoldingsByUserHandler":
+    """Get ListHoldingsByUser query handler (request-scoped).
+
+    Creates handler with:
+    - HoldingRepository (request-scoped)
+
+    Returns:
+        ListHoldingsByUserHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.queries.handlers.list_holdings_handler import (
+        ListHoldingsByUserHandler,
+    )
+    from src.infrastructure.persistence.repositories import HoldingRepository
+
+    holding_repo = HoldingRepository(session=session)
+
+    return ListHoldingsByUserHandler(
+        holding_repo=holding_repo,
+    )
+
+
+async def get_sync_holdings_handler(
+    session: AsyncSession = Depends(get_db_session),
+    provider_slug: str = "schwab",
+) -> "SyncHoldingsHandler":
+    """Get SyncHoldings command handler (request-scoped).
+
+    Creates handler with:
+    - AccountRepository (request-scoped)
+    - ProviderConnectionRepository (request-scoped)
+    - HoldingRepository (request-scoped)
+    - EncryptionService (app-scoped)
+    - Provider adapter (created from slug)
+    - EventBus (app-scoped)
+
+    Args:
+        session: Database session.
+        provider_slug: Provider to use for sync (default: schwab).
+
+    Returns:
+        SyncHoldingsHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+    """
+    from src.application.commands.handlers.sync_holdings_handler import (
+        SyncHoldingsHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        HoldingRepository,
+        ProviderConnectionRepository,
+    )
+
+    account_repo = AccountRepository(session=session)
+    connection_repo = ProviderConnectionRepository(session=session)
+    holding_repo = HoldingRepository(session=session)
+    encryption_service = get_encryption_service()
+    provider = get_provider(provider_slug)
+    event_bus = get_event_bus()
+
+    return SyncHoldingsHandler(
+        account_repo=account_repo,
+        connection_repo=connection_repo,
+        holding_repo=holding_repo,
         encryption_service=encryption_service,
         provider=provider,
         event_bus=event_bus,

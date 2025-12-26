@@ -77,10 +77,13 @@ class StubProviderRepository:
         self._id = provider_id or uuid7()
 
     async def find_by_slug(self, slug: str):
+        from src.domain.enums.provider_category import ProviderCategory
+
         return ProviderEntity(
             id=self._id,
             slug="schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
         )
 

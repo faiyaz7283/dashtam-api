@@ -7,21 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-12-26
+
+### Added
+
+- **F7.4**: Provider-Specific Entities - Holdings Support
+  - Added `Holding` domain entity with cost basis, market value, unrealized gain/loss tracking
+  - Added `AssetType` enum (STOCK, ETF, MUTUAL_FUND, BOND, OPTION, CRYPTO, CASH, OTHER)
+  - Added `HoldingRepository` protocol and PostgreSQL implementation
+  - Added `ProviderHoldingData` for provider-agnostic holding mapping
+  - Added Schwab holdings API client (`SchwabHoldingsAPI`) and mapper (`SchwabHoldingMapper`)
+  - Added `fetch_holdings()` method to `ProviderProtocol`
+  - Added CQRS handlers: `SyncHoldingsHandler`, `GetHoldingHandler`, `ListHoldingsHandler`, `ListHoldingsByAccountHandler`
+  - Added Holdings API endpoints: `GET /holdings`, `GET /accounts/{id}/holdings`, `POST /accounts/{id}/holdings/syncs`
+  - Added 120+ tests for holdings functionality (domain, repository, handlers, API)
+
+- **F7.5**: Balance Tracking
+  - Added `BalanceSnapshot` domain entity (frozen/immutable) for point-in-time balance history
+  - Added `SnapshotSource` enum (ACCOUNT_SYNC, HOLDINGS_SYNC, MANUAL_ENTRY, SCHEDULED_SYNC)
+  - Added `BalanceSnapshotRepository` protocol and PostgreSQL implementation
+  - Added automatic balance capture during account and holdings sync operations
+  - Added CQRS handlers: `GetLatestBalanceSnapshotHandler`, `ListBalanceSnapshotsHandler`, `GetBalanceHistoryHandler`
+  - Added Balance Snapshots API endpoints: `GET /balance-snapshots`, `GET /accounts/{id}/balance-history`, `GET /accounts/{id}/balance-snapshots`
+  - Added 80+ tests for balance tracking functionality
+
+- **Provider Capabilities System**
+  - Added capability flags to `ProviderType` enum: `HAS_HOLDINGS`, `HAS_BALANCE_HISTORY`
+  - Updated Schwab provider with `HAS_HOLDINGS=True`, `HAS_BALANCE_HISTORY=True`
+  - Provider capabilities checked before sync operations
+
+### Changed
+
+- Updated `ProviderProtocol` with `fetch_holdings()` method signature
+- Updated Account entity with optional `holdings_value` and `cash_value` fields
+- Updated sync handlers to capture balance snapshots automatically
+- Total test count increased from 1,746 to 1,978 tests (+232)
+- Overall coverage increased from 86% to 87%
+
 ### Documentation
 
+- Created `docs/architecture/holding-domain-model.md` - Holding entity architecture (339 lines)
+- Created `docs/architecture/balance-tracking-architecture.md` - Balance snapshot architecture (429 lines)
+- Created `docs/api/holdings-api.md` - Holdings API reference (263 lines)
+- Created `docs/api/balance-snapshots-api.md` - Balance Snapshots API reference (277 lines)
+- Updated `docs/guides/adding-new-providers.md` with Phase 9 (Holdings) and Phase 10 (Balance Tracking)
+- Updated `docs/architecture/provider-integration-architecture.md` with holdings support
+- Updated `docs/index.md` with new domain models and guides
+- Updated `mkdocs.yml` with all new documentation files
 - Added comprehensive Provider Integration Guide (`docs/guides/adding-new-providers.md`)
-  - 8-phase step-by-step process for adding new financial providers
+  - 10-phase step-by-step process for adding new financial providers
   - Complete code templates for provider adapters, API clients, and mappers
   - Testing requirements with coverage targets (90%+ provider, 95%+ mappers)
-  - Files checklist: 12 must-create, 7 must-modify
+  - Files checklist: 15 must-create, 9 must-modify
   - Container registration and database seeding patterns
   - Quality verification steps and troubleshooting guidance
 - Replaced Plaid references with Chase throughout documentation and code comments (27 files)
   - Updated docstrings, comments, and examples in source files
   - Updated environment template variable names (`PLAID_*` → `CHASE_*`)
   - Updated architecture docs and API guides to reference Chase/Fidelity as future providers
-  - Updated test docstrings and comments
-  - Note: No actual Chase provider implementation - Chase will be added as F7.1 in future work
 
 ## [1.1.0] - 2025-12-25
 

@@ -109,8 +109,11 @@ class ErrorResponseBuilder:
         """
         mapping = {
             ApplicationErrorCode.COMMAND_VALIDATION_FAILED: status.HTTP_400_BAD_REQUEST,
+            ApplicationErrorCode.QUERY_VALIDATION_FAILED: status.HTTP_400_BAD_REQUEST,
             ApplicationErrorCode.COMMAND_EXECUTION_FAILED: status.HTTP_500_INTERNAL_SERVER_ERROR,
             ApplicationErrorCode.QUERY_FAILED: status.HTTP_500_INTERNAL_SERVER_ERROR,
+            ApplicationErrorCode.QUERY_EXECUTION_FAILED: status.HTTP_500_INTERNAL_SERVER_ERROR,
+            ApplicationErrorCode.EXTERNAL_SERVICE_ERROR: status.HTTP_502_BAD_GATEWAY,
             ApplicationErrorCode.UNAUTHORIZED: status.HTTP_401_UNAUTHORIZED,
             ApplicationErrorCode.FORBIDDEN: status.HTTP_403_FORBIDDEN,
             ApplicationErrorCode.NOT_FOUND: status.HTTP_404_NOT_FOUND,
@@ -137,8 +140,11 @@ class ErrorResponseBuilder:
         """
         mapping = {
             ApplicationErrorCode.COMMAND_VALIDATION_FAILED: "Validation Failed",
+            ApplicationErrorCode.QUERY_VALIDATION_FAILED: "Validation Failed",
             ApplicationErrorCode.COMMAND_EXECUTION_FAILED: "Command Execution Failed",
             ApplicationErrorCode.QUERY_FAILED: "Query Failed",
+            ApplicationErrorCode.QUERY_EXECUTION_FAILED: "Query Execution Failed",
+            ApplicationErrorCode.EXTERNAL_SERVICE_ERROR: "External Service Error",
             ApplicationErrorCode.UNAUTHORIZED: "Authentication Required",
             ApplicationErrorCode.FORBIDDEN: "Access Denied",
             ApplicationErrorCode.NOT_FOUND: "Resource Not Found",

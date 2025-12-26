@@ -40,7 +40,7 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**v1.0.0 Released**: 2025-12-13 | **Phases 0-6 Complete** (43 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.0.0>
+**v1.2.0 Released**: 2025-12-26 | **Phases 0-7 Complete** (45 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.2.0>
 
 ---
 
@@ -293,6 +293,61 @@
 - ✅ **Overall Coverage**: 86% maintained
 - ✅ **Quality**: Zero lint violations, strict type checking, all tests passing
 - ✅ **Release**: v1.1.0 (minor version bump for new feature)
+
+#### Phase 7: Provider Capabilities & Data Models ✅ COMPLETED (2/2 features)
+
+**Release**: 2025-12-26 | **Tag**: v1.2.0 | **Tests**: 1,978 passed, 19 skipped | **Coverage**: 87%
+
+| Feature | Description |
+|---------|-------------|
+| F7.4 | Provider-Specific Entities (Holdings Support) |
+| F7.5 | Balance Tracking |
+
+**Phase 7 Established**:
+
+- ✅ **F7.4**: Holdings domain entity with cost basis, market value, unrealized gains
+- ✅ **F7.4**: AssetType enum (STOCK, ETF, MUTUAL_FUND, BOND, OPTION, CRYPTO, CASH, OTHER)
+- ✅ **F7.4**: HoldingRepository protocol and PostgreSQL implementation
+- ✅ **F7.4**: Schwab holdings API client and mapper integration
+- ✅ **F7.4**: Holdings CQRS handlers (sync, get, list, list by account)
+- ✅ **F7.4**: Holdings API endpoints (3 endpoints)
+- ✅ **F7.5**: BalanceSnapshot entity (frozen/immutable) for point-in-time history
+- ✅ **F7.5**: SnapshotSource enum (ACCOUNT_SYNC, HOLDINGS_SYNC, MANUAL_ENTRY, SCHEDULED_SYNC)
+- ✅ **F7.5**: BalanceSnapshotRepository protocol and PostgreSQL implementation
+- ✅ **F7.5**: Automatic balance capture during sync operations
+- ✅ **F7.5**: Balance snapshot CQRS handlers (latest, list, history)
+- ✅ **F7.5**: Balance Snapshots API endpoints (3 endpoints)
+- ✅ Provider capability flags (HAS_HOLDINGS, HAS_BALANCE_HISTORY)
+- ✅ 232 new tests added (1,746 → 1,978)
+- ✅ Coverage increased to 87%
+
+**F7.4 Holdings Summary** (completed 2025-12-26):
+
+- ✅ **Domain**: Holding entity with Money value objects for cost_basis, market_value, unrealized_gain_loss
+- ✅ **Infrastructure**: PostgreSQL model with proper indexes, repository with upsert logic
+- ✅ **Provider**: SchwabHoldingsAPI + SchwabHoldingMapper for provider-agnostic data
+- ✅ **Application**: CQRS handlers with proper error handling and Result types
+- ✅ **API**: RESTful endpoints following existing patterns
+- ✅ **Tests**: 120+ tests covering entity, repository, handlers, API
+
+**F7.5 Balance Tracking Summary** (completed 2025-12-26):
+
+- ✅ **Domain**: BalanceSnapshot (frozen dataclass) for immutable point-in-time records
+- ✅ **Infrastructure**: PostgreSQL model with composite indexes for efficient queries
+- ✅ **Application**: Query handlers for latest snapshot, history with date ranges
+- ✅ **API**: RESTful endpoints with proper pagination and filtering
+- ✅ **Integration**: Automatic capture during account/holdings sync
+- ✅ **Tests**: 80+ tests covering all functionality
+
+**Documentation Created**:
+
+- ✅ `docs/architecture/holding-domain-model.md` (339 lines)
+- ✅ `docs/architecture/balance-tracking-architecture.md` (429 lines)
+- ✅ `docs/api/holdings-api.md` (263 lines)
+- ✅ `docs/api/balance-snapshots-api.md` (277 lines)
+- ✅ Updated `adding-new-providers.md` with Phase 9 (Holdings) and Phase 10 (Balance Tracking)
+- ✅ Updated `provider-integration-architecture.md` with holdings support
+- ✅ Updated `mkdocs.yml` and `index.md` with all new docs
 
 ---
 

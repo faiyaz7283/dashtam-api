@@ -20,12 +20,15 @@ class TestApplicationErrorCode:
         expected_codes = {
             "COMMAND_VALIDATION_FAILED",
             "COMMAND_EXECUTION_FAILED",
+            "QUERY_VALIDATION_FAILED",
+            "QUERY_EXECUTION_FAILED",
             "QUERY_FAILED",
             "UNAUTHORIZED",
             "FORBIDDEN",
             "NOT_FOUND",
             "CONFLICT",
             "RATE_LIMIT_EXCEEDED",
+            "EXTERNAL_SERVICE_ERROR",
         }
 
         actual_codes = {code.name for code in ApplicationErrorCode}

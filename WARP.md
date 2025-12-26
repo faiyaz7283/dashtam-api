@@ -40,7 +40,7 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**v1.2.0 Released**: 2025-12-26 | **Phases 0-7 Complete** (45 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.2.0>
+**v1.3.0 Released**: 2025-12-26 | **Phases 0-7 Complete** (46 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.3.0>
 
 ---
 
@@ -294,12 +294,13 @@
 - ✅ **Quality**: Zero lint violations, strict type checking, all tests passing
 - ✅ **Release**: v1.1.0 (minor version bump for new feature)
 
-#### Phase 7: Provider Capabilities & Data Models ✅ COMPLETED (2/2 features)
+#### Phase 7: Provider Capabilities & Data Models ✅ COMPLETED (3/3 features)
 
-**Release**: 2025-12-26 | **Tag**: v1.2.0 | **Tests**: 1,978 passed, 19 skipped | **Coverage**: 87%
+**Release**: 2025-12-26 | **Tag**: v1.3.0 | **Tests**: 2,079 passed, 19 skipped | **Coverage**: 87%
 
 | Feature | Description |
 |---------|-------------|
+| F7.1 | Alpaca Provider Integration (API Key auth) |
 | F7.4 | Provider-Specific Entities (Holdings Support) |
 | F7.5 | Balance Tracking |
 
@@ -320,6 +321,18 @@
 - ✅ Provider capability flags (HAS_HOLDINGS, HAS_BALANCE_HISTORY)
 - ✅ 232 new tests added (1,746 → 1,978)
 - ✅ Coverage increased to 87%
+- ✅ **F7.1**: Alpaca provider (first API Key provider) with 101 tests, 100% coverage
+
+**F7.1 Alpaca Provider Summary** (completed 2025-12-26):
+
+- ✅ **Provider**: AlpacaProvider implementing auth-agnostic ProviderProtocol
+- ✅ **API Clients**: AlpacaAccountsAPI (account + positions), AlpacaTransactionsAPI (activities)
+- ✅ **Mappers**: Account, Holding, Transaction mappers with comprehensive field mapping
+- ✅ **Authentication**: API Key headers (APCA-API-KEY-ID, APCA-API-SECRET-KEY)
+- ✅ **Environments**: Paper (sandbox) and Live support
+- ✅ **Tests**: 101 tests with 100% coverage on all Alpaca provider code
+- ✅ **Documentation**: Added API-key provider section to adding-new-providers.md
+- ✅ **Total Tests**: 1,978 → 2,079 (+101 tests)
 
 **F7.4 Holdings Summary** (completed 2025-12-26):
 
@@ -1018,16 +1031,53 @@ git push origin development
 **Complete Release Checklist**:
 
 1. [ ] Update version in `pyproject.toml`
-2. [ ] Run `uv lock` to update lockfile
+2. [ ] Run `uv lock` (inside container) to update lockfile
 3. [ ] Update `CHANGELOG.md` with release notes
 4. [ ] Update `WARP.md` with completion status
 5. [ ] Commit, push, create PR to `development`
 6. [ ] Wait for CI, merge PR to `development`
-7. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
-8. [ ] Push tag: `git push origin vX.Y.Z`
-9. [ ] Create PR from `development` → `main`
-10. [ ] Merge PR to `main`
+7. [ ] Create PR from `development` → `main`
+8. [ ] Merge PR to `main`
+9. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
+10. [ ] Push tag: `git push origin vX.Y.Z`
 11. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
+
+#### Version Bumping & Tagging Strategy
+
+**Semantic Versioning**: `MAJOR.MINOR.PATCH` (e.g., v1.2.1)
+
+- **MAJOR**: Breaking changes to public API
+- **MINOR**: New features (backward compatible)
+- **PATCH**: Bug fixes, internal refactors (backward compatible)
+
+##### Recommended Approach: Batch Patches, Tag on Release
+
+- **PATCH versions** accumulate in `development` without tags
+- **Tags created only when releasing to `main`**
+- Fewer tags, cleaner history, practical for applications
+
+**Flow Example**:
+
+```text
+development: v1.2.0 → v1.2.1 (hotfix) → v1.2.2 (fix) → v1.2.3 (feature)
+                                                              ↓
+main:        v1.2.0 ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←← release → v1.2.3 (tag here)
+```
+
+**When to Bump Version**:
+
+| Action | Bump Version? | Tag? | Sync main→dev? |
+|--------|---------------|------|----------------|
+| Hotfix/patch to development | Optional | No | No |
+| Feature to development | Optional | No | No |
+| Release development → main | Yes (if not already) | **Yes** | **Yes** |
+
+**Key Rules**:
+
+1. **Version in pyproject.toml** can be bumped anytime in development
+2. **Tags only on main** after release merge
+3. **Sync main → development** only after releasing to main
+4. **CHANGELOG.md** updated with each version bump
 
 ---
 

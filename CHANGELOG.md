@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2025-12-26
+
+### Added
+
+- **F7.1**: Alpaca Provider Integration
+  - Implemented `AlpacaProvider` adapter with auth-agnostic `ProviderProtocol` (first API Key provider)
+  - Added `AlpacaAccountsAPI` client for account and positions endpoints
+  - Added `AlpacaTransactionsAPI` client for activities endpoint
+  - Added mappers: `AlpacaAccountMapper`, `AlpacaHoldingMapper`, `AlpacaTransactionMapper`
+  - **Authentication**: API Key headers (`APCA-API-KEY-ID`, `APCA-API-SECRET-KEY`) - no OAuth flow
+  - **Environment Support**: Paper (`paper-api.alpaca.markets`) and Live (`api.alpaca.markets`)
+  - **Features**: Account sync, holdings/positions sync, transaction/activities sync
+  - **Credential Structure**: `{"api_key": "...", "api_secret": "..."}`
+  - Added 101 tests with 100% coverage on all Alpaca provider code
+  - Added database seed for Alpaca provider with `credential_type: api_key`
+  - Added container factory registration for Alpaca provider
+
+### Documentation
+
+- Added "Phase 3b: API-Key Provider Implementation" section to `adding-new-providers.md`
+  - Key differences table comparing OAuth vs API-Key providers
+  - Complete Alpaca provider example with code snippets
+  - API client authentication pattern with custom headers
+  - Container registration pattern for API-Key providers
+  - Database seed configuration for non-OAuth credential types
+
+### Changed
+
+- Total test count increased from 1,978 to 2,079 tests (+101)
+- Overall coverage maintained at 87%+
+
+## [1.2.1] - 2025-12-26
+
+### Changed
+
+- **Auth-Agnostic Provider Protocol Refactor** (Hotfix)
+  - Refactored `ProviderProtocol` to be auth-agnostic: `fetch_*` methods now accept `credentials: dict[str, Any]` instead of `access_token: str`
+  - Added `OAuthProviderProtocol` extending base protocol with OAuth-specific methods (`exchange_code_for_tokens`, `refresh_access_token`)
+  - Added `is_oauth_provider()` TypeGuard function for runtime capability checking with type narrowing
+  - Updated `SchwabProvider` to extract `access_token` internally from credentials dict
+  - Updated sync handlers (`SyncAccountsHandler`, `SyncTransactionsHandler`, `SyncHoldingsHandler`) to pass full credentials dict
+  - Updated OAuth callbacks and token refresh endpoints to use `get_provider()` + `is_oauth_provider()` pattern
+  - Replaced `get_oauth_provider()` export with `is_oauth_provider()` in container
+  - This change enables future providers with different auth mechanisms (API Key, Certificate, etc.) to use the same interface
+
+### Documentation
+
+- Updated `docs/architecture/provider-integration-architecture.md` with auth-agnostic design:
+  - New Decision 1: Auth-Agnostic Provider Protocol (base + OAuth extension)
+  - New Decision 2: Factory with Capability Checking (TypeGuard pattern)
+  - Updated code examples showing credentials dict pattern
+  - Added usage patterns for sync handlers vs OAuth callbacks
+
 ## [1.2.0] - 2025-12-26
 
 ### Added

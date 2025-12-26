@@ -1,9 +1,9 @@
 """Provider seeder for default providers.
 
-Seeds default providers (Schwab) into the providers table.
+Seeds default providers (Schwab, Alpaca) into the providers table.
 Idempotent via slug uniqueness check - safe to run on every migration.
 
-Schwab is the initial provider Dashtam ships with. Future providers
+These are the built-in providers that ship with Dashtam. Future providers
 (Chase, Fidelity, etc.) can be added here or via admin APIs.
 
 Reference:
@@ -29,6 +29,16 @@ DEFAULT_PROVIDERS = [
         "description": "Connect your Charles Schwab brokerage account to sync "
         "accounts, positions, and transactions.",
         "website_url": "https://www.schwab.com",
+        "is_active": True,
+    },
+    {
+        "slug": "alpaca",
+        "name": "Alpaca",
+        "category": "brokerage",
+        "credential_type": "api_key",
+        "description": "Connect your Alpaca brokerage account to sync "
+        "accounts, positions, and transactions. Supports both paper and live trading.",
+        "website_url": "https://alpaca.markets",
         "is_active": True,
     },
     # Future providers can be added here:

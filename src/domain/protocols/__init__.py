@@ -59,6 +59,7 @@ from src.domain.protocols.provider_connection_repository import (
 )
 from src.domain.protocols.provider_repository import ProviderRepository
 from src.domain.protocols.provider_protocol import (
+    OAuthProviderProtocol,
     OAuthTokens,
     ProviderAccountData,
     ProviderHoldingData,
@@ -103,6 +104,7 @@ __all__ = [
     # Rate Limit protocol
     "RateLimitProtocol",
     # Provider protocols and data types
+    "OAuthProviderProtocol",
     "OAuthTokens",
     "ProviderAccountData",
     "ProviderConnectionRepository",

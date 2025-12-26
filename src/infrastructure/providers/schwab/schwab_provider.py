@@ -28,6 +28,7 @@ Reference:
 import base64
 import json
 from datetime import date
+from typing import Any
 from uuid import UUID
 
 import httpx
@@ -435,7 +436,7 @@ class SchwabProvider:
 
     async def fetch_accounts(
         self,
-        access_token: str,
+        credentials: dict[str, Any],
         user_id: UUID | None = None,
     ) -> Result[list[ProviderAccountData], ProviderError]:
         """Fetch all accounts for the authenticated user.
@@ -444,14 +445,30 @@ class SchwabProvider:
         Delegates to SchwabAccountsAPI for HTTP and SchwabAccountMapper for mapping.
 
         Args:
-            access_token: Valid Schwab access token.
+            credentials: Decrypted credentials dict containing 'access_token'.
             user_id: Optional user ID for caching (required for cache).
 
         Returns:
             Success(list[ProviderAccountData]): Account data from Schwab.
-            Failure(ProviderAuthenticationError): If token is invalid/expired.
+            Failure(ProviderAuthenticationError): If credentials are invalid/expired.
             Failure(ProviderUnavailableError): If Schwab API is unreachable.
         """
+        # Extract access_token from credentials (Schwab uses OAuth)
+        access_token = credentials.get("access_token")
+        if not access_token:
+            logger.warning(
+                "schwab_fetch_accounts_missing_access_token",
+                provider=self.slug,
+            )
+            return Failure(
+                error=ProviderAuthenticationError(
+                    code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
+                    message="Missing access_token in credentials",
+                    provider_name=self.slug,
+                    is_token_expired=False,
+                )
+            )
+
         logger.info(
             "schwab_fetch_accounts_started",
             provider=self.slug,
@@ -530,7 +547,7 @@ class SchwabProvider:
 
     async def fetch_transactions(
         self,
-        access_token: str,
+        credentials: dict[str, Any],
         provider_account_id: str,
         start_date: date | None = None,
         end_date: date | None = None,
@@ -540,16 +557,32 @@ class SchwabProvider:
         Delegates to SchwabTransactionsAPI for HTTP and SchwabTransactionMapper for mapping.
 
         Args:
-            access_token: Valid Schwab access token.
+            credentials: Decrypted credentials dict containing 'access_token'.
             provider_account_id: Schwab account number.
             start_date: Beginning of date range (default: 30 days ago).
             end_date: End of date range (default: today).
 
         Returns:
             Success(list[ProviderTransactionData]): Transaction data from Schwab.
-            Failure(ProviderAuthenticationError): If token is invalid/expired.
+            Failure(ProviderAuthenticationError): If credentials are invalid/expired.
             Failure(ProviderUnavailableError): If Schwab API is unreachable.
         """
+        # Extract access_token from credentials (Schwab uses OAuth)
+        access_token = credentials.get("access_token")
+        if not access_token:
+            logger.warning(
+                "schwab_fetch_transactions_missing_access_token",
+                provider=self.slug,
+            )
+            return Failure(
+                error=ProviderAuthenticationError(
+                    code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
+                    message="Missing access_token in credentials",
+                    provider_name=self.slug,
+                    is_token_expired=False,
+                )
+            )
+
         logger.info(
             "schwab_fetch_transactions_started",
             provider=self.slug,
@@ -587,7 +620,7 @@ class SchwabProvider:
 
     async def fetch_holdings(
         self,
-        access_token: str,
+        credentials: dict[str, Any],
         provider_account_id: str,
     ) -> Result[list[ProviderHoldingData], ProviderError]:
         """Fetch holdings (positions) for a specific account.
@@ -596,14 +629,30 @@ class SchwabProvider:
         then uses SchwabHoldingMapper to convert.
 
         Args:
-            access_token: Valid Schwab access token.
+            credentials: Decrypted credentials dict containing 'access_token'.
             provider_account_id: Schwab account number (hash value).
 
         Returns:
             Success(list[ProviderHoldingData]): Holding data from Schwab.
-            Failure(ProviderAuthenticationError): If token is invalid/expired.
+            Failure(ProviderAuthenticationError): If credentials are invalid/expired.
             Failure(ProviderUnavailableError): If Schwab API is unreachable.
         """
+        # Extract access_token from credentials (Schwab uses OAuth)
+        access_token = credentials.get("access_token")
+        if not access_token:
+            logger.warning(
+                "schwab_fetch_holdings_missing_access_token",
+                provider=self.slug,
+            )
+            return Failure(
+                error=ProviderAuthenticationError(
+                    code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
+                    message="Missing access_token in credentials",
+                    provider_name=self.slug,
+                    is_token_expired=False,
+                )
+            )
+
         logger.info(
             "schwab_fetch_holdings_started",
             provider=self.slug,

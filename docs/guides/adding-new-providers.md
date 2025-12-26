@@ -747,6 +747,236 @@ __all__ = ["{Provider}AccountMapper", "{Provider}TransactionMapper"]
 
 ---
 
+## Phase 3b: API-Key Provider Implementation (Alternative)
+
+If your provider uses **API Key authentication** instead of OAuth, the implementation is simpler. Here's the pattern using Alpaca as an example.
+
+### 3b.1 Key Differences from OAuth Providers
+
+| Aspect | OAuth Provider | API-Key Provider |
+|--------|---------------|------------------|
+| Authentication | Access token from OAuth flow | Static API key/secret |
+| Token refresh | Yes, via refresh_token | No, credentials don't expire |
+| Protocol | `OAuthProviderProtocol` | `ProviderProtocol` (base only) |
+| OAuth methods | `exchange_code_for_tokens`, `refresh_access_token` | Not implemented |
+| Connection flow | OAuth redirect → callback | User enters API key/secret |
+
+### 3b.2 Alpaca Provider Example
+
+Alpaca is a trading platform using API Key authentication:
+
+```python
+# src/infrastructure/providers/alpaca/alpaca_provider.py
+"""
+Alpaca provider adapter.
+
+Implements ProviderProtocol for Alpaca Trading API.
+Uses API Key authentication (not OAuth).
+
+Reference:
+    - https://docs.alpaca.markets/reference/
+"""
+
+from typing import Any
+
+import structlog
+
+from src.core.config import Settings
+from src.core.result import Failure, Result, Success
+from src.domain.errors import ProviderError
+from src.infrastructure.providers.provider_types import (
+    ProviderAccountData,
+    ProviderHoldingData,
+    ProviderTransactionData,
+)
+
+logger = structlog.get_logger(__name__)
+
+
+class AlpacaProvider:
+    """
+    Alpaca provider adapter implementing ProviderProtocol (base only).
+    
+    Uses API Key authentication - no OAuth methods.
+    Credentials structure: {"api_key": "...", "api_secret": "..."}
+    """
+    
+    def __init__(self, settings: Settings) -> None:
+        from src.infrastructure.providers.alpaca.api.accounts_api import (
+            AlpacaAccountsAPI,
+        )
+        from src.infrastructure.providers.alpaca.api.transactions_api import (
+            AlpacaTransactionsAPI,
+        )
+        from src.infrastructure.providers.alpaca.mappers import (
+            AlpacaAccountMapper,
+            AlpacaHoldingMapper,
+            AlpacaTransactionMapper,
+        )
+        
+        self._settings = settings
+        self._logger = logger.bind(provider=self.slug)
+        
+        # API clients - use paper or live URL based on settings
+        base_url = (
+            "https://paper-api.alpaca.markets"
+            if settings.alpaca_environment == "sandbox"
+            else "https://api.alpaca.markets"
+        )
+        self._accounts_api = AlpacaAccountsAPI(base_url=base_url)
+        self._transactions_api = AlpacaTransactionsAPI(base_url=base_url)
+        
+        # Mappers
+        self._account_mapper = AlpacaAccountMapper()
+        self._holding_mapper = AlpacaHoldingMapper()
+        self._transaction_mapper = AlpacaTransactionMapper()
+    
+    @property
+    def slug(self) -> str:
+        return "alpaca"
+    
+    # =========================================================================
+    # Data Fetching Methods (auth-agnostic credentials dict)
+    # =========================================================================
+    
+    async def fetch_accounts(
+        self,
+        credentials: dict[str, Any],
+    ) -> Result[list[ProviderAccountData], ProviderError]:
+        """Fetch account using API key credentials.
+        
+        Args:
+            credentials: {"api_key": "...", "api_secret": "..."}
+        
+        Returns:
+            Success with single account (Alpaca has one account per API key).
+        """
+        api_key = credentials["api_key"]
+        api_secret = credentials["api_secret"]
+        
+        # Fetch account data
+        result = await self._accounts_api.get_account(api_key, api_secret)
+        if isinstance(result, Failure):
+            return Failure(error=result.error)
+        
+        account = self._account_mapper.map(result.value)
+        return Success(value=[account])
+    
+    async def fetch_transactions(
+        self,
+        credentials: dict[str, Any],
+        provider_account_id: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> Result[list[ProviderTransactionData], ProviderError]:
+        """Fetch activities (transactions) using API key credentials."""
+        api_key = credentials["api_key"]
+        api_secret = credentials["api_secret"]
+        
+        result = await self._transactions_api.get_transactions(
+            api_key,
+            api_secret,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if isinstance(result, Failure):
+            return Failure(error=result.error)
+        
+        transactions = self._transaction_mapper.map_transactions(result.value)
+        return Success(value=transactions)
+    
+    async def fetch_holdings(
+        self,
+        credentials: dict[str, Any],
+        provider_account_id: str,
+    ) -> Result[list[ProviderHoldingData], ProviderError]:
+        """Fetch positions (holdings) using API key credentials."""
+        api_key = credentials["api_key"]
+        api_secret = credentials["api_secret"]
+        
+        result = await self._accounts_api.get_positions(api_key, api_secret)
+        if isinstance(result, Failure):
+            return Failure(error=result.error)
+        
+        holdings = self._holding_mapper.map_holdings(result.value)
+        return Success(value=holdings)
+    
+    async def validate_credentials(
+        self,
+        credentials: dict[str, Any],
+    ) -> Result[bool, ProviderError]:
+        """Validate API key credentials by making a test request."""
+        result = await self.fetch_accounts(credentials)
+        if isinstance(result, Failure):
+            return Failure(error=result.error)
+        return Success(value=True)
+```
+
+### 3b.3 API Client with Header-Based Auth
+
+Alpaca uses custom headers instead of Bearer tokens:
+
+```python
+# src/infrastructure/providers/alpaca/api/accounts_api.py
+class AlpacaAccountsAPI:
+    """HTTP client for Alpaca Trading API account endpoints."""
+    
+    async def get_account(
+        self,
+        api_key: str,
+        api_secret: str,
+    ) -> Result[dict[str, Any], ProviderError]:
+        """Fetch account data."""
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(
+                f"{self._base_url}/v2/account",
+                headers={
+                    # Alpaca's custom authentication headers
+                    "APCA-API-KEY-ID": api_key,
+                    "APCA-API-SECRET-KEY": api_secret,
+                    "Accept": "application/json",
+                },
+            )
+        
+        return self._handle_response(response)
+```
+
+### 3b.4 Container Registration for API-Key Provider
+
+```python
+# src/core/container/providers.py
+def get_provider(slug: str) -> "ProviderProtocol":
+    match slug:
+        case "schwab":
+            # OAuth provider...
+            return SchwabProvider(...)
+        
+        case "alpaca":
+            from src.infrastructure.providers.alpaca import AlpacaProvider
+            
+            # Note: No OAuth-specific settings validation needed
+            return AlpacaProvider(settings=get_settings())
+        
+        case _:
+            raise ValueError(f"Unknown provider: {slug}")
+```
+
+### 3b.5 Credential Type in Database Seed
+
+```python
+# alembic/seeds/provider_seeder.py
+{
+    "slug": "alpaca",
+    "name": "Alpaca",
+    "credential_type": "api_key",  # NOT oauth2
+    "description": "Connect your Alpaca trading account.",
+    "website_url": "https://alpaca.markets",
+    "is_active": True,
+}
+```
+
+---
+
 ## Phase 4: Container Registration
 
 ### 4.1 Register Provider in Factory

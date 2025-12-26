@@ -39,6 +39,7 @@ from src.core.container import (
     get_encryption_service,
     get_provider,
     get_provider_repository,
+    is_oauth_provider,
 )
 from src.core.result import Failure, Success
 from src.domain.enums.credential_type import CredentialType
@@ -312,18 +313,28 @@ async def schwab_oauth_callback(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Step 4: Get provider and exchange code for tokens
-    provider = get_provider(provider_slug)
-    if provider is None:
+    # Step 4: Get provider and verify OAuth capability
+    try:
+        provider = get_provider(provider_slug)
+    except ValueError as e:
         return HTMLResponse(
             content=_create_error_html(
                 error_title="Provider Not Found",
-                error_message=f"Provider '{provider_slug}' is not configured.",
+                error_message=str(e),
             ),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    # Exchange authorization code for tokens
+    if not is_oauth_provider(provider):
+        return HTMLResponse(
+            content=_create_error_html(
+                error_title="Provider Not OAuth",
+                error_message=f"Provider '{provider_slug}' does not support OAuth.",
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Exchange authorization code for tokens (type narrowed to OAuthProviderProtocol)
     token_result = await provider.exchange_code_for_tokens(code)
 
     match token_result:
@@ -490,18 +501,28 @@ async def oauth_callback_dynamic(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Step 4: Get provider and exchange code for tokens
-    provider = get_provider(provider_slug)
-    if provider is None:
+    # Step 4: Get provider and verify OAuth capability
+    try:
+        provider = get_provider(provider_slug)
+    except ValueError as e:
         return HTMLResponse(
             content=_create_error_html(
                 error_title="Provider Not Found",
-                error_message=f"Provider '{provider_slug}' is not configured.",
+                error_message=str(e),
             ),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    # Exchange authorization code for tokens
+    if not is_oauth_provider(provider):
+        return HTMLResponse(
+            content=_create_error_html(
+                error_title="Provider Not OAuth",
+                error_message=f"Provider '{provider_slug}' does not support OAuth.",
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Exchange authorization code for tokens (type narrowed to OAuthProviderProtocol)
     token_result = await provider.exchange_code_for_tokens(code)
 
     match token_result:

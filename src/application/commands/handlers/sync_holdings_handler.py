@@ -175,14 +175,11 @@ class SyncHoldingsHandler:
             return Failure(error=SyncHoldingsError.CREDENTIALS_DECRYPTION_FAILED)
 
         credentials_data = decrypt_result.value
-        access_token = credentials_data.get("access_token")
 
-        if not access_token:
-            return Failure(error=SyncHoldingsError.CREDENTIALS_INVALID)
-
-        # 7. Fetch holdings from provider
+        # 7. Fetch holdings from provider (pass full credentials dict)
+        # Provider extracts what it needs (access_token for OAuth, api_key for API Key, etc.)
         fetch_result = await self._provider.fetch_holdings(
-            access_token=access_token,
+            credentials=credentials_data,
             provider_account_id=account.provider_account_id,
         )
 

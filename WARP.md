@@ -1018,16 +1018,53 @@ git push origin development
 **Complete Release Checklist**:
 
 1. [ ] Update version in `pyproject.toml`
-2. [ ] Run `uv lock` to update lockfile
+2. [ ] Run `uv lock` (inside container) to update lockfile
 3. [ ] Update `CHANGELOG.md` with release notes
 4. [ ] Update `WARP.md` with completion status
 5. [ ] Commit, push, create PR to `development`
 6. [ ] Wait for CI, merge PR to `development`
-7. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
-8. [ ] Push tag: `git push origin vX.Y.Z`
-9. [ ] Create PR from `development` → `main`
-10. [ ] Merge PR to `main`
+7. [ ] Create PR from `development` → `main`
+8. [ ] Merge PR to `main`
+9. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
+10. [ ] Push tag: `git push origin vX.Y.Z`
 11. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
+
+#### Version Bumping & Tagging Strategy
+
+**Semantic Versioning**: `MAJOR.MINOR.PATCH` (e.g., v1.2.1)
+
+- **MAJOR**: Breaking changes to public API
+- **MINOR**: New features (backward compatible)
+- **PATCH**: Bug fixes, internal refactors (backward compatible)
+
+**Recommended Approach: Batch Patches, Tag on Release**
+
+- **PATCH versions** accumulate in `development` without tags
+- **Tags created only when releasing to `main`**
+- Fewer tags, cleaner history, practical for applications
+
+**Flow Example**:
+
+```text
+development: v1.2.0 → v1.2.1 (hotfix) → v1.2.2 (fix) → v1.2.3 (feature)
+                                                              ↓
+main:        v1.2.0 ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←← release → v1.2.3 (tag here)
+```
+
+**When to Bump Version**:
+
+| Action | Bump Version? | Tag? | Sync main→dev? |
+|--------|---------------|------|----------------|
+| Hotfix/patch to development | Optional | No | No |
+| Feature to development | Optional | No | No |
+| Release development → main | Yes (if not already) | **Yes** | **Yes** |
+
+**Key Rules**:
+
+1. **Version in pyproject.toml** can be bumped anytime in development
+2. **Tags only on main** after release merge
+3. **Sync main → development** only after releasing to main
+4. **CHANGELOG.md** updated with each version bump
 
 ---
 

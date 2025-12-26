@@ -169,10 +169,6 @@ class SyncTransactionsHandler:
             return Failure(error=SyncTransactionsError.CREDENTIALS_DECRYPTION_FAILED)
 
         credentials_data = decrypt_result.value
-        access_token = credentials_data.get("access_token")
-
-        if not access_token:
-            return Failure(error=SyncTransactionsError.CREDENTIALS_INVALID)
 
         # 5. Get accounts to sync
         if command.account_id:
@@ -207,9 +203,10 @@ class SyncTransactionsHandler:
         accounts_synced = 0
 
         for account in accounts:
-            # Fetch transactions from provider
+            # Fetch transactions from provider (pass full credentials dict)
+            # Provider extracts what it needs (access_token for OAuth, api_key for API Key, etc.)
             fetch_result = await self._provider.fetch_transactions(
-                access_token=access_token,
+                credentials=credentials_data,
                 provider_account_id=account.provider_account_id,
                 start_date=start_date,
                 end_date=end_date,

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-12-26
+
+### Changed
+
+- **Auth-Agnostic Provider Protocol Refactor** (Hotfix)
+  - Refactored `ProviderProtocol` to be auth-agnostic: `fetch_*` methods now accept `credentials: dict[str, Any]` instead of `access_token: str`
+  - Added `OAuthProviderProtocol` extending base protocol with OAuth-specific methods (`exchange_code_for_tokens`, `refresh_access_token`)
+  - Added `is_oauth_provider()` TypeGuard function for runtime capability checking with type narrowing
+  - Updated `SchwabProvider` to extract `access_token` internally from credentials dict
+  - Updated sync handlers (`SyncAccountsHandler`, `SyncTransactionsHandler`, `SyncHoldingsHandler`) to pass full credentials dict
+  - Updated OAuth callbacks and token refresh endpoints to use `get_provider()` + `is_oauth_provider()` pattern
+  - Replaced `get_oauth_provider()` export with `is_oauth_provider()` in container
+  - This change enables future providers with different auth mechanisms (API Key, Certificate, etc.) to use the same interface
+
+### Documentation
+
+- Updated `docs/architecture/provider-integration-architecture.md` with auth-agnostic design:
+  - New Decision 1: Auth-Agnostic Provider Protocol (base + OAuth extension)
+  - New Decision 2: Factory with Capability Checking (TypeGuard pattern)
+  - Updated code examples showing credentials dict pattern
+  - Added usage patterns for sync handlers vs OAuth callbacks
+
 ## [1.2.0] - 2025-12-26
 
 ### Added

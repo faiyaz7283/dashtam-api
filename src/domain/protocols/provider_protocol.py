@@ -6,12 +6,22 @@ Infrastructure layer implements this protocol for each provider (Schwab, Chase, 
 This protocol defines the contract that all financial providers must implement,
 regardless of their authentication mechanism (OAuth, API key, etc.) or API structure.
 
+Design Principles:
+    - Auth-agnostic: Protocol receives credentials as opaque dict, provider extracts what it needs
+    - Minimal interface: Only data-fetching methods required (slug, fetch_accounts, etc.)
+    - Auth-specific methods (OAuth token exchange, API key validation) are provider implementation details
+
 Methods return Result types following railway-oriented programming pattern.
 See docs/architecture/error-handling-architecture.md for details.
 
+Credentials Dict Structure (by CredentialType):
+    - OAUTH2: {"access_token": ..., "refresh_token": ..., "token_type": ..., "scope": ...}
+    - API_KEY: {"api_key": ..., "api_secret": ...}
+    - LINK_TOKEN: {"access_token": ..., "item_id": ..., "institution_id": ...}
+    - CERTIFICATE: {"client_certificate": ..., "private_key": ..., "certificate_chain": ...}
+
 Reference:
     - docs/architecture/provider-integration-architecture.md
-    - docs/architecture/provider-oauth-architecture.md
 """
 
 from dataclasses import dataclass
@@ -190,10 +200,10 @@ class ProviderTransactionData:
 class ProviderProtocol(Protocol):
     """Protocol (port) for financial provider adapters.
 
-    Each financial provider (Schwab, Chase, Fidelity, etc.) implements this
-    protocol to integrate with Dashtam. The protocol is auth-agnostic -
-    OAuth providers implement exchange_code_for_tokens, API-key providers
-    may have different initialization.
+    Each financial provider (Schwab, Alpaca, Chase, etc.) implements this
+    protocol to integrate with Dashtam. The protocol is **auth-agnostic**:
+    credentials are passed as an opaque dict, and each provider extracts
+    what it needs based on its authentication mechanism.
 
     This is a Protocol (not ABC) for structural typing.
     Implementations don't need to inherit from this.
@@ -202,19 +212,40 @@ class ProviderProtocol(Protocol):
     - Success(data) on successful API calls
     - Failure(ProviderError) on failures
 
+    Auth-Specific Methods:
+        OAuth providers (Schwab) implement additional methods like
+        `exchange_code_for_tokens()` and `refresh_access_token()`, but these
+        are NOT part of this protocol - they are provider implementation details.
+        Sync handlers only need the fetch_* methods.
+
     Provider implementations live in:
         src/infrastructure/providers/{provider_slug}/
 
-    Example Implementation:
+    Example Implementation (OAuth - Schwab):
         >>> class SchwabProvider:
         ...     @property
         ...     def slug(self) -> str:
         ...         return "schwab"
         ...
-        ...     async def exchange_code_for_tokens(
-        ...         self, code: str
-        ...     ) -> Result[OAuthTokens, ProviderError]:
-        ...         # Schwab-specific OAuth implementation
+        ...     async def fetch_accounts(
+        ...         self, credentials: dict[str, Any]
+        ...     ) -> Result[list[ProviderAccountData], ProviderError]:
+        ...         access_token = credentials.get("access_token")
+        ...         # Use access_token to call Schwab API
+        ...         ...
+
+    Example Implementation (API Key - Alpaca):
+        >>> class AlpacaProvider:
+        ...     @property
+        ...     def slug(self) -> str:
+        ...         return "alpaca"
+        ...
+        ...     async def fetch_accounts(
+        ...         self, credentials: dict[str, Any]
+        ...     ) -> Result[list[ProviderAccountData], ProviderError]:
+        ...         api_key = credentials.get("api_key")
+        ...         api_secret = credentials.get("api_secret")
+        ...         # Use api_key/api_secret to call Alpaca API
         ...         ...
 
     Reference:
@@ -230,13 +261,145 @@ class ProviderProtocol(Protocol):
         Must be lowercase, alphanumeric with underscores.
 
         Returns:
-            Provider slug (e.g., "schwab", "chase", "fidelity").
+            Provider slug (e.g., "schwab", "alpaca", "chase").
 
         Example:
             >>> provider.slug
             'schwab'
         """
         ...
+
+    async def fetch_accounts(
+        self,
+        credentials: dict[str, Any],
+    ) -> "Result[list[ProviderAccountData], ProviderError]":
+        """Fetch all accounts for the authenticated user.
+
+        Returns account data in provider's format. Use AccountMapper
+        to convert to domain Account entities.
+
+        Args:
+            credentials: Decrypted credentials dict. Structure depends on
+                credential_type (OAuth2, API Key, etc.). Provider extracts
+                what it needs (e.g., access_token, api_key, api_secret).
+
+        Returns:
+            Success(list[ProviderAccountData]): Account data (empty list if no accounts).
+            Failure(ProviderAuthenticationError): If credentials are invalid/expired.
+            Failure(ProviderUnavailableError): If provider API is unreachable.
+            Failure(ProviderRateLimitError): If rate limit exceeded.
+
+        Example:
+            >>> credentials = {"access_token": "..."}  # OAuth
+            >>> # OR: credentials = {"api_key": "...", "api_secret": "..."}  # API Key
+            >>> result = await provider.fetch_accounts(credentials)
+            >>> match result:
+            ...     case Success(accounts):
+            ...         for account_data in accounts:
+            ...             account = mapper.to_entity(account_data, connection_id)
+            ...             await account_repo.save(account)
+            ...     case Failure(error):
+            ...         logger.error(f"Failed to fetch accounts: {error.message}")
+        """
+        ...
+
+    async def fetch_holdings(
+        self,
+        credentials: dict[str, Any],
+        provider_account_id: str,
+    ) -> "Result[list[ProviderHoldingData], ProviderError]":
+        """Fetch holdings (positions) for a specific account.
+
+        Returns holding data in provider's format. Use HoldingMapper
+        to convert to domain Holding entities.
+
+        Args:
+            credentials: Decrypted credentials dict. Provider extracts what it needs.
+            provider_account_id: Provider's account identifier (from ProviderAccountData).
+
+        Returns:
+            Success(list[ProviderHoldingData]): Holding data (empty list if none).
+            Failure(ProviderAuthenticationError): If credentials are invalid/expired.
+            Failure(ProviderUnavailableError): If provider API is unreachable.
+            Failure(ProviderRateLimitError): If rate limit exceeded.
+
+        Example:
+            >>> result = await provider.fetch_holdings(credentials, "12345")
+            >>> match result:
+            ...     case Success(holdings):
+            ...         for holding_data in holdings:
+            ...             holding = mapper.to_entity(holding_data, account_id)
+            ...             await holding_repo.save(holding)
+            ...     case Failure(error):
+            ...         logger.error(f"Failed to fetch holdings: {error.message}")
+        """
+        ...
+
+    async def fetch_transactions(
+        self,
+        credentials: dict[str, Any],
+        provider_account_id: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> "Result[list[ProviderTransactionData], ProviderError]":
+        """Fetch transactions for a specific account.
+
+        Returns transaction data in provider's format. Use TransactionMapper
+        to convert to domain Transaction entities.
+
+        Args:
+            credentials: Decrypted credentials dict. Provider extracts what it needs.
+            provider_account_id: Provider's account identifier (from ProviderAccountData).
+            start_date: Beginning of date range (default: provider-specific, often 30 days).
+            end_date: End of date range (default: today).
+
+        Returns:
+            Success(list[ProviderTransactionData]): Transaction data (empty list if none).
+            Failure(ProviderAuthenticationError): If credentials are invalid/expired.
+            Failure(ProviderUnavailableError): If provider API is unreachable.
+            Failure(ProviderRateLimitError): If rate limit exceeded.
+
+        Example:
+            >>> result = await provider.fetch_transactions(
+            ...     credentials,
+            ...     "12345",
+            ...     start_date=date(2024, 1, 1),
+            ...     end_date=date(2024, 12, 31),
+            ... )
+            >>> match result:
+            ...     case Success(transactions):
+            ...         for txn_data in transactions:
+            ...             txn = mapper.to_entity(txn_data, account_id)
+            ...             await txn_repo.save(txn)
+            ...     case Failure(error):
+            ...         logger.error(f"Failed to fetch transactions: {error.message}")
+        """
+        ...
+
+
+# =============================================================================
+# OAuth Provider Protocol (OAuth-specific extension)
+# =============================================================================
+
+
+class OAuthProviderProtocol(ProviderProtocol, Protocol):
+    """Extended protocol for OAuth 2.0 providers.
+
+    Extends ProviderProtocol with OAuth-specific methods for token exchange
+    and refresh. Only OAuth providers (Schwab, Chase, etc.) implement this.
+
+    API Key providers (Alpaca) do NOT implement this protocol - they only
+    implement the base ProviderProtocol.
+
+    Usage:
+        - Use ProviderProtocol for sync handlers (auth-agnostic)
+        - Use OAuthProviderProtocol for OAuth callbacks/token refresh
+
+    Example:
+        >>> # In OAuth callback handler:
+        >>> provider: OAuthProviderProtocol = get_oauth_provider("schwab")
+        >>> result = await provider.exchange_code_for_tokens(code)
+    """
 
     async def exchange_code_for_tokens(
         self,
@@ -302,108 +465,5 @@ class ProviderProtocol(Protocol):
             ...     case Failure(error):
             ...         # User must re-authenticate
             ...         logger.warning(f"Token refresh failed: {error.message}")
-        """
-        ...
-
-    async def fetch_accounts(
-        self,
-        access_token: str,
-    ) -> "Result[list[ProviderAccountData], ProviderError]":
-        """Fetch all accounts for the authenticated user.
-
-        Returns account data in provider's format. Use AccountMapper
-        to convert to domain Account entities.
-
-        Args:
-            access_token: Valid access token for API authentication.
-
-        Returns:
-            Success(list[ProviderAccountData]): Account data (empty list if no accounts).
-            Failure(ProviderAuthenticationError): If token is invalid/expired.
-            Failure(ProviderUnavailableError): If provider API is unreachable.
-            Failure(ProviderRateLimitError): If rate limit exceeded.
-
-        Example:
-            >>> result = await provider.fetch_accounts(access_token)
-            >>> match result:
-            ...     case Success(accounts):
-            ...         for account_data in accounts:
-            ...             account = mapper.to_entity(account_data, connection_id)
-            ...             await account_repo.save(account)
-            ...     case Failure(error):
-            ...         logger.error(f"Failed to fetch accounts: {error.message}")
-        """
-        ...
-
-    async def fetch_holdings(
-        self,
-        access_token: str,
-        provider_account_id: str,
-    ) -> "Result[list[ProviderHoldingData], ProviderError]":
-        """Fetch holdings (positions) for a specific account.
-
-        Returns holding data in provider's format. Use HoldingMapper
-        to convert to domain Holding entities.
-
-        Args:
-            access_token: Valid access token for API authentication.
-            provider_account_id: Provider's account identifier (from ProviderAccountData).
-
-        Returns:
-            Success(list[ProviderHoldingData]): Holding data (empty list if none).
-            Failure(ProviderAuthenticationError): If token is invalid/expired.
-            Failure(ProviderUnavailableError): If provider API is unreachable.
-            Failure(ProviderRateLimitError): If rate limit exceeded.
-
-        Example:
-            >>> result = await provider.fetch_holdings(access_token, "12345")
-            >>> match result:
-            ...     case Success(holdings):
-            ...         for holding_data in holdings:
-            ...             holding = mapper.to_entity(holding_data, account_id)
-            ...             await holding_repo.save(holding)
-            ...     case Failure(error):
-            ...         logger.error(f"Failed to fetch holdings: {error.message}")
-        """
-        ...
-
-    async def fetch_transactions(
-        self,
-        access_token: str,
-        provider_account_id: str,
-        start_date: date | None = None,
-        end_date: date | None = None,
-    ) -> "Result[list[ProviderTransactionData], ProviderError]":
-        """Fetch transactions for a specific account.
-
-        Returns transaction data in provider's format. Use TransactionMapper
-        to convert to domain Transaction entities.
-
-        Args:
-            access_token: Valid access token for API authentication.
-            provider_account_id: Provider's account identifier (from ProviderAccountData).
-            start_date: Beginning of date range (default: provider-specific, often 30 days).
-            end_date: End of date range (default: today).
-
-        Returns:
-            Success(list[ProviderTransactionData]): Transaction data (empty list if none).
-            Failure(ProviderAuthenticationError): If token is invalid/expired.
-            Failure(ProviderUnavailableError): If provider API is unreachable.
-            Failure(ProviderRateLimitError): If rate limit exceeded.
-
-        Example:
-            >>> result = await provider.fetch_transactions(
-            ...     access_token,
-            ...     "12345",
-            ...     start_date=date(2024, 1, 1),
-            ...     end_date=date(2024, 12, 31),
-            ... )
-            >>> match result:
-            ...     case Success(transactions):
-            ...         for txn_data in transactions:
-            ...             txn = mapper.to_entity(txn_data, account_id)
-            ...             await txn_repo.save(txn)
-            ...     case Failure(error):
-            ...         logger.error(f"Failed to fetch transactions: {error.message}")
         """
         ...

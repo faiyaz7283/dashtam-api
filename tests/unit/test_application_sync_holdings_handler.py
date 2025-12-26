@@ -435,16 +435,22 @@ class TestCredentialHandling:
         assert isinstance(result, Failure)
         assert result.error == SyncHoldingsError.CREDENTIALS_DECRYPTION_FAILED
 
-    async def test_missing_access_token_returns_error(
+    async def test_empty_credentials_passed_to_provider(
         self,
         handler,
         mock_account_repo,
         mock_connection_repo,
         mock_encryption_service,
+        mock_provider,
+        mock_holding_repo,
         user_id,
         account_id,
     ):
-        """Handle() returns failure when decrypted data has no access_token."""
+        """Handle() passes credentials dict to provider (auth-agnostic).
+
+        The handler doesn't validate credential structure - that's the provider's
+        responsibility. This test verifies the auth-agnostic pattern works.
+        """
         connection_id = uuid7()
 
         account = create_mock_account(id=account_id, connection_id=connection_id)
@@ -452,13 +458,20 @@ class TestCredentialHandling:
 
         mock_account_repo.find_by_id.return_value = account
         mock_connection_repo.find_by_id.return_value = connection
-        mock_encryption_service.decrypt.return_value = Success(value={})  # No token
+        # Empty credentials dict - provider handles validation
+        mock_encryption_service.decrypt.return_value = Success(value={})
+        mock_provider.fetch_holdings.return_value = Success(value=[])
+        mock_holding_repo.list_by_account.return_value = []
 
         command = SyncHoldings(account_id=account_id, user_id=user_id, force=False)
         result = await handler.handle(command)
 
-        assert isinstance(result, Failure)
-        assert result.error == SyncHoldingsError.CREDENTIALS_INVALID
+        # Handler succeeds - provider validation is provider's responsibility
+        assert isinstance(result, Success)
+        # Verify credentials dict was passed to provider
+        mock_provider.fetch_holdings.assert_called_once()
+        call_kwargs = mock_provider.fetch_holdings.call_args[1]
+        assert call_kwargs["credentials"] == {}
 
 
 # =============================================================================

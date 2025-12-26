@@ -59,6 +59,7 @@ from src.core.container import (
     get_list_provider_connections_handler,
     get_provider,
     get_refresh_provider_tokens_handler,
+    is_oauth_provider,
 )
 from src.core.result import Failure
 from src.domain.enums.credential_type import CredentialType
@@ -426,8 +427,32 @@ async def oauth_callback(
             trace_id=trace_id,
         )
 
-    # Get provider adapter
-    provider = get_provider(provider_slug)
+    # Get provider and verify OAuth capability
+    try:
+        provider = get_provider(provider_slug)
+    except ValueError as e:
+        app_error = ApplicationError(
+            code=ApplicationErrorCode.NOT_FOUND,
+            message=str(e),
+        )
+        return ErrorResponseBuilder.from_application_error(
+            error=app_error,
+            request=request,
+            trace_id=trace_id,
+        )
+
+    if not is_oauth_provider(provider):
+        app_error = ApplicationError(
+            code=ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
+            message=f"Provider '{provider_slug}' does not support OAuth",
+        )
+        return ErrorResponseBuilder.from_application_error(
+            error=app_error,
+            request=request,
+            trace_id=trace_id,
+        )
+
+    # Exchange code for tokens (type narrowed to OAuthProviderProtocol)
     token_result = await provider.exchange_code_for_tokens(code)
 
     if isinstance(token_result, Failure):

@@ -93,7 +93,7 @@ from src.core.container.data_handlers import (
 )
 
 # Provider factory
-from src.core.container.providers import get_provider
+from src.core.container.providers import get_provider, is_oauth_provider
 
 # Authorization (Casbin RBAC)
 from src.core.container.authorization import (
@@ -161,6 +161,7 @@ __all__ = [
     "get_sync_transactions_handler",
     # Providers
     "get_provider",
+    "is_oauth_provider",
     # Authorization
     "init_enforcer",
     "get_enforcer",

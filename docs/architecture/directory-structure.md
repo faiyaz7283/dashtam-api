@@ -176,7 +176,7 @@ src/domain/protocols/
 - `entities/user.py` - User entity with business methods
 - `value_objects/email.py` - Email value object with validation
 - `enums/audit_action.py` - AuditAction enum (extensible audit events)
-- `enums/provider_type.py` - ProviderType enum (schwab, plaid, etc.)
+- `enums/provider_type.py` - ProviderType enum (schwab, chase, etc.)
 - `errors/audit_error.py` - AuditError (audit system failures)
 - `errors/secrets_error.py` - SecretsError (secrets retrieval failures)
 - `protocols/user_repository.py` - UserRepository protocol (port)
@@ -238,7 +238,7 @@ src/infrastructure/
 │
 │   # Core infrastructure
 ├── persistence/       # Database adapters (PostgreSQL repositories, models)
-├── providers/         # Financial provider integrations (Schwab, Plaid)
+├── providers/         # Financial provider integrations (Schwab, Chase)
 ├── external/          # External service clients
 ├── enums/             # Infrastructure enums (error codes)
 ├── errors/            # Infrastructure errors (database, cache)
@@ -639,7 +639,7 @@ src/core/enums/
 src/domain/enums/
 ├── __init__.py           # Export all domain enums
 ├── audit_action.py      # AuditAction enum (audit events)
-├── provider_type.py     # ProviderType enum (schwab, plaid, yodlee)
+├── provider_type.py     # ProviderType enum (schwab, chase, fidelity)
 ├── account_type.py      # AccountType enum (checking, savings, investment)
 ├── transaction_type.py  # TransactionType enum (debit, credit, transfer)
 └── sync_status.py       # SyncStatus enum (pending, in_progress, completed)

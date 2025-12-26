@@ -82,7 +82,7 @@ def validate_secret_key(cls, v: str) -> str:
 
 **What it protects**:
 
-- Provider OAuth access tokens (Schwab, Plaid)
+- Provider OAuth access tokens (Schwab, Chase)
 - Provider OAuth refresh tokens
 - Any encrypted ProviderCredentials value objects
 

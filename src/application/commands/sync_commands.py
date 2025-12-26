@@ -58,3 +58,21 @@ class SyncTransactions:
     end_date: date | None = None
     account_id: UUID | None = None
     force: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class SyncHoldings:
+    """Command to sync holdings (positions) from a provider connection.
+
+    Triggers holdings data synchronization for a specific account
+    associated with the specified provider connection.
+
+    Attributes:
+        account_id: Account to sync holdings for.
+        user_id: Requesting user (for authorization).
+        force: Force sync even if recently synced.
+    """
+
+    account_id: UUID
+    user_id: UUID
+    force: bool = False

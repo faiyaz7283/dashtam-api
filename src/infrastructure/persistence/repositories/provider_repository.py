@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.entities.provider import Provider
 from src.domain.enums.credential_type import CredentialType
+from src.domain.enums.provider_category import ProviderCategory
 from src.infrastructure.persistence.models.provider import Provider as ProviderModel
 
 
@@ -119,6 +120,7 @@ class ProviderRepository:
             # Update existing
             existing.slug = provider.slug
             existing.name = provider.name
+            existing.category = provider.category.value
             existing.credential_type = provider.credential_type.value
             existing.description = provider.description
             existing.logo_url = provider.logo_url
@@ -154,6 +156,7 @@ class ProviderRepository:
             id=model.id,
             slug=model.slug,
             name=model.name,
+            category=ProviderCategory(model.category),
             credential_type=CredentialType(model.credential_type),
             description=model.description,
             logo_url=model.logo_url,
@@ -176,6 +179,7 @@ class ProviderRepository:
             id=entity.id,
             slug=entity.slug,
             name=entity.name,
+            category=entity.category.value,
             credential_type=entity.credential_type.value,
             description=entity.description,
             logo_url=entity.logo_url,

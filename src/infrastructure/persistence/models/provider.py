@@ -2,7 +2,7 @@
 
 This module defines the Provider model for storing provider registry data.
 Providers are typically seeded at deployment and represent supported
-financial data providers (Schwab, Chase, Plaid, etc.).
+financial data providers (Schwab, Chase, Fidelity, etc.).
 
 Reference:
     - docs/architecture/provider-domain-model.md
@@ -26,6 +26,7 @@ class Provider(BaseMutableModel):
         updated_at: Timestamp when provider was last modified (from BaseMutableModel)
         slug: URL-safe unique identifier (e.g., "schwab")
         name: Human-readable name (e.g., "Charles Schwab")
+        category: Provider type (brokerage, bank, credit_card, etc.)
         credential_type: Authentication mechanism (oauth2, api_key, etc.)
         description: Optional description for UI display
         logo_url: Optional URL to provider logo
@@ -40,6 +41,7 @@ class Provider(BaseMutableModel):
         provider = Provider(
             slug="schwab",
             name="Charles Schwab",
+            category="brokerage",
             credential_type="oauth2",
             is_active=True,
         )
@@ -63,6 +65,15 @@ class Provider(BaseMutableModel):
         String(100),
         nullable=False,
         comment="Human-readable name (e.g., 'Charles Schwab')",
+    )
+
+    # Provider category
+    category: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="other",
+        index=True,
+        comment="Provider category: brokerage, bank, credit_card, loan, crypto, aggregator, other",
     )
 
     # Authentication type

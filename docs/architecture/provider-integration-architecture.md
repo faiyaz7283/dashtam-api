@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Purpose**: Define how Dashtam integrates with external financial providers (Schwab, Plaid, Chase, etc.) using hexagonal architecture patterns.
+**Purpose**: Define how Dashtam integrates with external financial providers (Schwab, Chase, Fidelity, etc.) using hexagonal architecture patterns.
 
 **Problem**: Financial providers have different APIs, authentication mechanisms, and data formats. We need:
 
@@ -41,8 +41,8 @@ flowchart TB
 
     subgraph Infrastructure["Infrastructure Layer (Adapters)"]
         SP["SchwabProvider<br/>(adapter)"]
-        PLP["PlaidProvider<br/>(future)"]
         CHP["ChaseProvider<br/>(future)"]
+        FP["FidelityProvider<br/>(future)"]
         ENC["EncryptionService<br/>(AES-256-GCM)"]
         MAP["AccountMapper<br/>TransactionMapper"]
     end
@@ -84,7 +84,7 @@ class ProviderProtocol(Protocol):
     
     @property
     def slug(self) -> str:
-        """Unique provider identifier (e.g., 'schwab', 'plaid')."""
+        """Unique provider identifier (e.g., 'schwab', 'chase')."""
         ...
     
     async def exchange_code_for_tokens(
@@ -141,6 +141,27 @@ class ProviderProtocol(Protocol):
             Failure(ProviderUnavailableError) if provider API is down.
         """
         ...
+    
+    async def fetch_holdings(
+        self,
+        access_token: str,
+        provider_account_id: str,
+    ) -> Result[list["ProviderHoldingData"], ProviderError]:
+        """Fetch holdings (positions) for a specific account.
+        
+        Returns current portfolio positions including quantity, cost basis,
+        and market value for each security.
+        
+        Args:
+            access_token: Valid access token for API authentication.
+            provider_account_id: Provider's account identifier.
+        
+        Returns:
+            Success(list[ProviderHoldingData]) with holding data.
+            Failure(ProviderAuthenticationError) if token is invalid/expired.
+            Failure(ProviderUnavailableError) if provider API is down.
+        """
+        ...
 ```
 
 ### Decision 2: Simple Factory Pattern for Provider Resolution
@@ -181,7 +202,7 @@ def get_provider(slug: str) -> ProviderProtocol:
     """Factory for provider adapters.
     
     Args:
-        slug: Provider identifier (e.g., 'schwab', 'plaid').
+        slug: Provider identifier (e.g., 'schwab', 'chase').
         
     Returns:
         Provider adapter implementing ProviderProtocol.
@@ -378,6 +399,8 @@ erDiagram
     User ||--o{ ProviderConnection : "has"
     ProviderConnection ||--o{ Account : "contains"
     Account ||--o{ Transaction : "contains"
+    Account ||--o{ Holding : "contains"
+    Account ||--o{ BalanceSnapshot : "tracks"
 
     ProviderConnection {
         string provider_slug
@@ -391,6 +414,19 @@ erDiagram
     }
     Transaction {
         string provider_transaction_id
+    }
+    Holding {
+        string provider_holding_id
+        string symbol
+        string asset_type
+        decimal quantity
+        decimal market_value
+    }
+    BalanceSnapshot {
+        decimal balance
+        decimal holdings_value
+        decimal cash_value
+        string source
     }
 ```
 
@@ -485,6 +521,30 @@ class ProviderTransactionData:
     raw_data: dict
 ```
 
+### ProviderHoldingData (raw provider response)
+
+```python
+@dataclass(frozen=True)
+class ProviderHoldingData:
+    """Holding (position) data as returned by provider (before mapping to domain).
+    
+    Provider adapters return this; mappers convert to Holding entity.
+    """
+    provider_holding_id: str      # Provider's unique position identifier
+    symbol: str                   # Security ticker symbol (e.g., "AAPL")
+    security_name: str            # Full security name
+    asset_type: str               # equity, etf, option, mutual_fund, etc.
+    quantity: Decimal             # Number of shares/units
+    cost_basis: Decimal           # Total cost paid for position
+    market_value: Decimal         # Current market value
+    currency: str                 # ISO 4217 currency code
+    average_price: Decimal | None # Average price per share
+    current_price: Decimal | None # Current market price per share
+    raw_data: dict                # Full provider response
+```
+
+**Reference**: `src/domain/protocols/provider_protocol.py` for full type definitions.
+
 ---
 
 ## Integration with Existing Infrastructure
@@ -568,33 +628,33 @@ src/
 
 ## Adding a New Provider
 
-To add a new provider (e.g., Plaid):
+To add a new provider (e.g., Chase):
 
 1. **Create provider directory**:
 
    ```text
-   src/infrastructure/providers/plaid/
+   src/infrastructure/providers/chase/
    ```
 
 2. **Implement ProviderProtocol**:
 
    ```python
-   class PlaidProvider:
+   class ChaseProvider:
        @property
        def slug(self) -> str:
-           return "plaid"
+           return "chase"
        
        async def exchange_code_for_tokens(self, code: str) -> OAuthTokens:
-           # Plaid Link token exchange
+           # Chase OAuth token exchange
            ...
    ```
 
 3. **Create mappers**:
 
    ```python
-   class PlaidAccountMapper:
-       def map(self, plaid_data: dict) -> Account:
-           # Map Plaid account format to domain Account
+   class ChaseAccountMapper:
+       def map(self, chase_data: dict) -> Account:
+           # Map Chase account format to domain Account
            ...
    ```
 
@@ -605,7 +665,7 @@ To add a new provider (e.g., Plaid):
    def get_provider(slug: str) -> ProviderProtocol:
        match slug:
            case "schwab": return SchwabProvider()
-           case "plaid": return PlaidProvider()  # Add new case
+           case "chase": return ChaseProvider()  # Add new case
            case _: raise ProviderNotFoundError(slug)
    ```
 
@@ -613,9 +673,9 @@ To add a new provider (e.g., Plaid):
 
    ```python
    # src/core/config.py
-   plaid_client_id: str | None = None
-   plaid_secret: str | None = None
-   plaid_environment: str = "sandbox"  # sandbox, development, production
+   chase_api_key: str | None = None
+   chase_api_secret: str | None = None
+   chase_redirect_uri: str | None = None
    ```
 
 ---

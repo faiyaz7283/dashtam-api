@@ -29,12 +29,15 @@ class ApplicationErrorCode(Enum):
 
     COMMAND_VALIDATION_FAILED = "command_validation_failed"
     COMMAND_EXECUTION_FAILED = "command_execution_failed"
+    QUERY_VALIDATION_FAILED = "query_validation_failed"
+    QUERY_EXECUTION_FAILED = "query_execution_failed"
     QUERY_FAILED = "query_failed"
     UNAUTHORIZED = "unauthorized"
     FORBIDDEN = "forbidden"
     NOT_FOUND = "not_found"
     CONFLICT = "conflict"
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
+    EXTERNAL_SERVICE_ERROR = "external_service_error"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

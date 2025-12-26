@@ -19,6 +19,7 @@ from uuid_extensions import uuid7
 
 from src.domain.entities.provider import Provider
 from src.domain.enums.credential_type import CredentialType
+from src.domain.enums.provider_category import ProviderCategory
 
 
 # =============================================================================
@@ -36,12 +37,14 @@ class TestProviderCreation:
             id=provider_id,
             slug="schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
         )
 
         assert provider.id == provider_id
         assert provider.slug == "schwab"
         assert provider.name == "Charles Schwab"
+        assert provider.category == ProviderCategory.BROKERAGE
         assert provider.credential_type == CredentialType.OAUTH2
         assert provider.is_active is True  # Default
         assert provider.description is None
@@ -57,6 +60,7 @@ class TestProviderCreation:
             id=provider_id,
             slug="chase",
             name="Chase Bank",
+            category=ProviderCategory.BANK,
             credential_type=CredentialType.API_KEY,
             description="Chase banking and credit cards",
             logo_url="https://example.com/chase-logo.png",
@@ -69,6 +73,7 @@ class TestProviderCreation:
         assert provider.id == provider_id
         assert provider.slug == "chase"
         assert provider.name == "Chase Bank"
+        assert provider.category == ProviderCategory.BANK
         assert provider.credential_type == CredentialType.API_KEY
         assert provider.description == "Chase banking and credit cards"
         assert provider.logo_url == "https://example.com/chase-logo.png"
@@ -84,6 +89,7 @@ class TestProviderCreation:
             id=uuid7(),
             slug="test",
             name="Test Provider",
+            category=ProviderCategory.OTHER,
             credential_type=CredentialType.OAUTH2,
         )
         after = datetime.now(UTC)
@@ -98,6 +104,7 @@ class TestProviderCreation:
             id=uuid7(),
             slug=f"provider-{cred_type.value}",
             name=f"Provider for {cred_type.value}",
+            category=ProviderCategory.OTHER,
             credential_type=cred_type,
         )
 
@@ -114,6 +121,7 @@ class TestProviderSlugValidation:
                 id=uuid7(),
                 slug="",
                 name="Test Provider",
+                category=ProviderCategory.OTHER,
                 credential_type=CredentialType.OAUTH2,
             )
 
@@ -125,6 +133,7 @@ class TestProviderSlugValidation:
                 id=uuid7(),
                 slug=long_slug,
                 name="Test Provider",
+                category=ProviderCategory.OTHER,
                 credential_type=CredentialType.OAUTH2,
             )
 
@@ -135,6 +144,7 @@ class TestProviderSlugValidation:
             id=uuid7(),
             slug=slug_50,
             name="Test Provider",
+            category=ProviderCategory.OTHER,
             credential_type=CredentialType.OAUTH2,
         )
         assert len(provider.slug) == 50
@@ -146,6 +156,7 @@ class TestProviderSlugValidation:
                 id=uuid7(),
                 slug="schwab.com",
                 name="Test Provider",
+                category=ProviderCategory.OTHER,
                 credential_type=CredentialType.OAUTH2,
             )
 
@@ -156,6 +167,7 @@ class TestProviderSlugValidation:
                 id=uuid7(),
                 slug="charles schwab",
                 name="Test Provider",
+                category=ProviderCategory.OTHER,
                 credential_type=CredentialType.OAUTH2,
             )
 
@@ -166,6 +178,7 @@ class TestProviderSlugValidation:
                 id=uuid7(),
                 slug="Schwab",
                 name="Test Provider",
+                category=ProviderCategory.OTHER,
                 credential_type=CredentialType.OAUTH2,
             )
 
@@ -175,6 +188,7 @@ class TestProviderSlugValidation:
             id=uuid7(),
             slug="charles-schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
         )
         assert provider.slug == "charles-schwab"
@@ -185,6 +199,7 @@ class TestProviderSlugValidation:
             id=uuid7(),
             slug="charles_schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
         )
         assert provider.slug == "charles_schwab"
@@ -195,6 +210,7 @@ class TestProviderSlugValidation:
             id=uuid7(),
             slug="provider123",
             name="Provider 123",
+            category=ProviderCategory.OTHER,
             credential_type=CredentialType.OAUTH2,
         )
         assert provider.slug == "provider123"
@@ -210,6 +226,7 @@ class TestProviderNameValidation:
                 id=uuid7(),
                 slug="test",
                 name="",
+                category=ProviderCategory.OTHER,
                 credential_type=CredentialType.OAUTH2,
             )
 
@@ -221,6 +238,7 @@ class TestProviderNameValidation:
                 id=uuid7(),
                 slug="test",
                 name=long_name,
+                category=ProviderCategory.OTHER,
                 credential_type=CredentialType.OAUTH2,
             )
 
@@ -231,6 +249,7 @@ class TestProviderNameValidation:
             id=uuid7(),
             slug="test",
             name=name_100,
+            category=ProviderCategory.OTHER,
             credential_type=CredentialType.OAUTH2,
         )
         assert len(provider.name) == 100
@@ -245,6 +264,7 @@ class TestProviderStringRepresentations:
             id=uuid7(),
             slug="schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
             is_active=True,
         )
@@ -260,6 +280,7 @@ class TestProviderStringRepresentations:
             id=uuid7(),
             slug="legacy",
             name="Legacy Provider",
+            category=ProviderCategory.OTHER,
             credential_type=CredentialType.API_KEY,
             is_active=False,
         )
@@ -275,6 +296,7 @@ class TestProviderStringRepresentations:
             id=uuid7(),
             slug="test",
             name="Test Provider",
+            category=ProviderCategory.OTHER,
             credential_type=CredentialType.OAUTH2,
             is_active=True,
         )
@@ -298,6 +320,7 @@ class TestProviderEquality:
             id=provider_id,
             slug="schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
             created_at=now,
             updated_at=now,
@@ -306,6 +329,7 @@ class TestProviderEquality:
             id=provider_id,
             slug="schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
             created_at=now,
             updated_at=now,
@@ -319,12 +343,14 @@ class TestProviderEquality:
             id=uuid7(),
             slug="schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
         )
         p2 = Provider(
             id=uuid7(),
             slug="schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
         )
 

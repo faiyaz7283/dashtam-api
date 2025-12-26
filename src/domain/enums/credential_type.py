@@ -63,9 +63,10 @@ class CredentialType(str, Enum):
     """
 
     LINK_TOKEN = "link_token"
-    """Plaid-style link tokens.
+    """Aggregator-style link tokens.
 
-    Used by aggregators like Plaid that use a linking flow.
+    Used by aggregators that use a linking flow (e.g., third-party data
+    aggregation services).
 
     Credential data typically includes:
         - access_token

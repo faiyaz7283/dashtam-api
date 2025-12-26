@@ -51,7 +51,7 @@ class Account:
     reflecting provider state, not user-managed entities.
 
     Provider Agnostic:
-        Account structure works for any provider (Schwab, Chase, Plaid).
+        Account structure works for any provider (Schwab, Chase, Fidelity).
         Provider-specific data stored in provider_metadata.
 
     Financial Precision:

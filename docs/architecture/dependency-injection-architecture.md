@@ -222,7 +222,7 @@ src/core/container/
 
 **providers.py** (~80 lines) - Provider factory:
 
-- `get_provider(slug)` - Returns Schwab (future: Plaid, Yodlee)
+- `get_provider(slug)` - Returns Schwab (future: Chase, Fidelity)
 
 **authorization.py** (~160 lines) - Casbin RBAC:
 

@@ -19,8 +19,8 @@ class TransactionType(str, Enum):
     Schwab TRADE -> TRADE
     Schwab ACH_RECEIPT -> TRANSFER
     Schwab DIVIDEND_OR_INTEREST -> INCOME
-    Plaid buy/sell -> TRADE
-    Plaid cash:dividend -> INCOME
+    Chase buy/sell -> TRADE
+    Chase dividend -> INCOME
     """
 
     # Security transactions (executed trades)

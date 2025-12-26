@@ -29,6 +29,7 @@ from uuid_extensions import uuid7
 
 from src.domain.entities.provider import Provider
 from src.domain.enums.credential_type import CredentialType
+from src.domain.enums.provider_category import ProviderCategory
 from src.infrastructure.persistence.repositories.provider_repository import (
     ProviderRepository,
 )
@@ -43,6 +44,7 @@ def create_test_provider(
     provider_id=None,
     slug=None,
     name="Test Provider",
+    category=ProviderCategory.OTHER,
     credential_type=CredentialType.OAUTH2,
     description=None,
     logo_url=None,
@@ -55,6 +57,7 @@ def create_test_provider(
         provider_id: Optional UUID for the provider.
         slug: Optional slug (defaults to unique slug based on ID).
         name: Provider name.
+        category: Provider category (default: OTHER).
         credential_type: Authentication type.
         description: Optional description.
         logo_url: Optional logo URL.
@@ -74,6 +77,7 @@ def create_test_provider(
         id=provider_id,
         slug=slug,
         name=name,
+        category=category,
         credential_type=credential_type,
         description=description,
         logo_url=logo_url,

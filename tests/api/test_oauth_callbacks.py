@@ -77,10 +77,13 @@ class StubProviderRepository:
         self._id = provider_id or uuid7()
 
     async def find_by_slug(self, slug: str):
+        from src.domain.enums.provider_category import ProviderCategory
+
         return ProviderEntity(
             id=self._id,
             slug="schwab",
             name="Charles Schwab",
+            category=ProviderCategory.BROKERAGE,
             credential_type=CredentialType.OAUTH2,
         )
 
@@ -186,7 +189,7 @@ def test_callback_provider_mismatch_returns_400(_override_dependencies):
     key = "oauth:state:mismatch"
     data = {
         "user_id": str(user_id),
-        "provider_slug": "plaid",  # Different from URL's "schwab"
+        "provider_slug": "chase",  # Different from URL's "schwab"
         "created_at": datetime.now(UTC).isoformat(),
     }
     asyncio.run(cache.set_json(key, data, ttl=600))

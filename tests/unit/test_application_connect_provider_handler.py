@@ -341,7 +341,7 @@ async def test_connect_provider_with_api_key_credentials():
 
 @pytest.mark.asyncio
 async def test_connect_provider_with_link_token_credentials():
-    """Test connection with Plaid link token credentials."""
+    """Test connection with aggregator link token credentials."""
     # Arrange
     handler, repo, event_bus = create_handler()
     credentials = create_test_credentials(credential_type=CredentialType.LINK_TOKEN)
@@ -349,7 +349,7 @@ async def test_connect_provider_with_link_token_credentials():
     command = ConnectProvider(
         user_id=uuid7(),
         provider_id=uuid7(),
-        provider_slug="plaid",
+        provider_slug="aggregator",
         credentials=credentials,
     )
 

@@ -40,7 +40,7 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**v1.2.0 Released**: 2025-12-26 | **Phases 0-7 Complete** (45 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.2.0>
+**v1.3.0 Released**: 2025-12-26 | **Phases 0-7 Complete** (46 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.3.0>
 
 ---
 
@@ -294,12 +294,13 @@
 - ✅ **Quality**: Zero lint violations, strict type checking, all tests passing
 - ✅ **Release**: v1.1.0 (minor version bump for new feature)
 
-#### Phase 7: Provider Capabilities & Data Models ✅ COMPLETED (2/2 features)
+#### Phase 7: Provider Capabilities & Data Models ✅ COMPLETED (3/3 features)
 
-**Release**: 2025-12-26 | **Tag**: v1.2.0 | **Tests**: 1,978 passed, 19 skipped | **Coverage**: 87%
+**Release**: 2025-12-26 | **Tag**: v1.3.0 | **Tests**: 2,079 passed, 19 skipped | **Coverage**: 87%
 
 | Feature | Description |
 |---------|-------------|
+| F7.1 | Alpaca Provider Integration (API Key auth) |
 | F7.4 | Provider-Specific Entities (Holdings Support) |
 | F7.5 | Balance Tracking |
 
@@ -320,6 +321,18 @@
 - ✅ Provider capability flags (HAS_HOLDINGS, HAS_BALANCE_HISTORY)
 - ✅ 232 new tests added (1,746 → 1,978)
 - ✅ Coverage increased to 87%
+- ✅ **F7.1**: Alpaca provider (first API Key provider) with 101 tests, 100% coverage
+
+**F7.1 Alpaca Provider Summary** (completed 2025-12-26):
+
+- ✅ **Provider**: AlpacaProvider implementing auth-agnostic ProviderProtocol
+- ✅ **API Clients**: AlpacaAccountsAPI (account + positions), AlpacaTransactionsAPI (activities)
+- ✅ **Mappers**: Account, Holding, Transaction mappers with comprehensive field mapping
+- ✅ **Authentication**: API Key headers (APCA-API-KEY-ID, APCA-API-SECRET-KEY)
+- ✅ **Environments**: Paper (sandbox) and Live support
+- ✅ **Tests**: 101 tests with 100% coverage on all Alpaca provider code
+- ✅ **Documentation**: Added API-key provider section to adding-new-providers.md
+- ✅ **Total Tests**: 1,978 → 2,079 (+101 tests)
 
 **F7.4 Holdings Summary** (completed 2025-12-26):
 
@@ -1037,7 +1050,7 @@ git push origin development
 - **MINOR**: New features (backward compatible)
 - **PATCH**: Bug fixes, internal refactors (backward compatible)
 
-**Recommended Approach: Batch Patches, Tag on Release**
+##### Recommended Approach: Batch Patches, Tag on Release
 
 - **PATCH versions** accumulate in `development` without tags
 - **Tags created only when releasing to `main`**

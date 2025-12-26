@@ -227,6 +227,20 @@ class Settings(BaseSettings):
         description="OAuth redirect URI for Schwab callback",
     )
 
+    # Provider: Alpaca Configuration
+    alpaca_client_id: str | None = Field(
+        default=None,
+        description="Alpaca OAuth client ID",
+    )
+    alpaca_client_secret: str | None = Field(
+        default=None,
+        description="Alpaca OAuth client secret",
+    )
+    alpaca_redirect_uri: str | None = Field(
+        default=None,
+        description="OAuth redirect URI for Alpaca callback",
+    )
+
     model_config = SettingsConfigDict(
         # env_file handled by Docker compose (not coupled to specific environment)
         env_file_encoding="utf-8",

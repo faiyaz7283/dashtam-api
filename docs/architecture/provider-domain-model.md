@@ -6,7 +6,7 @@ Provider Connection Domain Model - the foundation for multi-provider financial d
 
 ## Overview
 
-The Provider Connection domain model represents the relationship between a user and a financial data provider (Schwab, Chase, Plaid, etc.). This model is **authentication-agnostic** - the domain layer has no knowledge of OAuth, API keys, or other authentication mechanisms.
+The Provider Connection domain model represents the relationship between a user and a financial data provider (Schwab, Chase, Fidelity, etc.). This model is **authentication-agnostic** - the domain layer has no knowledge of OAuth, API keys, or other authentication mechanisms.
 
 ### Core Principle
 
@@ -225,9 +225,9 @@ class ConnectionStatus(str, Enum):
 ```python
 class CredentialType(str, Enum):
     """Authentication mechanism type - used by infrastructure layer."""
-    OAUTH2 = "oauth2"             # OAuth 2.0 (Schwab, most brokerages)
+    OAUTH2 = "oauth2"             # OAuth 2.0 (Schwab, Chase, most brokerages)
     API_KEY = "api_key"           # Simple API key authentication
-    LINK_TOKEN = "link_token"     # Plaid-style link tokens
+    LINK_TOKEN = "link_token"     # Aggregator-style link tokens
     CERTIFICATE = "certificate"   # mTLS certificate-based auth
     CUSTOM = "custom"             # Provider-specific custom auth
     
@@ -361,9 +361,9 @@ class ProviderConnectionRepository(Protocol):
 
 - `PostgresProviderConnectionRepository` - Persistence adapter
 - Provider-specific credential handlers:
-  - `SchwabOAuthHandler` - OAuth2 flow + token encryption
-  - `PlaidLinkHandler` - Link token management (future)
-  - `ChaseApiHandler` - API key management (future)
+- `SchwabOAuthHandler` - OAuth2 flow + token encryption
+- `ChaseOAuthHandler` - OAuth2 flow (future)
+- `FidelityOAuthHandler` - OAuth2 flow (future)
 - Encryption service for credential storage
 
 ---

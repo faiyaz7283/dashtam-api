@@ -53,26 +53,22 @@ Different providers use different approaches for transaction types. Our design m
 
 The **instruction** field (BUY, SELL, SHORT_SELL, etc.) and **asset_type** (EQUITY, OPTION, etc.) provide specific details.
 
-**Plaid Investments API** - Uses type + subtype:
+**Chase Investment API** - Uses type + instruction:
 
-- **Types**: `buy`, `sell`, `cash`, `transfer`, `fee`
-- **Subtypes**: `buy`, `sell`, `dividend`, `interest`, `short`, `cover`, `exercise`, `assignment`, etc.
-
-Plaid separates banking transactions from investment transactions.
+- **Types**: `TRADE`, `TRANSFER`, `INCOME`, `FEE`
+- **Instructions**: `BUY`, `SELL`, `DEPOSIT`, `WITHDRAWAL`, `DIVIDEND`, etc.
 
 ### Banks (Deposit/Credit Accounts)
 
-**Plaid Transactions API** - Uses personal finance categories:
+**Chase Transactions API** - Uses transaction categories:
 
-- **Primary categories**: `INCOME`, `TRANSFER_IN`, `TRANSFER_OUT`, `LOAN_PAYMENTS`, `BANK_FEES`, etc.
-- **Detailed categories**: `INCOME_DIVIDENDS`, `TRANSFER_IN_DEPOSIT`, `BANK_FEES_ATM_FEES`, etc.
-- **Channel**: `online`, `in store`, `other`
+- **Primary categories**: `INCOME`, `TRANSFER`, `PAYMENT`, `FEE`, etc.
+- **Status**: `PENDING`, `POSTED`
 
 **FDX (Financial Data Exchange) Standard** - Industry standard:
 
 - Transaction status: `PENDING`, `POSTED`, `MEMO`, `AUTHORIZATION`
 - Aligns with CFPB open banking regulations
-- Plaid uses FDX as basis for their Core Exchange API
 
 ### Key Insight: Two-Level Classification
 
@@ -89,8 +85,8 @@ We use **normalized types** that can be mapped from any provider:
 Provider Data → Adapter Layer → Normalized Transaction
 
 Schwab TRADE + instruction=BUY    → type=TRADE, subtype=BUY
-Plaid type=buy, subtype=buy       → type=TRADE, subtype=BUY  
-Plaid type=cash, subtype=dividend → type=INCOME, subtype=DIVIDEND
+Chase TRADE + instruction=BUY     → type=TRADE, subtype=BUY  
+Chase INCOME + type=dividend      → type=INCOME, subtype=DIVIDEND
 ```
 
 The adapter (infrastructure layer) handles provider-specific mapping.
@@ -250,8 +246,8 @@ class TransactionType(str, Enum):
     - Schwab TRADE -> TRADE
     - Schwab ACH_RECEIPT -> TRANSFER
     - Schwab DIVIDEND_OR_INTEREST -> INCOME
-    - Plaid buy/sell -> TRADE
-    - Plaid cash:dividend -> INCOME
+    - Chase buy/sell -> TRADE
+    - Chase dividend -> INCOME
     """
     
     # Security transactions (executed trades)

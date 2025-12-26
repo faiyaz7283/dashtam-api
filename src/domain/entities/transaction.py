@@ -106,7 +106,7 @@ class Transaction:
 
     Used for deduplication during sync operations. Format varies by provider:
     - Schwab: Numeric ID (e.g., "123456789")
-    - Plaid: Alphanumeric (e.g., "Wx7r9dKnm0...")
+    - Chase: Alphanumeric (e.g., "CHK-ABC123...")
     """
 
     # ========================================================================

@@ -49,7 +49,7 @@ class ProviderConnection:
     """Connection between a user and a financial data provider.
 
     Represents the user's connection to an external provider like Schwab,
-    Chase, or Plaid. The connection tracks status, credentials, and sync state.
+    Chase, or Fidelity. The connection tracks status, credentials, and sync state.
 
     Authentication Agnostic:
         Domain layer has no knowledge of authentication mechanisms.

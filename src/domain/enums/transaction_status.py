@@ -23,8 +23,7 @@ class TransactionStatus(str, Enum):
 
     **Provider Mappings**:
         - Schwab API: Maps "status" field directly
-        - Plaid Transactions: Posted → SETTLED, Pending → PENDING
-        - Plaid Investments: All synced transactions → SETTLED
+        - Chase: Posted → SETTLED, Pending → PENDING
     """
 
     PENDING = "pending"

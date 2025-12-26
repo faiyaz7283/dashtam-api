@@ -2,7 +2,7 @@
 
 This module defines the Provider model for storing provider registry data.
 Providers are typically seeded at deployment and represent supported
-financial data providers (Schwab, Chase, Plaid, etc.).
+financial data providers (Schwab, Chase, Fidelity, etc.).
 
 Reference:
     - docs/architecture/provider-domain-model.md

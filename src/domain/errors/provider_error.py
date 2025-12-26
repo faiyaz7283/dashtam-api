@@ -35,13 +35,13 @@ from src.core.errors import DomainError
 class ProviderError(DomainError):
     """Base financial provider API error.
 
-    Used for provider-specific errors from Schwab, Plaid, Yodlee, etc.
+    Used for provider-specific errors from Schwab, Chase, Yodlee, etc.
     Subclassed for specific error types.
 
     Attributes:
         code: Domain ErrorCode.
         message: Human-readable message.
-        provider_name: Name of the provider (schwab, plaid, etc.).
+        provider_name: Name of the provider (schwab, chase, etc.).
         details: Additional context (API error code, response).
     """
 

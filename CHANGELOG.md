@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Added comprehensive Provider Integration Guide (`docs/guides/adding-new-providers.md`)
+  - 8-phase step-by-step process for adding new financial providers
+  - Complete code templates for provider adapters, API clients, and mappers
+  - Testing requirements with coverage targets (90%+ provider, 95%+ mappers)
+  - Files checklist: 12 must-create, 7 must-modify
+  - Container registration and database seeding patterns
+  - Quality verification steps and troubleshooting guidance
+- Replaced Plaid references with Chase throughout documentation and code comments (27 files)
+  - Updated docstrings, comments, and examples in source files
+  - Updated environment template variable names (`PLAID_*` → `CHASE_*`)
+  - Updated architecture docs and API guides to reference Chase/Fidelity as future providers
+  - Updated test docstrings and comments
+  - Note: No actual Chase provider implementation - Chase will be added as F7.1 in future work
+
 ## [1.1.0] - 2025-12-25
 
 ### Added

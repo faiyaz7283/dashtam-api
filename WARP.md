@@ -1000,6 +1000,35 @@ git commit -m "test(integration): add user registration tests"
 - ❌ No direct commits (PR required)
 - ❌ No force pushes
 
+#### Release Workflow (CRITICAL)
+
+**After every release to main, IMMEDIATELY sync main back into development**:
+
+```bash
+# After PR to main is merged:
+git checkout development
+git pull origin development
+git fetch origin main
+git merge origin/main --no-edit
+git push origin development
+```
+
+**Why this matters**: Prevents version drift conflicts. When main receives a release merge, it may have slightly different commit history. If development continues without syncing, the next release PR will have conflicts in version-related files (pyproject.toml, uv.lock, CHANGELOG.md, WARP.md).
+
+**Complete Release Checklist**:
+
+1. [ ] Update version in `pyproject.toml`
+2. [ ] Run `uv lock` to update lockfile
+3. [ ] Update `CHANGELOG.md` with release notes
+4. [ ] Update `WARP.md` with completion status
+5. [ ] Commit, push, create PR to `development`
+6. [ ] Wait for CI, merge PR to `development`
+7. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
+8. [ ] Push tag: `git push origin vX.Y.Z`
+9. [ ] Create PR from `development` → `main`
+10. [ ] Merge PR to `main`
+11. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
+
 ---
 
 ### 12. Testing Strategy

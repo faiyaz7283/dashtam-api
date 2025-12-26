@@ -24,6 +24,7 @@ DEFAULT_PROVIDERS = [
     {
         "slug": "schwab",
         "name": "Charles Schwab",
+        "category": "brokerage",
         "credential_type": "oauth2",
         "description": "Connect your Charles Schwab brokerage account to sync "
         "accounts, positions, and transactions.",
@@ -75,12 +76,12 @@ async def seed_providers(session: AsyncSession) -> None:
         await session.execute(
             text("""
                 INSERT INTO providers (
-                    id, slug, name, credential_type, description,
+                    id, slug, name, category, credential_type, description,
                     logo_url, website_url, is_active,
                     created_at, updated_at
                 )
                 VALUES (
-                    :id, :slug, :name, :credential_type, :description,
+                    :id, :slug, :name, :category, :credential_type, :description,
                     :logo_url, :website_url, :is_active,
                     NOW(), NOW()
                 )
@@ -89,6 +90,7 @@ async def seed_providers(session: AsyncSession) -> None:
                 "id": provider_id,
                 "slug": slug,
                 "name": provider_data["name"],
+                "category": provider_data.get("category", "other"),
                 "credential_type": provider_data["credential_type"],
                 "description": provider_data.get("description"),
                 "logo_url": provider_data.get("logo_url"),

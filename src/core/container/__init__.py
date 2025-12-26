@@ -76,16 +76,19 @@ from src.core.container.provider_handlers import (
     get_refresh_provider_tokens_handler,
 )
 
-# Data handlers (accounts, transactions)
+# Data handlers (accounts, holdings, transactions)
 from src.core.container.data_handlers import (
     get_get_account_handler,
     get_get_transaction_handler,
     get_list_accounts_by_connection_handler,
     get_list_accounts_by_user_handler,
+    get_list_holdings_by_account_handler,
+    get_list_holdings_by_user_handler,
     get_list_security_transactions_handler,
     get_list_transactions_by_account_handler,
     get_list_transactions_by_date_range_handler,
     get_sync_accounts_handler,
+    get_sync_holdings_handler,
     get_sync_transactions_handler,
 )
 
@@ -147,11 +150,14 @@ __all__ = [
     "get_get_account_handler",
     "get_list_accounts_by_connection_handler",
     "get_list_accounts_by_user_handler",
+    "get_list_holdings_by_account_handler",
+    "get_list_holdings_by_user_handler",
     "get_get_transaction_handler",
     "get_list_transactions_by_account_handler",
     "get_list_transactions_by_date_range_handler",
     "get_list_security_transactions_handler",
     "get_sync_accounts_handler",
+    "get_sync_holdings_handler",
     "get_sync_transactions_handler",
     # Providers
     "get_provider",

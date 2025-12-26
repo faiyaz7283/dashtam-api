@@ -1,6 +1,6 @@
 """Schwab provider implementing ProviderProtocol.
 
-Handles OAuth token exchange/refresh and Trader API calls for accounts/transactions.
+Handles OAuth token exchange/refresh and Trader API calls for accounts/transactions/holdings.
 
 Configuration loaded from settings (src/core/config.py):
     - schwab_api_key: OAuth client ID
@@ -17,6 +17,7 @@ Architecture:
     - api/accounts_api.py: HTTP client for accounts endpoints
     - api/transactions_api.py: HTTP client for transactions endpoints
     - mappers/account_mapper.py: JSON → ProviderAccountData
+    - mappers/holding_mapper.py: JSON → ProviderHoldingData
     - mappers/transaction_mapper.py: JSON → ProviderTransactionData
 
 Reference:
@@ -48,6 +49,7 @@ from src.domain.errors import (
 from src.domain.protocols.provider_protocol import (
     OAuthTokens,
     ProviderAccountData,
+    ProviderHoldingData,
     ProviderTransactionData,
 )
 from src.infrastructure.providers.schwab.api.accounts_api import SchwabAccountsAPI
@@ -56,6 +58,9 @@ from src.infrastructure.providers.schwab.api.transactions_api import (
 )
 from src.infrastructure.providers.schwab.mappers.account_mapper import (
     SchwabAccountMapper,
+)
+from src.infrastructure.providers.schwab.mappers.holding_mapper import (
+    SchwabHoldingMapper,
 )
 from src.infrastructure.providers.schwab.mappers.transaction_mapper import (
     SchwabTransactionMapper,
@@ -130,6 +135,7 @@ class SchwabProvider:
             timeout=timeout,
         )
         self._account_mapper = SchwabAccountMapper()
+        self._holding_mapper = SchwabHoldingMapper()
         self._transaction_mapper = SchwabTransactionMapper()
 
     @property
@@ -578,6 +584,57 @@ class SchwabProvider:
         )
 
         return Success(value=transactions)
+
+    async def fetch_holdings(
+        self,
+        access_token: str,
+        provider_account_id: str,
+    ) -> Result[list[ProviderHoldingData], ProviderError]:
+        """Fetch holdings (positions) for a specific account.
+
+        Delegates to SchwabAccountsAPI to get account with positions,
+        then uses SchwabHoldingMapper to convert.
+
+        Args:
+            access_token: Valid Schwab access token.
+            provider_account_id: Schwab account number (hash value).
+
+        Returns:
+            Success(list[ProviderHoldingData]): Holding data from Schwab.
+            Failure(ProviderAuthenticationError): If token is invalid/expired.
+            Failure(ProviderUnavailableError): If Schwab API is unreachable.
+        """
+        logger.info(
+            "schwab_fetch_holdings_started",
+            provider=self.slug,
+            account_id=provider_account_id[-4:]
+            if len(provider_account_id) >= 4
+            else "****",
+        )
+
+        # Fetch account data with positions included
+        result = await self._accounts_api.get_account(
+            access_token=access_token,
+            account_number=provider_account_id,
+            include_positions=True,
+        )
+
+        # Handle API errors
+        if isinstance(result, Failure):
+            return Failure(error=result.error)
+
+        raw_account = result.value
+
+        # Map raw JSON positions to ProviderHoldingData
+        holdings = self._holding_mapper.map_holdings_from_account(raw_account)
+
+        logger.info(
+            "schwab_fetch_holdings_succeeded",
+            provider=self.slug,
+            holding_count=len(holdings),
+        )
+
+        return Success(value=holdings)
 
     def _check_api_error_response(
         self,

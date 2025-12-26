@@ -10,6 +10,7 @@ Usage:
 from src.domain.errors.account_error import AccountError
 from src.domain.errors.audit_error import AuditError
 from src.domain.errors.authentication_error import AuthenticationError
+from src.domain.errors.balance_snapshot_error import BalanceSnapshotError
 from src.domain.errors.provider_connection_error import ProviderConnectionError
 from src.domain.errors.provider_error import (
     ProviderAuthenticationError,
@@ -26,6 +27,7 @@ __all__ = [
     "AccountError",
     "AuditError",
     "AuthenticationError",
+    "BalanceSnapshotError",
     "ProviderConnectionError",
     # Provider API errors
     "ProviderError",

@@ -27,6 +27,7 @@ from src.domain.protocols.password_reset_token_service_protocol import (
 from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
 
 # Repository protocols
+from src.domain.protocols.balance_snapshot_repository import BalanceSnapshotRepository
 from src.domain.protocols.email_verification_token_repository import (
     EmailVerificationTokenData,
     EmailVerificationTokenRepository,
@@ -52,6 +53,7 @@ from src.domain.protocols.session_enricher_protocol import (
 )
 from src.domain.protocols.session_repository import SessionData, SessionRepository
 from src.domain.protocols.account_repository import AccountRepository
+from src.domain.protocols.holding_repository import HoldingRepository
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
@@ -59,6 +61,7 @@ from src.domain.protocols.provider_repository import ProviderRepository
 from src.domain.protocols.provider_protocol import (
     OAuthTokens,
     ProviderAccountData,
+    ProviderHoldingData,
     ProviderProtocol,
     ProviderTransactionData,
 )
@@ -78,6 +81,8 @@ __all__ = [
     "TokenGenerationProtocol",
     # Repository protocols
     "AccountRepository",
+    "BalanceSnapshotRepository",
+    "HoldingRepository",
     "EmailVerificationTokenData",
     "EmailVerificationTokenRepository",
     "PasswordResetTokenData",
@@ -101,6 +106,7 @@ __all__ = [
     "OAuthTokens",
     "ProviderAccountData",
     "ProviderConnectionRepository",
+    "ProviderHoldingData",
     "ProviderProtocol",
     "ProviderRepository",
     "ProviderTransactionData",

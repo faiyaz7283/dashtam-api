@@ -1200,6 +1200,374 @@ Click "Reconnect" to re-authorize access.
 
 ---
 
+## Phase 9: Holdings Support (Optional)
+
+If the provider supports holdings/positions data, implement these additional components.
+
+### 9.1 Check Provider Capability
+
+Not all providers support holdings. Check your provider's API documentation for:
+
+- Position/holdings endpoint availability
+- Data fields returned (quantity, cost basis, market value, etc.)
+- Real-time vs end-of-day data
+
+### 9.2 Implement fetch_holdings Method
+
+Add to your provider adapter (`{provider}_provider.py`):
+
+```python
+async def fetch_holdings(
+    self,
+    access_token: str,
+    provider_account_id: str,
+) -> Result[
+    list[ProviderHoldingData],
+    ProviderAuthenticationError | ProviderUnavailableError,
+]:
+    """Fetch holdings (positions) for a specific account.
+    
+    Args:
+        access_token: Valid access token.
+        provider_account_id: Provider's account identifier.
+        
+    Returns:
+        Success(list[ProviderHoldingData]) with holding data.
+        Failure(ProviderAuthenticationError) if token invalid.
+        Failure(ProviderUnavailableError) if provider API down.
+    """
+    from src.infrastructure.providers.{provider}.mappers import (
+        {Provider}HoldingMapper,
+    )
+    
+    self._logger.info(
+        "fetching_holdings",
+        account_id=provider_account_id,
+    )
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{self._API_BASE_URL}/accounts/{provider_account_id}/positions",
+                headers=self._get_bearer_headers(access_token),
+                timeout=30.0,
+            )
+        except httpx.RequestError as e:
+            self._logger.error("fetch_holdings_network_error", error=str(e))
+            return Failure(error=ProviderUnavailableError(
+                message=f"{self.slug} API unavailable: {e}",
+            ))
+        
+        if response.status_code == 401:
+            return Failure(error=ProviderAuthenticationError(
+                message="Access token expired or invalid",
+            ))
+        
+        if response.status_code != 200:
+            return Failure(error=ProviderUnavailableError(
+                message=f"Failed to fetch holdings: {response.status_code}",
+            ))
+        
+        data = response.json()
+        mapper = {Provider}HoldingMapper()
+        holdings = mapper.map_holdings(data.get("positions", []))
+        
+        self._logger.info("holdings_fetched", count=len(holdings))
+        return Success(value=holdings)
+```
+
+### 9.3 Implement Holding Mapper
+
+Create `src/infrastructure/providers/{provider}/mappers/holding_mapper.py`:
+
+```python
+"""
+{Provider Name} holding (position) mapper.
+
+Maps {Provider} position API responses to ProviderHoldingData.
+"""
+
+from decimal import Decimal, InvalidOperation
+from typing import Any
+
+import structlog
+
+from src.domain.protocols.provider_protocol import ProviderHoldingData
+
+logger = structlog.get_logger(__name__)
+
+# Provider asset type → Dashtam asset type mapping
+{PROVIDER}_ASSET_TYPE_MAP: dict[str, str] = {
+    "EQUITY": "equity",
+    "STOCK": "equity",
+    "ETF": "etf",
+    "MUTUAL_FUND": "mutual_fund",
+    "OPTION": "option",
+    "FIXED_INCOME": "fixed_income",
+    "BOND": "fixed_income",
+    "CASH_EQUIVALENT": "cash_equivalent",
+    "MONEY_MARKET": "cash_equivalent",
+    "CRYPTO": "cryptocurrency",
+    # Add provider-specific mappings
+}
+
+
+class {Provider}HoldingMapper:
+    """Mapper for converting {Provider} position data to ProviderHoldingData.
+    
+    Handles:
+    - Extracting data from provider's JSON structure
+    - Mapping asset types to Dashtam types
+    - Converting numeric values to Decimal
+    - Generating unique position identifiers
+    """
+    
+    def map_holding(self, data: dict[str, Any]) -> ProviderHoldingData | None:
+        """Map single position JSON to ProviderHoldingData.
+        
+        Args:
+            data: Single position object from provider API.
+            
+        Returns:
+            ProviderHoldingData if mapping succeeds, None if invalid.
+        """
+        try:
+            return self._map_holding_internal(data)
+        except (KeyError, TypeError, InvalidOperation, ValueError) as e:
+            logger.warning(
+                "{provider}_holding_mapping_failed",
+                error=str(e),
+            )
+            return None
+    
+    def map_holdings(
+        self, data_list: list[dict[str, Any]]
+    ) -> list[ProviderHoldingData]:
+        """Map list of position JSON objects.
+        
+        Skips invalid positions, never raises exceptions.
+        """
+        holdings: list[ProviderHoldingData] = []
+        for data in data_list:
+            holding = self.map_holding(data)
+            if holding is not None:
+                holdings.append(holding)
+        return holdings
+    
+    def _map_holding_internal(self, data: dict[str, Any]) -> ProviderHoldingData | None:
+        """Internal mapping logic."""
+        # Extract required fields (adjust for provider's JSON structure)
+        symbol = data.get("symbol")
+        if not symbol:
+            return None
+        
+        # Get asset type
+        provider_asset_type = data.get("assetType", "UNKNOWN")
+        asset_type = {PROVIDER}_ASSET_TYPE_MAP.get(
+            provider_asset_type.upper(), "other"
+        )
+        
+        # Parse quantities and values
+        quantity = self._parse_decimal(data.get("quantity", 0))
+        if quantity == Decimal("0"):
+            return None  # Skip zero positions
+        
+        cost_basis = self._parse_decimal(data.get("costBasis", 0))
+        market_value = self._parse_decimal(data.get("marketValue", 0))
+        
+        # Generate unique position ID
+        position_id = f"{self._provider_slug}_{symbol}_{data.get('cusip', '')}"
+        
+        return ProviderHoldingData(
+            provider_holding_id=position_id,
+            symbol=symbol,
+            security_name=data.get("description", symbol),
+            asset_type=asset_type,
+            quantity=quantity,
+            cost_basis=cost_basis,
+            market_value=market_value,
+            currency=data.get("currency", "USD"),
+            average_price=self._parse_decimal_optional(data.get("averagePrice")),
+            current_price=self._parse_decimal_optional(data.get("lastPrice")),
+            raw_data=data,
+        )
+    
+    @property
+    def _provider_slug(self) -> str:
+        return "{provider}"
+    
+    def _parse_decimal(self, value: Any) -> Decimal:
+        """Parse numeric value to Decimal."""
+        if value is None:
+            return Decimal("0")
+        try:
+            return Decimal(str(value))
+        except (InvalidOperation, ValueError):
+            return Decimal("0")
+    
+    def _parse_decimal_optional(self, value: Any) -> Decimal | None:
+        """Parse numeric value, returning None for missing."""
+        if value is None:
+            return None
+        try:
+            return Decimal(str(value))
+        except (InvalidOperation, ValueError):
+            return None
+```
+
+### 9.4 Update Mapper Exports
+
+Update `src/infrastructure/providers/{provider}/mappers/__init__.py`:
+
+```python
+from src.infrastructure.providers.{provider}.mappers.holding_mapper import (
+    {Provider}HoldingMapper,
+)
+
+__all__ = [
+    "{Provider}AccountMapper",
+    "{Provider}TransactionMapper",
+    "{Provider}HoldingMapper",  # Add this
+]
+```
+
+### 9.5 Add Holdings Tests
+
+Create `tests/unit/test_infrastructure_{provider}_holding_mapper.py`:
+
+```python
+"""Unit tests for {Provider} holding mapper."""
+
+import pytest
+from decimal import Decimal
+
+from src.infrastructure.providers.{provider}.mappers import {Provider}HoldingMapper
+
+
+class TestHoldingMapping:
+    """Tests for holding field mapping."""
+    
+    def test_maps_required_fields(self):
+        """Maps all required fields correctly."""
+        raw = {
+            "symbol": "AAPL",
+            "description": "Apple Inc.",
+            "assetType": "EQUITY",
+            "quantity": 100,
+            "costBasis": 15000.00,
+            "marketValue": 17500.00,
+            "currency": "USD",
+        }
+        
+        mapper = {Provider}HoldingMapper()
+        result = mapper.map_holding(raw)
+        
+        assert result is not None
+        assert result.symbol == "AAPL"
+        assert result.security_name == "Apple Inc."
+        assert result.asset_type == "equity"
+        assert result.quantity == Decimal("100")
+        assert result.cost_basis == Decimal("15000.00")
+        assert result.market_value == Decimal("17500.00")
+    
+    def test_maps_asset_types(self):
+        """Maps all known asset types correctly."""
+        test_cases = [
+            ("EQUITY", "equity"),
+            ("ETF", "etf"),
+            ("OPTION", "option"),
+            ("MUTUAL_FUND", "mutual_fund"),
+            ("UNKNOWN_TYPE", "other"),
+        ]
+        
+        mapper = {Provider}HoldingMapper()
+        for provider_type, expected in test_cases:
+            raw = {"symbol": "TEST", "assetType": provider_type, "quantity": 1}
+            result = mapper.map_holding(raw)
+            assert result.asset_type == expected
+    
+    def test_skips_zero_quantity(self):
+        """Skips positions with zero quantity."""
+        raw = {"symbol": "AAPL", "quantity": 0}
+        
+        mapper = {Provider}HoldingMapper()
+        result = mapper.map_holding(raw)
+        
+        assert result is None
+    
+    def test_handles_missing_optional_fields(self):
+        """Handles missing optional fields gracefully."""
+        raw = {"symbol": "AAPL", "quantity": 100}
+        
+        mapper = {Provider}HoldingMapper()
+        result = mapper.map_holding(raw)
+        
+        assert result is not None
+        assert result.average_price is None
+        assert result.current_price is None
+```
+
+---
+
+## Phase 10: Balance Tracking (Automatic)
+
+Balance snapshots are created automatically during sync operations. No provider-specific implementation required.
+
+### 10.1 How Balance Tracking Works
+
+When accounts or holdings are synced, the sync handlers automatically capture balance snapshots:
+
+```python
+# In sync handlers (already implemented in application layer)
+from src.domain.entities.balance_snapshot import BalanceSnapshot
+from src.domain.enums import SnapshotSource
+from uuid_extensions import uuid7
+
+# After syncing account data:
+snapshot = BalanceSnapshot(
+    id=uuid7(),
+    account_id=account.id,
+    balance=account.balance,
+    available_balance=account.available_balance,
+    holdings_value=total_holdings_value,  # From holdings sync
+    cash_value=account.cash_balance,
+    currency=account.currency,
+    source=SnapshotSource.ACCOUNT_SYNC,  # or HOLDINGS_SYNC
+)
+await snapshot_repo.save(snapshot)
+```
+
+### 10.2 Snapshot Sources
+
+Snapshots are tagged with their source:
+
+| Source | When Created |
+|--------|-------------|
+| `ACCOUNT_SYNC` | During account data sync |
+| `HOLDINGS_SYNC` | During holdings sync |
+| `MANUAL_SYNC` | User-initiated refresh |
+| `SCHEDULED_SYNC` | Background job |
+| `INITIAL_CONNECTION` | First sync after connection |
+
+### 10.3 Providing Additional Balance Data
+
+If your provider returns detailed balance breakdown, capture it in account data:
+
+```python
+# In account mapper, extract provider's balance details
+return ProviderAccountData(
+    provider_account_id=raw["accountId"],
+    balance=total_balance,
+    available_balance=raw.get("availableBalance"),  # If provided
+    # ... other fields
+    raw_data=raw,  # Full response preserved for metadata
+)
+```
+
+The sync handler will use `raw_data` to populate `provider_metadata` in snapshots.
+
+---
+
 ## Quick Reference: Files Checklist
 
 ### Must Create

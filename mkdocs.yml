@@ -116,6 +116,8 @@ nav:
   - API Reference:
     - Account Operations: api/account-operations.md
     - Authentication: api/authentication.md
+    - Balance Snapshots: api/balance-snapshots-api.md
+    - Holdings: api/holdings-api.md
     - Provider Connection: api/provider-connection.md
     - Token Rotation: api/admin-token-rotation.md
     - Transaction Operations: api/transaction-operations.md
@@ -125,13 +127,16 @@ nav:
     - Audit Trail: architecture/audit-trail-architecture.md
     - Authentication: architecture/authentication-architecture.md
     - Authorization: architecture/authorization-architecture.md
+    - Balance Tracking: architecture/balance-tracking-architecture.md
     - Cache: architecture/cache-architecture.md
+    - Cache Key Patterns: architecture/cache-key-patterns.md
     - CQRS Pattern: architecture/cqrs-pattern.md
     - Database: architecture/database-architecture.md
     - Dependency Injection: architecture/dependency-injection-architecture.md
     - Directory Structure: architecture/directory-structure.md
     - Domain Events: architecture/domain-events-architecture.md
     - Error Handling: architecture/error-handling-architecture.md
+    - Holding Domain: architecture/holding-domain-model.md
     - Provider Domain: architecture/provider-domain-model.md
     - Provider Integration: architecture/provider-integration-architecture.md
     - Provider OAuth: architecture/provider-oauth-architecture.md
@@ -145,6 +150,7 @@ nav:
     - Transaction Domain: architecture/transaction-domain-model.md
     - Validation: architecture/validation-architecture.md
   - Guides:
+    - Adding New Providers: guides/adding-new-providers.md
     - Audit Usage Patterns: guides/audit-usage-patterns.md
     - Authentication Usage: guides/authentication-usage.md
     - Authorization Usage: guides/authorization-usage.md

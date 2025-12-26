@@ -21,7 +21,9 @@ from src.domain.enums.audit_action import AuditAction
 from src.domain.enums.connection_status import ConnectionStatus
 from src.domain.enums.credential_type import CredentialType
 from src.domain.enums.permission import Action, Resource
+from src.domain.enums.provider_category import ProviderCategory
 from src.domain.enums.rate_limit_scope import RateLimitScope
+from src.domain.enums.snapshot_source import SnapshotSource
 from src.domain.enums.transaction_status import TransactionStatus
 from src.domain.enums.transaction_subtype import TransactionSubtype
 from src.domain.enums.transaction_type import TransactionType
@@ -33,7 +35,9 @@ __all__ = [
     "AuditAction",
     "ConnectionStatus",
     "CredentialType",
+    "ProviderCategory",
     "RateLimitScope",
+    "SnapshotSource",
     "TransactionStatus",
     "TransactionSubtype",
     "TransactionType",

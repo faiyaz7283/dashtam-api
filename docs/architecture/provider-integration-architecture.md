@@ -141,6 +141,27 @@ class ProviderProtocol(Protocol):
             Failure(ProviderUnavailableError) if provider API is down.
         """
         ...
+    
+    async def fetch_holdings(
+        self,
+        access_token: str,
+        provider_account_id: str,
+    ) -> Result[list["ProviderHoldingData"], ProviderError]:
+        """Fetch holdings (positions) for a specific account.
+        
+        Returns current portfolio positions including quantity, cost basis,
+        and market value for each security.
+        
+        Args:
+            access_token: Valid access token for API authentication.
+            provider_account_id: Provider's account identifier.
+        
+        Returns:
+            Success(list[ProviderHoldingData]) with holding data.
+            Failure(ProviderAuthenticationError) if token is invalid/expired.
+            Failure(ProviderUnavailableError) if provider API is down.
+        """
+        ...
 ```
 
 ### Decision 2: Simple Factory Pattern for Provider Resolution
@@ -378,6 +399,8 @@ erDiagram
     User ||--o{ ProviderConnection : "has"
     ProviderConnection ||--o{ Account : "contains"
     Account ||--o{ Transaction : "contains"
+    Account ||--o{ Holding : "contains"
+    Account ||--o{ BalanceSnapshot : "tracks"
 
     ProviderConnection {
         string provider_slug
@@ -391,6 +414,19 @@ erDiagram
     }
     Transaction {
         string provider_transaction_id
+    }
+    Holding {
+        string provider_holding_id
+        string symbol
+        string asset_type
+        decimal quantity
+        decimal market_value
+    }
+    BalanceSnapshot {
+        decimal balance
+        decimal holdings_value
+        decimal cash_value
+        string source
     }
 ```
 
@@ -484,6 +520,30 @@ class ProviderTransactionData:
     status: str
     raw_data: dict
 ```
+
+### ProviderHoldingData (raw provider response)
+
+```python
+@dataclass(frozen=True)
+class ProviderHoldingData:
+    """Holding (position) data as returned by provider (before mapping to domain).
+    
+    Provider adapters return this; mappers convert to Holding entity.
+    """
+    provider_holding_id: str      # Provider's unique position identifier
+    symbol: str                   # Security ticker symbol (e.g., "AAPL")
+    security_name: str            # Full security name
+    asset_type: str               # equity, etf, option, mutual_fund, etc.
+    quantity: Decimal             # Number of shares/units
+    cost_basis: Decimal           # Total cost paid for position
+    market_value: Decimal         # Current market value
+    currency: str                 # ISO 4217 currency code
+    average_price: Decimal | None # Average price per share
+    current_price: Decimal | None # Current market price per share
+    raw_data: dict                # Full provider response
+```
+
+**Reference**: `src/domain/protocols/provider_protocol.py` for full type definitions.
 
 ---
 

@@ -501,7 +501,7 @@ def provider_factory(test_database):
     from uuid_extensions import uuid7
     from src.infrastructure.persistence.models.provider import Provider as ProviderModel
 
-    async def _create_provider(slug_prefix="test"):
+    async def _create_provider(slug_prefix="test", category="other"):
         async with test_database.get_session() as session:
             provider_id = uuid7()
             unique_slug = f"{slug_prefix}_{uuid.uuid4().hex[:8]}"
@@ -511,6 +511,7 @@ def provider_factory(test_database):
                 id=provider_id,
                 slug=unique_slug,
                 name=f"Test Provider {unique_slug}",
+                category=category,
                 credential_type=CredentialType.OAUTH2.value,
                 is_active=True,
                 created_at=now,

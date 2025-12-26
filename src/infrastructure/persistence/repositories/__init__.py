@@ -7,6 +7,12 @@ defined in the domain layer.
 from src.infrastructure.persistence.repositories.account_repository import (
     AccountRepository,
 )
+from src.infrastructure.persistence.repositories.balance_snapshot_repository import (
+    BalanceSnapshotRepository,
+)
+from src.infrastructure.persistence.repositories.holding_repository import (
+    HoldingRepository,
+)
 from src.infrastructure.persistence.repositories.transaction_repository import (
     TransactionRepository,
 )
@@ -32,7 +38,9 @@ from src.infrastructure.persistence.repositories.user_repository import UserRepo
 
 __all__ = [
     "AccountRepository",
+    "BalanceSnapshotRepository",
     "EmailVerificationTokenRepository",
+    "HoldingRepository",
     "PasswordResetTokenRepository",
     "ProviderConnectionRepository",
     "RefreshTokenRepository",

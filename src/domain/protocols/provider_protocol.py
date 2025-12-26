@@ -91,6 +91,45 @@ class ProviderAccountData:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ProviderHoldingData:
+    """Holding (position) data as returned by provider (before mapping to domain).
+
+    Provider adapters return this; mappers convert to Holding entity.
+    This intermediate type decouples provider response format from domain model.
+
+    Attributes:
+        provider_holding_id: Provider's unique identifier for this position.
+        symbol: Security ticker symbol (e.g., "AAPL").
+        security_name: Full security name (e.g., "Apple Inc.").
+        asset_type: Security asset type (equity, etf, option, etc.).
+        quantity: Number of shares/units held.
+        cost_basis: Total cost paid for this position.
+        market_value: Current market value of the position.
+        currency: ISO 4217 currency code (e.g., "USD").
+        average_price: Average price per share (optional).
+        current_price: Current market price per share (optional).
+        raw_data: Full provider response for metadata/debugging.
+
+    Example:
+        >>> holdings = await provider.fetch_holdings(access_token, account_id)
+        >>> for holding in holdings:
+        ...     domain_holding = mapper.to_entity(holding, account_id)
+    """
+
+    provider_holding_id: str
+    symbol: str
+    security_name: str
+    asset_type: str
+    quantity: Decimal
+    cost_basis: Decimal
+    market_value: Decimal
+    currency: str
+    average_price: Decimal | None = None
+    current_price: Decimal | None = None
+    raw_data: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
 class ProviderTransactionData:
     """Transaction data as returned by provider (before mapping to domain).
 
@@ -293,6 +332,38 @@ class ProviderProtocol(Protocol):
             ...             await account_repo.save(account)
             ...     case Failure(error):
             ...         logger.error(f"Failed to fetch accounts: {error.message}")
+        """
+        ...
+
+    async def fetch_holdings(
+        self,
+        access_token: str,
+        provider_account_id: str,
+    ) -> "Result[list[ProviderHoldingData], ProviderError]":
+        """Fetch holdings (positions) for a specific account.
+
+        Returns holding data in provider's format. Use HoldingMapper
+        to convert to domain Holding entities.
+
+        Args:
+            access_token: Valid access token for API authentication.
+            provider_account_id: Provider's account identifier (from ProviderAccountData).
+
+        Returns:
+            Success(list[ProviderHoldingData]): Holding data (empty list if none).
+            Failure(ProviderAuthenticationError): If token is invalid/expired.
+            Failure(ProviderUnavailableError): If provider API is unreachable.
+            Failure(ProviderRateLimitError): If rate limit exceeded.
+
+        Example:
+            >>> result = await provider.fetch_holdings(access_token, "12345")
+            >>> match result:
+            ...     case Success(holdings):
+            ...         for holding_data in holdings:
+            ...             holding = mapper.to_entity(holding_data, account_id)
+            ...             await holding_repo.save(holding)
+            ...     case Failure(error):
+            ...         logger.error(f"Failed to fetch holdings: {error.message}")
         """
         ...
 

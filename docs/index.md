@@ -37,6 +37,19 @@ principles from the ground up.
 - **[Structured Logging](architecture/structured-logging-architecture.md)** -
   JSON structured logs with contextual information for observability
 
+### Domain Models
+
+- **[Account Domain](architecture/account-domain-model.md)** -
+  Account entity with balance tracking, provider connections
+- **[Holding Domain](architecture/holding-domain-model.md)** -
+  Investment holdings with cost basis, market value, unrealized gains
+- **[Balance Tracking](architecture/balance-tracking-architecture.md)** -
+  Point-in-time balance snapshots for portfolio history and analytics
+- **[Transaction Domain](architecture/transaction-domain-model.md)** -
+  Financial transactions with two-level categorization
+- **[Provider Domain](architecture/provider-domain-model.md)** -
+  Provider connections with OAuth token management
+
 ## Project Overview
 
 ### Core Architectural Principles
@@ -160,6 +173,9 @@ make test
 
 ## Development Guides
 
+- **[Adding New Providers](guides/adding-new-providers.md)** -
+  Complete 10-phase guide for integrating new financial data providers
+  including OAuth, accounts, transactions, holdings, and balance tracking
 - **[Audit Usage Patterns](guides/audit-usage-patterns.md)** -
   Complete guide with copy-pasteable examples for registration,
   login, provider connection, data access audit patterns
@@ -174,11 +190,11 @@ make test
 - **Foundation**: Directory structure, dependency injection, error handling
 - **Security**: Authentication (JWT + refresh tokens), authorization (Casbin RBAC), rate limiting
 - **Data Layer**: Database (async PostgreSQL), cache (Redis), repositories
-- **Domain**: Entities (User, Account, Transaction), value objects, domain events
+- **Domain**: Entities (User, Account, Transaction, Holding, BalanceSnapshot), value objects, domain events
 - **Application**: CQRS handlers (commands + queries), event handlers
 - **Infrastructure**: Audit trail (PCI-DSS compliant), structured logging, secrets management
-- **Providers**: Schwab OAuth integration, account/transaction sync
-- **Testing**: 1,589 tests (81% coverage), integration tests, API tests
+- **Providers**: Schwab OAuth integration, account/transaction/holdings sync, balance tracking
+- **Testing**: 1,978 tests (87% coverage), integration tests, API tests
 
 ## Contributing
 
@@ -195,4 +211,4 @@ See `~/starter/development-checklist.md` for the complete feature development wo
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-12-12
+**Created**: 2025-11-13 | **Last Updated**: 2025-12-26

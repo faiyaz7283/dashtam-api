@@ -2,16 +2,17 @@
 
 ## Overview
 
-**Purpose**: Define how Dashtam integrates with external financial providers (Schwab, Chase, Fidelity, etc.) using hexagonal architecture patterns.
+**Purpose**: Define how Dashtam integrates with external financial providers (Schwab, Alpaca, Chase, etc.) using hexagonal architecture patterns.
 
 **Problem**: Financial providers have different APIs, authentication mechanisms, and data formats. We need:
 
 1. **Provider abstraction**: Single interface for all providers (hexagonal adapter pattern)
-2. **Credential security**: Encrypted storage of sensitive tokens
-3. **Multi-provider support**: Users can connect multiple providers
-4. **Multi-account support**: Each provider connection can have multiple accounts
+2. **Auth-agnostic design**: Same interface regardless of auth type (OAuth, API Key, etc.)
+3. **Credential security**: Encrypted storage of sensitive tokens/keys
+4. **Multi-provider support**: Users can connect multiple providers
+5. **Multi-account support**: Each provider connection can have multiple accounts
 
-**Solution**: Define a `ProviderProtocol` in the domain layer (port), implement provider-specific adapters in infrastructure layer.
+**Solution**: Define an **auth-agnostic** `ProviderProtocol` in the domain layer (port), implement provider-specific adapters in infrastructure layer. OAuth-specific operations use an extended `OAuthProviderProtocol` with capability checking.
 
 ---
 
@@ -56,11 +57,22 @@ flowchart TB
 
 ## Design Decisions
 
-### Decision 1: Protocol-Based Provider Abstraction
+### Decision 1: Auth-Agnostic Provider Protocol
 
-**Context**: Need a single interface for all financial providers regardless of their authentication mechanism or API structure.
+**Context**: Need a single interface for all financial providers regardless of their authentication mechanism (OAuth, API Key, Certificate, etc.) or API structure.
 
-**Decision**: Use Python `Protocol` (structural typing) to define `ProviderProtocol` in the domain layer.
+**Decision**: Use Python `Protocol` with **auth-agnostic** design:
+
+1. **Base `ProviderProtocol`**: Only data-fetching methods (fetch_accounts, fetch_transactions, fetch_holdings)
+2. **Extended `OAuthProviderProtocol`**: Adds OAuth-specific methods (exchange_code_for_tokens, refresh_access_token)
+3. **TypeGuard capability checking**: `is_oauth_provider()` for runtime type narrowing
+
+**Why Auth-Agnostic**:
+
+- ✅ **Single interface**: Sync handlers work identically for OAuth and API Key providers
+- ✅ **No leaky abstractions**: Handlers don't know or care about auth type
+- ✅ **Extensible**: Easy to add new auth types (Certificate, Link Token, etc.)
+- ✅ **Clean separation**: OAuth logic isolated to callbacks and token refresh
 
 **Why Protocol over ABC**:
 
@@ -71,152 +83,183 @@ flowchart TB
 
 ```python
 # src/domain/protocols/provider_protocol.py
-from typing import Protocol
+from typing import Any, Protocol
 from src.core.result import Result
 from src.core.errors import ProviderError
 
 class ProviderProtocol(Protocol):
-    """Port for financial provider adapters.
+    """Auth-agnostic protocol for financial provider adapters.
     
     Each provider implements this protocol to integrate with Dashtam.
+    Credentials are passed as opaque dict - provider extracts what it needs.
     Methods return Result types (railway-oriented programming).
+    
+    Credentials Dict Structure (by CredentialType):
+        - OAUTH2: {"access_token": ..., "refresh_token": ..., ...}
+        - API_KEY: {"api_key": ..., "api_secret": ...}
+        - LINK_TOKEN: {"access_token": ..., "item_id": ...}
     """
     
     @property
     def slug(self) -> str:
-        """Unique provider identifier (e.g., 'schwab', 'chase')."""
-        ...
-    
-    async def exchange_code_for_tokens(
-        self, 
-        authorization_code: str,
-    ) -> Result["OAuthTokens", ProviderError]:
-        """Exchange OAuth authorization code for tokens.
-        
-        Returns:
-            Success(OAuthTokens) if exchange successful.
-            Failure(ProviderAuthenticationError) if code is invalid/expired.
-            Failure(ProviderUnavailableError) if provider API is down.
-        """
-        ...
-    
-    async def refresh_access_token(
-        self, 
-        refresh_token: str,
-    ) -> Result["OAuthTokens", ProviderError]:
-        """Refresh access token using refresh token.
-        
-        Returns:
-            Success(OAuthTokens) with new tokens.
-            Failure(ProviderAuthenticationError) if refresh token is invalid/expired.
-            Failure(ProviderUnavailableError) if provider API is down.
-        """
+        """Unique provider identifier (e.g., 'schwab', 'alpaca')."""
         ...
     
     async def fetch_accounts(
         self, 
-        access_token: str,
+        credentials: dict[str, Any],
     ) -> Result[list["ProviderAccountData"], ProviderError]:
         """Fetch all accounts for the authenticated user.
         
+        Args:
+            credentials: Decrypted credentials dict. Provider extracts
+                what it needs (access_token, api_key, etc.).
+        
         Returns:
             Success(list[ProviderAccountData]) with account data.
-            Failure(ProviderAuthenticationError) if token is invalid/expired.
+            Failure(ProviderAuthenticationError) if credentials invalid.
             Failure(ProviderUnavailableError) if provider API is down.
         """
         ...
     
     async def fetch_transactions(
         self,
-        access_token: str,
+        credentials: dict[str, Any],
         provider_account_id: str,
         start_date: date | None = None,
         end_date: date | None = None,
     ) -> Result[list["ProviderTransactionData"], ProviderError]:
         """Fetch transactions for a specific account.
         
+        Args:
+            credentials: Decrypted credentials dict.
+            provider_account_id: Provider's account identifier.
+            start_date: Beginning of date range.
+            end_date: End of date range.
+        
         Returns:
             Success(list[ProviderTransactionData]) with transaction data.
-            Failure(ProviderAuthenticationError) if token is invalid/expired.
+            Failure(ProviderAuthenticationError) if credentials invalid.
             Failure(ProviderUnavailableError) if provider API is down.
         """
         ...
     
     async def fetch_holdings(
         self,
-        access_token: str,
+        credentials: dict[str, Any],
         provider_account_id: str,
     ) -> Result[list["ProviderHoldingData"], ProviderError]:
         """Fetch holdings (positions) for a specific account.
         
-        Returns current portfolio positions including quantity, cost basis,
-        and market value for each security.
-        
         Args:
-            access_token: Valid access token for API authentication.
+            credentials: Decrypted credentials dict.
             provider_account_id: Provider's account identifier.
         
         Returns:
             Success(list[ProviderHoldingData]) with holding data.
-            Failure(ProviderAuthenticationError) if token is invalid/expired.
+            Failure(ProviderAuthenticationError) if credentials invalid.
             Failure(ProviderUnavailableError) if provider API is down.
         """
         ...
+
+
+class OAuthProviderProtocol(ProviderProtocol, Protocol):
+    """Extended protocol for OAuth 2.0 providers.
+    
+    Adds OAuth-specific methods for token exchange and refresh.
+    Only OAuth providers (Schwab, Chase) implement this.
+    API Key providers (Alpaca) only implement base ProviderProtocol.
+    """
+    
+    async def exchange_code_for_tokens(
+        self, 
+        authorization_code: str,
+    ) -> Result["OAuthTokens", ProviderError]:
+        """Exchange OAuth authorization code for tokens."""
+        ...
+    
+    async def refresh_access_token(
+        self, 
+        refresh_token: str,
+    ) -> Result["OAuthTokens", ProviderError]:
+        """Refresh access token using refresh token."""
+        ...
 ```
 
-### Decision 2: Simple Factory Pattern for Provider Resolution
+### Decision 2: Factory with Capability Checking
 
-**Context**: Need to instantiate the correct provider adapter based on provider slug.
+**Context**: Need to instantiate providers and check their capabilities (OAuth vs API Key) at runtime.
 
-**Options Considered**:
+**Decision**: Single factory function `get_provider()` with TypeGuard-based capability checking via `is_oauth_provider()`.
 
-1. **Decorator registry** (old Dashtam approach):
+**Why This Approach**:
 
-   ```python
-   @register_provider(key="schwab", ...)
-   class SchwabProvider: ...
-   ```
-
-   - ❌ Magic (hidden registration)
-   - ❌ Import side effects
-   - ❌ Hard to test
-
-2. **Simple factory function** (chosen):
-
-   ```python
-   def get_provider(slug: str) -> ProviderProtocol:
-       match slug:
-           case "schwab": return SchwabProvider()
-           case _: raise ProviderNotFoundError(slug)
-   ```
-
-   - ✅ **Explicit**: No hidden behavior
-   - ✅ **Testable**: Easy to mock
-   - ✅ **Consistent**: Matches existing container pattern
-
-**Decision**: Simple factory in `container.py`
+- ✅ **Single entry point**: All providers via `get_provider(slug)`
+- ✅ **Type-safe**: TypeGuard narrows type after capability check
+- ✅ **Explicit**: Caller decides when OAuth methods are needed
+- ✅ **Clean**: Sync handlers don't need OAuth checks at all
 
 ```python
-# src/core/container.py
+# src/core/container/providers.py
+from typing import TypeGuard
+
+# OAuth providers registry
+OAUTH_PROVIDERS = {"schwab"}
+
 def get_provider(slug: str) -> ProviderProtocol:
-    """Factory for provider adapters.
+    """Factory for provider adapters (all providers).
     
-    Args:
-        slug: Provider identifier (e.g., 'schwab', 'chase').
-        
     Returns:
-        Provider adapter implementing ProviderProtocol.
+        Provider implementing ProviderProtocol.
         
     Raises:
-        ProviderNotFoundError: If provider slug is unknown.
+        ValueError: If provider slug is unknown.
     """
-    from src.infrastructure.providers.schwab import SchwabProvider
-    
     match slug:
         case "schwab":
-            return SchwabProvider()
+            return SchwabProvider(settings=settings)
+        case "alpaca":
+            return AlpacaProvider(settings=settings)
         case _:
-            raise ProviderNotFoundError(f"Unknown provider: {slug}")
+            raise ValueError(f"Unknown provider: {slug}")
+
+def is_oauth_provider(
+    provider: ProviderProtocol,
+) -> TypeGuard[OAuthProviderProtocol]:
+    """Check if provider supports OAuth.
+    
+    TypeGuard narrows type after check returns True.
+    
+    Usage:
+        provider = get_provider(slug)
+        if is_oauth_provider(provider):
+            # Type is now OAuthProviderProtocol
+            tokens = await provider.exchange_code_for_tokens(code)
+    """
+    return provider.slug in OAUTH_PROVIDERS
+```
+
+**Usage Patterns**:
+
+```python
+# Sync handlers (ALL providers - auth-agnostic)
+provider = get_provider(connection.provider_slug)
+result = await provider.fetch_accounts(credentials)  # Works for OAuth AND API Key
+
+# OAuth callbacks (OAuth providers only)
+provider = get_provider("schwab")
+if is_oauth_provider(provider):
+    tokens = await provider.exchange_code_for_tokens(code)
+else:
+    raise ValueError(f"Provider does not support OAuth")
+
+# Token refresh (OAuth providers only)
+provider = get_provider(connection.provider_slug)
+if is_oauth_provider(provider):
+    tokens = await provider.refresh_access_token(refresh_token)
+else:
+    # API Key providers don't need token refresh
+    pass
 ```
 
 ### Decision 3: Opaque Encrypted Credentials

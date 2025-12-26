@@ -159,13 +159,10 @@ class SyncAccountsHandler:
             return Failure(error=SyncAccountsError.CREDENTIALS_DECRYPTION_FAILED)
 
         credentials_data = decrypt_result.value
-        access_token = credentials_data.get("access_token")
 
-        if not access_token:
-            return Failure(error=SyncAccountsError.CREDENTIALS_INVALID)
-
-        # 6. Fetch accounts from provider
-        fetch_result = await self._provider.fetch_accounts(access_token)
+        # 6. Fetch accounts from provider (pass full credentials dict)
+        # Provider extracts what it needs (access_token for OAuth, api_key for API Key, etc.)
+        fetch_result = await self._provider.fetch_accounts(credentials_data)
 
         if isinstance(fetch_result, Failure):
             return Failure(

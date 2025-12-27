@@ -1,4 +1,4 @@
-.PHONY: help setup keys-generate keys-validate dev-up dev-down dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status dev-build dev-rebuild test-up test-down test-restart test-logs test-shell test-build test-rebuild test test-unit test-integration test-api test-smoke ci-test-local ci-test ci-lint lint format lint-md lint-md-check lint-md-fix md-check docs-serve docs-build docs-stop migrate migrate-create migrate-down migrate-history migrate-current clean status-all ps check
+.PHONY: help setup keys-generate keys-validate dev-up dev-down dev-logs dev-shell dev-db-shell dev-redis-cli dev-restart dev-status dev-build dev-rebuild test-up test-down test-restart test-logs test-shell test-build test-rebuild test test-unit test-integration test-api test-smoke ci-test-local ci-test ci-lint lint format type-check verify lint-md lint-md-check lint-md-fix md-check docs-serve docs-build docs-stop migrate migrate-create migrate-down migrate-history migrate-current clean status-all ps check
 
 # ==============================================================================
 # HELP
@@ -54,9 +54,11 @@ help:
 	@echo "✨ Code Quality:"
 	@echo "  make lint            - Run Python linters (ruff)"
 	@echo "  make format          - Format Python code (ruff)"
-	@echo "  make type-check      - Type check with mypy (strict)"
+	@echo "  make type-check      - Type check with mypy"
+	@echo "  make verify          - 🔥 FULL verification (pre-release)"
 	@echo "  make lint-md FILE=path/to/file.md - Lint markdown (flexible)"
 	@echo "  make lint-md-fix     - Fix markdown issues (with safety)"
+	@echo ""
 	@echo ""
 	@echo "📚 Documentation:"
 	@echo "  make docs-serve      - Start MkDocs live preview"
@@ -411,6 +413,79 @@ format: dev-up
 type-check: dev-up
 	@echo "🔍 Running type checks with mypy..."
 	@docker compose -f compose/docker-compose.dev.yml exec -w /app app uv run mypy src
+
+# ==============================================================================
+# COMPREHENSIVE VERIFICATION
+# ==============================================================================
+# 
+# verify - Complete pre-release validation (fail-fast)
+#
+# Runs all quality checks in order:
+#   1. Format check (ruff)
+#   2. Lint (ruff)
+#   3. Type check (mypy)
+#   4. Tests (all with coverage)
+#   5. Documentation build (MkDocs strict)
+#   6. Root markdown linting (README, CHANGELOG, WARP.md)
+#
+# Fail-fast: Stops on first failure
+#
+# Usage:
+#   make verify              # Run all checks
+#
+# ==============================================================================
+
+verify: test-up
+	@echo "🔍 ====================================="
+	@echo "🔍 COMPREHENSIVE VERIFICATION (fail-fast)"
+	@echo "🔍 ====================================="
+	@echo ""
+	@echo "📋 Running 6 verification steps:"
+	@echo "   1. Format check"
+	@echo "   2. Lint"
+	@echo "   3. Type check"
+	@echo "   4. Tests"
+	@echo "   5. Documentation build"
+	@echo "   6. Root markdown linting"
+	@echo ""
+	@echo "⚠️  Fail-fast: Stops on first failure"
+	@echo ""
+	@read -p "Press Enter to continue..."; \
+	echo ""; \
+	echo "✨ Step 1/6: Format check..."; \
+	docker compose -f compose/docker-compose.test.yml exec -T app uv run ruff format --check src/ tests/ || { echo "❌ Format check failed"; exit 1; }; \
+	echo "✅ Format check passed"; \
+	echo ""; \
+	echo "🔍 Step 2/6: Linting..."; \
+	docker compose -f compose/docker-compose.test.yml exec -T app uv run ruff check src/ tests/ || { echo "❌ Lint failed"; exit 1; }; \
+	echo "✅ Lint passed"; \
+	echo ""; \
+	echo "🔍 Step 3/6: Type checking..."; \
+	docker compose -f compose/docker-compose.test.yml exec -T -w /app app uv run mypy src || { echo "❌ Type check failed"; exit 1; }; \
+	echo "✅ Type check passed"; \
+	echo ""; \
+	echo "🧪 Step 4/6: Running all tests with coverage..."; \
+	docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html || { echo "❌ Tests failed"; exit 1; }; \
+	echo "✅ Tests passed"; \
+	echo ""; \
+	echo "📚 Step 5/6: Building documentation (strict mode)..."; \
+	docker compose -f compose/docker-compose.test.yml exec -T app uv sync --all-groups > /dev/null 2>&1; \
+	docker compose -f compose/docker-compose.test.yml exec -T app uv run mkdocs build --strict || { echo "❌ Documentation build failed"; exit 1; }; \
+	echo "✅ Documentation built successfully"; \
+	echo ""; \
+	echo "📝 Step 6/6: Linting root markdown files..."; \
+	docker run --rm -v $(PWD):/workspace:ro -w /workspace $(MARKDOWN_LINT_IMAGE) sh -c "$(MARKDOWN_LINT_CMD) 'README.md' 'CHANGELOG.md' 'WARP.md' || exit 1" || { echo "❌ Root markdown linting failed"; exit 1; }; \
+	echo "✅ Root markdown linting passed"; \
+	echo ""; \
+	echo "🎉 ====================================="; \
+	echo "🎉 ALL VERIFICATION CHECKS PASSED!"; \
+	echo "🎉 ====================================="; \
+	echo ""; \
+	echo "📦 Ready for:"; \
+	echo "   - Version bump"; \
+	echo "   - CHANGELOG update"; \
+	echo "   - Commit & PR"; \
+	echo "   - Release tagging"
 
 # ==============================================================================
 # MARKDOWN LINTING

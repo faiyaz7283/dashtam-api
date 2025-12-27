@@ -10,12 +10,14 @@ Pattern:
 
 Reference:
     - F6.15: Event Handler Wiring Completion
+    - F7.7: Domain Events Compliance Audit
     - docs/architecture/domain-events-architecture.md
 """
 
 import pytest
 
 from src.core.container.events import get_event_bus
+from src.domain.events.registry import EVENT_REGISTRY
 
 
 class TestEventRegistryCompleteness:
@@ -99,29 +101,53 @@ class TestEventRegistryCompleteness:
             )
             pytest.fail(error_msg)
 
-    def test_registry_count_matches_documentation(self, event_bus) -> None:
-        """Verify total subscription count matches container docstring.
+    def test_registry_count_matches_actual_wiring(self, event_bus) -> None:
+        """Verify actual subscription count matches registry metadata.
 
-        The container docstring claims 143 total subscriptions (F7.7: Domain
-        Events Compliance Audit). This test verifies that count is accurate.
+        This test dynamically calculates expected subscriptions from EVENT_REGISTRY
+        metadata (requires_logging, requires_audit, requires_email, requires_session)
+        and verifies the container actually wired them all.
 
-        Note:
-            This is a documentation consistency check. Update docstring if
-            subscription count changes.
+        Benefits:
+            - Self-maintaining (no manual updates when adding events)
+            - Catches wiring bugs (if actual < expected)
+            - Always knows correct expected count
+
+        Pattern:
+            Expected = sum of all requires_* flags across EVENT_REGISTRY
+            Actual = sum of handlers across all events in event_bus._handlers
+
+        Reference:
+            - F7.7: Domain Events Compliance Audit (registry-driven auto-wiring)
         """
 
-        # Count total subscriptions (sum of all handlers across all events)
-        total_subscriptions = sum(
+        # Calculate expected subscriptions from registry metadata
+        # This is the source of truth - if an event metadata says requires_logging=True,
+        # we expect that subscription to exist in the event bus
+        expected_logging = sum(1 for m in EVENT_REGISTRY if m.requires_logging)
+        expected_audit = sum(1 for m in EVENT_REGISTRY if m.requires_audit)
+        expected_email = sum(1 for m in EVENT_REGISTRY if m.requires_email)
+        expected_session = sum(1 for m in EVENT_REGISTRY if m.requires_session)
+        expected_subscriptions = (
+            expected_logging + expected_audit + expected_email + expected_session
+        )
+
+        # Count actual subscriptions (sum of all handlers across all events)
+        actual_subscriptions = sum(
             len(handlers) for handlers in event_bus._handlers.values()
         )
 
-        # As of F7.7 Phase 4 completion, we have 143 total subscriptions:
-        # 69 logging + 66 audit + 5 email + 3 session = 143
-        expected_subscriptions = 143
-
-        assert total_subscriptions == expected_subscriptions, (
-            f"Subscription count mismatch: expected {expected_subscriptions}, "
-            f"got {total_subscriptions}. Update container docstring if count changed."
+        # Assert actual matches expected
+        assert actual_subscriptions == expected_subscriptions, (
+            f"Subscription count mismatch!\n"
+            f"Expected: {expected_subscriptions} subscriptions\n"
+            f"  - Logging: {expected_logging}\n"
+            f"  - Audit: {expected_audit}\n"
+            f"  - Email: {expected_email}\n"
+            f"  - Session: {expected_session}\n"
+            f"Actual: {actual_subscriptions} subscriptions\n\n"
+            f"If actual < expected: Container wiring bug (missing subscriptions)\n"
+            f"If actual > expected: Update EVENT_REGISTRY metadata for new events"
         )
 
     def test_critical_events_have_audit_and_logging(self, event_bus) -> None:

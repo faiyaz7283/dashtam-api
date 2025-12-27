@@ -155,6 +155,7 @@ nav:
     - Authentication Usage: guides/authentication-usage.md
     - Authorization Usage: guides/authorization-usage.md
     - Cache Usage: guides/cache-usage.md
+    - Chase File Import: guides/chase-file-import.md
     - Database Seeding: guides/database-seeding.md
     - Database Usage: guides/database-usage.md
     - Dependency Injection Usage: guides/dependency-injection-usage.md

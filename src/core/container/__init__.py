@@ -76,10 +76,11 @@ from src.core.container.provider_handlers import (
     get_refresh_provider_tokens_handler,
 )
 
-# Data handlers (accounts, holdings, transactions)
+# Data handlers (accounts, holdings, transactions, imports)
 from src.core.container.data_handlers import (
     get_get_account_handler,
     get_get_transaction_handler,
+    get_import_from_file_handler,
     get_list_accounts_by_connection_handler,
     get_list_accounts_by_user_handler,
     get_list_holdings_by_account_handler,
@@ -159,6 +160,7 @@ __all__ = [
     "get_sync_accounts_handler",
     "get_sync_holdings_handler",
     "get_sync_transactions_handler",
+    "get_import_from_file_handler",
     # Providers
     "get_provider",
     "is_oauth_provider",

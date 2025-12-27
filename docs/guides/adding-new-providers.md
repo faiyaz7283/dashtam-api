@@ -977,6 +977,453 @@ def get_provider(slug: str) -> "ProviderProtocol":
 
 ---
 
+## Phase 3c: File-Based Provider Implementation (Alternative)
+
+If your provider uses **file import** instead of API connections, follow this pattern. File-based providers parse exported files (QFX, OFX, CSV) instead of making API calls.
+
+### 3c.1 Key Differences from API Providers
+
+| Aspect | OAuth/API Provider | File-Based Provider |
+|--------|-------------------|--------------------|
+| Authentication | OAuth flow or API key | None (file contains data) |
+| Data source | Live API calls | Uploaded file content |
+| Real-time data | Yes | No (point-in-time) |
+| Credential type | `oauth2`, `api_key` | `file_import` |
+| Token refresh | Yes | Not applicable |
+| Connection flow | OAuth redirect or key entry | File upload |
+
+### 3c.2 File-Based Provider Example (Chase)
+
+Chase File provider parses QFX/OFX files exported from Chase Bank:
+
+```python
+# src/infrastructure/providers/chase/chase_file_provider.py
+"""
+Chase file import provider.
+
+Implements ProviderProtocol for Chase QFX/OFX file imports.
+Parses exported bank statements instead of making API calls.
+
+Reference:
+    - https://www.ofx.net/downloads.html (OFX specification)
+    - docs/guides/chase-file-import.md
+"""
+
+from datetime import date
+from decimal import Decimal
+from typing import Any
+
+import structlog
+
+from src.core.config import Settings
+from src.core.result import Failure, Result, Success
+from src.domain.errors import ProviderError
+from src.infrastructure.providers.provider_types import (
+    ProviderAccountData,
+    ProviderTransactionData,
+)
+
+logger = structlog.get_logger(__name__)
+
+
+class ChaseFileProvider:
+    """
+    Chase file import provider implementing ProviderProtocol.
+    
+    Parses QFX/OFX files exported from Chase Bank.
+    
+    Credentials dict structure:
+        {
+            "file_content": bytes,  # Raw file bytes
+            "file_format": "qfx",   # "qfx" or "ofx"
+            "file_name": "statement.qfx",
+        }
+    
+    Usage:
+        provider = ChaseFileProvider(settings=settings)
+        result = await provider.fetch_accounts(credentials={"file_content": ...})
+    """
+    
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+        self._logger = logger.bind(provider=self.slug)
+    
+    @property
+    def slug(self) -> str:
+        return "chase_file"
+    
+    async def fetch_accounts(
+        self,
+        credentials: dict[str, Any],
+    ) -> Result[list[ProviderAccountData], ProviderError]:
+        """Parse accounts from uploaded file.
+        
+        Args:
+            credentials: Dict with file_content (bytes), file_format, file_name.
+            
+        Returns:
+            Success with parsed accounts, Failure on parse error.
+        """
+        from src.infrastructure.providers.chase.parsers.qfx_parser import QFXParser
+        from src.infrastructure.providers.chase.mappers import ChaseAccountMapper
+        
+        file_content = credentials["file_content"]
+        parser = QFXParser()
+        mapper = ChaseAccountMapper()
+        
+        parse_result = parser.parse(file_content)
+        if isinstance(parse_result, Failure):
+            return Failure(error=parse_result.error)
+        
+        parsed_data = parse_result.value
+        accounts = [mapper.map(parsed_data["account"])]
+        
+        self._logger.info("accounts_parsed", count=len(accounts))
+        return Success(value=accounts)
+    
+    async def fetch_transactions(
+        self,
+        credentials: dict[str, Any],
+        provider_account_id: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> Result[list[ProviderTransactionData], ProviderError]:
+        """Parse transactions from uploaded file."""
+        from src.infrastructure.providers.chase.parsers.qfx_parser import QFXParser
+        from src.infrastructure.providers.chase.mappers import ChaseTransactionMapper
+        
+        file_content = credentials["file_content"]
+        parser = QFXParser()
+        mapper = ChaseTransactionMapper()
+        
+        parse_result = parser.parse(file_content)
+        if isinstance(parse_result, Failure):
+            return Failure(error=parse_result.error)
+        
+        parsed_data = parse_result.value
+        transactions = mapper.map_transactions(parsed_data["transactions"])
+        
+        # Apply date filtering if provided
+        if start_date or end_date:
+            transactions = [
+                t for t in transactions
+                if (not start_date or t.transaction_date >= start_date)
+                and (not end_date or t.transaction_date <= end_date)
+            ]
+        
+        self._logger.info("transactions_parsed", count=len(transactions))
+        return Success(value=transactions)
+```
+
+### 3c.3 File Parser Implementation
+
+Create a parser for the file format:
+
+```python
+# src/infrastructure/providers/chase/parsers/qfx_parser.py
+"""
+QFX/OFX file parser for Chase bank statements.
+
+Uses ofxparse library to extract account and transaction data.
+"""
+
+from decimal import Decimal
+from typing import Any
+
+import structlog
+from ofxparse import OfxParser  # type: ignore[import-untyped]
+
+from src.core.result import Failure, Result, Success
+from src.domain.errors import ProviderError, ProviderValidationError
+
+logger = structlog.get_logger(__name__)
+
+
+class QFXParser:
+    """Parser for QFX/OFX bank statement files.
+    
+    Extracts:
+    - Account info (number, type, balance)
+    - Transaction list with FITIDs for deduplication
+    - Statement date range
+    """
+    
+    def parse(
+        self, file_content: bytes
+    ) -> Result[dict[str, Any], ProviderError]:
+        """Parse QFX/OFX file content.
+        
+        Args:
+            file_content: Raw bytes of the QFX/OFX file.
+            
+        Returns:
+            Success with dict containing 'account' and 'transactions'.
+            Failure with ProviderValidationError on parse failure.
+        """
+        try:
+            from io import BytesIO
+            ofx = OfxParser.parse(BytesIO(file_content))
+            
+            if not ofx.account:
+                return Failure(error=ProviderValidationError(
+                    message="No account found in file",
+                ))
+            
+            account_data = self._extract_account(ofx.account)
+            transactions = self._extract_transactions(ofx.account.statement.transactions)
+            
+            return Success(value={
+                "account": account_data,
+                "transactions": transactions,
+                "balance": Decimal(str(ofx.account.statement.balance)),
+                "currency": ofx.account.statement.currency or "USD",
+            })
+            
+        except Exception as e:
+            logger.error("qfx_parse_failed", error=str(e))
+            return Failure(error=ProviderValidationError(
+                message=f"Failed to parse file: {e}",
+            ))
+    
+    def _extract_account(self, account: Any) -> dict[str, Any]:
+        """Extract account info from OFX account object."""
+        return {
+            "account_id": account.account_id,
+            "routing_number": account.routing_number,
+            "account_type": str(account.account_type),
+            "institution": getattr(account, "institution", None),
+        }
+    
+    def _extract_transactions(self, transactions: list) -> list[dict[str, Any]]:
+        """Extract transaction list from OFX statement."""
+        result = []
+        for txn in transactions:
+            result.append({
+                "fitid": txn.id,  # Financial Transaction ID
+                "type": txn.type,
+                "date": txn.date,
+                "amount": Decimal(str(txn.amount)),
+                "name": txn.payee or txn.memo or "",
+                "memo": txn.memo,
+            })
+        return result
+```
+
+### 3c.4 File-Based Credential Type
+
+File-based providers use `FILE_IMPORT` credential type:
+
+```python
+# src/domain/enums/credential_type.py
+class CredentialType(str, Enum):
+    OAUTH2 = "oauth2"
+    API_KEY = "api_key"
+    LINK_TOKEN = "link_token"
+    CERTIFICATE = "certificate"
+    FILE_IMPORT = "file_import"  # NEW: For file-based providers
+    CUSTOM = "custom"
+    
+    def never_expires(self) -> bool:
+        """Check if credentials never expire."""
+        return self in (
+            CredentialType.API_KEY,
+            CredentialType.CERTIFICATE,
+            CredentialType.FILE_IMPORT,  # Files don't have tokens to expire
+        )
+```
+
+### 3c.5 Import API Endpoint
+
+File-based providers need a dedicated import endpoint:
+
+```python
+# src/presentation/routers/api/v1/imports.py
+"""File import endpoints."""
+
+from fastapi import APIRouter, Depends, File, UploadFile
+from starlette.responses import JSONResponse
+
+from src.application.commands import ImportFromFile
+from src.core.container import get_import_from_file_handler
+from src.presentation.dependencies import get_current_user
+
+router = APIRouter(prefix="/imports", tags=["imports"])
+
+
+@router.post("", status_code=201)
+async def import_file(
+    file: UploadFile = File(...),
+    current_user = Depends(get_current_user),
+    handler = Depends(get_import_from_file_handler),
+):
+    """Import accounts and transactions from uploaded file.
+    
+    Supported formats:
+    - QFX (Quicken Financial Exchange)
+    - OFX (Open Financial Exchange)
+    
+    Returns:
+        Import result with counts of imported/skipped items.
+    """
+    # Detect format from extension
+    filename = file.filename or ""
+    extension = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
+    
+    if extension not in ("qfx", "ofx"):
+        return JSONResponse(
+            status_code=415,
+            content={"detail": f"Unsupported file format: .{extension}"},
+        )
+    
+    file_content = await file.read()
+    
+    result = await handler.handle(ImportFromFile(
+        user_id=current_user.id,
+        file_content=file_content,
+        file_format=extension,
+        file_name=filename,
+    ))
+    
+    if isinstance(result, Failure):
+        return JSONResponse(
+            status_code=400,
+            content={"detail": result.error.message},
+        )
+    
+    return result.value
+```
+
+### 3c.6 Import Command Handler
+
+The handler orchestrates parsing, account creation, and transaction import:
+
+```python
+# src/application/commands/handlers/import_from_file_handler.py
+"""
+Handler for file import operations.
+
+Orchestrates:
+1. File parsing via provider
+2. Provider connection creation/lookup
+3. Account upsert
+4. Transaction deduplication and creation
+5. Balance snapshot capture
+"""
+
+from dataclasses import dataclass
+from uuid import UUID
+
+from uuid_extensions import uuid7
+
+from src.core.result import Failure, Result, Success
+from src.domain.entities import Account, ProviderConnection, Transaction
+from src.domain.enums import ConnectionStatus, CredentialType
+from src.domain.protocols import (
+    AccountRepository,
+    ProviderConnectionRepository,
+    ProviderRepository,
+    TransactionRepository,
+)
+
+
+@dataclass(frozen=True, kw_only=True)
+class ImportFromFile:
+    """Command to import data from uploaded file."""
+    user_id: UUID
+    file_content: bytes
+    file_format: str
+    file_name: str
+
+
+@dataclass
+class ImportResult:
+    """Result of file import operation."""
+    provider_slug: str
+    accounts_imported: int
+    transactions_imported: int
+    accounts_updated: int
+    transactions_skipped: int
+    message: str
+
+
+class ImportFromFileHandler:
+    """Handles file import command."""
+    
+    def __init__(
+        self,
+        provider_repo: ProviderRepository,
+        connection_repo: ProviderConnectionRepository,
+        account_repo: AccountRepository,
+        transaction_repo: TransactionRepository,
+    ):
+        self._provider_repo = provider_repo
+        self._connection_repo = connection_repo
+        self._account_repo = account_repo
+        self._transaction_repo = transaction_repo
+    
+    async def handle(
+        self, cmd: ImportFromFile
+    ) -> Result[ImportResult, Exception]:
+        """Execute file import."""
+        # 1. Get file-based provider
+        provider_slug = self._get_provider_slug(cmd.file_format)
+        provider = await self._get_provider(provider_slug)
+        
+        # 2. Create credentials dict for provider
+        credentials = {
+            "file_content": cmd.file_content,
+            "file_format": cmd.file_format,
+            "file_name": cmd.file_name,
+        }
+        
+        # 3. Parse accounts from file
+        accounts_result = await provider.fetch_accounts(credentials)
+        if isinstance(accounts_result, Failure):
+            return Failure(error=accounts_result.error)
+        
+        # 4. Parse transactions from file
+        # ... implementation continues
+        
+        return Success(value=ImportResult(...))
+    
+    def _get_provider_slug(self, file_format: str) -> str:
+        """Map file format to provider slug."""
+        format_to_provider = {
+            "qfx": "chase_file",
+            "ofx": "chase_file",
+        }
+        return format_to_provider.get(file_format, "chase_file")
+```
+
+### 3c.7 Database Seed for File Provider
+
+```python
+# alembic/seeds/provider_seeder.py
+{
+    "slug": "chase_file",
+    "name": "Chase (File Import)",
+    "credential_type": "file_import",  # NOT oauth2 or api_key
+    "category": "bank",
+    "description": "Import transactions from Chase QFX/OFX files.",
+    "website_url": "https://www.chase.com",
+    "is_active": True,
+}
+```
+
+### 3c.8 Key Implementation Notes
+
+1. **No OAuth methods**: File providers don't implement `exchange_code_for_tokens` or `refresh_access_token`
+
+2. **Credentials pattern**: Use `{"file_content": bytes, "file_format": str, "file_name": str}`
+
+3. **FITID deduplication**: Use provider's transaction ID (FITID in OFX) for duplicate detection
+
+4. **Placeholder credentials**: Store empty placeholder in `ProviderCredentials` since no real tokens exist
+
+5. **Balance handling**: Extract balance from file, create snapshot with `ACCOUNT_SYNC` source
+
+---
+
 ## Phase 4: Container Registration
 
 ### 4.1 Register Provider in Factory

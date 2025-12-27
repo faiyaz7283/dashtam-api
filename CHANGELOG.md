@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2025-12-27
+
+### Added
+
+- **F7.2**: Chase File Import Provider (First File Import provider)
+  - Implemented `ChaseFileProvider` adapter with auth-agnostic `ProviderProtocol`
+  - **File Parsers**: QFX/OFX parser (ofxparse library), CSV parser (checking + credit card formats)
+  - **ImportFromFile Command**: New command handler for file-based transaction imports
+  - **Features**: Auto account creation from file data, duplicate detection by FITID, balance snapshots
+  - **Credential Type**: FILE_IMPORT (credentials passed as file content, not stored)
+  - **Supported Formats**: QFX/OFX (preferred), CSV (checking/credit card)
+  - **API Endpoint**: `POST /api/v1/imports` with multipart form data
+  - Added 80+ tests covering parsers, provider, handler, API endpoints
+  - Added database seed for Chase provider with `credential_type: file_import`
+  - Added container factory registration for Chase provider
+
+### Documentation
+
+- Created `docs/guides/chase-file-import.md` - User guide for Chase file imports
+- Updated `docs/guides/adding-new-providers.md` with Phase 3c: File Import Provider section
+- Updated `docs/architecture/provider-integration-architecture.md` with all three provider types:
+  - Provider Categories table (OAuth, API Key, File Import)
+  - FILE_IMPORT credential type documentation
+  - Updated file structure showing all 3 provider types
+  - Complete comparison of authentication patterns
+
+### Changed
+
+- Total test count increased from 2,079 to 2,100+ tests (+80)
+- Overall coverage maintained at 87%
+
+### Technical Notes
+
+- Domain events for file import operations (FileImportAttempted/Succeeded/Failed) deferred to F7.7
+- Infrastructure layer logging via structlog follows existing provider patterns
+
 ## [1.3.0] - 2025-12-26
 
 ### Added

@@ -521,11 +521,12 @@ class TestCredentialTypeEnumMethods:
         values = CredentialType.values()
 
         # Assert
-        assert len(values) == 5
+        assert len(values) == 6
         assert "oauth2" in values
         assert "api_key" in values
         assert "link_token" in values
         assert "certificate" in values
+        assert "file_import" in values
         assert "custom" in values
 
     def test_is_valid_true_for_valid_type(self):
@@ -557,7 +558,8 @@ class TestCredentialTypeEnumMethods:
         no_expire_types = CredentialType.never_expires()
 
         # Assert
-        assert len(no_expire_types) == 2
+        assert len(no_expire_types) == 3
         assert CredentialType.API_KEY in no_expire_types
         assert CredentialType.CERTIFICATE in no_expire_types
+        assert CredentialType.FILE_IMPORT in no_expire_types
         assert CredentialType.OAUTH2 not in no_expire_types

@@ -24,12 +24,14 @@ flowchart TB
         OC["OAuth Callback<br/>/oauth/{slug}/cb"]
         PE["Provider Endpoints<br/>/providers"]
         AE["Account Endpoints<br/>/accounts"]
+        IE["Import Endpoints<br/>/imports"]
     end
 
     subgraph Application["Application Layer (Use Cases)"]
         CP["ConnectProvider<br/>DisconnectProvider"]
         RT["RefreshProviderTokens<br/>(command handlers)"]
         SA["SyncAccounts<br/>SyncTransactions"]
+        IFF["ImportFromFile<br/>(file imports)"]
     end
 
     subgraph Domain["Domain Layer (Business Logic)"]
@@ -41,17 +43,31 @@ flowchart TB
     end
 
     subgraph Infrastructure["Infrastructure Layer (Adapters)"]
-        SP["SchwabProvider<br/>(adapter)"]
-        CHP["ChaseProvider<br/>(future)"]
-        FP["FidelityProvider<br/>(future)"]
+        subgraph OAuthProviders["OAuth Providers"]
+            SP["SchwabProvider"]
+        end
+        subgraph APIKeyProviders["API Key Providers"]
+            AP["AlpacaProvider"]
+        end
+        subgraph FileProviders["File Import Providers"]
+            CFP["ChaseFileProvider"]
+        end
         ENC["EncryptionService<br/>(AES-256-GCM)"]
-        MAP["AccountMapper<br/>TransactionMapper"]
+        MAP["AccountMapper<br/>TransactionMapper<br/>HoldingMapper"]
     end
 
     Presentation --> Application
     Application --> Domain
     Infrastructure -->|"implements"| PP
 ```
+
+### Provider Categories
+
+| Category | Auth Type | Data Flow | Credential Type | Examples |
+|----------|-----------|-----------|-----------------|----------|
+| **OAuth** | OAuth 2.0 Authorization Code | Real-time API | `oauth2` | Schwab |
+| **API Key** | API Key headers | Real-time API | `api_key` | Alpaca |
+| **File Import** | File Upload | Manual import | `file_import` | Chase |
 
 ---
 
@@ -95,8 +111,9 @@ class ProviderProtocol(Protocol):
     Methods return Result types (railway-oriented programming).
     
     Credentials Dict Structure (by CredentialType):
-        - OAUTH2: {"access_token": ..., "refresh_token": ..., ...}
+        - OAUTH2: {"access_token": ..., "refresh_token": ..., "expires_at": ...}
         - API_KEY: {"api_key": ..., "api_secret": ...}
+        - FILE_IMPORT: {"file_content": bytes, "file_format": str, "file_name": str}
         - LINK_TOKEN: {"access_token": ..., "item_id": ...}
     """
     
@@ -203,11 +220,14 @@ class OAuthProviderProtocol(ProviderProtocol, Protocol):
 # src/core/container/providers.py
 from typing import TypeGuard
 
-# OAuth providers registry
+# OAuth providers registry (for is_oauth_provider check)
 OAUTH_PROVIDERS = {"schwab"}
 
 def get_provider(slug: str) -> ProviderProtocol:
     """Factory for provider adapters (all providers).
+    
+    All providers implement the base ProviderProtocol.
+    OAuth providers additionally implement OAuthProviderProtocol.
     
     Returns:
         Provider implementing ProviderProtocol.
@@ -216,10 +236,15 @@ def get_provider(slug: str) -> ProviderProtocol:
         ValueError: If provider slug is unknown.
     """
     match slug:
+        # OAuth providers (implement OAuthProviderProtocol)
         case "schwab":
             return SchwabProvider(settings=settings)
+        # API Key providers (base ProviderProtocol only)
         case "alpaca":
             return AlpacaProvider(settings=settings)
+        # File Import providers (base ProviderProtocol only)
+        case "chase_file":
+            return ChaseFileProvider()
         case _:
             raise ValueError(f"Unknown provider: {slug}")
 
@@ -645,6 +670,8 @@ src/
 │   │   └── provider_protocol.py    # ProviderProtocol (port)
 │   ├── entities/
 │   │   └── provider_connection.py  # Already exists
+│   ├── enums/
+│   │   └── credential_type.py      # OAUTH2, API_KEY, FILE_IMPORT
 │   └── value_objects/
 │       └── provider_credentials.py # Already exists
 │
@@ -652,75 +679,88 @@ src/
 │   └── providers/
 │       ├── encryption_service.py   # AES-256-GCM encryption
 │       ├── provider_types.py       # OAuthTokens, ProviderAccountData, etc.
-│       └── schwab/
+│       │
+│       ├── schwab/                  # OAuth Provider
+│       │   ├── __init__.py
+│       │   ├── schwab_provider.py  # Implements OAuthProviderProtocol
+│       │   ├── schwab_oauth.py     # OAuth helpers
+│       │   ├── api/
+│       │   │   ├── accounts_api.py
+│       │   │   ├── transactions_api.py
+│       │   │   └── holdings_api.py
+│       │   └── mappers/
+│       │       ├── account_mapper.py
+│       │       ├── transaction_mapper.py
+│       │       └── holding_mapper.py
+│       │
+│       ├── alpaca/                  # API Key Provider
+│       │   ├── __init__.py
+│       │   ├── alpaca_provider.py  # Implements ProviderProtocol
+│       │   ├── api/
+│       │   │   ├── accounts_api.py
+│       │   │   └── transactions_api.py
+│       │   └── mappers/
+│       │       ├── account_mapper.py
+│       │       ├── transaction_mapper.py
+│       │       └── holding_mapper.py
+│       │
+│       └── chase/                   # File Import Provider
 │           ├── __init__.py
-│           ├── schwab_provider.py  # Implements ProviderProtocol
-│           ├── schwab_oauth.py     # OAuth helpers
-│           ├── api/
-│           │   ├── accounts_api.py
-│           │   └── transactions_api.py
-│           └── mappers/
-│               ├── account_mapper.py
-│               └── transaction_mapper.py
+│           ├── chase_file_provider.py  # Implements ProviderProtocol
+│           └── parsers/
+│               ├── __init__.py
+│               ├── qfx_parser.py   # QFX/OFX SGML parser
+│               └── csv_parser.py   # CSV parser (checking + credit)
 │
 └── core/
-    └── container.py                # get_provider() factory
+    └── container/
+        └── providers.py            # get_provider() factory
 ```
 
 ---
 
 ## Adding a New Provider
 
-To add a new provider (e.g., Chase):
+For comprehensive step-by-step guidance on adding new providers, see:
 
-1. **Create provider directory**:
+**[Adding New Providers Guide](../guides/adding-new-providers.md)**
 
-   ```text
-   src/infrastructure/providers/chase/
-   ```
+The guide covers all three provider types with detailed phases:
 
-2. **Implement ProviderProtocol**:
+### OAuth Providers (e.g., Schwab)
 
-   ```python
-   class ChaseProvider:
-       @property
-       def slug(self) -> str:
-           return "chase"
-       
-       async def exchange_code_for_tokens(self, code: str) -> OAuthTokens:
-           # Chase OAuth token exchange
-           ...
-   ```
+1. Domain layer: Provider config in settings
+2. Infrastructure: API clients, mappers, provider implementation
+3. Container: Register in factory, add to `OAUTH_PROVIDERS`
+4. Application: OAuth flow handlers
+5. Presentation: OAuth callback endpoints
+6. Testing: Unit + integration + API tests
 
-3. **Create mappers**:
+### API Key Providers (e.g., Alpaca)
 
-   ```python
-   class ChaseAccountMapper:
-       def map(self, chase_data: dict) -> Account:
-           # Map Chase account format to domain Account
-           ...
-   ```
+1. Domain layer: Provider config in settings
+2. Infrastructure: API clients, mappers, provider implementation
+3. Container: Register in factory (NOT in `OAUTH_PROVIDERS`)
+4. Application: Reuse existing sync handlers
+5. Presentation: Manual connection endpoint (no OAuth callback)
+6. Testing: Unit + integration + API tests
 
-4. **Register in factory**:
+### File Import Providers (e.g., Chase)
 
-   ```python
-   # src/core/container.py
-   def get_provider(slug: str) -> ProviderProtocol:
-       match slug:
-           case "schwab": return SchwabProvider()
-           case "chase": return ChaseProvider()  # Add new case
-           case _: raise ProviderNotFoundError(slug)
-   ```
+1. Domain layer: `FILE_IMPORT` credential type already exists
+2. Infrastructure: File parsers (QFX, CSV), provider implementation
+3. Container: Register in factory
+4. Application: `ImportFromFile` command handler
+5. Presentation: File upload endpoint (`POST /imports`)
+6. Testing: Parser tests with sanitized fixtures
 
-5. **Add configuration**:
+**Key Architectural Points**:
 
-   ```python
-   # src/core/config.py
-   chase_api_key: str | None = None
-   chase_api_secret: str | None = None
-   chase_redirect_uri: str | None = None
-   ```
+- All providers implement `ProviderProtocol` (auth-agnostic)
+- OAuth providers additionally implement `OAuthProviderProtocol`
+- File providers receive data via `credentials["file_content"]`
+- Use `is_oauth_provider()` TypeGuard for capability checking
 
 ---
 
-**Created**: 2025-12-03 | **Last Updated**: 2025-12-05
+**Created**: 2025-12-03 | **Last Updated**: 2025-12-27

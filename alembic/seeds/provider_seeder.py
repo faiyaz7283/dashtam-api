@@ -41,15 +41,16 @@ DEFAULT_PROVIDERS = [
         "website_url": "https://alpaca.markets",
         "is_active": True,
     },
-    # Future providers can be added here:
-    # {
-    #     "slug": "chase",
-    #     "name": "Chase Bank",
-    #     "credential_type": "oauth2",
-    #     "description": "Connect your Chase Bank accounts.",
-    #     "website_url": "https://www.chase.com",
-    #     "is_active": False,  # Not yet implemented
-    # },
+    {
+        "slug": "chase_file",
+        "name": "Chase Bank (File Import)",
+        "category": "bank",
+        "credential_type": "file_import",
+        "description": "Import transactions from Chase Bank by uploading QFX/OFX "
+        "files downloaded from your Chase online banking.",
+        "website_url": "https://www.chase.com",
+        "is_active": True,
+    },
 ]
 
 

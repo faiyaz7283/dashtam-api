@@ -20,6 +20,9 @@ from src.core.container.infrastructure import get_db_session, get_encryption_ser
 from src.core.container.providers import get_provider
 
 if TYPE_CHECKING:
+    from src.application.commands.handlers.import_from_file_handler import (
+        ImportFromFileHandler,
+    )
     from src.application.commands.handlers.sync_accounts_handler import (
         SyncAccountsHandler,
     )
@@ -505,6 +508,63 @@ async def get_sync_holdings_handler(
         connection_repo=connection_repo,
         holding_repo=holding_repo,
         encryption_service=encryption_service,
+        provider=provider,
+        event_bus=event_bus,
+    )
+
+
+# ============================================================================
+# Import Handler Factories (Request-Scoped)
+# ============================================================================
+
+
+async def get_import_from_file_handler(
+    session: AsyncSession = Depends(get_db_session),
+    provider_slug: str = "chase_file",
+) -> "ImportFromFileHandler":
+    """Get ImportFromFile command handler (request-scoped).
+
+    Creates handler with:
+    - ProviderConnectionRepository (request-scoped)
+    - AccountRepository (request-scoped)
+    - TransactionRepository (request-scoped)
+    - ProviderRepository (request-scoped) for slug lookups
+    - Provider adapter (file-based provider from slug)
+    - EventBus (app-scoped)
+
+    Args:
+        session: Database session.
+        provider_slug: Provider to use for import (default: chase_file).
+
+    Returns:
+        ImportFromFileHandler instance.
+
+    Reference:
+        - docs/architecture/cqrs-pattern.md
+        - docs/guides/chase-file-import.md
+    """
+    from src.application.commands.handlers.import_from_file_handler import (
+        ImportFromFileHandler,
+    )
+    from src.infrastructure.persistence.repositories import (
+        AccountRepository,
+        ProviderConnectionRepository,
+        ProviderRepository,
+        TransactionRepository,
+    )
+
+    connection_repo = ProviderConnectionRepository(session=session)
+    account_repo = AccountRepository(session=session)
+    transaction_repo = TransactionRepository(session=session)
+    provider_repo = ProviderRepository(session=session)
+    provider = get_provider(provider_slug)
+    event_bus = get_event_bus()
+
+    return ImportFromFileHandler(
+        connection_repo=connection_repo,
+        account_repo=account_repo,
+        transaction_repo=transaction_repo,
+        provider_repo=provider_repo,
         provider=provider,
         event_bus=event_bus,
     )

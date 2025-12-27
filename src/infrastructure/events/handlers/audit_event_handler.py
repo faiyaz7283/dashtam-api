@@ -110,6 +110,38 @@ from src.domain.events.provider_events import (
     ProviderTokenRefreshFailed,
     ProviderTokenRefreshSucceeded,
 )
+from src.domain.events.rate_limit_events import (
+    # Rate Limit Events
+    RateLimitCheckAttempted,
+    RateLimitCheckAllowed,
+    RateLimitCheckDenied,
+)
+from src.domain.events.session_events import (
+    # Session Events (operational - only those requiring audit)
+    SessionRevokedEvent,
+    SessionEvictedEvent,
+    AllSessionsRevokedEvent,
+    SessionProviderAccessEvent,
+    SuspiciousSessionActivityEvent,
+)
+from src.domain.events.data_events import (
+    # Account Sync Events
+    AccountSyncAttempted,
+    AccountSyncSucceeded,
+    AccountSyncFailed,
+    # Transaction Sync Events
+    TransactionSyncAttempted,
+    TransactionSyncSucceeded,
+    TransactionSyncFailed,
+    # Holdings Sync Events
+    HoldingsSyncAttempted,
+    HoldingsSyncSucceeded,
+    HoldingsSyncFailed,
+    # File Import Events
+    FileImportAttempted,
+    FileImportSucceeded,
+    FileImportFailed,
+)
 from src.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from src.infrastructure.persistence.database import Database
 
@@ -1535,6 +1567,544 @@ class AuditEventHandler:
                 "connection_id": str(event.connection_id),
                 "provider_id": str(event.provider_id),
                 "provider_slug": event.provider_slug,
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Token Rejected Due to Rotation Event Handler (F7.7 Phase 4)
+    # =========================================================================
+
+    async def handle_token_rejected_due_to_rotation_operational(
+        self,
+        event: TokenRejectedDueToRotation,
+    ) -> None:
+        """Record token rejection audit (operational - security monitoring).
+
+        Audit Record:
+            - action: TOKEN_REJECTED_VERSION_MISMATCH
+            - user_id: UUID of user whose token was rejected (if known)
+            - resource_type: "token"
+            - context: {token_version, required_version, rejection_reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.TOKEN_REJECTED_VERSION_MISMATCH,
+            user_id=event.user_id,
+            resource_type="token",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "token_version": event.token_version,
+                "required_version": event.required_version,
+                "rejection_reason": event.rejection_reason,
+            },
+        )
+
+    # =========================================================================
+    # Rate Limit Event Handlers (F7.7 Phase 4)
+    # =========================================================================
+
+    async def handle_rate_limit_check_attempted(
+        self,
+        event: RateLimitCheckAttempted,
+    ) -> None:
+        """Record rate limit check attempt audit.
+
+        Audit Record:
+            - action: RATE_LIMIT_CHECK_ATTEMPTED
+            - user_id: None (rate limiting is per IP/identifier)
+            - resource_type: "endpoint"
+            - context: {identifier, scope, endpoint}
+        """
+        await self._create_audit_record(
+            action=AuditAction.RATE_LIMIT_CHECK_ATTEMPTED,
+            user_id=None,
+            resource_type="endpoint",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "identifier": event.identifier,
+                "scope": event.scope,
+                "endpoint": event.endpoint,
+            },
+        )
+
+    async def handle_rate_limit_check_allowed(
+        self,
+        event: RateLimitCheckAllowed,
+    ) -> None:
+        """Record rate limit check allowed audit.
+
+        Audit Record:
+            - action: RATE_LIMIT_CHECK_ALLOWED
+            - user_id: None
+            - resource_type: "endpoint"
+            - context: {identifier, scope, endpoint, remaining_tokens}
+        """
+        await self._create_audit_record(
+            action=AuditAction.RATE_LIMIT_CHECK_ALLOWED,
+            user_id=None,
+            resource_type="endpoint",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "identifier": event.identifier,
+                "scope": event.scope,
+                "endpoint": event.endpoint,
+                "remaining_tokens": event.remaining_tokens,
+            },
+        )
+
+    async def handle_rate_limit_check_denied(
+        self,
+        event: RateLimitCheckDenied,
+    ) -> None:
+        """Record rate limit check denied audit (security event).
+
+        Audit Record:
+            - action: RATE_LIMIT_CHECK_DENIED
+            - user_id: None
+            - resource_type: "endpoint"
+            - context: {identifier, scope, endpoint, retry_after}
+        """
+        await self._create_audit_record(
+            action=AuditAction.RATE_LIMIT_CHECK_DENIED,
+            user_id=None,
+            resource_type="endpoint",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "identifier": event.identifier,
+                "scope": event.scope,
+                "endpoint": event.endpoint,
+                "retry_after": event.retry_after,
+            },
+        )
+
+    # =========================================================================
+    # Session Event Handlers (F7.7 Phase 4 - Operational Events)
+    # =========================================================================
+
+    async def handle_session_revoked_operational(
+        self,
+        event: SessionRevokedEvent,
+    ) -> None:
+        """Record session revocation audit (operational - security event).
+
+        Audit Record:
+            - action: SESSION_REVOKED
+            - user_id: UUID of user whose session was revoked
+            - resource_type: "session"
+            - context: {session_id, revoked_by, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.SESSION_REVOKED,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=event.session_id,
+            context={
+                "event_id": str(event.event_id),
+                "session_id": str(event.session_id),
+                "revoked_by": event.revoked_by,
+                "reason": event.reason,
+            },
+        )
+
+    async def handle_session_evicted_operational(
+        self,
+        event: SessionEvictedEvent,
+    ) -> None:
+        """Record session eviction audit (operational - limit enforcement).
+
+        Audit Record:
+            - action: SESSION_EVICTED
+            - user_id: UUID of user whose session was evicted
+            - resource_type: "session"
+            - context: {session_id, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.SESSION_EVICTED,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=event.session_id,
+            context={
+                "event_id": str(event.event_id),
+                "session_id": str(event.session_id),
+                "reason": event.reason,
+            },
+        )
+
+    async def handle_all_sessions_revoked_operational(
+        self,
+        event: AllSessionsRevokedEvent,
+    ) -> None:
+        """Record all sessions revoked audit (operational - security event).
+
+        Audit Record:
+            - action: ALL_SESSIONS_REVOKED
+            - user_id: UUID of user whose sessions were revoked
+            - resource_type: "session"
+            - context: {revoked_by, reason, count}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ALL_SESSIONS_REVOKED,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "revoked_by": event.revoked_by,
+                "reason": event.reason,
+                "count": event.count,
+            },
+        )
+
+    async def handle_session_provider_access_operational(
+        self,
+        event: SessionProviderAccessEvent,
+    ) -> None:
+        """Record session provider access audit (operational - data access trail).
+
+        Audit Record:
+            - action: SESSION_PROVIDER_ACCESS
+            - user_id: UUID of user accessing provider
+            - resource_type: "provider"
+            - context: {session_id, provider_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.SESSION_PROVIDER_ACCESS,
+            user_id=event.user_id,
+            resource_type="provider",
+            resource_id=event.provider_id,
+            context={
+                "event_id": str(event.event_id),
+                "session_id": str(event.session_id),
+                "provider_id": str(event.provider_id),
+            },
+        )
+
+    async def handle_suspicious_session_activity_operational(
+        self,
+        event: SuspiciousSessionActivityEvent,
+    ) -> None:
+        """Record suspicious session activity audit (operational - security alert).
+
+        Audit Record:
+            - action: SUSPICIOUS_SESSION_ACTIVITY
+            - user_id: UUID of user with suspicious activity
+            - resource_type: "session"
+            - context: {session_id, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.SUSPICIOUS_SESSION_ACTIVITY,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=event.session_id,
+            context={
+                "event_id": str(event.event_id),
+                "session_id": str(event.session_id),
+                "reason": event.reason,
+            },
+        )
+
+    # =========================================================================
+    # Data Sync Event Handlers (F7.7 Phase 4)
+    # =========================================================================
+
+    # Account Sync Handlers
+    async def handle_account_sync_attempted(
+        self,
+        event: AccountSyncAttempted,
+    ) -> None:
+        """Record account sync attempt audit (ATTEMPT).
+
+        Audit Record:
+            - action: ACCOUNT_SYNC_ATTEMPTED
+            - user_id: UUID of user initiating sync
+            - resource_type: "account"
+            - context: {connection_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ACCOUNT_SYNC_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="account",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+            },
+        )
+
+    async def handle_account_sync_succeeded(
+        self,
+        event: AccountSyncSucceeded,
+    ) -> None:
+        """Record successful account sync audit (SUCCESS).
+
+        Audit Record:
+            - action: ACCOUNT_SYNC_SUCCEEDED
+            - user_id: UUID of user who synced
+            - resource_type: "account"
+            - context: {connection_id, account_count}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ACCOUNT_SYNC_SUCCEEDED,
+            user_id=event.user_id,
+            resource_type="account",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+                "account_count": event.account_count,
+            },
+        )
+
+    async def handle_account_sync_failed(
+        self,
+        event: AccountSyncFailed,
+    ) -> None:
+        """Record failed account sync audit (FAILURE).
+
+        Audit Record:
+            - action: ACCOUNT_SYNC_FAILED
+            - user_id: UUID of user who attempted sync
+            - resource_type: "account"
+            - context: {connection_id, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ACCOUNT_SYNC_FAILED,
+            user_id=event.user_id,
+            resource_type="account",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+                "reason": event.reason,
+            },
+        )
+
+    # Transaction Sync Handlers
+    async def handle_transaction_sync_attempted(
+        self,
+        event: TransactionSyncAttempted,
+    ) -> None:
+        """Record transaction sync attempt audit (ATTEMPT - PCI-DSS cardholder data).
+
+        Audit Record:
+            - action: TRANSACTION_SYNC_ATTEMPTED
+            - user_id: UUID of user initiating sync
+            - resource_type: "transaction"
+            - context: {connection_id, account_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.TRANSACTION_SYNC_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="transaction",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+                "account_id": str(event.account_id) if event.account_id else None,
+            },
+        )
+
+    async def handle_transaction_sync_succeeded(
+        self,
+        event: TransactionSyncSucceeded,
+    ) -> None:
+        """Record successful transaction sync audit (SUCCESS - PCI-DSS cardholder data).
+
+        Audit Record:
+            - action: TRANSACTION_SYNC_SUCCEEDED
+            - user_id: UUID of user who synced
+            - resource_type: "transaction"
+            - context: {connection_id, account_id, transaction_count}
+        """
+        await self._create_audit_record(
+            action=AuditAction.TRANSACTION_SYNC_SUCCEEDED,
+            user_id=event.user_id,
+            resource_type="transaction",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+                "account_id": str(event.account_id) if event.account_id else None,
+                "transaction_count": event.transaction_count,
+            },
+        )
+
+    async def handle_transaction_sync_failed(
+        self,
+        event: TransactionSyncFailed,
+    ) -> None:
+        """Record failed transaction sync audit (FAILURE).
+
+        Audit Record:
+            - action: TRANSACTION_SYNC_FAILED
+            - user_id: UUID of user who attempted sync
+            - resource_type: "transaction"
+            - context: {connection_id, account_id, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.TRANSACTION_SYNC_FAILED,
+            user_id=event.user_id,
+            resource_type="transaction",
+            resource_id=event.connection_id,
+            context={
+                "event_id": str(event.event_id),
+                "connection_id": str(event.connection_id),
+                "account_id": str(event.account_id) if event.account_id else None,
+                "reason": event.reason,
+            },
+        )
+
+    # Holdings Sync Handlers
+    async def handle_holdings_sync_attempted(
+        self,
+        event: HoldingsSyncAttempted,
+    ) -> None:
+        """Record holdings sync attempt audit (ATTEMPT).
+
+        Audit Record:
+            - action: HOLDINGS_SYNC_ATTEMPTED
+            - user_id: UUID of user initiating sync
+            - resource_type: "holding"
+            - context: {account_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.HOLDINGS_SYNC_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="holding",
+            resource_id=event.account_id,
+            context={
+                "event_id": str(event.event_id),
+                "account_id": str(event.account_id),
+            },
+        )
+
+    async def handle_holdings_sync_succeeded(
+        self,
+        event: HoldingsSyncSucceeded,
+    ) -> None:
+        """Record successful holdings sync audit (SUCCESS).
+
+        Audit Record:
+            - action: HOLDINGS_SYNC_SUCCEEDED
+            - user_id: UUID of user who synced
+            - resource_type: "holding"
+            - context: {account_id, holding_count}
+        """
+        await self._create_audit_record(
+            action=AuditAction.HOLDINGS_SYNC_SUCCEEDED,
+            user_id=event.user_id,
+            resource_type="holding",
+            resource_id=event.account_id,
+            context={
+                "event_id": str(event.event_id),
+                "account_id": str(event.account_id),
+                "holding_count": event.holding_count,
+            },
+        )
+
+    async def handle_holdings_sync_failed(
+        self,
+        event: HoldingsSyncFailed,
+    ) -> None:
+        """Record failed holdings sync audit (FAILURE).
+
+        Audit Record:
+            - action: HOLDINGS_SYNC_FAILED
+            - user_id: UUID of user who attempted sync
+            - resource_type: "holding"
+            - context: {account_id, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.HOLDINGS_SYNC_FAILED,
+            user_id=event.user_id,
+            resource_type="holding",
+            resource_id=event.account_id,
+            context={
+                "event_id": str(event.event_id),
+                "account_id": str(event.account_id),
+                "reason": event.reason,
+            },
+        )
+
+    # File Import Handlers
+    async def handle_file_import_attempted(
+        self,
+        event: FileImportAttempted,
+    ) -> None:
+        """Record file import attempt audit (ATTEMPT).
+
+        Audit Record:
+            - action: FILE_IMPORT_ATTEMPTED
+            - user_id: UUID of user importing file
+            - resource_type: "file"
+            - context: {provider_slug, file_name, file_format}
+        """
+        await self._create_audit_record(
+            action=AuditAction.FILE_IMPORT_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="file",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "provider_slug": event.provider_slug,
+                "file_name": event.file_name,
+                "file_format": event.file_format,
+            },
+        )
+
+    async def handle_file_import_succeeded(
+        self,
+        event: FileImportSucceeded,
+    ) -> None:
+        """Record successful file import audit (SUCCESS).
+
+        Audit Record:
+            - action: FILE_IMPORT_SUCCEEDED
+            - user_id: UUID of user who imported file
+            - resource_type: "file"
+            - context: {provider_slug, file_name, file_format, account_count, transaction_count}
+        """
+        await self._create_audit_record(
+            action=AuditAction.FILE_IMPORT_SUCCEEDED,
+            user_id=event.user_id,
+            resource_type="file",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "provider_slug": event.provider_slug,
+                "file_name": event.file_name,
+                "file_format": event.file_format,
+                "account_count": event.account_count,
+                "transaction_count": event.transaction_count,
+            },
+        )
+
+    async def handle_file_import_failed(
+        self,
+        event: FileImportFailed,
+    ) -> None:
+        """Record failed file import audit (FAILURE).
+
+        Audit Record:
+            - action: FILE_IMPORT_FAILED
+            - user_id: UUID of user who attempted import
+            - resource_type: "file"
+            - context: {provider_slug, file_name, file_format, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.FILE_IMPORT_FAILED,
+            user_id=event.user_id,
+            resource_type="file",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "provider_slug": event.provider_slug,
+                "file_name": event.file_name,
+                "file_format": event.file_format,
                 "reason": event.reason,
             },
         )

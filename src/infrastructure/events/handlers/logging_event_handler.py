@@ -99,6 +99,41 @@ from src.domain.events.provider_events import (
     ProviderTokenRefreshFailed,
     ProviderTokenRefreshSucceeded,
 )
+from src.domain.events.rate_limit_events import (
+    # Rate Limit Events
+    RateLimitCheckAttempted,
+    RateLimitCheckAllowed,
+    RateLimitCheckDenied,
+)
+from src.domain.events.session_events import (
+    # Session Events (operational)
+    SessionCreatedEvent,
+    SessionRevokedEvent,
+    SessionEvictedEvent,
+    AllSessionsRevokedEvent,
+    SessionActivityUpdatedEvent,
+    SessionProviderAccessEvent,
+    SuspiciousSessionActivityEvent,
+    SessionLimitExceededEvent,
+)
+from src.domain.events.data_events import (
+    # Account Sync Events
+    AccountSyncAttempted,
+    AccountSyncSucceeded,
+    AccountSyncFailed,
+    # Transaction Sync Events
+    TransactionSyncAttempted,
+    TransactionSyncSucceeded,
+    TransactionSyncFailed,
+    # Holdings Sync Events
+    HoldingsSyncAttempted,
+    HoldingsSyncSucceeded,
+    HoldingsSyncFailed,
+    # File Import Events
+    FileImportAttempted,
+    FileImportSucceeded,
+    FileImportFailed,
+)
 from src.domain.protocols.logger_protocol import LoggerProtocol
 
 
@@ -875,5 +910,369 @@ class LoggingEventHandler:
             connection_id=str(event.connection_id),
             provider_id=str(event.provider_id),
             provider_slug=event.provider_slug,
+            reason=event.reason,
+        )
+
+    # =========================================================================
+    # Token Rejected Due to Rotation Event Handlers (F7.7 Phase 4)
+    # =========================================================================
+
+    async def handle_token_rejected_due_to_rotation_operational(
+        self,
+        event: TokenRejectedDueToRotation,
+    ) -> None:
+        """Log token rejection due to version mismatch (WARNING level - security event)."""
+        self._logger.warning(
+            "token_rejected_due_to_rotation",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id) if event.user_id else None,
+            token_version=event.token_version,
+            required_version=event.required_version,
+            rejection_reason=event.rejection_reason,
+        )
+
+    # =========================================================================
+    # Rate Limit Event Handlers (F7.7 Phase 4)
+    # =========================================================================
+
+    async def handle_rate_limit_check_attempted(
+        self,
+        event: RateLimitCheckAttempted,
+    ) -> None:
+        """Log rate limit check attempt (INFO level)."""
+        self._logger.info(
+            "rate_limit_check_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            identifier=event.identifier,
+            scope=event.scope,
+            endpoint=event.endpoint,
+        )
+
+    async def handle_rate_limit_check_allowed(
+        self,
+        event: RateLimitCheckAllowed,
+    ) -> None:
+        """Log rate limit check allowed (INFO level)."""
+        self._logger.info(
+            "rate_limit_check_allowed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            identifier=event.identifier,
+            scope=event.scope,
+            endpoint=event.endpoint,
+            remaining_tokens=event.remaining_tokens,
+        )
+
+    async def handle_rate_limit_check_denied(
+        self,
+        event: RateLimitCheckDenied,
+    ) -> None:
+        """Log rate limit check denied (WARNING level - security event)."""
+        self._logger.warning(
+            "rate_limit_check_denied",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            identifier=event.identifier,
+            scope=event.scope,
+            endpoint=event.endpoint,
+            retry_after=event.retry_after,
+        )
+
+    # =========================================================================
+    # Session Event Handlers (F7.7 Phase 4 - Operational Events)
+    # =========================================================================
+
+    async def handle_session_created_operational(
+        self,
+        event: SessionCreatedEvent,
+    ) -> None:
+        """Log session creation (INFO level)."""
+        self._logger.info(
+            "session_created",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            session_id=str(event.session_id),
+            user_id=str(event.user_id),
+        )
+
+    async def handle_session_revoked_operational(
+        self,
+        event: SessionRevokedEvent,
+    ) -> None:
+        """Log session revocation (WARNING level - security event)."""
+        self._logger.warning(
+            "session_revoked",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            session_id=str(event.session_id),
+            user_id=str(event.user_id),
+            revoked_by=event.revoked_by,
+            reason=event.reason,
+        )
+
+    async def handle_session_evicted_operational(
+        self,
+        event: SessionEvictedEvent,
+    ) -> None:
+        """Log session eviction (WARNING level - limit enforcement)."""
+        self._logger.warning(
+            "session_evicted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            session_id=str(event.session_id),
+            user_id=str(event.user_id),
+            reason=event.reason,
+        )
+
+    async def handle_all_sessions_revoked_operational(
+        self,
+        event: AllSessionsRevokedEvent,
+    ) -> None:
+        """Log all sessions revoked (WARNING level - security event)."""
+        self._logger.warning(
+            "all_sessions_revoked",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            revoked_by=event.revoked_by,
+            reason=event.reason,
+            count=event.count,
+        )
+
+    async def handle_session_activity_updated_operational(
+        self,
+        event: SessionActivityUpdatedEvent,
+    ) -> None:
+        """Log session activity update (INFO level - lightweight telemetry)."""
+        self._logger.info(
+            "session_activity_updated",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            session_id=str(event.session_id),
+        )
+
+    async def handle_session_provider_access_operational(
+        self,
+        event: SessionProviderAccessEvent,
+    ) -> None:
+        """Log session provider access (INFO level - audit trail)."""
+        self._logger.info(
+            "session_provider_access",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            session_id=str(event.session_id),
+            user_id=str(event.user_id),
+            provider_id=str(event.provider_id),
+        )
+
+    async def handle_suspicious_session_activity_operational(
+        self,
+        event: SuspiciousSessionActivityEvent,
+    ) -> None:
+        """Log suspicious session activity (WARNING level - security alert)."""
+        self._logger.warning(
+            "suspicious_session_activity",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            session_id=str(event.session_id),
+            user_id=str(event.user_id),
+            reason=event.reason,
+        )
+
+    async def handle_session_limit_exceeded_operational(
+        self,
+        event: SessionLimitExceededEvent,
+    ) -> None:
+        """Log session limit exceeded (INFO level - informational)."""
+        self._logger.info(
+            "session_limit_exceeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            current_count=event.current_count,
+            limit=event.limit,
+        )
+
+    # =========================================================================
+    # Data Sync Event Handlers (F7.7 Phase 4)
+    # =========================================================================
+
+    # Account Sync Handlers
+    async def handle_account_sync_attempted(
+        self,
+        event: AccountSyncAttempted,
+    ) -> None:
+        """Log account sync attempt (INFO level)."""
+        self._logger.info(
+            "account_sync_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+        )
+
+    async def handle_account_sync_succeeded(
+        self,
+        event: AccountSyncSucceeded,
+    ) -> None:
+        """Log successful account sync (INFO level)."""
+        self._logger.info(
+            "account_sync_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+            account_count=event.account_count,
+        )
+
+    async def handle_account_sync_failed(
+        self,
+        event: AccountSyncFailed,
+    ) -> None:
+        """Log failed account sync (WARNING level)."""
+        self._logger.warning(
+            "account_sync_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+            reason=event.reason,
+        )
+
+    # Transaction Sync Handlers
+    async def handle_transaction_sync_attempted(
+        self,
+        event: TransactionSyncAttempted,
+    ) -> None:
+        """Log transaction sync attempt (INFO level)."""
+        self._logger.info(
+            "transaction_sync_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+            account_id=str(event.account_id) if event.account_id else None,
+        )
+
+    async def handle_transaction_sync_succeeded(
+        self,
+        event: TransactionSyncSucceeded,
+    ) -> None:
+        """Log successful transaction sync (INFO level)."""
+        self._logger.info(
+            "transaction_sync_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+            account_id=str(event.account_id) if event.account_id else None,
+            transaction_count=event.transaction_count,
+        )
+
+    async def handle_transaction_sync_failed(
+        self,
+        event: TransactionSyncFailed,
+    ) -> None:
+        """Log failed transaction sync (WARNING level)."""
+        self._logger.warning(
+            "transaction_sync_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            connection_id=str(event.connection_id),
+            account_id=str(event.account_id) if event.account_id else None,
+            reason=event.reason,
+        )
+
+    # Holdings Sync Handlers
+    async def handle_holdings_sync_attempted(
+        self,
+        event: HoldingsSyncAttempted,
+    ) -> None:
+        """Log holdings sync attempt (INFO level)."""
+        self._logger.info(
+            "holdings_sync_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            account_id=str(event.account_id),
+        )
+
+    async def handle_holdings_sync_succeeded(
+        self,
+        event: HoldingsSyncSucceeded,
+    ) -> None:
+        """Log successful holdings sync (INFO level)."""
+        self._logger.info(
+            "holdings_sync_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            account_id=str(event.account_id),
+            holding_count=event.holding_count,
+        )
+
+    async def handle_holdings_sync_failed(
+        self,
+        event: HoldingsSyncFailed,
+    ) -> None:
+        """Log failed holdings sync (WARNING level)."""
+        self._logger.warning(
+            "holdings_sync_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            account_id=str(event.account_id),
+            reason=event.reason,
+        )
+
+    # File Import Handlers
+    async def handle_file_import_attempted(
+        self,
+        event: FileImportAttempted,
+    ) -> None:
+        """Log file import attempt (INFO level)."""
+        self._logger.info(
+            "file_import_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            provider_slug=event.provider_slug,
+            file_name=event.file_name,
+            file_format=event.file_format,
+        )
+
+    async def handle_file_import_succeeded(
+        self,
+        event: FileImportSucceeded,
+    ) -> None:
+        """Log successful file import (INFO level)."""
+        self._logger.info(
+            "file_import_succeeded",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            provider_slug=event.provider_slug,
+            file_name=event.file_name,
+            file_format=event.file_format,
+            account_count=event.account_count,
+            transaction_count=event.transaction_count,
+        )
+
+    async def handle_file_import_failed(
+        self,
+        event: FileImportFailed,
+    ) -> None:
+        """Log failed file import (WARNING level)."""
+        self._logger.warning(
+            "file_import_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            provider_slug=event.provider_slug,
+            file_name=event.file_name,
+            file_format=event.file_format,
             reason=event.reason,
         )

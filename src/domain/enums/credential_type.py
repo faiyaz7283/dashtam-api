@@ -85,6 +85,20 @@ class CredentialType(str, Enum):
         - certificate_chain
     """
 
+    FILE_IMPORT = "file_import"
+    """File-based data import (no live authentication).
+
+    Used by providers that import data from downloaded files
+    (QFX, OFX, CSV) rather than API calls.
+
+    Credential data typically includes:
+        - file_content: Raw file bytes
+        - file_format: Format identifier (qfx, ofx, csv)
+        - file_name: Original filename for logging/debugging
+
+    No expiration - credentials represent parsed file data.
+    """
+
     CUSTOM = "custom"
     """Provider-specific custom authentication.
 
@@ -129,4 +143,4 @@ class CredentialType(str, Enum):
         Returns:
             list[CredentialType]: Types without expiration.
         """
-        return [cls.API_KEY, cls.CERTIFICATE]
+        return [cls.API_KEY, cls.CERTIFICATE, cls.FILE_IMPORT]

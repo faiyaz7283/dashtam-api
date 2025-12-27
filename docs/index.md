@@ -49,6 +49,8 @@ principles from the ground up.
   Financial transactions with two-level categorization
 - **[Provider Domain](architecture/provider-domain-model.md)** -
   Provider connections with OAuth token management
+- **[Provider Integration](architecture/provider-integration-architecture.md)** -
+  Multi-provider architecture (OAuth, API Key, File Import)
 
 ## Project Overview
 
@@ -175,7 +177,9 @@ make test
 
 - **[Adding New Providers](guides/adding-new-providers.md)** -
   Complete 10-phase guide for integrating new financial data providers
-  including OAuth, accounts, transactions, holdings, and balance tracking
+  including OAuth, API Key, and File Import providers
+- **[Chase File Import](guides/chase-file-import.md)** -
+  User guide for importing Chase bank transactions from QFX/CSV files
 - **[Audit Usage Patterns](guides/audit-usage-patterns.md)** -
   Complete guide with copy-pasteable examples for registration,
   login, provider connection, data access audit patterns
@@ -193,8 +197,8 @@ make test
 - **Domain**: Entities (User, Account, Transaction, Holding, BalanceSnapshot), value objects, domain events
 - **Application**: CQRS handlers (commands + queries), event handlers
 - **Infrastructure**: Audit trail (PCI-DSS compliant), structured logging, secrets management
-- **Providers**: Schwab OAuth integration, account/transaction/holdings sync, balance tracking
-- **Testing**: 1,978 tests (87% coverage), integration tests, API tests
+- **Providers**: Schwab (OAuth), Alpaca (API Key), Chase (File Import) - three provider types
+- **Testing**: 2,100+ tests (87% coverage), integration tests, API tests
 
 ## Contributing
 
@@ -211,4 +215,4 @@ See `~/starter/development-checklist.md` for the complete feature development wo
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-12-26
+**Created**: 2025-11-13 | **Last Updated**: 2025-12-27

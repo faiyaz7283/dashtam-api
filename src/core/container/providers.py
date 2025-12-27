@@ -54,9 +54,7 @@ def get_provider(slug: str) -> "ProviderProtocol":
     Currently supported providers:
         - 'schwab': Charles Schwab (OAuth, Trader API)
         - 'alpaca': Alpaca (API Key, Trading API)
-
-    Future providers (not yet implemented):
-        - 'chase': Chase Bank (OAuth/file import)
+        - 'chase_file': Chase Bank (File import - QFX/OFX)
 
     Args:
         slug: Provider identifier (e.g., 'schwab', 'alpaca').
@@ -101,8 +99,17 @@ def get_provider(slug: str) -> "ProviderProtocol":
             # Credentials are passed per-request via credentials dict.
             return AlpacaProvider(settings=settings)
 
+        case "chase_file":
+            from src.infrastructure.providers.chase import ChaseFileProvider
+
+            # Note: Chase uses file-based import (QFX/OFX).
+            # File content is passed via credentials dict.
+            return ChaseFileProvider()
+
         case _:
-            raise ValueError(f"Unknown provider: {slug}. Supported: 'schwab', 'alpaca'")
+            raise ValueError(
+                f"Unknown provider: {slug}. Supported: 'schwab', 'alpaca', 'chase_file'"
+            )
 
 
 def is_oauth_provider(

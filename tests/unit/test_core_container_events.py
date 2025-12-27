@@ -102,8 +102,8 @@ class TestEventRegistryCompleteness:
     def test_registry_count_matches_documentation(self, event_bus) -> None:
         """Verify total subscription count matches container docstring.
 
-        The container docstring claims 100 total subscriptions. This test
-        verifies that count is accurate.
+        The container docstring claims 143 total subscriptions (F7.7: Domain
+        Events Compliance Audit). This test verifies that count is accurate.
 
         Note:
             This is a documentation consistency check. Update docstring if
@@ -115,8 +115,9 @@ class TestEventRegistryCompleteness:
             len(handlers) for handlers in event_bus._handlers.values()
         )
 
-        # As of F6.15 completion, we have 100 total subscriptions
-        expected_subscriptions = 100
+        # As of F7.7 Phase 4 completion, we have 143 total subscriptions:
+        # 69 logging + 66 audit + 5 email + 3 session = 143
+        expected_subscriptions = 143
 
         assert total_subscriptions == expected_subscriptions, (
             f"Subscription count mismatch: expected {expected_subscriptions}, "

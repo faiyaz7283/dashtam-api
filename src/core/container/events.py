@@ -36,14 +36,20 @@ def get_event_bus() -> "EventBusProtocol":
         2. Dynamically computes handler method names from workflow_name + phase
         3. Subscribes handlers based on metadata.requires_* flags
 
-    Current Registry Status (56 events across 7 categories):
-        - Authentication (28): 7 workflows × 3-state + 1 operational
+    Current Registry Status (69 events, 143 subscriptions across 7 categories):
+        - Authentication (31): 8 workflows × 3-state + 1 operational
         - Authorization (6): 2 workflows × 3-state
         - Provider (9): 3 workflows × 3-state
-        - Data Sync (0): Placeholders for 4 workflows × 3-state (Phase 2)
-        - Session (10): Metadata enrichment events
-        - Rate Limit (3): Rate limit enforcement events
+        - Data Sync (12): 4 workflows × 3-state
+        - Session (8): Session lifecycle + operational events
+        - Rate Limit (3): Rate limit operational events
         - Admin (0): Future administrative events
+
+    Subscription Breakdown (143 total):
+        - LoggingEventHandler: 69 (all events)
+        - AuditEventHandler: 66 (all except 3 operational)
+        - EmailEventHandler: 5 (registration, verification, password reset)
+        - SessionEventHandler: 3 (password change, token rotation)
 
     Benefits of registry-driven approach:
         - Single source of truth (registry.py)

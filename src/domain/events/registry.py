@@ -97,6 +97,20 @@ from src.domain.events.session_events import (
     SessionRevokedEvent,
     SuspiciousSessionActivityEvent,
 )
+from src.domain.events.data_events import (
+    AccountSyncAttempted,
+    AccountSyncSucceeded,
+    AccountSyncFailed,
+    TransactionSyncAttempted,
+    TransactionSyncSucceeded,
+    TransactionSyncFailed,
+    HoldingsSyncAttempted,
+    HoldingsSyncSucceeded,
+    HoldingsSyncFailed,
+    FileImportAttempted,
+    FileImportSucceeded,
+    FileImportFailed,
+)
 
 
 class EventCategory(Enum):
@@ -600,13 +614,96 @@ EVENT_REGISTRY: list[EventMetadata] = [
         audit_action_name="SESSION_LIMIT_EXCEEDED",
     ),
     # ═══════════════════════════════════════════════════════════
-    # Data Sync Events (0 events - TO BE ADDED IN PHASE 2)
+    # Data Sync Events (12 events - F7.7 Phase 2)
     # ═══════════════════════════════════════════════════════════
-    # TODO Phase 2: Add 12 events here:
-    # - AccountSyncAttempted/Succeeded/Failed
-    # - TransactionSyncAttempted/Succeeded/Failed
-    # - HoldingsSyncAttempted/Succeeded/Failed
-    # - FileImportAttempted/Succeeded/Failed
+    # Account Sync (3 events)
+    EventMetadata(
+        event_class=AccountSyncAttempted,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="account_sync",
+        phase=WorkflowPhase.ATTEMPTED,
+        audit_action_name="ACCOUNT_SYNC_ATTEMPTED",
+    ),
+    EventMetadata(
+        event_class=AccountSyncSucceeded,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="account_sync",
+        phase=WorkflowPhase.SUCCEEDED,
+        audit_action_name="ACCOUNT_SYNC_SUCCEEDED",
+    ),
+    EventMetadata(
+        event_class=AccountSyncFailed,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="account_sync",
+        phase=WorkflowPhase.FAILED,
+        audit_action_name="ACCOUNT_SYNC_FAILED",
+    ),
+    # Transaction Sync (3 events)
+    EventMetadata(
+        event_class=TransactionSyncAttempted,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="transaction_sync",
+        phase=WorkflowPhase.ATTEMPTED,
+        audit_action_name="TRANSACTION_SYNC_ATTEMPTED",
+    ),
+    EventMetadata(
+        event_class=TransactionSyncSucceeded,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="transaction_sync",
+        phase=WorkflowPhase.SUCCEEDED,
+        audit_action_name="TRANSACTION_SYNC_SUCCEEDED",
+    ),
+    EventMetadata(
+        event_class=TransactionSyncFailed,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="transaction_sync",
+        phase=WorkflowPhase.FAILED,
+        audit_action_name="TRANSACTION_SYNC_FAILED",
+    ),
+    # Holdings Sync (3 events)
+    EventMetadata(
+        event_class=HoldingsSyncAttempted,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="holdings_sync",
+        phase=WorkflowPhase.ATTEMPTED,
+        audit_action_name="HOLDINGS_SYNC_ATTEMPTED",
+    ),
+    EventMetadata(
+        event_class=HoldingsSyncSucceeded,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="holdings_sync",
+        phase=WorkflowPhase.SUCCEEDED,
+        audit_action_name="HOLDINGS_SYNC_SUCCEEDED",
+    ),
+    EventMetadata(
+        event_class=HoldingsSyncFailed,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="holdings_sync",
+        phase=WorkflowPhase.FAILED,
+        audit_action_name="HOLDINGS_SYNC_FAILED",
+    ),
+    # File Import (3 events)
+    EventMetadata(
+        event_class=FileImportAttempted,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="file_import",
+        phase=WorkflowPhase.ATTEMPTED,
+        audit_action_name="FILE_IMPORT_ATTEMPTED",
+    ),
+    EventMetadata(
+        event_class=FileImportSucceeded,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="file_import",
+        phase=WorkflowPhase.SUCCEEDED,
+        audit_action_name="FILE_IMPORT_SUCCEEDED",
+    ),
+    EventMetadata(
+        event_class=FileImportFailed,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="file_import",
+        phase=WorkflowPhase.FAILED,
+        audit_action_name="FILE_IMPORT_FAILED",
+    ),
 ]
 
 

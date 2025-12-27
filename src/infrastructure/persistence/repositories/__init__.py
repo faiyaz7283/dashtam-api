@@ -25,6 +25,9 @@ from src.infrastructure.persistence.repositories.password_reset_token_repository
 from src.infrastructure.persistence.repositories.provider_connection_repository import (
     ProviderConnectionRepository,
 )
+from src.infrastructure.persistence.repositories.provider_repository import (
+    ProviderRepository,
+)
 from src.infrastructure.persistence.repositories.refresh_token_repository import (
     RefreshTokenRepository,
 )
@@ -43,6 +46,7 @@ __all__ = [
     "HoldingRepository",
     "PasswordResetTokenRepository",
     "ProviderConnectionRepository",
+    "ProviderRepository",
     "RefreshTokenRepository",
     "SecurityConfigRepository",
     "SessionRepository",

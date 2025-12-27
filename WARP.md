@@ -294,13 +294,14 @@
 - ✅ **Quality**: Zero lint violations, strict type checking, all tests passing
 - ✅ **Release**: v1.1.0 (minor version bump for new feature)
 
-#### Phase 7: Provider Capabilities & Data Models ✅ COMPLETED (3/3 features)
+#### Phase 7: Provider Capabilities & Data Models ✅ COMPLETED (5/5 features)
 
-**Release**: 2025-12-26 | **Tag**: v1.3.0 | **Tests**: 2,079 passed, 19 skipped | **Coverage**: 87%
+**Release**: 2025-12-27 | **Tag**: v1.4.0 | **Tests**: 2,100+ passed | **Coverage**: 87%
 
 | Feature | Description |
 |---------|-------------|
 | F7.1 | Alpaca Provider Integration (API Key auth) |
+| F7.2 | Chase File Import Provider (File Import auth) |
 | F7.4 | Provider-Specific Entities (Holdings Support) |
 | F7.5 | Balance Tracking |
 
@@ -322,6 +323,7 @@
 - ✅ 232 new tests added (1,746 → 1,978)
 - ✅ Coverage increased to 87%
 - ✅ **F7.1**: Alpaca provider (first API Key provider) with 101 tests, 100% coverage
+- ✅ **F7.2**: Chase File Import provider (first File Import provider) with 80+ tests
 
 **F7.1 Alpaca Provider Summary** (completed 2025-12-26):
 
@@ -361,6 +363,20 @@
 - ✅ Updated `adding-new-providers.md` with Phase 9 (Holdings) and Phase 10 (Balance Tracking)
 - ✅ Updated `provider-integration-architecture.md` with holdings support
 - ✅ Updated `mkdocs.yml` and `index.md` with all new docs
+
+**F7.2 Chase File Import Summary** (completed 2025-12-27):
+
+- ✅ **Provider Type**: First File Import provider (credentials via file_content)
+- ✅ **Parsers**: QFX/OFX parser (ofxparse), CSV parser (checking + credit card formats)
+- ✅ **Infrastructure**: ChaseFileProvider implementing auth-agnostic ProviderProtocol
+- ✅ **Application**: ImportFromFile command with ImportFromFileHandler
+- ✅ **API**: File upload endpoint (`POST /api/v1/imports`) with multipart form data
+- ✅ **Features**: Auto account creation from file, duplicate detection by FITID, balance snapshots
+- ✅ **Seed Data**: Chase provider seeded with FILE_IMPORT credential type
+- ✅ **Tests**: 80+ tests covering parsers, provider, handler, API endpoints
+- ✅ **Documentation**: `chase-file-import.md` user guide, updated `adding-new-providers.md`
+- ✅ **Architecture**: Updated `provider-integration-architecture.md` with all three provider types
+- ⚠️ **Deferred**: Domain events (FileImportAttempted/Succeeded/Failed) deferred to F7.7 (see roadmap)
 
 ---
 

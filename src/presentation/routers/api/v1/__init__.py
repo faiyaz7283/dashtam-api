@@ -15,6 +15,7 @@ Resources:
     /api/v1/transactions           - Transaction management
     /api/v1/holdings               - Holdings management
     /api/v1/balance-snapshots      - Balance snapshot management
+    /api/v1/imports                - File-based data imports
 
 Admin Resources:
     /api/v1/admin/security/rotations     - Global token rotation
@@ -51,6 +52,7 @@ from src.presentation.routers.api.v1.balance_snapshots import (
     account_balance_router,
     router as balance_snapshots_router,
 )
+from src.presentation.routers.api.v1.imports import router as imports_router
 from src.presentation.routers.api.v1.users import router as users_router
 
 # Create combined v1 router
@@ -74,6 +76,9 @@ v1_router.include_router(holdings_router)
 
 # Include Phase 8 routers (balance snapshots)
 v1_router.include_router(balance_snapshots_router)
+
+# Include Phase 7.2 routers (file imports)
+v1_router.include_router(imports_router)
 
 # Include nested resource routers
 # GET /api/v1/providers/{id}/accounts - List accounts for a provider connection
@@ -104,6 +109,7 @@ __all__ = [
     "transactions_router",
     "holdings_router",
     "balance_snapshots_router",
+    "imports_router",
     "provider_accounts_router",
     "account_transactions_router",
     "account_holdings_router",

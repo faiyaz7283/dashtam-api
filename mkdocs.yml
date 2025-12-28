@@ -158,13 +158,13 @@ nav:
     - Registry Pattern: architecture/registry-pattern-architecture.md
     - Repository Pattern: architecture/repository-pattern.md
     - Secrets Management: architecture/secrets-management-architecture.md
-    - Session Management: architecture/session-management-architecture.md
     - Structured Logging: architecture/structured-logging-architecture.md
     - Testing: architecture/testing-architecture.md
     - Token Breach Rotation: architecture/token-breach-rotation-architecture.md
     - Transaction Domain: architecture/transaction-domain-model.md
     - Validation: architecture/validation-architecture.md
   - Guides:
+    - Release Management: guides/release-management.md
     - Adding New Providers: guides/adding-new-providers.md
     - Audit Usage Patterns: guides/audit-usage-patterns.md
     - Authentication Usage: guides/authentication-usage.md
@@ -182,5 +182,4 @@ nav:
     - Local CI Testing: guides/local-ci-testing.md
     - Rate Limit Usage: guides/rate-limit-usage.md
     - Secrets Management Usage: guides/secrets-management-usage.md
-    - Session Management Usage: guides/session-management-usage.md
     - Structured Logging Usage: guides/structured-logging-usage.md

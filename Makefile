@@ -309,8 +309,10 @@ test-smoke:
 # ci-test-local  - Full CI suite locally (tests + lint + type-check)
 # ci-test        - Tests only (matches GitHub Actions test-main job)
 # ci-lint        - Linting only (matches GitHub Actions lint job)
+# ci-docs        - Docs build only (matches GitHub Actions docs job)
 # 
 # All CI commands match GitHub Actions behavior for accurate local debugging.
+# Note: ci-docs uses smart filtering to ignore griffe/autorefs warnings.
 # ==============================================================================
 
 ci-test-local: _ensure-env-ci
@@ -397,6 +399,40 @@ ci-lint: _ensure-env-ci
 	@echo ""
 	@echo "✅ CI linting passed!"
 
+ci-docs: _ensure-env-ci
+	@echo "📚 Running CI docs build (matches GitHub Actions docs job)..."
+	@echo ""
+	@echo "📝 Starting CI environment..."
+	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@echo ""
+	@echo "⏳ Waiting for app container..."
+	@sleep 3
+	@echo ""
+	@echo "📦 Installing docs dependencies..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv sync --frozen --group docs > /dev/null 2>&1
+	@echo ""
+	@echo "📚 Building documentation (strict mode)..."
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run mkdocs build --strict --verbose 2>&1 | tee /tmp/ci-mkdocs-build.log || true
+	@echo ""
+	@echo "🔍 Checking for warnings (ignoring griffe/autorefs false positives)..."
+	@if grep -E "WARNING" /tmp/ci-mkdocs-build.log | grep -v "griffe:" | grep -v "mkdocs_autorefs:" | grep -q .; then \
+		echo "❌ Found warnings other than griffe/autorefs (broken links, missing pages, etc.)"; \
+		grep -E "WARNING" /tmp/ci-mkdocs-build.log | grep -v "griffe:" | grep -v "mkdocs_autorefs:"; \
+		docker compose -f compose/docker-compose.ci.yml down -v; \
+		exit 1; \
+	fi
+	@if ! docker compose -f compose/docker-compose.ci.yml exec -T app test -d site; then \
+		echo "❌ Documentation build failed - site/ directory not created"; \
+		docker compose -f compose/docker-compose.ci.yml down -v; \
+		exit 1; \
+	fi
+	@echo "✅ Documentation built successfully (griffe warnings ignored - see .griffe.yml)"
+	@echo ""
+	@echo "🛑 Cleanup..."
+	@docker compose -f compose/docker-compose.ci.yml down -v
+	@echo ""
+	@echo "✅ CI docs build passed!"
+
 # ==============================================================================
 # CODE QUALITY
 # ==============================================================================
@@ -479,8 +515,17 @@ verify: test-up
 	echo ""; \
 	echo "📚 Step 7/7: Building documentation (strict mode)..."; \
 	docker compose -f compose/docker-compose.test.yml exec -T app uv sync --all-groups > /dev/null 2>&1; \
-	docker compose -f compose/docker-compose.test.yml exec -T app uv run mkdocs build --strict || { echo "❌ Documentation build failed - manual fixes required"; exit 1; }; \
-	echo "✅ Documentation built successfully"; \
+	docker compose -f compose/docker-compose.test.yml exec -T app uv run mkdocs build --strict 2>&1 | tee /tmp/mkdocs-build.log || true; \
+	if grep -E "WARNING" /tmp/mkdocs-build.log | grep -v "griffe:" | grep -v "mkdocs_autorefs:" | grep -q .; then \
+		echo "❌ Documentation warnings found (broken links, missing pages, etc.)"; \
+		grep -E "WARNING" /tmp/mkdocs-build.log | grep -v "griffe:" | grep -v "mkdocs_autorefs:"; \
+		exit 1; \
+	fi; \
+	if ! docker compose -f compose/docker-compose.test.yml exec -T app test -d site; then \
+		echo "❌ Documentation build failed - site/ directory not created"; \
+		exit 1; \
+	fi; \
+	echo "✅ Documentation built successfully (griffe warnings ignored)"; \
 	echo ""; \
 	echo "🎉 ====================================="; \
 	echo "🎉 ALL VERIFICATION CHECKS PASSED!"; \

@@ -1,6 +1,6 @@
 # Registry Pattern Architecture
 
-**Architectural Standard for Dashtam**
+## Architectural Standard for Dashtam
 
 The Registry Pattern is a meta-architectural design that eliminates manual drift by establishing a **single source of truth** for system components and their relationships. This document defines the pattern abstractly so it can be applied across Dashtam wherever manual maintenance causes drift, inconsistency, or fragility.
 

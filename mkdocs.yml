@@ -90,12 +90,23 @@ markdown_extensions:
 plugins:
   - search
   - mermaid2
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
   - mkdocstrings:
+      enable_inventory: true
       default_handler: python
       handlers:
         python:
+          paths: ["."]
+          load_external_modules: false
           options:
             docstring_style: google
+            docstring_options:
+              ignore_init_summary: true
+              warn_unknown_params: false
             show_source: true
             show_root_heading: true
             show_root_toc_entry: true
@@ -109,10 +120,13 @@ plugins:
             group_by_category: true
             show_bases: true
             show_inheritance_diagram: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
 
 # Navigation
 nav:
   - Home: index.md
+  - Code Reference: reference/
   - API Reference:
     - Account Operations: api/account-operations.md
     - Authentication: api/authentication.md
@@ -144,13 +158,13 @@ nav:
     - Registry Pattern: architecture/registry-pattern-architecture.md
     - Repository Pattern: architecture/repository-pattern.md
     - Secrets Management: architecture/secrets-management-architecture.md
-    - Session Management: architecture/session-management-architecture.md
     - Structured Logging: architecture/structured-logging-architecture.md
     - Testing: architecture/testing-architecture.md
     - Token Breach Rotation: architecture/token-breach-rotation-architecture.md
     - Transaction Domain: architecture/transaction-domain-model.md
     - Validation: architecture/validation-architecture.md
   - Guides:
+    - Release Management: guides/release-management.md
     - Adding New Providers: guides/adding-new-providers.md
     - Audit Usage Patterns: guides/audit-usage-patterns.md
     - Authentication Usage: guides/authentication-usage.md
@@ -168,5 +182,4 @@ nav:
     - Local CI Testing: guides/local-ci-testing.md
     - Rate Limit Usage: guides/rate-limit-usage.md
     - Secrets Management Usage: guides/secrets-management-usage.md
-    - Session Management Usage: guides/session-management-usage.md
     - Structured Logging Usage: guides/structured-logging-usage.md

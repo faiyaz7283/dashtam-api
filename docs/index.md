@@ -178,6 +178,15 @@ make test
 
 ## Development Guides
 
+### Process & Workflow
+
+- **[Release Management](guides/release-management.md)** -
+  Comprehensive guide to versioning, branching, tagging, GitHub releases,
+  and CHANGELOG management. Includes semantic versioning decision tree,
+  complete release checklist, sync strategy, and troubleshooting.
+
+### Feature Development
+
 - **[Adding New Providers](guides/adding-new-providers.md)** -
   Complete 10-phase guide for integrating new financial data providers
   including OAuth, API Key, and File Import providers

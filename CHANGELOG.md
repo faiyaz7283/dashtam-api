@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2025-12-28
+
+### Added
+
+- **Auto-Generated API Reference Documentation**
+  - Implemented `mkdocs-gen-files` plugin for automatic module discovery
+  - Implemented `mkdocs-literate-nav` plugin for auto-generated navigation
+  - Created `docs/gen_ref_pages.py` script that auto-discovers all Python modules in `src/`
+  - Auto-generates complete API reference from Google-style docstrings (zero maintenance)
+  - Build time: ~15 seconds for complete API documentation
+  - Added "Code Reference" navigation section in MkDocs
+- **Release Management Guide**
+  - Created comprehensive `docs/guides/release-management.md` (686 lines)
+  - Git Flow workflow with mermaid visualization
+  - Semantic versioning decision tree (MAJOR/MINOR/PATCH)
+  - Complete 10-step release checklist
+  - Tagging strategy and GitHub Releases relationship
+  - CHANGELOG management guidelines
+  - Sync strategy to prevent version drift
+  - Troubleshooting section with common issues
+  - Real examples from Dashtam history
+- **Smart CI/CD Warning Filtering**
+  - GitHub Actions: Intelligent filtering of griffe/autorefs warnings
+  - Makefile `verify`: Smart filtering in Step 7 (docs build)
+  - New `make ci-docs` command matching GitHub Actions behavior
+  - Fail CI only on actual issues (broken links, missing pages)
+  - Ignore documented false positives (griffe type inference, autorefs strings)
+
+### Fixed
+
+- Added 8 missing `__init__.py` files for proper Python package structure:
+  - `src/application/commands/handlers/__init__.py`
+  - `src/application/queries/handlers/__init__.py`
+  - `src/application/services/__init__.py`
+  - `src/infrastructure/external/__init__.py`
+  - `src/infrastructure/logging/__init__.py`
+  - `src/infrastructure/providers/__init__.py`
+  - `src/infrastructure/rate_limit/lua_scripts/__init__.py`
+  - `src/presentation/routers/api/middleware/__init__.py`
+
+### Documentation
+
+- Created `.griffe.yml` with comprehensive explanation of griffe warnings (62 lines)
+  - Documents why "No type or annotation" warnings are false positives
+  - All functions have proper return types (mypy strict mode enforces)
+  - Griffe can't infer types from bare Result/Failure returns
+- Updated `docs/index.md` with Release Management section
+- Updated Makefile with detailed documentation build comments
+- Added auto-generated reference to `mkdocs.yml` navigation
+
+### Changed
+
+- Documentation now includes both manual docs and auto-generated API reference
+- CI/CD workflows consistently handle griffe warnings across all environments
+- Local `make verify` and GitHub Actions CI behavior now matches
+
 ## [1.5.0] - 2025-12-28
 
 ### Added
@@ -429,7 +485,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Type Safety**: Strict mypy checking with modern Python 3.13+ type hints
 - **Code Quality**: Automated formatting (ruff), linting, and type checking in CI/CD
 
-[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/faiyaz7283/Dashtam/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.2.1...v1.3.0

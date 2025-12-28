@@ -21,6 +21,7 @@
 - **CQRS Pattern**: Commands (write) separated from Queries (read)
 - **Domain-Driven Design**: Pragmatic DDD with domain events for critical workflows
 - **Protocol-Based**: Structural typing with Python `Protocol` (not ABC)
+- **Event Registry Pattern**: Single source of truth for domain events with automated container wiring
 
 **Technology Stack**:
 
@@ -40,343 +41,13 @@
 - **Test-driven**: 85%+ coverage target, all tests pass before merge
 - **Documentation-first**: Architecture decisions documented before coding
 
-**v1.3.0 Released**: 2025-12-26 | **Phases 0-7 Complete** (46 features) | **GitHub**: <https://github.com/faiyaz7283/Dashtam/releases/tag/v1.3.0>
-
 ---
 
 ### 2. Current Status
 
-#### Phase 0: Foundation ✅ COMPLETED (11/11 features)
+**For detailed feature history, PRs, version releases, and implementation details**: See `CHANGELOG.md`
 
-**Audit**: 2025-11-18 | **PRs**: #58-70
-
-| Feature | Description | PR |
-|---------|-------------|-----|
-| F0.1 | Project Structure Setup | #58 |
-| F0.2 | Docker & Environment Setup | #59 |
-| F0.3 | Configuration Management | #60 |
-| F0.4 | Database Setup (PostgreSQL + Alembic) | #61 |
-| F0.5 | Cache Setup (Redis) | #62 |
-| F0.6 | Traefik Reverse Proxy | #62 |
-| F0.7 | Secrets Management | #64 |
-| F0.8 | Structured Logging | #65 |
-| F0.9 | Audit Trail (+ F0.9.1, F0.9.2, F0.9.3) | #63-69 |
-| F0.10 | Domain Events | commit 0707cd6 |
-| F0.11 | Error Handling (RFC 7807) | #70 |
-
-#### Phase 1: Core Infrastructure ✅ COMPLETED (5/5 features)
-
-**Audit**: 2025-11-28 | **PRs**: #71-78 | **Tests**: 735 passed, 17 skipped | **Coverage**: 87%
-
-| Feature | Description | PR |
-|---------|-------------|-----|
-| F1.1 | User Authentication (JWT + opaque refresh) | #71-74 |
-| F1.1b | Authorization (Casbin RBAC) | #77 |
-| F1.2 | Rate Limiting (Token Bucket) | #78 |
-| F1.3 | Session Management (multi-device) | #75 |
-| F1.3b | Token Breach Rotation (hybrid versioning) | #76 |
-
-**Phase 1 Infrastructure Established**:
-
-- ✅ JWT authentication with opaque refresh tokens
-- ✅ Role-based authorization (Casbin RBAC: admin > user > readonly)
-- ✅ Token bucket rate limiting with Redis Lua scripts
-- ✅ Multi-device session tracking with metadata enrichment
-- ✅ Emergency token invalidation (global + per-user)
-- ✅ Email verification blocks login (enforced)
-- ✅ Account lockout after 5 failed attempts
-- ✅ Bcrypt password hashing (12 rounds)
-
-**Architecture Cleanup**: ✅ COMPLETED
-
-- All protocols consolidated under `src/domain/protocols/`
-- Application layer imports only from domain
-- No re-exports across module boundaries
-
-#### Phase 2: Domain Layer ✅ COMPLETED (3/3 features)
-
-**Audit**: 2025-12-01 | **PRs**: #80-82 | **Tests**: 1,018 passed | **Coverage**: 79%
-
-| Feature | Description | PR |
-|---------|-------------|-----|
-| F2.1 | Provider Connection (Domain Model) | #80 |
-| F2.2 | Account (Domain Model) | #81 |
-| F2.3 | Transaction (Domain Model) | #82 |
-
-**Phase 2 Domain Established**:
-
-- ✅ ProviderConnection entity with 6-state connection lifecycle
-- ✅ ProviderCredentials value object (encrypted, opaque)
-- ✅ Account entity with Money value object (Decimal precision)
-- ✅ Transaction entity (21 fields, immutable, two-level classification)
-- ✅ 9 provider domain events (3-state pattern)
-- ✅ All protocols in `src/domain/protocols/`
-
-#### Phase 3: Application Layer ✅ COMPLETED (6/6 features)
-
-**Audit**: 2025-12-01 | **PRs**: #84-89 | **Tests**: 1,176 passed | **Coverage**: 81%
-
-| Feature | Description | PR |
-|---------|-------------|-----|
-| F3.1 | Provider Connection Repository | #84 |
-| F3.2 | Account Repository | #85 |
-| F3.3 | Transaction Repository | #86 |
-| F3.4 | Provider Commands & Queries (CQRS) | #87 |
-| F3.5 | Account Commands & Queries (CQRS) | #88 |
-| F3.6 | Transaction Commands & Queries (CQRS) | #89 |
-
-**Phase 3 Application Layer Established**:
-
-- ✅ All 3 repositories with entity ↔ model mapping
-- ✅ CQRS pattern: Commands (write) + Queries (read) separation
-- ✅ 3-state domain events for all command handlers
-- ✅ DTOs for query results (Money → amount+currency conversion)
-- ✅ Container factory functions for all handlers
-
-#### Phase 4: Provider Integration ✅ COMPLETED (3/3 features)
-
-**Audit**: 2025-12-04 | **PRs**: #90-91 | **Tests**: 1,524 passed | **Coverage**: 82%
-
-| Feature | Description | PR |
-|---------|-------------|-----|
-| F4.1 | Provider OAuth Flow (Schwab) | #90 |
-| F4.2 | Schwab Account API | #91 |
-| F4.3 | Schwab Transaction API | #91 |
-
-**Phase 4 Provider Infrastructure Established**:
-
-- ✅ OAuth 2.0 Authorization Code flow (Schwab)
-- ✅ Token exchange and refresh with Result types
-- ✅ SchwabAccountsAPI + SchwabAccountMapper (JSON → ProviderAccountData)
-- ✅ SchwabTransactionsAPI + SchwabTransactionMapper (JSON → ProviderTransactionData)
-- ✅ Clean separation: API clients (HTTP) → Mappers → Provider (orchestration)
-- ✅ AES-256-GCM encryption service for credentials
-
-#### Phase 5: API Endpoints ✅ COMPLETED (3/3 features)
-
-**Audit**: 2025-12-04 | **Tests**: 1,563 passed, 17 skipped | **Coverage**: 80%
-
-| Feature | Description |
-|---------|-------------|
-| F5.1 | Provider Endpoints (7 endpoints) |
-| F5.2 | Account Endpoints (4 endpoints) |
-| F5.3 | Transaction Endpoints (4 endpoints) |
-
-**Phase 5 API Layer Established**:
-
-- ✅ RESTful provider endpoints: list, get, initiate OAuth, callback, update, disconnect, token refresh
-- ✅ RESTful account endpoints: list by user, get, sync, list by connection
-- ✅ RESTful transaction endpoints: get, sync, list by account (with date range support)
-- ✅ RFC 7807 error responses with `ErrorResponseBuilder`
-- ✅ Request/response schemas in `src/schemas/` (provider, account, transaction, common)
-- ✅ Sync command handlers with encryption service integration
-- ✅ Container factory functions for all new handlers
-
-**Key Implementation Details**:
-
-- `get_trace_id() or ""` pattern for trace_id type safety (returns `str | None`)
-- `response_model=None` required for 204 No Content endpoints
-- Auth override in tests: `app.dependency_overrides[get_current_user]` (not type alias)
-- Handler results wrapped in DTOs (e.g., `AccountListResult`, not raw lists)
-
-#### Phase 6: v1.0 Release Preparation ✅ COMPLETED (15/15 streams)
-
-**Release**: 2025-12-13 | **PR**: #96 → development, #97 → main | **Tag**: v1.0.0
-
-**Status**: ✅ COMPLETED - v1.0.0 released | **Post-Release**: All streams completed (v1.0.1-v1.1.0)
-
-**Completed Streams**:
-
-- ✅ **F6.1**: Route Organization (commit 57cf821)
-- ✅ **F6.2**: CI/CD Fixes (commit 9702cac)
-- ✅ **F6.3**: MkDocs Local Preview (commit c4bfefb)
-- ✅ **F6.4**: Architecture Compliance Audit (PR #94)
-- ✅ **F6.5**: Security Audit (PR #95) - **Grade: A (Excellent)**
-- ✅ **F6.6**: Test Cleanup (commit de1b41f)
-- ✅ **F6.7**: Documentation Updates (commit ea3a8d3)
-- ✅ **F6.8**: Version Update to 1.0.0 (commit ea3a8d3)
-- ✅ **F6.9**: Migrate API Tests to Real App Pattern (commit ce44d8a)
-- ✅ **F6.10**: Adopt freezegun for Time-Dependent Tests (commit 9d61e0a)
-- ✅ **F6.12**: Admin Authentication for Protected Endpoints (commit c3bfbf4)
-- ✅ **F6.15a**: Event Handler Wiring Completion (2025-12-24) - **100 subscriptions wired**
-- ✅ **F6.13**: API Test Coverage Improvement (2025-12-25) - **62 tests, 92% API coverage**
-- ✅ **F6.11**: Cache Optimization (2025-12-25) - **4 cache layers, metrics & key management**
-- ✅ **F6.14**: Application Handler Test Coverage (2025-12-25) - **49 tests, 86% coverage**
-- ✅ **F6.15**: IP Geolocation Integration (2025-12-25) - **MaxMind GeoIP2, 15 tests**
-
-**F6.5 Security Audit Summary** (PR #95):
-
-- **Audit Areas**: 6 (Encryption, JWT/Tokens, Rate Limiting, Audit Trail, Errors, Auth/Authz)
-- **Vulnerabilities**: 2 found, 100% remediation
-- **Documentation**: validation-architecture.md (1,293 lines), key-management.md (1,054 lines)
-- **DRY Refactoring**: Unit tests now use `.env.test` settings (no hardcoded keys)
-- **Security Grade**: A (Excellent)
-- **Compliance**: PCI-DSS, SOC 2, GDPR, NIST
-
-**Phase 6 Achievements**:
-
-- ✅ Version bumped to 1.0.0 with dynamic version reading
-- ✅ CHANGELOG.md created with comprehensive release notes
-- ✅ README.md completely rewritten (Quick Start, Security, Architecture)
-- ✅ CI/CD fixed (local CI testing, markdown linting)
-- ✅ MkDocs preview with Traefik HTTPS routing
-- ✅ 1,589 tests passing (81% coverage, 17 skipped)
-- ✅ Zero lint violations, strict type checking
-- ✅ All architecture docs verified and updated
-
-**F6.15 Event Handler Wiring Summary** (completed 2025-12-24):
-
-- ✅ **Inventory**: 54 domain events defined, 26 missing handlers identified
-- ✅ **Handler Methods**: Added 15 methods each to LoggingEventHandler + AuditEventHandler
-- ✅ **Audit Actions**: Added 6 new AuditAction enums (token rotation)
-- ✅ **Container Wiring**: 30 new subscriptions (15 events × 2 handlers)
-- ✅ **Registry Test**: Verification test ensures all events have handlers (prevents drift)
-- ✅ **Integration Tests**: 5 end-to-end event flow tests added (419 total passing)
-- ✅ **Documentation**: Container docstring + WARP.md updated with final counts
-- ✅ **Result**: 100 total subscriptions, 46 events fully wired (15 workflows + 1 operational)
-
-- ✅ **F6.13**: API Test Coverage Improvement (2025-12-25) - **62 tests added, 92% API coverage**
-
-**F6.13 API Test Coverage Summary** (completed 2025-12-25):
-
-- ✅ **Phase 1-7**: Systematic coverage improvement across 8 API endpoint files
-- ✅ **Test Files Created**: 7 new test files (test_users_api.py, test_tokens_api.py, test_password_resets_api.py, test_email_verifications_api.py, test_providers_callback_refresh.py, test_accounts_edge_cases.py, test_transactions_edge_cases.py)
-- ✅ **Coverage Improvements**: users.py (46% → 100%), tokens.py (50% → 100%), password_resets.py (48% → 100%), email_verifications.py (50% → 100%), providers.py (60% → 87%), accounts.py (91% → 94%)
-- ✅ **API v1 Layer**: 92% coverage (exceeds 85% target)
-- ✅ **Overall Coverage**: 81% → 83% (+2%)
-- ✅ **Total Tests**: 1597 → 1659 (+62 tests)
-- ✅ **Quality**: Zero lint violations, strict type checking passing
-
-- ✅ **F6.11**: Cache Optimization (2025-12-25) - **4 cache layers, metrics & key management**
-
-**F6.11 Cache Optimization Summary** (completed 2025-12-25):
-
-- ✅ **Phases 1-9**: Complete implementation with performance verification
-- ✅ **Cache Infrastructure**: CacheMetrics (thread-safe tracking), CacheKeys (centralized patterns)
-- ✅ **Provider Connection Cache**: ~10x faster (<5ms vs ~50ms), 5-min TTL
-- ✅ **Schwab API Cache**: 70-90% reduction in external API calls, 5-min TTL
-- ✅ **Account List Cache**: 50-70% reduction in DB queries, unfiltered lists only
-- ✅ **Security Config Cache**: Reduced token refresh DB load, 1-min TTL (security-sensitive)
-- ✅ **Test Coverage**: 13 integration tests (cache_optimization, cache_provider_connection, cache_performance)
-- ✅ **Documentation**: cache-key-patterns.md (354 lines), cache-usage.md updated
-- ✅ **Performance Verified**: >20% improvement cache hit vs miss, fail-open confirmed
-- ✅ **Total Tests**: 1659 → 1672 (+13 tests, 9 commits)
-- ✅ **Overall Coverage**: 83% maintained, zero regressions
-- ❌ **Phase 3 Skipped**: User Data Cache deferred to v1.1.0+ (low ROI)
-
-- ✅ **F6.14**: Application Handler Test Coverage Improvement (2025-12-25) - **49 tests added, 86% coverage**
-
-**F6.14 Application Handler Test Coverage Summary** (completed 2025-12-25):
-
-- ✅ **Phase 1-5**: Systematic coverage improvement across application layer handlers
-- ✅ **Test Files Created**: 4 new test files (test_sync_handlers.py, test_auth_flow_handlers.py, test_core_validation.py, test_value_objects_email_password.py)
-- ✅ **Coverage Improvements**: sync_transactions_handler.py (22% → 100%), sync_accounts_handler.py (30% → 100%), auth flow handlers (45-54% → 100%), core/validation.py (17% → 100%)
-- ✅ **Application Layer**: Exceeds 85% target
-- ✅ **Overall Coverage**: 83% → 86% (+3%)
-- ✅ **Total Tests**: 1672 → 1731 (+49 tests)
-- ✅ **Bug Fixes**: Fixed docker-compose.test.yml uv.lock mount (read-only → read-write)
-- ✅ **Quality**: Zero lint violations, strict type checking passing
-
-- ✅ **F6.15**: IP Geolocation Integration (2025-12-25) - **MaxMind GeoIP2, v1.1.0 released**
-
-**F6.15 IP Geolocation Summary** (completed 2025-12-25):
-
-- ✅ **Phases 1-8**: Complete integration with MaxMind GeoLite2-City database
-- ✅ **Infrastructure**: IPLocationEnricher with lazy-loaded GeoIP2 reader, fail-open behavior
-- ✅ **Features**: City-level geolocation, private IP detection, latitude/longitude extraction
-- ✅ **Performance**: ~10-20ms lookups (in-memory file), first lookup loads database
-- ✅ **Configuration**: GEOIP_DB_PATH setting (default: `/app/data/geoip/GeoLite2-City.mmdb`)
-- ✅ **Architecture Refactor**: Both enrichers (device + location) now use LoggerProtocol injection
-- ✅ **Test Coverage**: 15 integration tests covering all scenarios (private IPs, fail-open, lazy loading)
-- ✅ **Documentation**: Updated session-management-usage.md with 135 lines of GeoIP2 setup guide
-- ✅ **Total Tests**: 1731 → 1746 (+15 tests, 13 passed + 2 skipped if database unavailable)
-- ✅ **Overall Coverage**: 86% maintained
-- ✅ **Quality**: Zero lint violations, strict type checking, all tests passing
-- ✅ **Release**: v1.1.0 (minor version bump for new feature)
-
-#### Phase 7: Provider Capabilities & Data Models ✅ COMPLETED (5/5 features)
-
-**Release**: 2025-12-27 | **Tag**: v1.4.0 | **Tests**: 2,100+ passed | **Coverage**: 87%
-
-| Feature | Description |
-|---------|-------------|
-| F7.1 | Alpaca Provider Integration (API Key auth) |
-| F7.2 | Chase File Import Provider (File Import auth) |
-| F7.4 | Provider-Specific Entities (Holdings Support) |
-| F7.5 | Balance Tracking |
-
-**Phase 7 Established**:
-
-- ✅ **F7.4**: Holdings domain entity with cost basis, market value, unrealized gains
-- ✅ **F7.4**: AssetType enum (STOCK, ETF, MUTUAL_FUND, BOND, OPTION, CRYPTO, CASH, OTHER)
-- ✅ **F7.4**: HoldingRepository protocol and PostgreSQL implementation
-- ✅ **F7.4**: Schwab holdings API client and mapper integration
-- ✅ **F7.4**: Holdings CQRS handlers (sync, get, list, list by account)
-- ✅ **F7.4**: Holdings API endpoints (3 endpoints)
-- ✅ **F7.5**: BalanceSnapshot entity (frozen/immutable) for point-in-time history
-- ✅ **F7.5**: SnapshotSource enum (ACCOUNT_SYNC, HOLDINGS_SYNC, MANUAL_ENTRY, SCHEDULED_SYNC)
-- ✅ **F7.5**: BalanceSnapshotRepository protocol and PostgreSQL implementation
-- ✅ **F7.5**: Automatic balance capture during sync operations
-- ✅ **F7.5**: Balance snapshot CQRS handlers (latest, list, history)
-- ✅ **F7.5**: Balance Snapshots API endpoints (3 endpoints)
-- ✅ Provider capability flags (HAS_HOLDINGS, HAS_BALANCE_HISTORY)
-- ✅ 232 new tests added (1,746 → 1,978)
-- ✅ Coverage increased to 87%
-- ✅ **F7.1**: Alpaca provider (first API Key provider) with 101 tests, 100% coverage
-- ✅ **F7.2**: Chase File Import provider (first File Import provider) with 80+ tests
-
-**F7.1 Alpaca Provider Summary** (completed 2025-12-26):
-
-- ✅ **Provider**: AlpacaProvider implementing auth-agnostic ProviderProtocol
-- ✅ **API Clients**: AlpacaAccountsAPI (account + positions), AlpacaTransactionsAPI (activities)
-- ✅ **Mappers**: Account, Holding, Transaction mappers with comprehensive field mapping
-- ✅ **Authentication**: API Key headers (APCA-API-KEY-ID, APCA-API-SECRET-KEY)
-- ✅ **Environments**: Paper (sandbox) and Live support
-- ✅ **Tests**: 101 tests with 100% coverage on all Alpaca provider code
-- ✅ **Documentation**: Added API-key provider section to adding-new-providers.md
-- ✅ **Total Tests**: 1,978 → 2,079 (+101 tests)
-
-**F7.4 Holdings Summary** (completed 2025-12-26):
-
-- ✅ **Domain**: Holding entity with Money value objects for cost_basis, market_value, unrealized_gain_loss
-- ✅ **Infrastructure**: PostgreSQL model with proper indexes, repository with upsert logic
-- ✅ **Provider**: SchwabHoldingsAPI + SchwabHoldingMapper for provider-agnostic data
-- ✅ **Application**: CQRS handlers with proper error handling and Result types
-- ✅ **API**: RESTful endpoints following existing patterns
-- ✅ **Tests**: 120+ tests covering entity, repository, handlers, API
-
-**F7.5 Balance Tracking Summary** (completed 2025-12-26):
-
-- ✅ **Domain**: BalanceSnapshot (frozen dataclass) for immutable point-in-time records
-- ✅ **Infrastructure**: PostgreSQL model with composite indexes for efficient queries
-- ✅ **Application**: Query handlers for latest snapshot, history with date ranges
-- ✅ **API**: RESTful endpoints with proper pagination and filtering
-- ✅ **Integration**: Automatic capture during account/holdings sync
-- ✅ **Tests**: 80+ tests covering all functionality
-
-**Documentation Created**:
-
-- ✅ `docs/architecture/holding-domain-model.md` (339 lines)
-- ✅ `docs/architecture/balance-tracking-architecture.md` (429 lines)
-- ✅ `docs/api/holdings-api.md` (263 lines)
-- ✅ `docs/api/balance-snapshots-api.md` (277 lines)
-- ✅ Updated `adding-new-providers.md` with Phase 9 (Holdings) and Phase 10 (Balance Tracking)
-- ✅ Updated `provider-integration-architecture.md` with holdings support
-- ✅ Updated `mkdocs.yml` and `index.md` with all new docs
-
-**F7.2 Chase File Import Summary** (completed 2025-12-27):
-
-- ✅ **Provider Type**: First File Import provider (credentials via file_content)
-- ✅ **Parsers**: QFX/OFX parser (ofxparse), CSV parser (checking + credit card formats)
-- ✅ **Infrastructure**: ChaseFileProvider implementing auth-agnostic ProviderProtocol
-- ✅ **Application**: ImportFromFile command with ImportFromFileHandler
-- ✅ **API**: File upload endpoint (`POST /api/v1/imports`) with multipart form data
-- ✅ **Features**: Auto account creation from file, duplicate detection by FITID, balance snapshots
-- ✅ **Seed Data**: Chase provider seeded with FILE_IMPORT credential type
-- ✅ **Tests**: 80+ tests covering parsers, provider, handler, API endpoints
-- ✅ **Documentation**: `chase-file-import.md` user guide, updated `adding-new-providers.md`
-- ✅ **Architecture**: Updated `provider-integration-architecture.md` with all three provider types
-- ⚠️ **Deferred**: Domain events (FileImportAttempted/Succeeded/Failed) deferred to F7.7 (see roadmap)
+**GitHub Releases**: <https://github.com/faiyaz7283/Dashtam/releases>
 
 ---
 
@@ -644,15 +315,13 @@ class GetUserHandler:
 **Example Events**:
 
 ```python
-# Authentication events (12 total)
+# Authentication events
 UserRegistrationAttempted, UserRegistrationSucceeded, UserRegistrationFailed
 UserLoginAttempted, UserLoginSucceeded, UserLoginFailed
-UserPasswordChangeAttempted, UserPasswordChangeSucceeded, UserPasswordChangeFailed
-TokenRefreshAttempted, TokenRefreshSucceeded, TokenRefreshFailed
 
-# Provider events (Phase 2+)
-ProviderConnectionAttempted, ProviderConnectionSucceeded, ProviderConnectionFailed
-ProviderTokenRefreshAttempted, ProviderTokenRefreshSucceeded, ProviderTokenRefreshFailed
+# Data sync events
+AccountSyncAttempted, AccountSyncSucceeded, AccountSyncFailed
+TransactionSyncAttempted, TransactionSyncSucceeded, TransactionSyncFailed
 ```
 
 **Event Definition**:
@@ -674,7 +343,7 @@ class UserRegistrationSucceeded(DomainEvent):
 
 **When to Use Events**:
 
-- ✅ **Critical workflows**: 3+ side effects OR requires ATTEMPT → OUTCOME audit (17 workflows total: 7 auth, 4 provider, 3 data, 3 admin)
+- ✅ **Critical workflows**: 3+ side effects OR requires ATTEMPT → OUTCOME audit
 - ✅ **Operational events**: Single-state observability/monitoring (activity tracking, security monitoring) - NOT 3-state pattern
 - ❌ **NOT for** simple reads or single-step operations
 
@@ -682,7 +351,83 @@ class UserRegistrationSucceeded(DomainEvent):
 
 ---
 
-### 6. File and Directory Structure
+### 6. Event Registry Pattern (Single Source of Truth)
+
+**Core Principle**: All domain events cataloged in `src/domain/events/registry.py` with automated container wiring.
+
+**Purpose**:
+
+- Single source of truth for all events
+- Self-enforcing (tests fail if handlers missing)
+- Auto-wiring (container uses registry)
+- Gap detection built-in
+- Future-proof (can't drift silently)
+
+**Architecture**:
+
+```text
+src/domain/events/
+├── registry.py           # EVENT_REGISTRY - single source of truth
+├── auth_events.py        # Authentication events
+├── provider_events.py    # Provider events
+├── data_events.py        # Data sync events
+├── session_events.py     # Session events
+└── rate_limit_events.py  # Rate limit events
+```
+
+**Registry Entry Pattern**:
+
+```python
+EventMetadata(
+    event_class=UserRegistrationAttempted,
+    category=EventCategory.AUTHENTICATION,
+    workflow_name="user_registration",
+    phase=WorkflowPhase.ATTEMPTED,
+    requires_logging=True,
+    requires_audit=True,
+    requires_email=False,
+    requires_session=False,
+    audit_action_name="USER_REGISTRATION_ATTEMPTED",
+)
+```
+
+**Process for Adding New Events** (enforced by design):
+
+1. Define event dataclass in `*_events.py`
+2. Add entry to `EVENT_REGISTRY`
+3. Run tests → they tell you what's missing
+4. Add handler methods
+5. Add AuditAction enum (if needed)
+6. Tests pass ✅ (container auto-wires)
+
+**Container Auto-Wiring** (in `src/core/container/events.py`):
+
+```python
+# Registry-driven subscription - replaces manual wiring
+for metadata in EVENT_REGISTRY:
+    if metadata.requires_logging:
+        event_bus.subscribe(
+            metadata.event_class,
+            _get_handler_method(logging_handler, metadata)
+        )
+    if metadata.requires_audit:
+        event_bus.subscribe(
+            metadata.event_class,
+            _get_handler_method(audit_handler, metadata)
+        )
+```
+
+**Validation Tests** (prevent drift):
+
+- `test_all_events_have_handler_methods()` - Fails if handler methods missing
+- `test_all_events_have_audit_actions()` - Fails if AuditAction enum missing
+- `test_registry_statistics()` - Verify counts match expectations
+
+**Reference**: `src/domain/events/registry.py`, `tests/unit/test_domain_events_registry_compliance.py`
+
+---
+
+### 7. File and Directory Structure
 
 **Core Principle**: Hexagonal layers with protocol consolidation and flat test/docs structure.
 
@@ -1049,14 +794,13 @@ git push origin development
 1. [ ] Update version in `pyproject.toml`
 2. [ ] Run `uv lock` (inside container) to update lockfile
 3. [ ] Update `CHANGELOG.md` with release notes
-4. [ ] Update `WARP.md` with completion status
-5. [ ] Commit, push, create PR to `development`
-6. [ ] Wait for CI, merge PR to `development`
-7. [ ] Create PR from `development` → `main`
-8. [ ] Merge PR to `main`
-9. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
-10. [ ] Push tag: `git push origin vX.Y.Z`
-11. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
+4. [ ] Commit, push, create PR to `development`
+5. [ ] Wait for CI, merge PR to `development`
+6. [ ] Create PR from `development` → `main`
+7. [ ] Merge PR to `main`
+8. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
+9. [ ] Push tag: `git push origin vX.Y.Z`
+10. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
 
 #### Version Bumping & Tagging Strategy
 
@@ -1065,28 +809,6 @@ git push origin development
 - **MAJOR**: Breaking changes to public API
 - **MINOR**: New features (backward compatible)
 - **PATCH**: Bug fixes, internal refactors (backward compatible)
-
-##### Recommended Approach: Batch Patches, Tag on Release
-
-- **PATCH versions** accumulate in `development` without tags
-- **Tags created only when releasing to `main`**
-- Fewer tags, cleaner history, practical for applications
-
-**Flow Example**:
-
-```text
-development: v1.2.0 → v1.2.1 (hotfix) → v1.2.2 (fix) → v1.2.3 (feature)
-                                                              ↓
-main:        v1.2.0 ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←← release → v1.2.3 (tag here)
-```
-
-**When to Bump Version**:
-
-| Action | Bump Version? | Tag? | Sync main→dev? |
-|--------|---------------|------|----------------|
-| Hotfix/patch to development | Optional | No | No |
-| Feature to development | Optional | No | No |
-| Release development → main | Yes (if not already) | **Yes** | **Yes** |
 
 **Key Rules**:
 
@@ -1322,7 +1044,7 @@ await audit.record(action=AuditAction.USER_REGISTRATION_FAILED, ...)
 
 ---
 
-### 17. Authentication & Security (Phase 1 Infrastructure)
+### 17. Authentication & Security
 
 #### JWT + Opaque Refresh Tokens
 
@@ -1347,57 +1069,9 @@ await audit.record(action=AuditAction.USER_REGISTRATION_FAILED, ...)
 - Bcrypt password hashing (12 rounds)
 - Refresh token rotation on use
 
-#### Session Management (Multi-Device)
-
-**Session Metadata**:
-
-```python
-@dataclass
-class Session:
-    id: UUID
-    user_id: UUID
-    device_info: str          # "Chrome on macOS"
-    ip_address: str
-    location: str | None      # "New York, US"
-    created_at: datetime
-    last_activity: datetime
-    is_revoked: bool
-    refresh_token_hash: str
-    token_rotation_count: int
-```
-
-**Operations**:
-
-- `GET /sessions` - List all sessions for user
-- `DELETE /sessions/{id}` - Revoke specific session
-- `DELETE /sessions` - Revoke all sessions except current
-
-#### Token Breach Rotation (Hybrid Versioning)
-
-**Emergency invalidation with hybrid versioning**:
-
-```python
-# Global rotation (all users)
-POST /api/v1/admin/security/rotations
-# Increments global_min_token_version
-
-# Per-user rotation
-POST /api/v1/admin/users/{user_id}/rotations
-# Increments user.min_token_version
-
-# Token validation
-token_version >= max(global_min_token_version, user.min_token_version)
-```
-
-**Grace Period**: Configurable (default 5 min) for gradual rotation.
-
 #### Authorization (Casbin RBAC)
 
 **Role Hierarchy**: `admin > user > readonly`
-
-**Permissions** (15 across 5 resources):
-
-- `users:*`, `sessions:*`, `providers:*`, `accounts:*`, `transactions:*`
 
 **FastAPI Dependencies**:
 
@@ -1418,16 +1092,6 @@ async def delete_provider(
 #### Rate Limiting (Token Bucket)
 
 **Algorithm**: Token bucket with Redis Lua scripts (atomic, no race conditions).
-
-**Configuration**:
-
-```python
-RATE_LIMIT_RULES = {
-    "POST /sessions": RateLimitRule(capacity=5, refill_rate=1/60),      # 5/min
-    "POST /users": RateLimitRule(capacity=10, refill_rate=1/60),        # 10/min
-    "default": RateLimitRule(capacity=100, refill_rate=100/60),         # 100/min
-}
-```
 
 **Response Headers** (RFC 6585):
 
@@ -1485,61 +1149,9 @@ make docs-build   # Must pass with ZERO warnings
 
 ---
 
-### 19. API Documentation
-
-**Location**: `docs/api/`
-
-**Structure**:
-
-```text
-docs/api/
-├── auth-registration.md     # User registration flow
-├── auth-login.md            # Login flow
-├── auth-password-reset.md   # Password reset flow
-├── providers-oauth-flow.md  # Provider OAuth flow
-└── accounts-account-sync.md # Account sync flow
-```
-
-**Each Flow Includes**:
-
-1. Purpose
-2. Prerequisites
-3. Step-by-step curl commands
-4. Expected responses
-5. Troubleshooting
-
----
-
-### 20. Architecture Documentation
-
-**Location**: `docs/architecture/`
-
-**When to Document**:
-
-- New architectural patterns
-- Technology choices
-- Security decisions
-- Major refactors
-- Infrastructure changes
-
-**Use Mermaid Diagrams**:
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant Database
-    User->>API: POST /users
-    API->>Database: Save user
-    Database-->>API: User created
-    API-->>User: 201 Created
-```
-
----
-
 ## Part 6: AI Agent Instructions
 
-### 21. AI Agent Workflow
+### 19. AI Agent Workflow
 
 **CRITICAL**: AI agents MUST follow the development workflow for ALL features.
 
@@ -1629,30 +1241,11 @@ async def create_user(
 - Committing without running tests
 - Using ABC instead of Protocol
 
-#### Architecture Compliance Audit Process
-
-**For each architecture document audit** (e.g., F6.4), follow this checklist:
-
-1. **Read & Analyze** - Review the architecture doc for industry standard compliance
-2. **Identify Gaps** - Note any missing patterns, improvements needed
-3. **Verify Code** - Check source code implements the documented architecture
-4. **Verify Tests** - Ensure tests correctly validate the architecture
-5. **Fix & Add Tests** - Address any test gaps
-6. **Create Usage Guide** - Add practical how-to guide in `docs/guides/`
-7. **Run Verification** - `make lint`, `make format`, `make type-check`, `make test`, `make lint-md`
-
-**Usage Guide Pattern** (create for each architecture doc):
-
-- Location: `docs/guides/<topic>-usage.md`
-- Purpose: Practical how-to patterns (vs architecture doc which explains *what* and *why*)
-- Sections: Quick Start, Adding New X, Testing, Common Patterns, Troubleshooting
-- Example: `dependency-injection-usage.md` pairs with `dependency-injection-architecture.md`
-
 ---
 
 ## Part 7: Quick Reference
 
-### 22. Development Checklist Summary
+### 20. Development Checklist Summary
 
 **Pre-Development** (Get Approval First):
 
@@ -1684,46 +1277,7 @@ async def create_user(
 
 ---
 
-### 23. DRY Principle Quick Guide
-
-**Rule**: Extract at 2nd occurrence (not 3rd).
-
-#### Types of Redundancy
-
-1. **Within-file**: Same code block repeated → Extract to helper function
-2. **Cross-file**: Similar logic in multiple files → Extract to shared utility
-3. **Test**: Repeated setup → Extract to pytest fixture
-4. **Configuration**: Hardcoded values → Move to Settings
-
-#### Red Flags (Immediate Extraction)
-
-- ❌ Same dict structure 2+ times
-- ❌ Same validation logic in multiple places
-- ❌ Identical try/except blocks
-- ❌ Copy-pasted test setup
-- ❌ Hardcoded config values
-
-#### Extraction Locations
-
-| Type | Location |
-|------|----------|
-| Domain helpers | `src/domain/services/` or `src/domain/utils.py` |
-| Application helpers | `src/application/services/` |
-| Infrastructure helpers | `src/infrastructure/utils.py` |
-| Test helpers | `tests/conftest.py` |
-| Validation | `src/domain/validators.py` |
-
-#### Verification
-
-```bash
-# Find duplicate patterns
-grep -r "patch.dict(os.environ" tests/  # Test env duplicates
-grep -r "if not is_valid" src/           # Validation duplicates
-```
-
----
-
-### 24. Key Technical Decisions
+### 21. Key Technical Decisions
 
 #### Why Hexagonal Architecture?
 
@@ -1756,11 +1310,12 @@ grep -r "if not is_valid" src/           # Validation duplicates
 - **Modern**: Built-in virtual environment, project management
 - **Reliable**: Deterministic builds with `uv.lock`
 
-#### Why Shared Traefik Infrastructure?
+#### Why Event Registry Pattern?
 
-- **Multi-Project**: Single reverse proxy serves all development projects
-- **Zero Port Conflicts**: Domain-based routing eliminates collision issues
-- **Production-Like**: Dev environment mirrors production routing
+- **Single Source of Truth**: All events cataloged in one place
+- **Self-Enforcing**: Tests fail if handlers missing
+- **Auto-Wiring**: Container uses registry, no manual subscription
+- **Future-Proof**: Can't drift silently
 
 ---
 
@@ -1781,6 +1336,7 @@ grep -r "if not is_valid" src/           # Validation duplicates
 3. ✅ Protocol over ABC - Structural typing
 4. ✅ Result types - Domain returns Result, no exceptions
 5. ✅ REST compliance - 100% RESTful (no controller-style endpoints)
+6. ✅ Event Registry - Single source of truth for domain events
 
 **Quality**:
 
@@ -1796,4 +1352,4 @@ grep -r "if not is_valid" src/           # Validation duplicates
 
 ---
 
-**Last Updated**: 2025-12-25
+**Last Updated**: 2025-12-28

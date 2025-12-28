@@ -2,7 +2,8 @@
 """Event bus dependency factory.
 
 Application-scoped singleton for domain event publishing.
-Configures all event handlers and subscriptions at startup.
+Configures all event handlers and subscriptions at startup using
+registry-driven auto-wiring (F7.7: Domain Events Compliance Audit).
 
 Reference:
     See docs/architecture/domain-events-architecture.md for complete
@@ -28,23 +29,33 @@ def get_event_bus() -> "EventBusProtocol":
         - 'rabbitmq': RabbitMQEventBus (future, distributed)
         - 'kafka': KafkaEventBus (future, high-volume)
 
-    Event handlers are registered at startup (ALL 100 subscriptions):
-        - LoggingEventHandler: 46 events (ALL ATTEMPT/SUCCEEDED/FAILED for 15 workflows +
-          1 operational event: TokenRejectedDueToRotation)
-        - AuditEventHandler: 46 events (ALL ATTEMPT/SUCCEEDED/FAILED for 15 workflows +
-          1 operational event: TokenRejectedDueToRotation)
-        - EmailEventHandler: 5 SUCCEEDED events (registration, password change,
-          email verification, password reset request, password reset confirm)
-        - SessionEventHandler: 3 SUCCEEDED events (password change, password reset
-          confirm, user logout)
+    Event handlers are AUTOMATICALLY registered at startup using EVENT_REGISTRY
+    (F7.7: Registry-driven auto-wiring). The registry defines ALL event metadata
+    (category, workflow, phase, handler requirements) and this factory:
+        1. Loops through EVENT_REGISTRY
+        2. Dynamically computes handler method names from workflow_name + phase
+        3. Subscribes handlers based on metadata.requires_* flags
 
-    F6.15 Complete: All 46 events fully wired (15 critical workflows):
-        Authentication (7): Registration, Login, Logout, PasswordChange, EmailVerification,
-            PasswordResetRequest, PasswordResetConfirm, AuthTokenRefresh
-        Authorization (4): GlobalTokenRotation, UserTokenRotation, RoleAssignment,
-            RoleRevocation
-        Provider (3): ProviderConnection, ProviderDisconnection, ProviderTokenRefresh
-        Operational (1): TokenRejectedDueToRotation
+    Current Registry Status (69 events, 143 subscriptions across 7 categories):
+        - Authentication (31): 8 workflows × 3-state + 1 operational
+        - Authorization (6): 2 workflows × 3-state
+        - Provider (9): 3 workflows × 3-state
+        - Data Sync (12): 4 workflows × 3-state
+        - Session (8): Session lifecycle + operational events
+        - Rate Limit (3): Rate limit operational events
+        - Admin (0): Future administrative events
+
+    Subscription Breakdown (143 total):
+        - LoggingEventHandler: 69 (all events)
+        - AuditEventHandler: 66 (all except 3 operational)
+        - EmailEventHandler: 5 (registration, verification, password reset)
+        - SessionEventHandler: 3 (password change, token rotation)
+
+    Benefits of registry-driven approach:
+        - Single source of truth (registry.py)
+        - Self-validating (tests fail if handlers/audit actions missing)
+        - Automatic wiring (adding event = add to registry, tests enforce rest)
+        - No drift (manual code eliminated)
 
     Returns:
         Event bus implementing EventBusProtocol.
@@ -65,58 +76,15 @@ def get_event_bus() -> "EventBusProtocol":
     import os
 
     from src.core.config import get_settings
-    from src.domain.events.auth_events import (
-        AuthTokenRefreshAttempted,
-        AuthTokenRefreshFailed,
-        AuthTokenRefreshSucceeded,
-        EmailVerificationAttempted,
-        EmailVerificationFailed,
-        EmailVerificationSucceeded,
-        GlobalTokenRotationAttempted,
-        GlobalTokenRotationFailed,
-        GlobalTokenRotationSucceeded,
-        PasswordResetConfirmAttempted,
-        PasswordResetConfirmFailed,
-        PasswordResetConfirmSucceeded,
-        PasswordResetRequestAttempted,
-        PasswordResetRequestFailed,
-        PasswordResetRequestSucceeded,
-        TokenRejectedDueToRotation,
-        UserLoginAttempted,
-        UserLoginFailed,
-        UserLoginSucceeded,
-        UserLogoutAttempted,
-        UserLogoutFailed,
-        UserLogoutSucceeded,
-        UserPasswordChangeAttempted,
-        UserPasswordChangeFailed,
-        UserPasswordChangeSucceeded,
-        UserRegistrationAttempted,
-        UserRegistrationFailed,
-        UserRegistrationSucceeded,
-        UserTokenRotationAttempted,
-        UserTokenRotationFailed,
-        UserTokenRotationSucceeded,
-    )
-    from src.domain.events.authorization_events import (
-        RoleAssignmentAttempted,
-        RoleAssignmentFailed,
-        RoleAssignmentSucceeded,
-        RoleRevocationAttempted,
-        RoleRevocationFailed,
-        RoleRevocationSucceeded,
-    )
-    from src.domain.events.provider_events import (
-        ProviderConnectionAttempted,
-        ProviderConnectionFailed,
-        ProviderConnectionSucceeded,
-        ProviderDisconnectionAttempted,
-        ProviderDisconnectionFailed,
-        ProviderDisconnectionSucceeded,
-        ProviderTokenRefreshAttempted,
-        ProviderTokenRefreshFailed,
-        ProviderTokenRefreshSucceeded,
-    )
+    from src.domain.events.registry import EVENT_REGISTRY
+
+    # Load settings from centralized config (single source of truth)
+    settings = get_settings()
+
+    # Strict mode: Fail-fast if handler methods missing (production safety)
+    # Graceful mode: Skip missing handlers, continue (development flexibility)
+    # Default: false (graceful) until F7.7 Phase 2-8 complete, then switch to true
+    EVENTS_STRICT_MODE = settings.events_strict_mode
     from src.infrastructure.events.handlers.audit_event_handler import AuditEventHandler
     from src.infrastructure.events.handlers.email_event_handler import EmailEventHandler
     from src.infrastructure.events.handlers.logging_event_handler import (
@@ -164,407 +132,117 @@ def get_event_bus() -> "EventBusProtocol":
     session_handler = SessionEventHandler(logger=get_logger())
 
     # =========================================================================
-    # Subscribe ALL handlers to events (27 subscriptions total)
+    # REGISTRY-DRIVEN AUTO-WIRING (F7.7: Domain Events Compliance Audit)
     # =========================================================================
+    # Instead of manually subscribing ~100 handlers to events, we use the
+    # EVENT_REGISTRY as the single source of truth. This eliminates ~500 lines
+    # of manual subscription code and prevents drift.
+    #
+    # For each event in EVENT_REGISTRY:
+    #   1. Compute handler method name: handle_{workflow_name}_{phase}
+    #   2. Subscribe handlers based on metadata.requires_* flags
+    #
+    # Benefits:
+    #   - Adding new event: Just add to registry, tests enforce rest
+    #   - No manual subscription management
+    #   - Can't drift (tests fail if handler methods missing)
+    #
     # NOTE: mypy shows arg-type errors because handler signatures are more specific
     # (e.g., Callable[[UserRegistrationAttempted], Awaitable[None]]) than the
     # EventHandler type alias (Callable[[DomainEvent], Awaitable[None]]). This is
     # correct by contravariance principle - handlers accepting specific events can
     # safely handle the base type. Runtime behavior is sound, so we suppress mypy
     # at file level (first line of this file).
+    # =========================================================================
 
-    # User Registration Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        UserRegistrationAttempted, logging_handler.handle_user_registration_attempted
-    )
-    event_bus.subscribe(
-        UserRegistrationAttempted, audit_handler.handle_user_registration_attempted
-    )
+    logger = get_logger()
 
-    event_bus.subscribe(
-        UserRegistrationSucceeded, logging_handler.handle_user_registration_succeeded
-    )
-    event_bus.subscribe(
-        UserRegistrationSucceeded, audit_handler.handle_user_registration_succeeded
-    )
-    event_bus.subscribe(
-        UserRegistrationSucceeded, email_handler.handle_user_registration_succeeded
-    )  # +1 email
+    for metadata in EVENT_REGISTRY:
+        event_class = metadata.event_class
 
-    event_bus.subscribe(
-        UserRegistrationFailed, logging_handler.handle_user_registration_failed
-    )
-    event_bus.subscribe(
-        UserRegistrationFailed, audit_handler.handle_user_registration_failed
-    )
+        # Compute handler method name from workflow_name + phase
+        # E.g., "user_registration" + "attempted" = "handle_user_registration_attempted"
+        method_name = f"handle_{metadata.workflow_name}_{metadata.phase.value}"
 
-    # User Password Change Events (3 events × 2 handlers + email + session = 9 subscriptions)
-    event_bus.subscribe(
-        UserPasswordChangeAttempted,
-        logging_handler.handle_user_password_change_attempted,
-    )
-    event_bus.subscribe(
-        UserPasswordChangeAttempted, audit_handler.handle_user_password_change_attempted
-    )
+        # Subscribe handlers based on metadata requirements
+        # Mode-dependent behavior:
+        #   - STRICT (production): Crash if required handler missing
+        #   - GRACEFUL (development): Skip missing handlers, log warning
+        if metadata.requires_logging:
+            handler_method = getattr(logging_handler, method_name, None)
+            if not handler_method:
+                if EVENTS_STRICT_MODE:
+                    raise RuntimeError(
+                        f"EVENTS_STRICT_MODE: Missing required logging handler\n"
+                        f"Event: {event_class.__name__}\n"
+                        f"Expected method: LoggingEventHandler.{method_name}\n\n"
+                        f"Fix: Implement handler in src/infrastructure/events/handlers/logging_event_handler.py\n"
+                        f"Or disable strict mode: Set EVENTS_STRICT_MODE=false in .env"
+                    )
+                logger.warning(
+                    "Missing logging handler (graceful mode)",
+                    event_class=event_class.__name__,
+                    handler_method=method_name,
+                )
+            else:
+                event_bus.subscribe(event_class, handler_method)
 
-    event_bus.subscribe(
-        UserPasswordChangeSucceeded,
-        logging_handler.handle_user_password_change_succeeded,
-    )
-    event_bus.subscribe(
-        UserPasswordChangeSucceeded, audit_handler.handle_user_password_change_succeeded
-    )
-    event_bus.subscribe(
-        UserPasswordChangeSucceeded, email_handler.handle_user_password_change_succeeded
-    )  # +1 email
-    event_bus.subscribe(
-        UserPasswordChangeSucceeded,
-        session_handler.handle_user_password_change_succeeded,
-    )  # +1 session
+        if metadata.requires_audit:
+            handler_method = getattr(audit_handler, method_name, None)
+            if not handler_method:
+                if EVENTS_STRICT_MODE:
+                    raise RuntimeError(
+                        f"EVENTS_STRICT_MODE: Missing required audit handler (COMPLIANCE CRITICAL)\n"
+                        f"Event: {event_class.__name__}\n"
+                        f"Expected method: AuditEventHandler.{method_name}\n\n"
+                        f"Audit handlers are REQUIRED for PCI-DSS/SOC 2 compliance.\n"
+                        f"Fix: Implement handler in src/infrastructure/events/handlers/audit_event_handler.py\n"
+                        f"Or disable strict mode: Set EVENTS_STRICT_MODE=false in .env"
+                    )
+                logger.warning(
+                    "Missing audit handler (graceful mode - COMPLIANCE RISK)",
+                    event_class=event_class.__name__,
+                    handler_method=method_name,
+                )
+            else:
+                event_bus.subscribe(event_class, handler_method)
 
-    event_bus.subscribe(
-        UserPasswordChangeFailed, logging_handler.handle_user_password_change_failed
-    )
-    event_bus.subscribe(
-        UserPasswordChangeFailed, audit_handler.handle_user_password_change_failed
-    )
+        if metadata.requires_email:
+            handler_method = getattr(email_handler, method_name, None)
+            if not handler_method:
+                if EVENTS_STRICT_MODE:
+                    raise RuntimeError(
+                        f"EVENTS_STRICT_MODE: Missing required email handler\n"
+                        f"Event: {event_class.__name__}\n"
+                        f"Expected method: EmailEventHandler.{method_name}\n\n"
+                        f"Fix: Implement handler in src/infrastructure/events/handlers/email_event_handler.py\n"
+                        f"Or disable strict mode: Set EVENTS_STRICT_MODE=false in .env"
+                    )
+                logger.warning(
+                    "Missing email handler (graceful mode)",
+                    event_class=event_class.__name__,
+                    handler_method=method_name,
+                )
+            else:
+                event_bus.subscribe(event_class, handler_method)
 
-    # Provider Connection Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        ProviderConnectionAttempted,
-        logging_handler.handle_provider_connection_attempted,
-    )
-    event_bus.subscribe(
-        ProviderConnectionAttempted, audit_handler.handle_provider_connection_attempted
-    )
-
-    event_bus.subscribe(
-        ProviderConnectionSucceeded,
-        logging_handler.handle_provider_connection_succeeded,
-    )
-    event_bus.subscribe(
-        ProviderConnectionSucceeded, audit_handler.handle_provider_connection_succeeded
-    )
-
-    event_bus.subscribe(
-        ProviderConnectionFailed, logging_handler.handle_provider_connection_failed
-    )
-    event_bus.subscribe(
-        ProviderConnectionFailed, audit_handler.handle_provider_connection_failed
-    )
-
-    # Provider Token Refresh Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        ProviderTokenRefreshAttempted,
-        logging_handler.handle_provider_token_refresh_attempted,
-    )
-    event_bus.subscribe(
-        ProviderTokenRefreshAttempted,
-        audit_handler.handle_provider_token_refresh_attempted,
-    )
-
-    event_bus.subscribe(
-        ProviderTokenRefreshSucceeded,
-        logging_handler.handle_provider_token_refresh_succeeded,
-    )
-    event_bus.subscribe(
-        ProviderTokenRefreshSucceeded,
-        audit_handler.handle_provider_token_refresh_succeeded,
-    )
-
-    event_bus.subscribe(
-        ProviderTokenRefreshFailed, logging_handler.handle_provider_token_refresh_failed
-    )
-    event_bus.subscribe(
-        ProviderTokenRefreshFailed, audit_handler.handle_provider_token_refresh_failed
-    )
-
-    # User Login Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(UserLoginAttempted, logging_handler.handle_user_login_attempted)
-    event_bus.subscribe(UserLoginAttempted, audit_handler.handle_user_login_attempted)
-
-    event_bus.subscribe(UserLoginSucceeded, logging_handler.handle_user_login_succeeded)
-    event_bus.subscribe(UserLoginSucceeded, audit_handler.handle_user_login_succeeded)
-
-    event_bus.subscribe(UserLoginFailed, logging_handler.handle_user_login_failed)
-    event_bus.subscribe(UserLoginFailed, audit_handler.handle_user_login_failed)
-
-    # User Logout Events (3 events × 3 handlers = 9 subscriptions)
-    event_bus.subscribe(
-        UserLogoutAttempted, logging_handler.handle_user_logout_attempted
-    )
-    event_bus.subscribe(UserLogoutAttempted, audit_handler.handle_user_logout_attempted)
-
-    event_bus.subscribe(
-        UserLogoutSucceeded, logging_handler.handle_user_logout_succeeded
-    )
-    event_bus.subscribe(UserLogoutSucceeded, audit_handler.handle_user_logout_succeeded)
-    event_bus.subscribe(
-        UserLogoutSucceeded, session_handler.handle_user_logout_succeeded
-    )  # +1 session
-
-    event_bus.subscribe(UserLogoutFailed, logging_handler.handle_user_logout_failed)
-    event_bus.subscribe(UserLogoutFailed, audit_handler.handle_user_logout_failed)
-
-    # Email Verification Events (3 events × 3 handlers = 9 subscriptions)
-    event_bus.subscribe(
-        EmailVerificationAttempted, logging_handler.handle_email_verification_attempted
-    )
-    event_bus.subscribe(
-        EmailVerificationAttempted, audit_handler.handle_email_verification_attempted
-    )
-
-    event_bus.subscribe(
-        EmailVerificationSucceeded, logging_handler.handle_email_verification_succeeded
-    )
-    event_bus.subscribe(
-        EmailVerificationSucceeded, audit_handler.handle_email_verification_succeeded
-    )
-    event_bus.subscribe(
-        EmailVerificationSucceeded, email_handler.handle_email_verification_succeeded
-    )  # +1 email
-
-    event_bus.subscribe(
-        EmailVerificationFailed, logging_handler.handle_email_verification_failed
-    )
-    event_bus.subscribe(
-        EmailVerificationFailed, audit_handler.handle_email_verification_failed
-    )
-
-    # Auth Token Refresh Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        AuthTokenRefreshAttempted, logging_handler.handle_auth_token_refresh_attempted
-    )
-    event_bus.subscribe(
-        AuthTokenRefreshAttempted, audit_handler.handle_auth_token_refresh_attempted
-    )
-
-    event_bus.subscribe(
-        AuthTokenRefreshSucceeded, logging_handler.handle_auth_token_refresh_succeeded
-    )
-    event_bus.subscribe(
-        AuthTokenRefreshSucceeded, audit_handler.handle_auth_token_refresh_succeeded
-    )
-
-    event_bus.subscribe(
-        AuthTokenRefreshFailed, logging_handler.handle_auth_token_refresh_failed
-    )
-    event_bus.subscribe(
-        AuthTokenRefreshFailed, audit_handler.handle_auth_token_refresh_failed
-    )
-
-    # Password Reset Request Events (3 events × 3 handlers = 9 subscriptions)
-    event_bus.subscribe(
-        PasswordResetRequestAttempted,
-        logging_handler.handle_password_reset_request_attempted,
-    )
-    event_bus.subscribe(
-        PasswordResetRequestAttempted,
-        audit_handler.handle_password_reset_request_attempted,
-    )
-
-    event_bus.subscribe(
-        PasswordResetRequestSucceeded,
-        logging_handler.handle_password_reset_request_succeeded,
-    )
-    event_bus.subscribe(
-        PasswordResetRequestSucceeded,
-        audit_handler.handle_password_reset_request_succeeded,
-    )
-    event_bus.subscribe(
-        PasswordResetRequestSucceeded,
-        email_handler.handle_password_reset_request_succeeded,
-    )  # +1 email
-
-    event_bus.subscribe(
-        PasswordResetRequestFailed,
-        logging_handler.handle_password_reset_request_failed,
-    )
-    event_bus.subscribe(
-        PasswordResetRequestFailed, audit_handler.handle_password_reset_request_failed
-    )
-
-    # Password Reset Confirm Events (3 events × 4 handlers = 12 subscriptions)
-    event_bus.subscribe(
-        PasswordResetConfirmAttempted,
-        logging_handler.handle_password_reset_confirm_attempted,
-    )
-    event_bus.subscribe(
-        PasswordResetConfirmAttempted,
-        audit_handler.handle_password_reset_confirm_attempted,
-    )
-
-    event_bus.subscribe(
-        PasswordResetConfirmSucceeded,
-        logging_handler.handle_password_reset_confirm_succeeded,
-    )
-    event_bus.subscribe(
-        PasswordResetConfirmSucceeded,
-        audit_handler.handle_password_reset_confirm_succeeded,
-    )
-    event_bus.subscribe(
-        PasswordResetConfirmSucceeded,
-        email_handler.handle_password_reset_confirm_succeeded,
-    )  # +1 email
-    event_bus.subscribe(
-        PasswordResetConfirmSucceeded,
-        session_handler.handle_password_reset_confirm_succeeded,
-    )  # +1 session
-
-    event_bus.subscribe(
-        PasswordResetConfirmFailed, logging_handler.handle_password_reset_confirm_failed
-    )
-    event_bus.subscribe(
-        PasswordResetConfirmFailed, audit_handler.handle_password_reset_confirm_failed
-    )
-
-    # Token Rejected Due to Rotation (1 event × 2 handlers = 2 subscriptions)
-    event_bus.subscribe(
-        TokenRejectedDueToRotation,
-        logging_handler.handle_token_rejected_due_to_rotation,
-    )
-    event_bus.subscribe(
-        TokenRejectedDueToRotation, audit_handler.handle_token_rejected_due_to_rotation
-    )
-
-    # Global Token Rotation Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        GlobalTokenRotationAttempted,
-        logging_handler.handle_global_token_rotation_attempted,
-    )
-    event_bus.subscribe(
-        GlobalTokenRotationAttempted,
-        audit_handler.handle_global_token_rotation_attempted,
-    )
-
-    event_bus.subscribe(
-        GlobalTokenRotationSucceeded,
-        logging_handler.handle_global_token_rotation_succeeded,
-    )
-    event_bus.subscribe(
-        GlobalTokenRotationSucceeded,
-        audit_handler.handle_global_token_rotation_succeeded,
-    )
-
-    event_bus.subscribe(
-        GlobalTokenRotationFailed,
-        logging_handler.handle_global_token_rotation_failed,
-    )
-    event_bus.subscribe(
-        GlobalTokenRotationFailed,
-        audit_handler.handle_global_token_rotation_failed,
-    )
-
-    # User Token Rotation Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        UserTokenRotationAttempted,
-        logging_handler.handle_user_token_rotation_attempted,
-    )
-    event_bus.subscribe(
-        UserTokenRotationAttempted,
-        audit_handler.handle_user_token_rotation_attempted,
-    )
-
-    event_bus.subscribe(
-        UserTokenRotationSucceeded,
-        logging_handler.handle_user_token_rotation_succeeded,
-    )
-    event_bus.subscribe(
-        UserTokenRotationSucceeded,
-        audit_handler.handle_user_token_rotation_succeeded,
-    )
-
-    event_bus.subscribe(
-        UserTokenRotationFailed,
-        logging_handler.handle_user_token_rotation_failed,
-    )
-    event_bus.subscribe(
-        UserTokenRotationFailed,
-        audit_handler.handle_user_token_rotation_failed,
-    )
-
-    # Role Assignment Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        RoleAssignmentAttempted,
-        logging_handler.handle_role_assignment_attempted,
-    )
-    event_bus.subscribe(
-        RoleAssignmentAttempted,
-        audit_handler.handle_role_assignment_attempted,
-    )
-
-    event_bus.subscribe(
-        RoleAssignmentSucceeded,
-        logging_handler.handle_role_assignment_succeeded,
-    )
-    event_bus.subscribe(
-        RoleAssignmentSucceeded,
-        audit_handler.handle_role_assignment_succeeded,
-    )
-
-    event_bus.subscribe(
-        RoleAssignmentFailed,
-        logging_handler.handle_role_assignment_failed,
-    )
-    event_bus.subscribe(
-        RoleAssignmentFailed,
-        audit_handler.handle_role_assignment_failed,
-    )
-
-    # Role Revocation Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        RoleRevocationAttempted,
-        logging_handler.handle_role_revocation_attempted,
-    )
-    event_bus.subscribe(
-        RoleRevocationAttempted,
-        audit_handler.handle_role_revocation_attempted,
-    )
-
-    event_bus.subscribe(
-        RoleRevocationSucceeded,
-        logging_handler.handle_role_revocation_succeeded,
-    )
-    event_bus.subscribe(
-        RoleRevocationSucceeded,
-        audit_handler.handle_role_revocation_succeeded,
-    )
-
-    event_bus.subscribe(
-        RoleRevocationFailed,
-        logging_handler.handle_role_revocation_failed,
-    )
-    event_bus.subscribe(
-        RoleRevocationFailed,
-        audit_handler.handle_role_revocation_failed,
-    )
-
-    # Provider Disconnection Events (3 events × 2 handlers = 6 subscriptions)
-    event_bus.subscribe(
-        ProviderDisconnectionAttempted,
-        logging_handler.handle_provider_disconnection_attempted,
-    )
-    event_bus.subscribe(
-        ProviderDisconnectionAttempted,
-        audit_handler.handle_provider_disconnection_attempted,
-    )
-
-    event_bus.subscribe(
-        ProviderDisconnectionSucceeded,
-        logging_handler.handle_provider_disconnection_succeeded,
-    )
-    event_bus.subscribe(
-        ProviderDisconnectionSucceeded,
-        audit_handler.handle_provider_disconnection_succeeded,
-    )
-
-    event_bus.subscribe(
-        ProviderDisconnectionFailed,
-        logging_handler.handle_provider_disconnection_failed,
-    )
-    event_bus.subscribe(
-        ProviderDisconnectionFailed,
-        audit_handler.handle_provider_disconnection_failed,
-    )
+        if metadata.requires_session:
+            handler_method = getattr(session_handler, method_name, None)
+            if not handler_method:
+                if EVENTS_STRICT_MODE:
+                    raise RuntimeError(
+                        f"EVENTS_STRICT_MODE: Missing required session handler\n"
+                        f"Event: {event_class.__name__}\n"
+                        f"Expected method: SessionEventHandler.{method_name}\n\n"
+                        f"Fix: Implement handler in src/infrastructure/events/handlers/session_event_handler.py\n"
+                        f"Or disable strict mode: Set EVENTS_STRICT_MODE=false in .env"
+                    )
+                logger.warning(
+                    "Missing session handler (graceful mode)",
+                    event_class=event_class.__name__,
+                    handler_method=method_name,
+                )
+            else:
+                event_bus.subscribe(event_class, handler_method)
 
     return event_bus

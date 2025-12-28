@@ -1554,141 +1554,240 @@ class SessionEventHandler:
 
 ## Core Layer (Dependency Injection)
 
-### 5.1 Container Integration
+### 5.1 Registry-Based Auto-Wiring
 
-**File**: `src/core/container.py` (add to existing file)
+**Problem**: Manual event handler subscriptions cause drift. Adding a new event requires 7 manual steps:
+
+1. Define event class (developer remembers)
+2. Add handler methods (might forget)
+3. Subscribe logging handler (often forgotten)
+4. Subscribe audit handler (often forgotten)
+5. Subscribe email handler (if needed)
+6. Add AuditAction enum (frequently missed)
+7. Update tests (sometimes skipped)
+
+**Result**: Incomplete wiring, silent failures, production bugs.
+
+**Solution**: **Event Registry Pattern** eliminates manual coordination through metadata-driven auto-wiring.
+
+**Registry File**: `src/domain/events/registry.py`
 
 ```python
-"""Centralized dependency injection container."""
+"""Event registry - single source of truth for all domain events."""
+from dataclasses import dataclass
+from enum import Enum
+
+class EventCategory(Enum):
+    """Event categories."""
+    AUTHENTICATION = "authentication"
+    AUTHORIZATION = "authorization"
+    PROVIDER = "provider"
+    DATA_SYNC = "data_sync"
+    SESSION = "session"
+    RATE_LIMIT = "rate_limit"
+    ADMIN = "admin"
+
+class WorkflowPhase(Enum):
+    """Workflow phases (3-state pattern)."""
+    ATTEMPTED = "attempted"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    ALLOWED = "allowed"      # Authorization
+    DENIED = "denied"        # Authorization
+    OPERATIONAL = "_operational"  # Session operational events
+
+@dataclass(frozen=True, kw_only=True)
+class EventMetadata:
+    """Metadata for a single domain event."""
+    event_class: type
+    category: EventCategory
+    workflow_name: str
+    phase: WorkflowPhase
+    requires_logging: bool = True
+    requires_audit: bool = True
+    requires_email: bool = False
+    requires_session: bool = False
+    audit_action_name: str
+
+# ════════════════════════════════════════════════════════════════
+# EVENT REGISTRY - Single Source of Truth
+# ════════════════════════════════════════════════════════════════
+EVENT_REGISTRY: list[EventMetadata] = [
+    # User Registration (Workflow 1)
+    EventMetadata(
+        event_class=UserRegistrationAttempted,
+        category=EventCategory.AUTHENTICATION,
+        workflow_name="user_registration",
+        phase=WorkflowPhase.ATTEMPTED,
+        audit_action_name="USER_REGISTRATION_ATTEMPTED",
+    ),
+    EventMetadata(
+        event_class=UserRegistrationSucceeded,
+        category=EventCategory.AUTHENTICATION,
+        workflow_name="user_registration",
+        phase=WorkflowPhase.SUCCEEDED,
+        requires_email=True,
+        audit_action_name="USER_REGISTERED",
+    ),
+    EventMetadata(
+        event_class=UserRegistrationFailed,
+        category=EventCategory.AUTHENTICATION,
+        workflow_name="user_registration",
+        phase=WorkflowPhase.FAILED,
+        audit_action_name="USER_REGISTRATION_FAILED",
+    ),
+    # Password Change (Workflow 2)
+    EventMetadata(
+        event_class=UserPasswordChangeAttempted,
+        category=EventCategory.AUTHENTICATION,
+        workflow_name="user_password_change",
+        phase=WorkflowPhase.ATTEMPTED,
+        audit_action_name="USER_PASSWORD_CHANGE_ATTEMPTED",
+    ),
+    EventMetadata(
+        event_class=UserPasswordChangeSucceeded,
+        category=EventCategory.AUTHENTICATION,
+        workflow_name="user_password_change",
+        phase=WorkflowPhase.SUCCEEDED,
+        requires_email=True,
+        requires_session=True,  # Revoke all sessions
+        audit_action_name="USER_PASSWORD_CHANGED",
+    ),
+    EventMetadata(
+        event_class=UserPasswordChangeFailed,
+        category=EventCategory.AUTHENTICATION,
+        workflow_name="user_password_change",
+        phase=WorkflowPhase.FAILED,
+        audit_action_name="USER_PASSWORD_CHANGE_FAILED",
+    ),
+    # ... (69 total events)
+]
+```
+
+**Container Auto-Wiring**: `src/core/container/events.py`
+
+```python
+"""Event bus container with registry-driven auto-wiring."""
 from functools import lru_cache
+from src.domain.events.registry import EVENT_REGISTRY, WorkflowPhase
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.infrastructure.events.in_memory_event_bus import InMemoryEventBus
-
-# Event handlers
-from src.infrastructure.logging.event_handlers.logging_event_handler import LoggingEventHandler
-from src.infrastructure.audit.event_handlers.audit_event_handler import AuditEventHandler
-from src.infrastructure.email.event_handlers.email_event_handler import EmailEventHandler
-from src.infrastructure.session.event_handlers.session_event_handler import SessionEventHandler
-
-# Events
-from src.domain.events.auth_events import (
-    UserRegistrationAttempted,
-    UserRegistrationSucceeded,
-    UserRegistrationFailed,
-    UserPasswordChangeAttempted,
-    UserPasswordChangeSucceeded,
-    UserPasswordChangeFailed,
-    ProviderConnectionAttempted,
-    ProviderConnectionSucceeded,
-    ProviderConnectionFailed,
-    TokenRefreshAttempted,
-    TokenRefreshSucceeded,
-    TokenRefreshFailed,
-)
-
+from src.core.config import get_settings
 
 @lru_cache
 def get_event_bus() -> EventBusProtocol:
-    """Get event bus singleton (wired with all handlers).
+    """Get event bus singleton with registry-driven auto-wiring.
     
-    Returns:
-        EventBusProtocol: Configured event bus with handlers subscribed.
-        
-    Implementation:
-        - MVP: InMemoryEventBus (simple dict-based)
-        - Future: RabbitMQEventBus (set EVENT_BUS_TYPE=rabbitmq)
-        - Future: KafkaEventBus (set EVENT_BUS_TYPE=kafka)
-        
-    Handlers wired (4 handlers × 12 events = 48 subscriptions):
-        - LoggingEventHandler: ALL events (12 methods)
-        - AuditEventHandler: ALL events (12 methods)
-        - EmailEventHandler: SUCCEEDED events only (3 methods)
-        - SessionEventHandler: Password change SUCCEEDED only (1 method)
-        
-    Usage:
-        # Inject into command handler
-        def my_handler(event_bus: EventBusProtocol = Depends(get_event_bus)):
-            await event_bus.publish(UserRegistrationAttempted(...))
+    Registry Statistics (as of 2025-12-27):
+    - Total Events: 69
+    - Total Subscriptions: 143
+    - Categories: 7 (authentication, authorization, provider, data_sync, session, rate_limit, admin)
+    - Workflows: 23 (17 critical + 6 operational)
+    
+    Auto-Wiring Pattern:
+    - LoggingEventHandler: ALL events (69 methods)
+    - AuditEventHandler: ALL events (69 methods)
+    - EmailEventHandler: requires_email=True only
+    - SessionEventHandler: requires_session=True only
+    
+    Strict Mode:
+    - Development: events_strict_mode=False (graceful, allows WIP)
+    - Production: events_strict_mode=True (fail-fast, prevents silent failures)
     """
-    # Create event bus (MVP: in-memory)
+    settings = get_settings()
     event_bus = InMemoryEventBus(logger=get_logger())
     
-    # Create handlers (inject dependencies)
+    # Create handlers
     logging_handler = LoggingEventHandler(logger=get_logger())
     audit_handler = AuditEventHandler(audit=get_audit())
     email_handler = EmailEventHandler(logger=get_logger())
     session_handler = SessionEventHandler(logger=get_logger())
     
-    # ═══════════════════════════════════════════════════════════════
-    # Wire User Registration (Workflow 1)
-    # ═══════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════
+    # Registry-Driven Auto-Wiring (71% code reduction: 571→168 lines)
+    # ════════════════════════════════════════════════════════════
     
-    # ATTEMPTED
-    event_bus.subscribe(UserRegistrationAttempted, logging_handler.on_registration_attempted)
-    event_bus.subscribe(UserRegistrationAttempted, audit_handler.on_registration_attempted)
-    
-    # SUCCEEDED
-    event_bus.subscribe(UserRegistrationSucceeded, logging_handler.on_registration_succeeded)
-    event_bus.subscribe(UserRegistrationSucceeded, audit_handler.on_registration_succeeded)
-    event_bus.subscribe(UserRegistrationSucceeded, email_handler.on_registration_succeeded)
-    
-    # FAILED
-    event_bus.subscribe(UserRegistrationFailed, logging_handler.on_registration_failed)
-    event_bus.subscribe(UserRegistrationFailed, audit_handler.on_registration_failed)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # Wire Password Change (Workflow 2)
-    # ═══════════════════════════════════════════════════════════════
-    
-    # ATTEMPTED
-    event_bus.subscribe(UserPasswordChangeAttempted, logging_handler.on_password_change_attempted)
-    event_bus.subscribe(UserPasswordChangeAttempted, audit_handler.on_password_change_attempted)
-    
-    # SUCCEEDED
-    event_bus.subscribe(UserPasswordChangeSucceeded, logging_handler.on_password_change_succeeded)
-    event_bus.subscribe(UserPasswordChangeSucceeded, audit_handler.on_password_change_succeeded)
-    event_bus.subscribe(UserPasswordChangeSucceeded, email_handler.on_password_change_succeeded)
-    event_bus.subscribe(UserPasswordChangeSucceeded, session_handler.on_password_change_succeeded)
-    
-    # FAILED
-    event_bus.subscribe(UserPasswordChangeFailed, logging_handler.on_password_change_failed)
-    event_bus.subscribe(UserPasswordChangeFailed, audit_handler.on_password_change_failed)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # Wire Provider Connection (Workflow 3) - Placeholder
-    # ═══════════════════════════════════════════════════════════════
-    
-    # ATTEMPTED
-    event_bus.subscribe(ProviderConnectionAttempted, logging_handler.on_provider_connection_attempted)
-    event_bus.subscribe(ProviderConnectionAttempted, audit_handler.on_provider_connection_attempted)
-    
-    # SUCCEEDED
-    event_bus.subscribe(ProviderConnectionSucceeded, logging_handler.on_provider_connection_succeeded)
-    event_bus.subscribe(ProviderConnectionSucceeded, audit_handler.on_provider_connection_succeeded)
-    event_bus.subscribe(ProviderConnectionSucceeded, email_handler.on_provider_connection_succeeded)
-    
-    # FAILED
-    event_bus.subscribe(ProviderConnectionFailed, logging_handler.on_provider_connection_failed)
-    event_bus.subscribe(ProviderConnectionFailed, audit_handler.on_provider_connection_failed)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # Wire Token Refresh (Workflow 4) - Placeholder
-    # ═══════════════════════════════════════════════════════════════
-    
-    # ATTEMPTED
-    event_bus.subscribe(TokenRefreshAttempted, logging_handler.on_token_refresh_attempted)
-    event_bus.subscribe(TokenRefreshAttempted, audit_handler.on_token_refresh_attempted)
-    
-    # SUCCEEDED
-    event_bus.subscribe(TokenRefreshSucceeded, logging_handler.on_token_refresh_succeeded)
-    event_bus.subscribe(TokenRefreshSucceeded, audit_handler.on_token_refresh_succeeded)
-    
-    # FAILED
-    event_bus.subscribe(TokenRefreshFailed, logging_handler.on_token_refresh_failed)
-    event_bus.subscribe(TokenRefreshFailed, audit_handler.on_token_refresh_failed)
+    for metadata in EVENT_REGISTRY:
+        event_class = metadata.event_class
+        method_name = f"handle_{metadata.workflow_name}_{metadata.phase.value}"
+        
+        # Wire logging handler (ALL events)
+        if metadata.requires_logging:
+            handler_method = getattr(logging_handler, method_name, None)
+            if handler_method:
+                event_bus.subscribe(event_class, handler_method)
+            elif settings.events_strict_mode:
+                raise RuntimeError(
+                    f"Missing logging handler: {method_name} "
+                    f"for event {event_class.__name__}"
+                )
+        
+        # Wire audit handler (ALL events)
+        if metadata.requires_audit:
+            handler_method = getattr(audit_handler, method_name, None)
+            if handler_method:
+                event_bus.subscribe(event_class, handler_method)
+            elif settings.events_strict_mode:
+                raise RuntimeError(
+                    f"Missing audit handler: {method_name} "
+                    f"for event {event_class.__name__}"
+                )
+        
+        # Wire email handler (SUCCEEDED only)
+        if metadata.requires_email:
+            handler_method = getattr(email_handler, method_name, None)
+            if handler_method:
+                event_bus.subscribe(event_class, handler_method)
+            elif settings.events_strict_mode:
+                raise RuntimeError(
+                    f"Missing email handler: {method_name} "
+                    f"for event {event_class.__name__}"
+                )
+        
+        # Wire session handler (specific events)
+        if metadata.requires_session:
+            handler_method = getattr(session_handler, method_name, None)
+            if handler_method:
+                event_bus.subscribe(event_class, handler_method)
+            elif settings.events_strict_mode:
+                raise RuntimeError(
+                    f"Missing session handler: {method_name} "
+                    f"for event {event_class.__name__}"
+                )
     
     return event_bus
 ```
+
+**Benefits**:
+
+1. **Zero Drift**: Tests fail if wiring incomplete (can't merge)
+2. **71% Code Reduction**: 571 lines → 168 lines (manual → registry)
+3. **Self-Documenting**: Registry shows all relationships at a glance
+4. **Easy to Extend**: Add event to registry, tests enforce rest
+5. **Fail-Fast**: Strict mode catches missing handlers at startup
+
+**Adding New Event** (1 step instead of 7):
+
+```python
+# Add to EVENT_REGISTRY - everything else enforced by tests
+EventMetadata(
+    event_class=NewEventAttempted,
+    category=EventCategory.AUTHENTICATION,
+    workflow_name="new_event",
+    phase=WorkflowPhase.ATTEMPTED,
+    requires_logging=True,
+    requires_audit=True,
+    audit_action_name="NEW_EVENT_ATTEMPTED",
+)
+```
+
+**Tests enforce**:
+
+- Handler methods exist (or test fails)
+- AuditAction enum exists (or test fails)
+- Wiring complete (or test fails)
+
+**Reference**: See `docs/architecture/registry-pattern-architecture.md` for complete pattern documentation.
 
 ---
 
@@ -1888,4 +1987,4 @@ class ChangePasswordHandler:
 
 ---
 
-**Created**: 2025-11-17 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-17 | **Last Updated**: 2025-12-27

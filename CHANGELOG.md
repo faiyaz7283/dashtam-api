@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2025-12-28
+
+### Added
+
+- **F7.7**: Domain Events Compliance Audit & Event Registry Pattern
+  - **Event Registry Pattern**: Created `src/domain/events/registry.py` as single source of truth for all 69 domain events
+  - **EventMetadata Dataclass**: Catalog with event_class, category, workflow, phase, and handler requirements
+  - **Automated Container Wiring**: Registry-driven subscription replaced 500+ lines of manual wiring (~71% code reduction)
+  - **Self-Enforcing Tests**: Validation tests (`test_domain_events_registry_compliance.py`) fail if handlers or AuditAction enums missing
+  - **Data Sync Events**: Added 12 new events (AccountSync, TransactionSync, HoldingsSync, FileImport) with 3-state ATTEMPT → OUTCOME pattern
+  - **Handler Methods**: Added 24 handler methods (12 events × 2 handlers: LoggingEventHandler + AuditEventHandler)
+  - **AuditAction Enums**: Added 12 new audit actions for data sync workflows
+  - **Container Auto-Wiring**: Registry automatically wires all 143 subscriptions (69 events × 2-3 handlers each)
+  - **Gap Detection**: Registry-driven tests prevent future drift (can't merge if handlers missing)
+  - **Process Enforcement**: Adding new events requires: (1) Define event, (2) Add to registry, (3) Tests tell you what's missing, (4) Add handlers, (5) Tests pass
+  - Added 6 new test files with comprehensive registry compliance validation
+  - Total test count increased from 2,100 to 2,190 tests (+90)
+  - Updated WARP.md: Streamlined from 1,789 lines to 1,355 lines (removed ~430 lines of bloated roadmap history)
+
+### Changed
+
+- **Event System Strict Mode**: Changed `events_strict_mode` default from `False` to `True` for production safety
+  - Dev environment: `EVENTS_STRICT_MODE=false` (flexibility for WIP)
+  - Test environment: `EVENTS_STRICT_MODE=true` (catch missing handlers early)
+  - CI environment: `EVENTS_STRICT_MODE=true` (enforce before merge)
+  - Strict mode fails fast at startup if required event handlers are missing
+- **Dynamic Test Validation**: Replaced hardcoded event count (84) with dynamic registry-based verification
+  - `test_enum_has_sufficient_coverage()` now validates AuditAction has ≥ events requiring audit
+  - Self-maintaining (no manual updates when adding events)
+- Overall coverage increased from 87% to 88%
+- Total events: 69 (28 auth, 6 authz, 9 provider, 12 data sync, 8 session, 3 rate limit, 3 operational)
+- Total subscriptions: 143 (all automatically wired via registry)
+- Total workflows: 23 (17 critical with 3-state pattern, 6 operational single-state)
+
+### Documentation
+
+- Created `docs/architecture/registry-pattern-architecture.md` (813 lines) - Event Registry pattern architecture
+- Updated `docs/architecture/domain-events-architecture.md` with registry pattern and final counts
+- Streamlined `WARP.md` from 1,789 lines to 1,355 lines:
+  - Removed detailed phase completion history (now in CHANGELOG)
+  - Added Section 6: Event Registry Pattern (Single Source of Truth)
+  - Added "Why Event Registry Pattern?" to Key Technical Decisions
+
+### Fixed
+
+- Fixed session event handler attribute names (revoked_by → revoked_by_user, count → session_count, etc.)
+- Fixed registry type annotation (`dict` → `dict[str, int | dict[str, int]]`)
+- Removed interactive prompt from `make verify` for CI compatibility
+
 ## [1.4.0] - 2025-12-27
 
 ### Added
@@ -380,7 +429,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Type Safety**: Strict mypy checking with modern Python 3.13+ type hints
 - **Code Quality**: Automated formatting (ruff), linting, and type checking in CI/CD
 
-[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/faiyaz7283/Dashtam/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.2.1...v1.3.0
+[1.2.1]: https://github.com/faiyaz7283/Dashtam/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/faiyaz7283/Dashtam/compare/v1.0.1...v1.0.2

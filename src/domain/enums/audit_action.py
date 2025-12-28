@@ -90,10 +90,27 @@ class AuditAction(str, Enum):
         - remember_me: Whether "remember me" was selected
     """
 
-    USER_LOGOUT = "user_logout"
-    """User logged out (explicit logout action).
+    USER_LOGOUT_ATTEMPTED = "user_logout_attempted"
+    """User attempted to log out.
     
-    Note: This is a completed event (no ATTEMPT needed - logout always succeeds).
+    Context should include:
+        - session_id: Session being logged out
+    """
+
+    USER_LOGOUT = "user_logout"
+    """User logged out successfully (SUCCESS).
+    
+    Context should include:
+        - session_id: Session that was logged out
+        - logout_method: How logged out (explicit, timeout, revoked)
+    """
+
+    USER_LOGOUT_FAILED = "user_logout_failed"
+    """User logout failed (rare - session cleanup failure).
+    
+    Context should include:
+        - reason: Why logout failed (session_not_found, cleanup_error)
+        - session_id: Session attempted to logout
     """
 
     # Registration Events
@@ -146,25 +163,45 @@ class AuditAction(str, Enum):
     """
 
     # Password Reset Events
-    USER_PASSWORD_RESET_REQUESTED = "user_password_reset_requested"
-    """User requested password reset.
+    PASSWORD_RESET_REQUEST_ATTEMPTED = "password_reset_request_attempted"
+    """User attempted to request password reset.
     
-    Note: This is a completed event (request is recorded, no ATTEMPT needed).
+    Context should include:
+        - email: Email address for reset request
+    """
+
+    USER_PASSWORD_RESET_REQUESTED = "user_password_reset_requested"
+    """User successfully requested password reset (SUCCESS).
 
     Context should include:
         - method: How requested (email_link, security_questions)
         - email: Email address for reset
     """
 
+    PASSWORD_RESET_CONFIRM_ATTEMPTED = "password_reset_confirm_attempted"
+    """User attempted to confirm password reset with token.
+    
+    Context should include:
+        - token: Reset token attempted (truncated for security)
+    """
+
     USER_PASSWORD_RESET_FAILED = "user_password_reset_failed"
-    """Password reset failed.
+    """Password reset confirmation failed.
 
     Context should include:
         - reason: Why failed (invalid_token, expired_link, weak_password)
     """
 
+    PASSWORD_RESET_CONFIRM_FAILED = "password_reset_confirm_failed"
+    """Password reset confirmation failed (alias for clarity).
+    
+    Context should include:
+        - reason: Why failed (invalid_token, expired_link, weak_password)
+        - token: Reset token attempted (truncated)
+    """
+
     USER_PASSWORD_RESET_COMPLETED = "user_password_reset_completed"
-    """Password reset was completed (SUCCESS)."""
+    """Password reset was completed successfully (SUCCESS)."""
 
     # Auth Token Refresh Events (JWT Rotation)
     AUTH_TOKEN_REFRESH_ATTEMPTED = "auth_token_refresh_attempted"
@@ -799,6 +836,178 @@ class AuditAction(str, Enum):
         - account_mask: Last 4 digits of account number
         - transaction_count: Number of transactions viewed
         - date_range: Date range of transactions
+    """
+
+    # =========================================================================
+    # Session Management Events (Security - Session Lifecycle)
+    # =========================================================================
+    # Pattern: Operational events (single-state - record lifecycle changes)
+
+    SESSION_REVOKED = "session_revoked"
+    """User session was revoked (security event).
+    
+    Context should include:
+        - session_id: Session that was revoked
+        - revoked_by: Who/what revoked session (user, admin, system)
+        - reason: Why revoked (logout, timeout, security, admin_action)
+    """
+
+    SESSION_EVICTED = "session_evicted"
+    """Session was evicted due to limit exceeded (security policy).
+    
+    Context should include:
+        - session_id: Session that was evicted
+        - eviction_reason: Why evicted (limit_exceeded, oldest_session)
+        - active_sessions_count: Number of active sessions after eviction
+    """
+
+    ALL_SESSIONS_REVOKED = "all_sessions_revoked"
+    """All user sessions were revoked (security event).
+    
+    Context should include:
+        - revoked_by: Who/what revoked all sessions (user, admin, system)
+        - reason: Why revoked (password_change, security_breach, user_request)
+        - sessions_revoked_count: Number of sessions revoked
+    """
+
+    SESSION_PROVIDER_ACCESS = "session_provider_access"
+    """Session accessed provider data (audit trail for data access).
+    
+    Context should include:
+        - session_id: Session that accessed provider
+        - provider_name: Provider accessed
+        - access_type: Type of access (read, sync, update)
+    """
+
+    SUSPICIOUS_SESSION_ACTIVITY = "suspicious_session_activity"
+    """Suspicious activity detected in session (security alert).
+    
+    Context should include:
+        - session_id: Session with suspicious activity
+        - activity_type: Type of suspicious activity
+        - risk_score: Risk assessment score
+        - detection_reason: Why flagged as suspicious
+    """
+
+    # =========================================================================
+    # Data Sync Events (F7.7 Phase 3 - PCI-DSS: Cardholder Data Access)
+    # =========================================================================
+    # Pattern: ATTEMPTED → (SUCCEEDED | FAILED)
+    # Data sync operations with financial providers
+
+    # Account Sync Events
+    ACCOUNT_SYNC_ATTEMPTED = "account_sync_attempted"
+    """Attempted to sync account data from provider.
+    
+    Context should include:
+        - connection_id: Provider connection
+        - provider_name: Name of provider
+    """
+
+    ACCOUNT_SYNC_SUCCEEDED = "account_sync_succeeded"
+    """Account data synced successfully (SUCCESS).
+    
+    Context should include:
+        - connection_id: Provider connection
+        - provider_name: Name of provider
+        - account_count: Number of accounts synced
+    """
+
+    ACCOUNT_SYNC_FAILED = "account_sync_failed"
+    """Account data sync failed.
+    
+    Context should include:
+        - connection_id: Provider connection
+        - provider_name: Name of provider
+        - reason: Why failed (api_error, auth_failed, network_error)
+    """
+
+    # Transaction Sync Events
+    TRANSACTION_SYNC_ATTEMPTED = "transaction_sync_attempted"
+    """Attempted to sync transaction data from provider.
+    
+    Context should include:
+        - connection_id: Provider connection
+        - provider_name: Name of provider
+        - account_id: Specific account if targeted sync
+    """
+
+    TRANSACTION_SYNC_SUCCEEDED = "transaction_sync_succeeded"
+    """Transaction data synced successfully (SUCCESS - PCI-DSS: cardholder data).
+    
+    Context should include:
+        - connection_id: Provider connection
+        - provider_name: Name of provider
+        - account_id: Specific account if targeted sync
+        - transaction_count: Number of transactions synced
+    """
+
+    TRANSACTION_SYNC_FAILED = "transaction_sync_failed"
+    """Transaction data sync failed.
+    
+    Context should include:
+        - connection_id: Provider connection
+        - provider_name: Name of provider
+        - account_id: Specific account if targeted sync
+        - reason: Why failed (api_error, date_range_invalid, network_error)
+    """
+
+    # Holdings Sync Events
+    HOLDINGS_SYNC_ATTEMPTED = "holdings_sync_attempted"
+    """Attempted to sync holdings (positions) from provider.
+    
+    Context should include:
+        - account_id: Account to sync holdings for
+        - provider_name: Name of provider
+    """
+
+    HOLDINGS_SYNC_SUCCEEDED = "holdings_sync_succeeded"
+    """Holdings data synced successfully (SUCCESS).
+    
+    Context should include:
+        - account_id: Account synced
+        - provider_name: Name of provider
+        - holding_count: Number of holdings synced
+    """
+
+    HOLDINGS_SYNC_FAILED = "holdings_sync_failed"
+    """Holdings data sync failed.
+    
+    Context should include:
+        - account_id: Account attempted
+        - provider_name: Name of provider
+        - reason: Why failed (api_error, holdings_not_supported, network_error)
+    """
+
+    # File Import Events
+    FILE_IMPORT_ATTEMPTED = "file_import_attempted"
+    """Attempted to import financial data from file.
+    
+    Context should include:
+        - provider_slug: Provider identifier
+        - file_name: Original filename
+        - file_format: File format (qfx, ofx, csv)
+    """
+
+    FILE_IMPORT_SUCCEEDED = "file_import_succeeded"
+    """File import completed successfully (SUCCESS).
+    
+    Context should include:
+        - provider_slug: Provider identifier
+        - file_name: Original filename
+        - file_format: File format
+        - account_count: Accounts created/updated
+        - transaction_count: Transactions imported
+    """
+
+    FILE_IMPORT_FAILED = "file_import_failed"
+    """File import failed.
+    
+    Context should include:
+        - provider_slug: Provider identifier
+        - file_name: Original filename
+        - file_format: File format
+        - reason: Why failed (parse_error, unsupported_format, invalid_structure)
     """
 
     # =========================================================================

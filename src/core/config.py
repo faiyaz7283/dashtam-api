@@ -118,10 +118,10 @@ class Settings(BaseSettings):
 
     # Event System Configuration (F7.7: Domain Events Compliance)
     events_strict_mode: bool = Field(
-        default=False,
+        default=True,
         description="Event handler strict mode. When True, fails fast if required handlers missing. "
         "When False, skips missing handlers gracefully (logs warning). "
-        "Default: False until F7.7 complete, then switch to True for production safety.",
+        "Default: True (production safety - catches missing handlers at startup).",
     )
 
     # Database configuration

@@ -450,9 +450,7 @@ verify: test-up
 	@echo ""
 	@echo "⚠️  Fail-fast: Stops on first failure"
 	@echo ""
-	@read -p "Press Enter to continue..."; \
-	echo ""; \
-	echo "✨ Step 1/6: Format check..."; \
+	@echo "✨ Step 1/6: Format check..."; \
 	docker compose -f compose/docker-compose.test.yml exec -T app uv run ruff format --check src/ tests/ || { echo "❌ Format check failed"; exit 1; }; \
 	echo "✅ Format check passed"; \
 	echo ""; \

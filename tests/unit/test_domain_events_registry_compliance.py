@@ -19,7 +19,6 @@ import pytest
 from src.domain.enums.audit_action import AuditAction
 from src.domain.events.registry import (
     EVENT_REGISTRY,
-    EventCategory,
     WorkflowPhase,
     get_all_events,
     get_events_requiring_handler,
@@ -96,7 +95,9 @@ class TestHandlerMethodCompliance:
             method_name = f"handle_{meta.workflow_name}_{meta.phase.value}"
 
             if not hasattr(logging_handler, method_name):
-                missing.append(f"LoggingEventHandler.{method_name} for {event_class.__name__}")
+                missing.append(
+                    f"LoggingEventHandler.{method_name} for {event_class.__name__}"
+                )
 
         assert not missing, (
             f"\n❌ REGISTRY COMPLIANCE FAILURE: LoggingEventHandler methods missing\n\n"
@@ -119,7 +120,8 @@ class TestHandlerMethodCompliance:
         """
         # Cannot instantiate without dependencies, check class attributes instead
         audit_handler_methods = {
-            name for name in dir(AuditEventHandler)
+            name
+            for name in dir(AuditEventHandler)
             if name.startswith("handle_") and not name.startswith("_")
         }
 
@@ -132,7 +134,9 @@ class TestHandlerMethodCompliance:
             method_name = f"handle_{meta.workflow_name}_{meta.phase.value}"
 
             if method_name not in audit_handler_methods:
-                missing.append(f"AuditEventHandler.{method_name} for {event_class.__name__}")
+                missing.append(
+                    f"AuditEventHandler.{method_name} for {event_class.__name__}"
+                )
 
         assert not missing, (
             f"\n❌ REGISTRY COMPLIANCE FAILURE: AuditEventHandler methods missing\n\n"
@@ -154,7 +158,8 @@ class TestHandlerMethodCompliance:
         Fix: Add missing handler methods to EmailEventHandler.
         """
         email_handler_methods = {
-            name for name in dir(EmailEventHandler)
+            name
+            for name in dir(EmailEventHandler)
             if name.startswith("handle_") and not name.startswith("_")
         }
 
@@ -167,7 +172,9 @@ class TestHandlerMethodCompliance:
             method_name = f"handle_{meta.workflow_name}_{meta.phase.value}"
 
             if method_name not in email_handler_methods:
-                missing.append(f"EmailEventHandler.{method_name} for {event_class.__name__}")
+                missing.append(
+                    f"EmailEventHandler.{method_name} for {event_class.__name__}"
+                )
 
         assert not missing, (
             f"\n❌ REGISTRY COMPLIANCE FAILURE: EmailEventHandler methods missing\n\n"
@@ -186,7 +193,8 @@ class TestHandlerMethodCompliance:
         Fix: Add missing handler methods to SessionEventHandler.
         """
         session_handler_methods = {
-            name for name in dir(SessionEventHandler)
+            name
+            for name in dir(SessionEventHandler)
             if name.startswith("handle_") and not name.startswith("_")
         }
 
@@ -199,7 +207,9 @@ class TestHandlerMethodCompliance:
             method_name = f"handle_{meta.workflow_name}_{meta.phase.value}"
 
             if method_name not in session_handler_methods:
-                missing.append(f"SessionEventHandler.{method_name} for {event_class.__name__}")
+                missing.append(
+                    f"SessionEventHandler.{method_name} for {event_class.__name__}"
+                )
 
         assert not missing, (
             f"\n❌ REGISTRY COMPLIANCE FAILURE: SessionEventHandler methods missing\n\n"
@@ -272,18 +282,15 @@ class TestHandlerRequirements:
         }
 
         unexpected = set(events_without_logging) - operational_events
-        assert not unexpected, (
-            f"Non-operational events without logging: {unexpected}"
-        )
+        assert not unexpected, f"Non-operational events without logging: {unexpected}"
 
     def test_email_only_for_succeeded(self):
         """Email notifications should only be sent for SUCCEEDED events."""
         invalid = [
             (meta.event_class.__name__, meta.phase.value)
             for meta in EVENT_REGISTRY
-            if meta.requires_email and meta.phase not in (
-                WorkflowPhase.SUCCEEDED, WorkflowPhase.OPERATIONAL
-            )
+            if meta.requires_email
+            and meta.phase not in (WorkflowPhase.SUCCEEDED, WorkflowPhase.OPERATIONAL)
         ]
 
         assert not invalid, (

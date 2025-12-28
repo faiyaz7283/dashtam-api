@@ -1705,7 +1705,7 @@ class AuditEventHandler:
             context={
                 "event_id": str(event.event_id),
                 "session_id": str(event.session_id),
-                "revoked_by": event.revoked_by,
+                "revoked_by_user": event.revoked_by_user,
                 "reason": event.reason,
             },
         )
@@ -1753,9 +1753,8 @@ class AuditEventHandler:
             resource_id=None,
             context={
                 "event_id": str(event.event_id),
-                "revoked_by": event.revoked_by,
                 "reason": event.reason,
-                "count": event.count,
+                "session_count": event.session_count,
             },
         )
 
@@ -1775,11 +1774,11 @@ class AuditEventHandler:
             action=AuditAction.SESSION_PROVIDER_ACCESS,
             user_id=event.user_id,
             resource_type="provider",
-            resource_id=event.provider_id,
+            resource_id=None,
             context={
                 "event_id": str(event.event_id),
                 "session_id": str(event.session_id),
-                "provider_id": str(event.provider_id),
+                "provider_name": event.provider_name,
             },
         )
 
@@ -1803,7 +1802,7 @@ class AuditEventHandler:
             context={
                 "event_id": str(event.event_id),
                 "session_id": str(event.session_id),
-                "reason": event.reason,
+                "activity_type": event.activity_type,
             },
         )
 

@@ -141,6 +141,7 @@ nav:
     - Provider Integration: architecture/provider-integration-architecture.md
     - Provider OAuth: architecture/provider-oauth-architecture.md
     - Rate Limiting: architecture/rate-limit-architecture.md
+    - Registry Pattern: architecture/registry-pattern-architecture.md
     - Repository Pattern: architecture/repository-pattern.md
     - Secrets Management: architecture/secrets-management-architecture.md
     - Session Management: architecture/session-management-architecture.md

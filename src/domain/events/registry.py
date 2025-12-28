@@ -779,7 +779,7 @@ def get_expected_audit_actions() -> dict[Type[DomainEvent], str]:
     }
 
 
-def get_statistics() -> dict:
+def get_statistics() -> dict[str, int | dict[str, int]]:
     """Get registry statistics.
 
     Returns:

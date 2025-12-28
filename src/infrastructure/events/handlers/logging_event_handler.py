@@ -1008,7 +1008,7 @@ class LoggingEventHandler:
             occurred_at=event.occurred_at.isoformat(),
             session_id=str(event.session_id),
             user_id=str(event.user_id),
-            revoked_by=event.revoked_by,
+            revoked_by_user=event.revoked_by_user,
             reason=event.reason,
         )
 
@@ -1036,9 +1036,8 @@ class LoggingEventHandler:
             event_id=str(event.event_id),
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
-            revoked_by=event.revoked_by,
             reason=event.reason,
-            count=event.count,
+            session_count=event.session_count,
         )
 
     async def handle_session_activity_updated_operational(
@@ -1064,7 +1063,7 @@ class LoggingEventHandler:
             occurred_at=event.occurred_at.isoformat(),
             session_id=str(event.session_id),
             user_id=str(event.user_id),
-            provider_id=str(event.provider_id),
+            provider_name=event.provider_name,
         )
 
     async def handle_suspicious_session_activity_operational(
@@ -1078,7 +1077,7 @@ class LoggingEventHandler:
             occurred_at=event.occurred_at.isoformat(),
             session_id=str(event.session_id),
             user_id=str(event.user_id),
-            reason=event.reason,
+            activity_type=event.activity_type,
         )
 
     async def handle_session_limit_exceeded_operational(
@@ -1092,7 +1091,7 @@ class LoggingEventHandler:
             occurred_at=event.occurred_at.isoformat(),
             user_id=str(event.user_id),
             current_count=event.current_count,
-            limit=event.limit,
+            max_sessions=event.max_sessions,
         )
 
     # =========================================================================

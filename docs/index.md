@@ -14,6 +14,9 @@ principles from the ground up.
 - **[Dependency Injection](architecture/dependency-injection-architecture.md)** -
   Centralized container pattern for managing application and
   request-scoped dependencies
+- **[Registry Pattern](architecture/registry-pattern-architecture.md)** -
+  Metadata-driven auto-wiring pattern for eliminating manual drift,
+  zero-maintenance component registration
 - **[Error Handling](architecture/error-handling-architecture.md)** -
   Railway-oriented programming with Result types, RFC 7807 compliance
 - **[Testing Architecture](architecture/testing-architecture.md)** -

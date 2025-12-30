@@ -7,11 +7,17 @@
 - `~/references/starter/dashtam-feature-roadmap.md` - Feature roadmap with Phase 2-6 implementation details
 - `~/references/dashtam-production-deployment-options.md` - Production deployment options, costs, TLS/auth, CI/CD, IaC
 
+**Architecture Documentation**:
+
+- `docs/architecture/hexagonal-architecture.md` - Hexagonal architecture theory, ports & adapters, dependency rule
+- `docs/architecture/protocol-based-architecture.md` - Protocol-based design, structural typing, testing with protocols
+- `docs/architecture/domain-driven-design-architecture.md` - Pragmatic DDD, entities vs value objects, domain events, patterns used/skipped
+
 ---
 
-## Part 1: Project Context
+**Last Updated**: 2025-12-30
 
-### 1. Project Overview
+## 1. Project Overview
 
 **Dashtam** is a secure, modern financial data aggregation platform built from the ground up with clean architecture principles.
 
@@ -43,7 +49,7 @@
 
 ---
 
-### 2. Current Status
+## 2. Current Status
 
 **For detailed feature history, PRs, version releases, and implementation details**: See `CHANGELOG.md`
 
@@ -1286,6 +1292,8 @@ async def create_user(
 - **Maintainability**: Clear boundaries, explicit dependencies
 - **Longevity**: Framework-agnostic domain survives upgrades
 
+**See**: `docs/architecture/hexagonal-architecture.md` for complete architectural details, layer responsibilities, ports & adapters pattern, and integration with other patterns.
+
 #### Why CQRS?
 
 - **Performance**: Optimize reads separately from writes
@@ -1297,6 +1305,8 @@ async def create_user(
 - **Pythonic**: Structural typing (duck typing with safety)
 - **Flexible**: No inheritance required, easier testing
 - **Modern**: Python 3.8+ feature, type checkers understand
+
+**See**: `docs/architecture/protocol-based-architecture.md` for structural vs nominal typing, protocol implementations across Dashtam, testing strategies, and common pitfalls.
 
 #### Why Result Types?
 

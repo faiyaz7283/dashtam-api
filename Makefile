@@ -161,7 +161,7 @@ keys-validate:
 
 dev-up: _check-traefik _ensure-env-dev
 	@echo "🚀 Starting DEVELOPMENT environment..."
-	@docker compose -f compose/docker-compose.dev.yml up -d
+	@docker compose -f compose/docker-compose.dev.yml up -d --remove-orphans
 	@echo ""
 	@echo "📦 Syncing dependencies (including MkDocs)..."
 	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
@@ -215,7 +215,7 @@ dev-rebuild: _check-traefik _ensure-env-dev
 	@docker compose -f compose/docker-compose.dev.yml build --no-cache
 	@echo "📦 Restarting with fresh dependencies..."
 	@docker compose -f compose/docker-compose.dev.yml down
-	@docker compose -f compose/docker-compose.dev.yml up -d
+	@docker compose -f compose/docker-compose.dev.yml up -d --remove-orphans
 	@echo "📦 Syncing dependencies (including MkDocs)..."
 	@docker compose -f compose/docker-compose.dev.yml exec -T app uv sync --all-groups > /dev/null 2>&1 || docker compose -f compose/docker-compose.dev.yml exec app uv sync --all-groups
 	@echo "✅ Development containers rebuilt"
@@ -226,7 +226,7 @@ dev-rebuild: _check-traefik _ensure-env-dev
 
 test-up: _check-traefik _ensure-env-test
 	@echo "🧪 Starting TEST environment..."
-	@docker compose -f compose/docker-compose.test.yml up -d
+	@docker compose -f compose/docker-compose.test.yml up -d --remove-orphans
 	@sleep 3
 	@echo ""
 	@echo "✅ Test services started!"
@@ -319,7 +319,7 @@ ci-test-local: _ensure-env-ci
 	@echo "🤖 Running FULL CI suite locally (tests + lint + type-check)..."
 	@echo ""
 	@echo "📝 Step 1: Starting CI environment..."
-	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@docker compose -f compose/docker-compose.ci.yml up -d --build --remove-orphans
 	@echo ""
 	@echo "⏳ Step 2: Waiting for services..."
 	@sleep 3
@@ -352,7 +352,7 @@ ci-test: _ensure-env-ci
 	@echo "🤖 Running CI tests (matches GitHub Actions test-main job)..."
 	@echo ""
 	@echo "📝 Starting CI environment..."
-	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@docker compose -f compose/docker-compose.ci.yml up -d --build --remove-orphans
 	@echo ""
 	@echo "⏳ Waiting for services..."
 	@sleep 3
@@ -376,7 +376,7 @@ ci-lint: _ensure-env-ci
 	@echo "🔍 Running CI linting (matches GitHub Actions lint job)..."
 	@echo ""
 	@echo "📝 Starting CI environment..."
-	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@docker compose -f compose/docker-compose.ci.yml up -d --build --remove-orphans
 	@echo ""
 	@echo "⏳ Waiting for app container..."
 	@sleep 3
@@ -403,7 +403,7 @@ ci-docs: _ensure-env-ci
 	@echo "📚 Running CI docs build (matches GitHub Actions docs job)..."
 	@echo ""
 	@echo "📝 Starting CI environment..."
-	@docker compose -f compose/docker-compose.ci.yml up -d --build
+	@docker compose -f compose/docker-compose.ci.yml up -d --build --remove-orphans
 	@echo ""
 	@echo "⏳ Waiting for app container..."
 	@sleep 3

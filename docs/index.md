@@ -8,15 +8,26 @@ principles from the ground up.
 
 ### Core Architecture
 
+- **[Hexagonal Architecture](architecture/hexagonal-architecture.md)** -
+  Ports & adapters pattern, dependency rule, layer boundaries,
+  domain at core with zero framework dependencies
+- **[Protocol-Based Architecture](architecture/protocol-based-architecture.md)** -
+  Structural typing with Python Protocol, why Protocol over ABC,
+  repository protocols, testing with protocols
+- **[Domain-Driven Design](architecture/domain-driven-design-architecture.md)** -
+  Pragmatic DDD approach, entities vs value objects, domain events,
+  ubiquitous language, patterns used and skipped
+- **[CQRS Pattern](architecture/cqrs-pattern.md)** -
+  Command Query Responsibility Segregation with separate handlers
+- **[Event Registry Pattern](architecture/registry-pattern-architecture.md)** -
+  Metadata-driven auto-wiring pattern for eliminating manual drift,
+  zero-maintenance component registration
 - **[Directory Structure](architecture/directory-structure.md)** -
   Hexagonal architecture organization, layer responsibilities,
   file naming conventions
 - **[Dependency Injection](architecture/dependency-injection-architecture.md)** -
   Centralized container pattern for managing application and
   request-scoped dependencies
-- **[Registry Pattern](architecture/registry-pattern-architecture.md)** -
-  Metadata-driven auto-wiring pattern for eliminating manual drift,
-  zero-maintenance component registration
 - **[Error Handling](architecture/error-handling-architecture.md)** -
   Railway-oriented programming with Result types, RFC 7807 compliance
 - **[Testing Architecture](architecture/testing-architecture.md)** -
@@ -227,4 +238,4 @@ See `~/starter/development-checklist.md` for the complete feature development wo
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-12-27
+**Created**: 2025-11-13 | **Last Updated**: 2025-12-30

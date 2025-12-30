@@ -78,7 +78,16 @@ graph TB
   - `environment.py` - Environment enum (dev, test, prod, ci)
 - `validation.py` - Common validation functions
 - `config.py` - Application settings with Pydantic
-- `container.py` - Centralized dependency injection container
+- `container/` - Modularized dependency injection container
+  - `__init__.py` - Main exports and core factories
+  - `auth_handlers.py` - Authentication command/query handler factories
+  - `authorization.py` - Authorization dependencies
+  - `data_handlers.py` - Data sync command/query handler factories
+  - `events.py` - Event bus and handler wiring (uses Event Registry)
+  - `infrastructure.py` - Infrastructure adapter factories
+  - `provider_handlers.py` - Provider command/query handler factories
+  - `providers.py` - Provider factory registration
+  - `repositories.py` - Repository factories
 
 **Dependencies**: None (pure Python 3.13+)
 
@@ -108,7 +117,15 @@ src/domain/
 ├── enums/             # Domain enums (audit actions, provider types, etc.)
 ├── errors/            # Domain-specific errors (audit, secrets, etc.)
 ├── protocols/         # ALL protocols consolidated here (repositories, services, etc.)
-├── events/            # Domain events (things that happened)
+├── events/            # Domain events with Event Registry Pattern
+│   ├── base_event.py           # DomainEvent base class
+│   ├── auth_events.py          # Authentication events (28 events)
+│   ├── authorization_events.py # Authorization events (6 events)
+│   ├── provider_events.py      # Provider events (9 events)
+│   ├── data_events.py          # Data sync events (12 events)
+│   ├── session_events.py       # Session events (8 events)
+│   ├── rate_limit_events.py    # Rate limit events (3 events)
+│   └── registry.py             # Event Registry (69 events total, single source of truth)
 ├── types.py           # Annotated types (Email, Password, etc.)
 └── validators.py      # Centralized validation functions
 ```
@@ -176,12 +193,13 @@ src/domain/protocols/
 - `entities/user.py` - User entity with business methods
 - `value_objects/email.py` - Email value object with validation
 - `enums/audit_action.py` - AuditAction enum (extensible audit events)
-- `enums/provider_type.py` - ProviderType enum (schwab, chase, etc.)
+- `enums/provider_type.py` - ProviderType enum (schwab, alpaca, chase, etc.)
 - `errors/audit_error.py` - AuditError (audit system failures)
 - `errors/secrets_error.py` - SecretsError (secrets retrieval failures)
 - `protocols/user_repository.py` - UserRepository protocol (port)
 - `protocols/cache_protocol.py` - CacheProtocol (port)
-- `events/auth_events.py` - Authentication domain events (12 events)
+- `events/auth_events.py` - Authentication domain events (28 events)
+- `events/registry.py` - Event Registry (69 events, automated container wiring)
 
 ---
 
@@ -334,13 +352,16 @@ src/presentation/
 ```text
 src/schemas/
 ├── __init__.py
-├── auth_schemas.py        # Login, registration, password reset
-├── session_schemas.py     # Session management
-├── provider_schemas.py    # Provider connection
-├── account_schemas.py     # Account operations
-├── transaction_schemas.py # Transaction queries
-├── rotation_schemas.py    # Token rotation admin
-└── common_schemas.py      # Shared schemas (pagination, errors)
+├── auth_schemas.py              # Login, registration, password reset
+├── session_schemas.py           # Session management
+├── provider_schemas.py          # Provider connection
+├── account_schemas.py           # Account operations
+├── transaction_schemas.py       # Transaction queries
+├── holding_schemas.py           # Holdings/positions (v1.2.0)
+├── balance_snapshot_schemas.py  # Balance tracking (v1.2.0)
+├── import_schemas.py            # File imports (v1.4.0)
+├── rotation_schemas.py          # Token rotation admin
+└── common_schemas.py            # Shared schemas (pagination, errors)
 ```
 
 **Dependencies**: `pydantic`, `src/domain/types.py` (Annotated types)
@@ -356,6 +377,8 @@ src/schemas/
 
 - `auth_schemas.py` - `UserCreate`, `LoginRequest`, `TokenResponse`
 - `account_schemas.py` - `AccountResponse`, `AccountListResponse`
+- `holding_schemas.py` - `HoldingResponse`, `HoldingListResponse`
+- `import_schemas.py` - `FileImportRequest`, `ImportResultResponse`
 
 ---
 
@@ -586,15 +609,18 @@ class GetUser:
 
 ### 5. Domain Events for Critical Workflows
 
-**Emit domain events ONLY for critical workflows** with side effects.
+**Emit domain events ONLY for critical workflows** with side effects (3-state ATTEMPT → OUTCOME pattern).
 
 ```python
 @dataclass(frozen=True, kw_only=True)
-class UserRegistered:
+class UserRegistrationSucceeded:
     event_id: UUID
     occurred_at: datetime
     user_id: UUID
+    email: str
 ```
+
+**See**: Event Registry Pattern in `src/domain/events/registry.py` (single source of truth for all 69 events)
 
 ---
 
@@ -954,4 +980,4 @@ class AuditError(DomainError):  # Inherits base fields
 
 ---
 
-**Created**: 2025-11-08 | **Last Updated**: 2025-11-29
+**Created**: 2025-11-08 | **Last Updated**: 2025-12-30

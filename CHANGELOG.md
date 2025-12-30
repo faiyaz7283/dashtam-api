@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2025-12-30
+
+### Documentation
+
+- **Core Architecture Documentation Completion**
+  - Created `docs/architecture/hexagonal-architecture.md` (1,451 lines) - Complete hexagonal architecture theory including dependency rule, layer boundaries, ports & adapters pattern, benefits vs monolithic architecture, testing strategies, and integration with CQRS/DDD/Protocol patterns
+  - Created `docs/architecture/protocol-based-architecture.md` (1,340 lines) - Comprehensive Protocol pattern guide covering structural vs nominal typing, why Protocol over ABC, Protocol implementations across Dashtam (repositories, services, providers), testing with Protocols, mypy type checking, common pitfalls and solutions
+  - Created `docs/architecture/domain-driven-design-architecture.md` (1,268 lines) - Pragmatic DDD philosophy including what "pragmatic" means for Dashtam, DDD patterns used (entities, value objects, domain events, repositories), DDD patterns NOT used and why, integration with hexagonal/CQRS/Protocol/Event Registry, when to emit domain events, entity vs value object decision tree, domain vs application services boundary
+  - Updated `docs/architecture/directory-structure.md` - Synchronized with v1.5.1 state including modularized container structure, complete event registry (69 events), and updated schemas section (3 new schema files)
+  - Updated `docs/index.md` - Reorganized "Core Architecture" section to highlight 5 core architectures: Hexagonal, Protocol-Based, Domain-Driven Design, CQRS, Event Registry (updated last modified: 2025-12-30)
+  - Updated `mkdocs.yml` - Added 3 new architecture docs to navigation in alphabetical order
+  - Updated `WARP.md` Section 21 (Key Technical Decisions) - Added cross-references to new architecture docs with explanations (updated last modified: 2025-12-30)
+
+### Changed
+
+- Total architecture documentation now covers 5 core architectural patterns with comprehensive standalone docs for each
+- All new architecture docs follow Dashtam documentation patterns: Overview with Purpose/Problem/Solution, horizontal rules between sections, Mermaid diagrams, real code examples, references to related docs, metadata at bottom
+
 ## [1.5.1] - 2025-12-28
 
 ### Added

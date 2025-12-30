@@ -126,7 +126,6 @@ plugins:
 # Navigation
 nav:
   - Home: index.md
-  - Code Reference: reference/
   - API Reference:
     - Account Operations: api/account-operations.md
     - Authentication: api/authentication.md
@@ -149,8 +148,11 @@ nav:
     - Dependency Injection: architecture/dependency-injection-architecture.md
     - Directory Structure: architecture/directory-structure.md
     - Domain Events: architecture/domain-events-architecture.md
+    - Domain-Driven Design: architecture/domain-driven-design-architecture.md
     - Error Handling: architecture/error-handling-architecture.md
+    - Hexagonal Architecture: architecture/hexagonal-architecture.md
     - Holding Domain: architecture/holding-domain-model.md
+    - Protocol-Based Architecture: architecture/protocol-based-architecture.md
     - Provider Domain: architecture/provider-domain-model.md
     - Provider Integration: architecture/provider-integration-architecture.md
     - Provider OAuth: architecture/provider-oauth-architecture.md
@@ -158,6 +160,7 @@ nav:
     - Registry Pattern: architecture/registry-pattern-architecture.md
     - Repository Pattern: architecture/repository-pattern.md
     - Secrets Management: architecture/secrets-management-architecture.md
+    - Session Management: architecture/session-management-architecture.md
     - Structured Logging: architecture/structured-logging-architecture.md
     - Testing: architecture/testing-architecture.md
     - Token Breach Rotation: architecture/token-breach-rotation-architecture.md
@@ -182,4 +185,6 @@ nav:
     - Local CI Testing: guides/local-ci-testing.md
     - Rate Limit Usage: guides/rate-limit-usage.md
     - Secrets Management Usage: guides/secrets-management-usage.md
+    - Session Management Usage: guides/session-management-usage.md
     - Structured Logging Usage: guides/structured-logging-usage.md
+  - Code Reference: reference/

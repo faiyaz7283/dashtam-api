@@ -7,6 +7,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] - 2025-12-31
+
+### Added
+
+- **F8.2: Route Metadata Registry (5th Registry Pattern Implementation)**
+  - **Registry Infrastructure**: Created `src/presentation/routers/api/v1/routes/` module with 4 files
+    - `metadata.py` (219 lines): RouteMetadata dataclass, HTTPMethod/AuthPolicy/RateLimitPolicy/IdempotencyLevel enums, ErrorSpec type
+    - `registry.py` (810 lines): ROUTE_REGISTRY with 36 endpoint metadata entries (single source of truth)
+    - `generator.py` (143 lines): `register_routes_from_registry()` auto-generates FastAPI routes from registry
+    - `derivations.py` (252 lines): Two-tier rate limit pattern - policy assignment (Tier 1) and policy rules (Tier 2)
+  - **Auto-Generated Routes**: All 36 endpoints now generated from registry (zero manual decorators)
+  - **Auto-Generated Rate Limits**: Created `src/infrastructure/rate_limit/from_registry.py` (94 lines) - rate limit rules generated from registry
+  - **Router Refactoring**: Converted 12 router files to pure handler functions (removed all @router decorators)
+    - Sessions (6 handlers), Tokens (1), Users (1), Email Verifications (1), Password Resets (2)
+    - Providers (6), Accounts (4), Transactions (3), Holdings (3), Balance Snapshots (3), Imports (2), Admin (3)
+  - **Self-Enforcing Tests**: Created `tests/api/test_route_metadata_registry_compliance.py` with 18 tests
+    - Registry Completeness (6 tests): All routes registered, operation IDs unique, no missing/extra routes
+    - Auth Policy Enforcement (3 tests): PUBLIC/AUTHENTICATED/ADMIN/MANUAL_AUTH verified
+    - Rate Limit Coverage (4 tests): All endpoints have policies, rules cover all, no unknown rules
+    - Metadata Consistency (4 tests): FastAPI metadata matches registry, manual auth documented
+    - Statistics Reporting (1 test): Breakdown by auth/rate limit/idempotency policies
+  - **Zero Drift**: Tests fail if routes missing from registry, handlers missing, or metadata inconsistent
+  - **Benefits**: Single source of truth, self-documenting API, auto-wired dependencies, future-proof (can't drift silently)
+  - Total test count increased from 2,253 to 2,271 tests (+18)
+  - Overall coverage maintained at 88%
+
+### Changed
+
+- **RFC 7807 Full Compliance (Breaking Change)**
+  - **Removed**: `AuthErrorResponse` schema from `src/schemas/auth_schemas.py` (BREAKING CHANGE)
+  - **Standardized**: All API errors now use RFC 7807 `ProblemDetails` format via `ErrorResponseBuilder`
+  - **Updated**: 21 API tests to expect new error format with ApplicationErrorCode URLs
+  - **Migration Impact**: Clients must parse `error.type` field (ApplicationErrorCode URLs) instead of `error.error` strings
+- **Rate Limit Configuration Refactored**
+  - `src/infrastructure/rate_limit/config.py` became thin proxy (imports from `from_registry.py`)
+  - Hand-written rate limit rules replaced with auto-generated rules from Route Registry
+  - Two-tier pattern: Tier 1 (policy assignment in registry) + Tier 2 (policy rules in derivations)
+- **Router Architecture Modernized**
+  - All routers converted from decorator-based to declarative registry-driven generation
+  - Handlers are pure functions (no decorators, no router imports)
+  - `src/presentation/routers/api/v1/__init__.py` uses `register_routes_from_registry()`
+
+### Documentation
+
+- **Error Handling Guide**: Created `docs/guides/error-handling-guide.md` (726 lines)
+  - RFC 7807 Problem Details standard overview
+  - ProblemDetails schema fields (type, title, status, detail, instance, errors, trace_id)
+  - ErrorResponseBuilder usage patterns and ApplicationErrorCode reference
+  - Client error handling examples (TypeScript/Python)
+  - Migration guide from AuthErrorResponse to RFC 7807
+- **Route Registry Architecture**: Created `docs/architecture/route-registry-architecture.md` (772 lines)
+  - Complete registry structure and metadata documentation
+  - Route generation process (declarative → FastAPI routes)
+  - Two-tier rate limit pattern explanation
+  - Self-enforcing compliance tests
+  - Step-by-step guide for adding new endpoints
+  - Benefits, design decisions, and future enhancements
+- **Architecture Updates**
+  - Updated `docs/architecture/registry-pattern-architecture.md` - Added Route Registry as 5th implementation
+  - Updated `docs/index.md` - Redesigned landing page (247→121 lines, 50% reduction), strategic minimalistic design
+  - Updated `WARP.md` - Added Section 9 (RFC 7807) and Section 9a (Route Registry pattern), updated date
+  - Updated `mkdocs.yml` - Added error-handling-guide.md and route-registry-architecture.md to navigation
+
+### Breaking Changes
+
+- **AuthErrorResponse Removed**: All authentication/authorization errors now return RFC 7807 `ProblemDetails`
+- **Error Response Format Changed**:
+  - **Before** (v1.6.2 and earlier):
+
+    ```json
+    {
+      "error": "invalid_credentials",
+      "message": "Invalid email or password"
+    }
+    ```
+
+  - **After** (v1.6.3+):
+  
+    ```json
+    {
+      "type": "https://api.dashtam.com/errors/unauthorized",
+      "title": "Authentication Required",
+      "status": 401,
+      "detail": "Invalid email or password",
+      "instance": "/api/v1/sessions",
+      "trace_id": "550e8400-..."
+    }
+    ```
+
+- **Client Migration Required**:
+  - Match on `error.type` (ApplicationErrorCode URLs), NOT `status` code
+  - Parse `detail` for human-readable message
+  - Use `trace_id` for debugging/support tickets
+  - See `docs/guides/error-handling-guide.md` for complete examples
+
+### Technical Notes
+
+- Registry Pattern now has 5 implementations: Domain Events, Provider Integration, Rate Limit Rules, Validation Rules, Route Metadata
+- All 5 registries follow same pattern: metadata-driven catalog, self-enforcing tests, helper functions, zero drift
+- Route generation eliminates decorator sprawl, prevents manual/automated code drift
+- All markdown linting passed (68 files, zero violations)
+- MkDocs builds successfully (zero warnings)
+- Files changed: 38 files, +4,443 insertions, -1,443 deletions
+
 ## [1.6.2] - 2025-12-31
 
 ### Documentation

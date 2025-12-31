@@ -634,6 +634,181 @@ async def create_user(data: dict):  # No!
     ...
 ```
 
+#### Error Handling (RFC 7807 Problem Details)
+
+**CRITICAL**: All API errors use RFC 7807 Problem Details format. **AuthErrorResponse removed in v1.6.3**.
+
+**Error Response Format**:
+
+```json
+{
+  "type": "https://api.dashtam.com/errors/validation_failed",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "Request validation failed",
+  "instance": "/api/v1/users",
+  "errors": [
+    {"field": "email", "message": "Invalid format", "code": "invalid_format"}
+  ],
+  "trace_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Usage in Handlers**:
+
+```python
+from src.core.errors import ApplicationError, ApplicationErrorCode
+from src.presentation.api.error_response_builder import ErrorResponseBuilder
+
+# Return RFC 7807 error
+error = ApplicationError(
+    code=ApplicationErrorCode.NOT_FOUND,
+    message="User not found"
+)
+
+return ErrorResponseBuilder.from_application_error(
+    error=error,
+    request_path="/api/v1/users/123"
+)
+```
+
+**Key Fields**:
+
+- `type`: Error type URL (match on this, NOT status code)
+- `title`: Human-readable error type name
+- `status`: HTTP status code
+- `detail`: Context-specific error message
+- `instance`: Request path
+- `errors`: Field-level validation errors (optional)
+- `trace_id`: UUID for log correlation
+
+**Reference**: `docs/guides/error-handling-guide.md` (comprehensive guide with client examples)
+
+---
+
+### 9a. Route Metadata Registry Pattern
+
+**Core Principle**: All API routes defined declaratively in single registry, generated at startup.
+
+**Purpose**:
+
+- Single source of truth for all endpoints
+- Self-enforcing (tests fail if routes missing)
+- Auto-generated routes, auth, rate limits, OpenAPI docs
+- Prevents decorator sprawl
+- Future-proof (can't drift silently)
+
+**Architecture**:
+
+```text
+src/presentation/routers/api/v1/routes/
+├── metadata.py      # RouteMetadata types, enums
+├── registry.py      # ROUTE_REGISTRY - 36 endpoints
+├── generator.py     # FastAPI route generation
+└── derivations.py   # Rate limit rule builders
+```
+
+**Registry Entry Pattern**:
+
+```python
+RouteMetadata(
+    method=HTTPMethod.POST,
+    path="/users",
+    handler=create_user,
+    resource="users",
+    tags=["Users"],
+    summary="Create user",
+    operation_id="create_user",
+    response_model=UserCreateResponse,
+    status_code=201,
+    errors=[
+        ErrorSpec(status=400, description="Validation failed"),
+        ErrorSpec(status=409, description="User already exists"),
+    ],
+    idempotency=IdempotencyLevel.NON_IDEMPOTENT,
+    auth_policy=AuthPolicy(level=AuthLevel.PUBLIC),
+    rate_limit_policy=RateLimitPolicy.AUTH_REGISTER,
+)
+```
+
+**Route Generation** (automatic):
+
+```python
+# src/presentation/routers/api/v1/__init__.py
+from src.presentation.routers.api.v1.routes.registry import ROUTE_REGISTRY
+from src.presentation.routers.api/v1/routes.generator import register_routes_from_registry
+
+v1_router = APIRouter(prefix="/api/v1")
+register_routes_from_registry(v1_router, ROUTE_REGISTRY)
+
+# Generates 36 FastAPI routes with:
+# - Auth dependencies (from auth_policy)
+# - Rate limit rules (from rate_limit_policy)
+# - OpenAPI metadata (summary, tags, operation_id)
+# - Error specs (for OpenAPI docs)
+```
+
+**Handler Pattern** (pure functions, no decorators):
+
+```python
+# src/presentation/routers/api/v1/users.py
+
+# ❌ OLD: Decorator-based (removed)
+# @router.post("/users", status_code=201)
+# async def create_user(data: UserCreate): ...
+
+# ✅ NEW: Pure handler function (registered in ROUTE_REGISTRY)
+async def create_user(
+    data: UserCreate,
+    handler: RegisterUserHandler = Depends(get_register_handler),
+) -> UserCreateResponse:
+    result = await handler.handle(RegisterUser(**data.model_dump()))
+    match result:
+        case Success(user_id):
+            return UserCreateResponse(id=user_id, email=data.email)
+        case Failure(error):
+            return ErrorResponseBuilder.from_application_error(
+                error=error,
+                request_path="/api/v1/users"
+            )
+```
+
+**Rate Limit Generation** (two-tier pattern):
+
+```python
+# Tier 1: Policy assignment in registry.py
+rate_limit_policy=RateLimitPolicy.AUTH_LOGIN
+
+# Tier 2: Policy implementation in derivations.py
+RateLimitPolicy.AUTH_LOGIN: RateLimitRule(
+    max_tokens=5,
+    refill_rate=5.0,
+    cost=1,
+    scope=RateLimitScope.IP,
+    enabled=True
+)
+
+# Auto-generated rules in infrastructure/rate_limit/from_registry.py
+RATE_LIMIT_RULES = build_rate_limit_rules(ROUTE_REGISTRY)
+```
+
+**Self-Enforcing Tests** (prevent drift):
+
+- `test_all_routes_are_registered()` - Fails if FastAPI routes don't match registry
+- `test_operation_ids_are_unique()` - Fails if duplicate operation IDs
+- `test_auth_policy_enforced()` - Fails if auth dependencies missing
+- `test_rate_limit_rules_cover_all()` - Fails if rate limit rules missing
+- `test_registry_matches_fastapi_metadata()` - Fails if metadata inconsistent
+
+**Benefits**:
+
+- ✅ Add route to registry → tests validate, FastAPI generates, rate limits apply
+- ✅ Remove route from registry → tests catch orphaned code
+- ✅ Change metadata → tests verify consistency
+- ✅ Zero manual updates needed when routes change
+
+**Reference**: `tests/api/test_route_metadata_registry_compliance.py`
+
 ---
 
 ## Part 3: Development Workflow
@@ -1362,4 +1537,4 @@ async def create_user(
 
 ---
 
-**Last Updated**: 2025-12-28
+**Last Updated**: 2025-12-31

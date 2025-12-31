@@ -429,7 +429,7 @@ class TestCreateSession:
 
         assert response.status_code == 401
         data = response.json()
-        assert data["title"] == "Invalid Credentials"
+        assert data["title"] == "Authentication Required"
         assert data["status"] == 401
 
     def test_create_session_account_locked(self, client):
@@ -441,7 +441,7 @@ class TestCreateSession:
 
         assert response.status_code == 403
         data = response.json()
-        assert data["title"] == "Account Locked"
+        assert data["title"] == "Access Denied"
 
     def test_create_session_email_not_verified(self, client):
         """Test unverified email returns 403."""
@@ -452,7 +452,7 @@ class TestCreateSession:
 
         assert response.status_code == 403
         data = response.json()
-        assert data["title"] == "Email Not Verified"
+        assert data["title"] == "Access Denied"
 
     def test_create_session_missing_email(self, client):
         """Test missing email returns 422 validation error."""
@@ -488,7 +488,7 @@ class TestListSessions:
 
         assert response.status_code == 401
         data = response.json()
-        assert data["title"] == "Unauthorized"
+        assert data["title"] == "Authentication Required"
 
     def test_list_sessions_success(self, client):
         """Test successful session listing returns 200."""
@@ -546,7 +546,7 @@ class TestGetSession:
 
         assert response.status_code == 404
         data = response.json()
-        assert data["title"] == "Not Found"
+        assert data["title"] == "Resource Not Found"
 
 
 # =============================================================================

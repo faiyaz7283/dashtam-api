@@ -1,20 +1,21 @@
-"""Sessions resource router.
+"""Sessions resource handlers.
 
-RESTful endpoints for session management.
+Handler functions for session management endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    POST   /api/v1/sessions         - Create session (login)
-    GET    /api/v1/sessions         - List user sessions
-    GET    /api/v1/sessions/{id}    - Get session details
-    DELETE /api/v1/sessions/{id}    - Revoke specific session
-    DELETE /api/v1/sessions/current - Delete current session (logout)
-    DELETE /api/v1/sessions         - Revoke all sessions (except current)
+Handlers:
+    create_session          - Create session (login)
+    delete_current_session  - Delete current session (logout)
+    list_sessions           - List user sessions
+    get_session             - Get session details
+    revoke_session          - Revoke specific session
+    revoke_all_sessions     - Revoke all sessions (except current)
 """
 
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Path, Query, Request, status
+from fastapi import Depends, Header, Path, Query, Request, status
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,7 +45,6 @@ from src.application.commands.session_commands import (
 from src.application.queries.handlers.get_session_handler import GetSessionHandler
 from src.application.queries.handlers.list_sessions_handler import ListSessionsHandler
 from src.application.queries.session_queries import GetSession, ListUserSessions
-from src.core.config import settings
 from src.core.container import (
     get_authenticate_user_handler,
     get_cache,
@@ -59,9 +59,10 @@ from src.core.container import (
 )
 from src.core.result import Failure, Success
 from src.domain.protocols import CacheProtocol
+from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 from src.schemas.auth_schemas import (
-    AuthErrorResponse,
     SessionCreateRequest,
     SessionCreateResponse,
     SessionDeleteRequest,
@@ -74,28 +75,7 @@ from src.schemas.session_schemas import (
     SessionRevokeRequest,
 )
 
-router = APIRouter(prefix="/sessions", tags=["Sessions"])
 
-
-@router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    response_model=SessionCreateResponse,
-    responses={
-        201: {
-            "description": "Session created successfully",
-            "model": SessionCreateResponse,
-        },
-        400: {"description": "Invalid credentials", "model": AuthErrorResponse},
-        401: {"description": "Authentication failed", "model": AuthErrorResponse},
-        403: {
-            "description": "Account locked or not verified",
-            "model": AuthErrorResponse,
-        },
-    },
-    summary="Create session",
-    description="Authenticate user and create a new session with tokens.",
-)
 async def create_session(
     request: Request,
     data: SessionCreateRequest,
@@ -185,48 +165,33 @@ def _create_auth_error_response(request: Request, error: str) -> JSONResponse:
         error: Error code from handler.
 
     Returns:
-        JSONResponse with appropriate status code and error message.
+        JSONResponse with RFC 7807 ProblemDetails error.
     """
+    # Map string error codes to ApplicationError
     error_mapping = {
-        "invalid_credentials": (
-            status.HTTP_401_UNAUTHORIZED,
-            "Invalid Credentials",
-        ),
-        "email_not_verified": (status.HTTP_403_FORBIDDEN, "Email Not Verified"),
-        "account_locked": (status.HTTP_403_FORBIDDEN, "Account Locked"),
-        "account_inactive": (status.HTTP_403_FORBIDDEN, "Account Inactive"),
-        "user_not_found": (status.HTTP_401_UNAUTHORIZED, "Invalid Credentials"),
-        "session_limit_exceeded": (status.HTTP_403_FORBIDDEN, "Session Limit Exceeded"),
+        "invalid_credentials": ApplicationErrorCode.UNAUTHORIZED,
+        "email_not_verified": ApplicationErrorCode.FORBIDDEN,
+        "account_locked": ApplicationErrorCode.FORBIDDEN,
+        "account_inactive": ApplicationErrorCode.FORBIDDEN,
+        "user_not_found": ApplicationErrorCode.UNAUTHORIZED,
+        "session_limit_exceeded": ApplicationErrorCode.FORBIDDEN,
     }
-    status_code, title = error_mapping.get(
-        error, (status.HTTP_400_BAD_REQUEST, "Authentication Failed")
+
+    error_code = error_mapping.get(
+        error, ApplicationErrorCode.COMMAND_VALIDATION_FAILED
+    )
+    app_error = ApplicationError(
+        code=error_code,
+        message=_get_user_friendly_error(error),
     )
 
-    trace_id = get_trace_id()
-    return JSONResponse(
-        status_code=status_code,
-        content=AuthErrorResponse(
-            type=f"{settings.api_base_url}/errors/{error}",
-            title=title,
-            status=status_code,
-            detail=_get_user_friendly_error(error),
-            instance=str(request.url.path),
-        ).model_dump(),
-        headers={"X-Trace-ID": trace_id} if trace_id else None,
+    return ErrorResponseBuilder.from_application_error(
+        error=app_error,
+        request=request,
+        trace_id=get_trace_id() or "",
     )
 
 
-@router.delete(
-    "/current",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_model=None,
-    responses={
-        204: {"description": "Session deleted successfully"},
-        401: {"description": "Not authenticated", "model": AuthErrorResponse},
-    },
-    summary="Delete current session",
-    description="Logout by revoking the refresh token for current session.",
-)
 async def delete_current_session(
     request: Request,
     data: SessionDeleteRequest,
@@ -256,17 +221,14 @@ async def delete_current_session(
     user_id = await _extract_user_id_from_token(authorization, cache, db_session)
 
     if user_id is None:
-        trace_id = get_trace_id()
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content=AuthErrorResponse(
-                type=f"{settings.api_base_url}/errors/unauthorized",
-                title="Unauthorized",
-                status=status.HTTP_401_UNAUTHORIZED,
-                detail="Valid authorization token required",
-                instance=str(request.url.path),
-            ).model_dump(),
-            headers={"X-Trace-ID": trace_id} if trace_id else None,
+        app_error = ApplicationError(
+            code=ApplicationErrorCode.UNAUTHORIZED,
+            message="Valid authorization token required",
+        )
+        return ErrorResponseBuilder.from_application_error(
+            error=app_error,
+            request=request,
+            trace_id=get_trace_id() or "",
         )
 
     # Create command
@@ -466,21 +428,10 @@ async def _extract_session_id_from_token(
 
 
 # =============================================================================
-# Session Management Endpoints (F1.3)
+# Session Management Handlers (F1.3)
 # =============================================================================
 
 
-@router.get(
-    "",
-    status_code=status.HTTP_200_OK,
-    response_model=SessionListResponse,
-    responses={
-        200: {"description": "List of user sessions", "model": SessionListResponse},
-        401: {"description": "Not authenticated", "model": AuthErrorResponse},
-    },
-    summary="List sessions",
-    description="Get all sessions for the current user.",
-)
 async def list_sessions(
     request: Request,
     authorization: Annotated[str | None, Header()] = None,
@@ -547,18 +498,6 @@ async def list_sessions(
             return _unauthorized_response(request)
 
 
-@router.get(
-    "/{session_id}",
-    status_code=status.HTTP_200_OK,
-    response_model=SessionResponse,
-    responses={
-        200: {"description": "Session details", "model": SessionResponse},
-        401: {"description": "Not authenticated", "model": AuthErrorResponse},
-        404: {"description": "Session not found", "model": AuthErrorResponse},
-    },
-    summary="Get session",
-    description="Get details of a specific session.",
-)
 async def get_session(
     request: Request,
     session_id: UUID = Path(..., description="Session ID"),
@@ -619,18 +558,6 @@ async def get_session(
             return _unauthorized_response(request)
 
 
-@router.delete(
-    "/{session_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_model=None,
-    responses={
-        204: {"description": "Session revoked successfully"},
-        401: {"description": "Not authenticated", "model": AuthErrorResponse},
-        404: {"description": "Session not found", "model": AuthErrorResponse},
-    },
-    summary="Revoke session",
-    description="Revoke a specific session (logout that device).",
-)
 async def revoke_session(
     request: Request,
     session_id: UUID = Path(..., description="Session ID to revoke"),
@@ -684,17 +611,6 @@ async def revoke_session(
             return _unauthorized_response(request)
 
 
-@router.delete(
-    "",
-    status_code=status.HTTP_200_OK,
-    response_model=SessionRevokeAllResponse,
-    responses={
-        200: {"description": "Sessions revoked", "model": SessionRevokeAllResponse},
-        401: {"description": "Not authenticated", "model": AuthErrorResponse},
-    },
-    summary="Revoke all sessions",
-    description="Revoke all sessions except the current one (logout everywhere else).",
-)
 async def revoke_all_sessions(
     request: Request,
     data: SessionRevokeAllRequest | None = None,
@@ -755,31 +671,25 @@ async def revoke_all_sessions(
 
 def _unauthorized_response(request: Request) -> JSONResponse:
     """Create 401 Unauthorized response."""
-    trace_id = get_trace_id()
-    return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content=AuthErrorResponse(
-            type=f"{settings.api_base_url}/errors/unauthorized",
-            title="Unauthorized",
-            status=status.HTTP_401_UNAUTHORIZED,
-            detail="Valid authorization token required",
-            instance=str(request.url.path),
-        ).model_dump(),
-        headers={"X-Trace-ID": trace_id} if trace_id else None,
+    app_error = ApplicationError(
+        code=ApplicationErrorCode.UNAUTHORIZED,
+        message="Valid authorization token required",
+    )
+    return ErrorResponseBuilder.from_application_error(
+        error=app_error,
+        request=request,
+        trace_id=get_trace_id() or "",
     )
 
 
 def _not_found_response(request: Request, detail: str) -> JSONResponse:
     """Create 404 Not Found response."""
-    trace_id = get_trace_id()
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content=AuthErrorResponse(
-            type=f"{settings.api_base_url}/errors/not_found",
-            title="Not Found",
-            status=status.HTTP_404_NOT_FOUND,
-            detail=detail,
-            instance=str(request.url.path),
-        ).model_dump(),
-        headers={"X-Trace-ID": trace_id} if trace_id else None,
+    app_error = ApplicationError(
+        code=ApplicationErrorCode.NOT_FOUND,
+        message=detail,
+    )
+    return ErrorResponseBuilder.from_application_error(
+        error=app_error,
+        request=request,
+        trace_id=get_trace_id() or "",
     )

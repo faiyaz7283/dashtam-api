@@ -1,45 +1,30 @@
-"""Tokens resource router.
+"""Tokens resource handlers.
 
-RESTful endpoints for token management.
+Handler functions for token management endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    POST /api/v1/tokens - Create new tokens (refresh)
+Handlers:
+    create_tokens - Create new tokens (refresh)
 """
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 
 from src.application.commands.auth_commands import RefreshAccessToken
 from src.application.commands.handlers.refresh_access_token_handler import (
     RefreshAccessTokenHandler,
 )
+from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.core.container import get_refresh_token_handler
 from src.core.result import Failure, Success
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 from src.schemas.auth_schemas import (
-    AuthErrorResponse,
     TokenCreateRequest,
     TokenCreateResponse,
 )
 
-router = APIRouter(prefix="/tokens", tags=["Tokens"])
 
-
-@router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    response_model=TokenCreateResponse,
-    responses={
-        201: {
-            "description": "Tokens created successfully",
-            "model": TokenCreateResponse,
-        },
-        400: {"description": "Invalid token", "model": AuthErrorResponse},
-        401: {"description": "Token expired or revoked", "model": AuthErrorResponse},
-    },
-    summary="Create tokens",
-    description="Refresh access token using refresh token. Implements token rotation.",
-)
 async def create_tokens(
     request: Request,
     data: TokenCreateRequest,
@@ -79,29 +64,26 @@ async def create_tokens(
                 expires_in=refresh_response.expires_in,
             )
         case Failure(error=error):
-            # Map error to appropriate status code
+            # Map error to ApplicationErrorCode
             error_mapping = {
-                "token_invalid": (status.HTTP_400_BAD_REQUEST, "Invalid Token"),
-                "token_expired": (status.HTTP_401_UNAUTHORIZED, "Token Expired"),
-                "token_revoked": (status.HTTP_401_UNAUTHORIZED, "Token Revoked"),
-                "user_not_found": (status.HTTP_401_UNAUTHORIZED, "User Not Found"),
-                "user_inactive": (status.HTTP_401_UNAUTHORIZED, "User Inactive"),
+                "token_invalid": ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
+                "token_expired": ApplicationErrorCode.UNAUTHORIZED,
+                "token_revoked": ApplicationErrorCode.UNAUTHORIZED,
+                "user_not_found": ApplicationErrorCode.UNAUTHORIZED,
+                "user_inactive": ApplicationErrorCode.UNAUTHORIZED,
             }
-            status_code, title = error_mapping.get(
-                error, (status.HTTP_400_BAD_REQUEST, "Token Refresh Failed")
+            error_code = error_mapping.get(
+                error, ApplicationErrorCode.COMMAND_VALIDATION_FAILED
             )
 
-            trace_id = get_trace_id()
-            return JSONResponse(
-                status_code=status_code,
-                content=AuthErrorResponse(
-                    type=f"https://api.dashtam.com/errors/{error}",
-                    title=title,
-                    status=status_code,
-                    detail=_get_user_friendly_error(error),
-                    instance=str(request.url.path),
-                ).model_dump(),
-                headers={"X-Trace-ID": trace_id} if trace_id else None,
+            app_error = ApplicationError(
+                code=error_code,
+                message=_get_user_friendly_error(error),
+            )
+            return ErrorResponseBuilder.from_application_error(
+                error=app_error,
+                request=request,
+                trace_id=get_trace_id() or "",
             )
 
 

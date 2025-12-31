@@ -160,6 +160,7 @@ nav:
     - Rate Limiting: architecture/rate-limit-architecture.md
     - Registry Pattern: architecture/registry-pattern-architecture.md
     - Repository Pattern: architecture/repository-pattern.md
+    - Route Registry: architecture/route-registry-architecture.md
     - Secrets Management: architecture/secrets-management-architecture.md
     - Session Management: architecture/session-management-architecture.md
     - Structured Logging: architecture/structured-logging-architecture.md
@@ -181,6 +182,7 @@ nav:
     - Dependency Injection Usage: guides/dependency-injection-usage.md
     - Domain Events Usage: guides/domain-events-usage.md
     - Enum Security: guides/enum-security-guidelines.md
+    - Error Handling Guide: guides/error-handling-guide.md
     - Error Handling Usage: guides/error-handling-usage.md
     - Import Guidelines: guides/import-guidelines.md
     - Key Management: guides/key-management.md

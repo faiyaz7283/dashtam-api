@@ -1,162 +1,69 @@
 # Dashtam Documentation
 
-Welcome to the Dashtam documentation. Dashtam is a secure, modern
-financial data aggregation platform built with clean architecture
-principles from the ground up.
+Dashtam is a **secure, modern financial data aggregation platform** built from the ground up with clean architecture principles. It demonstrates production-grade hexagonal architecture, protocol-based design, and pragmatic domain-driven design in Python.
 
-## Architecture Documentation
+## Core Architecture
 
-### Core Architecture
+Dashtam is built on six foundational architectural pillars:
 
-- **[Hexagonal Architecture](architecture/hexagonal-architecture.md)** -
-  Ports & adapters pattern, dependency rule, layer boundaries,
-  domain at core with zero framework dependencies
-- **[Protocol-Based Architecture](architecture/protocol-based-architecture.md)** -
-  Structural typing with Python Protocol, why Protocol over ABC,
-  repository protocols, testing with protocols
-- **[Domain-Driven Design](architecture/domain-driven-design-architecture.md)** -
-  Pragmatic DDD approach, entities vs value objects, domain events,
-  ubiquitous language, patterns used and skipped
-- **[CQRS Pattern](architecture/cqrs-pattern.md)** -
-  Command Query Responsibility Segregation with separate handlers
-- **[Event Registry Pattern](architecture/registry-pattern-architecture.md)** -
-  Metadata-driven auto-wiring pattern for eliminating manual drift,
-  zero-maintenance component registration (4 implementations: Domain Events,
-  Provider Integration, Rate Limit Rules, Validation Rules)
-- **[Directory Structure](architecture/directory-structure.md)** -
-  Hexagonal architecture organization, layer responsibilities,
-  file naming conventions
-- **[Dependency Injection](architecture/dependency-injection-architecture.md)** -
-  Centralized container pattern for managing application and
-  request-scoped dependencies
-- **[Error Handling](architecture/error-handling-architecture.md)** -
-  Railway-oriented programming with Result types, RFC 7807 compliance
-- **[Testing Architecture](architecture/testing-architecture.md)** -
-  Test pyramid, fixtures, mocking strategies for centralized DI
+**[Hexagonal Architecture](architecture/hexagonal-architecture.md)**
+: Domain at center with zero framework dependencies. Infrastructure adapts to domain through protocols (ports & adapters).
 
-### Infrastructure Components
+**[Protocol-Based Design](architecture/protocol-based-architecture.md)**
+: Structural typing with Python `Protocol`. No inheritance required. Framework-independent interfaces.
 
-- **[Audit Trail](architecture/audit-trail-architecture.md)** -
-  Immutable audit logging with ATTEMPT → OUTCOME semantics,
-  PCI-DSS/SOC 2/GDPR compliance
-- **[Database Architecture](architecture/database-architecture.md)** -
-  PostgreSQL with async SQLAlchemy, session management, Alembic migrations
-- **[Cache Architecture](architecture/cache-architecture.md)** -
-  Redis implementation with connection pooling, TTL strategies,
-  fail-open patterns
-- **[Domain Events](architecture/domain-events-architecture.md)** -
-  Event-driven architecture with in-memory event bus, fail-open behavior,
-  pragmatic DDD approach (events for critical workflows only)
-- **[Secrets Management](architecture/secrets-management-architecture.md)** -
-  Multi-tier secrets (local .env → AWS Secrets Manager), read-only protocol
-- **[Structured Logging](architecture/structured-logging-architecture.md)** -
-  JSON structured logs with contextual information for observability
+**[CQRS Pattern](architecture/cqrs-pattern.md)**
+: Separate command handlers (write) from query handlers (read). Clear separation of concerns.
 
-### Domain Models
+**[Domain-Driven Design](architecture/domain-driven-design-architecture.md)**
+: Pragmatic DDD with entities, value objects, and domain events for critical workflows only.
 
-- **[Account Domain](architecture/account-domain-model.md)** -
-  Account entity with balance tracking, provider connections
-- **[Holding Domain](architecture/holding-domain-model.md)** -
-  Investment holdings with cost basis, market value, unrealized gains
-- **[Balance Tracking](architecture/balance-tracking-architecture.md)** -
-  Point-in-time balance snapshots for portfolio history and analytics
-- **[Transaction Domain](architecture/transaction-domain-model.md)** -
-  Financial transactions with two-level categorization
-- **[Provider Domain](architecture/provider-domain-model.md)** -
-  Provider connections with OAuth token management
-- **[Provider Integration](architecture/provider-integration-architecture.md)** -
-  Multi-provider architecture (OAuth, API Key, File Import)
-- **[Provider Registry](architecture/provider-registry-architecture.md)** -
-  Registry Pattern for zero-drift provider metadata management
-- **[Validation Registry](architecture/validation-registry-architecture.md)** -
-  Single source of truth for validation rules with self-enforcing compliance tests
+**[Registry Pattern](architecture/registry-pattern-architecture.md)**
+: Metadata-driven auto-wiring eliminates manual drift. Single source of truth with self-enforcing tests. **5 implementations**: Domain Events, Provider Integration, Rate Limits, Validation Rules, Route Metadata.
 
-## Project Overview
+**[Dependency Injection](architecture/dependency-injection-architecture.md)**
+: Centralized container with app-scoped singletons and request-scoped dependencies. Protocol-first design.
 
-### Core Architectural Principles
+## Documentation Structure
 
-**Hexagonal Architecture**:
+**Architecture** (31 docs)
+: Deep dives into architectural patterns, design decisions, and system components. Covers infrastructure (database, cache, audit), security (auth, authorization, rate limiting), and domain models (accounts, transactions, holdings).
 
-- **Domain at center**: Pure business logic with zero infrastructure
-  dependencies
-- **Infrastructure at edges**: Adapters implement domain protocols
-- **Dependency inversion**: All dependencies point inward toward domain
+**API Reference** (7 docs)
+: REST API documentation for authentication, account operations, provider connections, transactions, holdings, balance snapshots, and admin endpoints.
 
-**CQRS Pattern**:
+**Guides** (16 docs)
+: Practical how-to guides for common tasks. Includes release management, adding providers, error handling, domain events, and component usage patterns.
 
-- **Commands**: Write operations that change state
-- **Queries**: Read operations that fetch data (can cache)
-- **Handlers**: Separate command and query handlers from the start
+**Code Reference**
+: Auto-generated API documentation from Python docstrings (Google style).
 
-**Domain-Driven Design**:
+## Key Features
 
-- **Entities**: Mutable objects with identity (User, Account, Transaction)
-- **Value Objects**: Immutable values (Email, Money, DateRange)
-- **Domain Events**: Critical workflows emit events
-  (UserRegistered, TokenRefreshFailed)
-- **Protocols**: Domain defines what it needs (Ports),
-  infrastructure implements (Adapters)
+**Clean Architecture**
+: 100% hexagonal with protocol-based ports & adapters. Domain layer has zero framework dependencies.
 
-**Protocol-Based Design**:
+**Production-Ready Security**
+: JWT + opaque refresh tokens, Casbin RBAC, token bucket rate limiting, audit trail (PCI-DSS compliant).
 
-- Use Python `Protocol` for all interfaces (structural typing)
-- No inheritance required for implementations
-- Easy to test (mock protocols, not implementations)
-- Framework-independent domain layer
+**Multi-Provider Integration**
+: OAuth (Schwab), API Key (Alpaca), File Import (Chase). Extensible provider registry pattern.
 
-### Technology Stack
+**Modern Python**
+: Python 3.13+, FastAPI, Pydantic v2, async/await, Result types, Protocol-based design.
 
-**Backend**:
+**Comprehensive Testing**
+: **2,253 tests** with **88% coverage**. Unit tests for domain/application, integration tests for infrastructure, API tests for endpoints.
 
-- **Language**: Python 3.13+ (modern type hints, match/case, slots)
-- **Framework**: FastAPI (async, high performance)
-- **Validation**: Pydantic v2 (strict mode)
-- **Package Manager**: UV 0.8.22+ (fast, modern, NOT pip)
+## Technology Stack
 
-**Infrastructure**:
+**Backend**: Python 3.13 | FastAPI | Pydantic v2 | UV package manager
 
-- **Database**: PostgreSQL 17.6 (async with asyncpg driver)
-- **ORM**: SQLAlchemy 2.0+ (async, declarative)
-- **Migrations**: Alembic (async mode)
-- **Cache**: Redis 8.2.1 (async with redis-py)
-- **Secrets**: Multi-tier (local .env → AWS Secrets Manager)
+**Data**: PostgreSQL 17.6 (async) | SQLAlchemy 2.0 | Alembic | Redis 8.2.1
 
-**Development Environment**:
+**Development**: Docker Compose | Traefik (HTTPS) | pytest | ruff | mypy
 
-- **Containers**: Docker Compose v2 (multi-environment)
-- **Reverse Proxy**: Traefik 3.0+ (automatic SSL with mkcert)
-- **Domains**: `https://dashtam.local` (dev),
-  `https://test.dashtam.local` (test)
-
-**Quality Assurance**:
-
-- **Testing**: pytest + pytest-asyncio (85%+ coverage target)
-- **Linting**: ruff (fast, all-in-one linter/formatter)
-- **Type Checking**: mypy (strict mode)
-- **CI/CD**: GitHub Actions with Codecov
-
-### Design Patterns
-
-**Dependency Injection**:
-
-- Centralized container in `src/core/container.py`
-- App-scoped singletons (cache, secrets, database)
-- Request-scoped dependencies (sessions, handlers)
-- Easy to mock for testing
-
-**Error Handling**:
-
-- Result types (Success/Failure) - no exceptions in domain
-- Railway-oriented programming
-- RFC 7807 Problem Details for HTTP APIs
-- ErrorCode enums for machine-readable errors
-
-**Testing Strategy**:
-
-- Unit tests: Mock container dependencies (60%)
-- Integration tests: Real infrastructure (30%)
-- API tests: Complete request/response flows (10%)
-- No unit tests for infrastructure adapters
+**CI/CD**: GitHub Actions | Codecov | Self-hosted runners
 
 ## Getting Started
 
@@ -192,54 +99,25 @@ make test
 8. **Commit with conventional commits** - `feat:`, `fix:`, `docs:`
 9. **Create pull request** to `development` branch
 
-## Development Guides
+## Essential Reading
 
-### Process & Workflow
+New to Dashtam? Start with these key documents:
 
-- **[Release Management](guides/release-management.md)** -
-  Comprehensive guide to versioning, branching, tagging, GitHub releases,
-  and CHANGELOG management. Includes semantic versioning decision tree,
-  complete release checklist, sync strategy, and troubleshooting.
+1. **[Hexagonal Architecture](architecture/hexagonal-architecture.md)** - Understand the core architectural pattern
+2. **[Protocol-Based Architecture](architecture/protocol-based-architecture.md)** - Learn why we use Protocol over ABC
+3. **[Error Handling Guide](guides/error-handling-guide.md)** - RFC 7807 API errors and Result types
+4. **[Registry Pattern](architecture/registry-pattern-architecture.md)** - How we eliminate manual drift
+5. **[Release Management](guides/release-management.md)** - Complete development workflow
 
-### Feature Development
+## Development Workflow
 
-- **[Adding New Providers](guides/adding-new-providers.md)** -
-  Complete 10-phase guide for integrating new financial data providers
-  including OAuth, API Key, and File Import providers
-- **[Chase File Import](guides/chase-file-import.md)** -
-  User guide for importing Chase bank transactions from QFX/CSV files
-- **[Audit Usage Patterns](guides/audit-usage-patterns.md)** -
-  Complete guide with copy-pasteable examples for registration,
-  login, provider connection, data access audit patterns
-- **[Domain Events Usage](guides/domain-events-usage.md)** -
-  Complete guide for using domain events - when to use, event naming,
-  defining events, creating handlers, testing, anti-patterns
+1. Create feature branch from `development`
+2. Research & plan (identify layers, create TODO list)
+3. Implement with tests (85%+ coverage target)
+4. Verify quality: `make verify` (tests, lint, format, type-check)
+5. Create PR to `development` branch
 
-### Architecture Documentation Status
-
-✅ **Complete** - All core architecture components:
-
-- **Foundation**: Directory structure, dependency injection, error handling
-- **Security**: Authentication (JWT + refresh tokens), authorization (Casbin RBAC), rate limiting
-- **Data Layer**: Database (async PostgreSQL), cache (Redis), repositories
-- **Domain**: Entities (User, Account, Transaction, Holding, BalanceSnapshot), value objects, domain events
-- **Application**: CQRS handlers (commands + queries), event handlers
-- **Infrastructure**: Audit trail (PCI-DSS compliant), structured logging, secrets management
-- **Providers**: Schwab (OAuth), Alpaca (API Key), Chase (File Import) - three provider types
-- **Testing**: 2,100+ tests (87% coverage), integration tests, API tests
-
-## Contributing
-
-See `~/starter/development-checklist.md` for the complete feature development workflow.
-
-**Key principles**:
-
-- Always follow hexagonal architecture
-- Use centralized dependency injection
-- Return Result types (not exceptions)
-- Test at the right level (unit vs integration)
-- Document architecture decisions
-- 100% REST compliance for API endpoints
+**Core principles**: Hexagonal architecture | Protocol-based design | Result types (no exceptions) | 100% REST compliance
 
 ---
 

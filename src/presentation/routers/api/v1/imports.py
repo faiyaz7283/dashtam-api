@@ -1,10 +1,11 @@
-"""Imports resource router.
+"""Imports resource handlers.
 
-RESTful endpoints for file-based data imports.
+Handler functions for file-based data imports.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    POST   /api/v1/imports                 - Import data from uploaded file
-    GET    /api/v1/imports/formats         - List supported file formats
+Handlers:
+    import_from_file      - Import data from uploaded file
+    list_supported_formats - List supported file formats
 
 Reference:
     - docs/architecture/api-design-patterns.md
@@ -13,7 +14,7 @@ Reference:
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Request, UploadFile, status
+from fastapi import Depends, File, Request, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from src.application.commands.handlers.import_from_file_handler import (
@@ -31,9 +32,6 @@ from src.schemas.import_schemas import (
     ImportResponse,
     SupportedFormatsResponse,
 )
-
-
-router = APIRouter(prefix="/imports", tags=["Imports"])
 
 
 # =============================================================================
@@ -101,22 +99,10 @@ def _map_import_error(error: str) -> ApplicationError:
 
 
 # =============================================================================
-# Endpoints
+# Handlers
 # =============================================================================
 
 
-@router.post(
-    "",
-    response_model=ImportResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Import from file",
-    description="Import financial data from an uploaded file (QFX, OFX).",
-    responses={
-        201: {"description": "Import successful"},
-        400: {"description": "Invalid file or format"},
-        415: {"description": "Unsupported file format"},
-    },
-)
 async def import_from_file(
     request: Request,
     current_user: AuthenticatedUser,
@@ -202,12 +188,6 @@ async def import_from_file(
     return ImportResponse.from_result(result.value)
 
 
-@router.get(
-    "/formats",
-    response_model=SupportedFormatsResponse,
-    summary="List supported formats",
-    description="List file formats supported for import.",
-)
 async def list_supported_formats() -> SupportedFormatsResponse:
     """List supported file formats for import.
 

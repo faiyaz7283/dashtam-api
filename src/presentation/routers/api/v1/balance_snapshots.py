@@ -1,10 +1,12 @@
-"""Balance snapshots resource router.
+"""Balance snapshots resource handlers.
 
-RESTful endpoints for balance snapshot/history management.
+Handler functions for balance snapshot/history endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    GET    /api/v1/balance-snapshots              - Get latest snapshots for user
-    GET    /api/v1/accounts/{id}/balance-history  - Get balance history for account
+Handlers:
+    get_latest_snapshots  - Get latest snapshots for user
+    get_balance_history   - Get balance history for account
+    list_balance_snapshots - List balance snapshots for account
 
 Reference:
     - docs/architecture/api-design-patterns.md
@@ -16,7 +18,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import Depends, Path, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -50,13 +52,6 @@ from src.schemas.balance_snapshot_schemas import (
     BalanceHistoryResponse,
     LatestSnapshotsResponse,
 )
-
-
-# Main router for /balance-snapshots endpoints
-router = APIRouter(prefix="/balance-snapshots", tags=["Balance Snapshots"])
-
-# Nested router for /accounts/{id}/balance-history endpoints
-account_balance_router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
 
 # =============================================================================
@@ -165,16 +160,10 @@ def _map_snapshot_error(error: str) -> ApplicationError:
 
 
 # =============================================================================
-# Main Router Endpoints (/balance-snapshots)
+# Handlers
 # =============================================================================
 
 
-@router.get(
-    "",
-    response_model=LatestSnapshotsResponse,
-    summary="Get latest balance snapshots",
-    description="Get the most recent balance snapshot for each of user's accounts.",
-)
 async def get_latest_snapshots(
     request: Request,
     current_user: AuthenticatedUser,
@@ -201,21 +190,10 @@ async def get_latest_snapshots(
 
 
 # =============================================================================
-# Nested Router Endpoints (/accounts/{id}/balance-history)
+# Nested Handlers (/accounts/{id}/balance-history)
 # =============================================================================
 
 
-@account_balance_router.get(
-    "/{account_id}/balance-history",
-    response_model=BalanceHistoryResponse,
-    summary="Get balance history",
-    description="Get balance history for an account within a date range.",
-    responses={
-        404: {"description": "Account not found"},
-        403: {"description": "Not authorized to access this account"},
-        400: {"description": "Invalid date range"},
-    },
-)
 async def get_balance_history(
     request: Request,
     current_user: AuthenticatedUser,
@@ -256,16 +234,6 @@ async def get_balance_history(
     return BalanceHistoryResponse.from_dto(result.value)
 
 
-@account_balance_router.get(
-    "/{account_id}/balance-snapshots",
-    response_model=BalanceHistoryResponse,
-    summary="List balance snapshots",
-    description="List recent balance snapshots for an account.",
-    responses={
-        404: {"description": "Account not found"},
-        403: {"description": "Not authorized to access this account"},
-    },
-)
 async def list_balance_snapshots(
     request: Request,
     current_user: AuthenticatedUser,

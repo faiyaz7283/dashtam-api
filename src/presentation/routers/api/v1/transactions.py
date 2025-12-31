@@ -1,12 +1,12 @@
-"""Transactions resource router.
+"""Transactions resource handlers.
 
-RESTful endpoints for transaction management.
+Handler functions for transaction management endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    GET    /api/v1/transactions                    - List all transactions for user
-    GET    /api/v1/transactions/{id}               - Get transaction details
-    POST   /api/v1/transactions/syncs              - Sync transactions from provider
-    GET    /api/v1/accounts/{id}/transactions      - List transactions for an account
+Handlers:
+    get_transaction              - Get transaction details
+    sync_transactions            - Sync transactions from provider
+    list_transactions_by_account - List transactions for an account
 
 Reference:
     - docs/architecture/api-design-patterns.md
@@ -17,7 +17,7 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query, Request, status
+from fastapi import Depends, Path, Query, Request
 from fastapi.responses import JSONResponse
 
 from src.application.commands.handlers.sync_transactions_handler import (
@@ -53,9 +53,6 @@ from src.schemas.transaction_schemas import (
     TransactionListResponse,
     TransactionResponse,
 )
-
-
-router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
 
 # =============================================================================
@@ -110,20 +107,10 @@ def _map_transaction_error(error: str) -> ApplicationError:
 
 
 # =============================================================================
-# Endpoints
+# Handlers
 # =============================================================================
 
 
-@router.get(
-    "/{transaction_id}",
-    response_model=TransactionResponse,
-    summary="Get transaction",
-    description="Get details of a specific transaction.",
-    responses={
-        404: {"description": "Transaction not found"},
-        403: {"description": "Not authorized to access this transaction"},
-    },
-)
 async def get_transaction(
     request: Request,
     current_user: AuthenticatedUser,
@@ -161,18 +148,6 @@ async def get_transaction(
     return TransactionResponse.from_dto(result.value)
 
 
-@router.post(
-    "/syncs",
-    status_code=status.HTTP_201_CREATED,
-    response_model=SyncTransactionsResponse,
-    summary="Sync transactions",
-    description="Sync transactions from a provider connection.",
-    responses={
-        404: {"description": "Connection or account not found"},
-        403: {"description": "Not authorized to sync"},
-        429: {"description": "Sync rate limit exceeded"},
-    },
-)
 async def sync_transactions(
     request: Request,
     current_user: AuthenticatedUser,
@@ -228,26 +203,13 @@ async def sync_transactions(
 
 
 # =============================================================================
-# Account-scoped Transaction Endpoints
+# Account-scoped Transaction Handler
 # =============================================================================
 # Note: This endpoint is under /accounts/{id}/transactions but implemented here
-# for transaction-related logic grouping. Registered via include_router.
+# for transaction-related logic grouping.
 # =============================================================================
 
 
-account_transactions_router = APIRouter(prefix="/accounts", tags=["Accounts"])
-
-
-@account_transactions_router.get(
-    "/{account_id}/transactions",
-    response_model=TransactionListResponse,
-    summary="List transactions for account",
-    description="List transactions for a specific account with pagination and filters.",
-    responses={
-        404: {"description": "Account not found"},
-        403: {"description": "Not authorized to access this account"},
-    },
-)
 async def list_transactions_by_account(
     request: Request,
     current_user: AuthenticatedUser,

@@ -224,8 +224,8 @@ class TestCreatePasswordReset:
         # Verify: RFC 7807 error response
         assert response.status_code == 404
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/token_not_found"
-        assert data["title"] == "Token Not Found"
+        assert data["type"].endswith("/errors/not_found")
+        assert data["title"] == "Resource Not Found"
         assert data["status"] == 404
         assert data["instance"] == "/api/v1/password-resets"
 
@@ -252,8 +252,8 @@ class TestCreatePasswordReset:
         # Verify: RFC 7807 error response
         assert response.status_code == 400
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/token_expired"
-        assert data["title"] == "Token Expired"
+        assert data["type"].endswith("/errors/command_validation_failed")
+        assert data["title"] == "Validation Failed"
         assert data["status"] == 400
         assert "expired" in data["detail"].lower()
 
@@ -280,8 +280,8 @@ class TestCreatePasswordReset:
         # Verify: RFC 7807 error response
         assert response.status_code == 400
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/token_already_used"
-        assert data["title"] == "Token Already Used"
+        assert data["type"].endswith("/errors/command_validation_failed")
+        assert data["title"] == "Validation Failed"
         assert data["status"] == 400
         assert "already" in data["detail"].lower()
 
@@ -308,8 +308,8 @@ class TestCreatePasswordReset:
         # Verify: RFC 7807 error response
         assert response.status_code == 404
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/user_not_found"
-        assert data["title"] == "User Not Found"
+        assert data["type"].endswith("/errors/not_found")
+        assert data["title"] == "Resource Not Found"
         assert data["status"] == 404
 
     def test_create_password_reset_missing_token(self, client):

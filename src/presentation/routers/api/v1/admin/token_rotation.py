@@ -1,20 +1,21 @@
-"""Token rotation admin router.
+"""Token rotation admin handlers.
 
-Admin-only endpoints for token breach rotation.
+Handler functions for admin token breach rotation endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    POST /api/v1/admin/security/rotations      - Global token rotation
-    POST /api/v1/admin/users/{user_id}/rotations - Per-user token rotation
-    GET  /api/v1/admin/security/config         - Get security configuration
+Handlers:
+    create_global_rotation - Global token rotation
+    create_user_rotation   - Per-user token rotation
+    get_security_config    - Get security configuration
 
-All endpoints require:
+All handlers require:
     - JWT authentication (valid access token)
     - Admin role (Casbin RBAC check)
 """
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Request, status
+from fastapi import Depends, Path, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,7 +29,6 @@ from src.application.commands.rotation_commands import (
     TriggerGlobalTokenRotation,
     TriggerUserTokenRotation,
 )
-from src.core.config import settings
 from src.core.container import (
     get_db_session,
     get_trigger_global_rotation_handler,
@@ -40,11 +40,12 @@ from src.presentation.routers.api.middleware.auth_dependencies import (
     CurrentUser,
     get_current_user,
 )
+from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.presentation.routers.api.middleware.authorization_dependencies import (
     require_casbin_role,
 )
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
-from src.schemas.auth_schemas import AuthErrorResponse
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 from src.schemas.rotation_schemas import (
     GlobalRotationRequest,
     GlobalRotationResponse,
@@ -53,34 +54,12 @@ from src.schemas.rotation_schemas import (
     UserRotationResponse,
 )
 
-router = APIRouter(tags=["Token Rotation"])
 
-
-# =============================================================================
+# ===========================================# =============================================================================
 # Global Token Rotation
 # =============================================================================
 
 
-@router.post(
-    "/security/rotations",
-    status_code=status.HTTP_201_CREATED,
-    response_model=GlobalRotationResponse,
-    responses={
-        201: {
-            "description": "Global rotation triggered",
-            "model": GlobalRotationResponse,
-        },
-        401: {"description": "Not authenticated", "model": AuthErrorResponse},
-        403: {"description": "Not authorized (admin only)", "model": AuthErrorResponse},
-        500: {"description": "Rotation failed", "model": AuthErrorResponse},
-    },
-    summary="Trigger global token rotation",
-    description=(
-        "Admin-only. Increments global minimum token version, invalidating "
-        "all existing refresh tokens with lower versions. Use for security "
-        "incidents or breach response."
-    ),
-)
 async def create_global_rotation(
     request: Request,
     data: GlobalRotationRequest,
@@ -131,10 +110,8 @@ async def create_global_rotation(
         case Failure(error=error):
             return _error_response(
                 request=request,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                error_type="rotation_failed",
-                title="Rotation Failed",
-                detail=f"Failed to trigger global rotation: {error}",
+                error_code=ApplicationErrorCode.COMMAND_EXECUTION_FAILED,
+                message=f"Failed to trigger global rotation: {error}",
             )
 
 
@@ -143,27 +120,6 @@ async def create_global_rotation(
 # =============================================================================
 
 
-@router.post(
-    "/users/{user_id}/rotations",
-    status_code=status.HTTP_201_CREATED,
-    response_model=UserRotationResponse,
-    responses={
-        201: {
-            "description": "User rotation triggered",
-            "model": UserRotationResponse,
-        },
-        401: {"description": "Not authenticated", "model": AuthErrorResponse},
-        403: {"description": "Not authorized (admin only)", "model": AuthErrorResponse},
-        404: {"description": "User not found", "model": AuthErrorResponse},
-        500: {"description": "Rotation failed", "model": AuthErrorResponse},
-    },
-    summary="Trigger per-user token rotation",
-    description=(
-        "Admin-only. Increments user's minimum token version, invalidating "
-        "only that user's existing refresh tokens. Use for suspicious "
-        "activity or account compromise."
-    ),
-)
 async def create_user_rotation(
     request: Request,
     data: UserRotationRequest,
@@ -216,17 +172,13 @@ async def create_user_rotation(
             if error == "user_not_found":
                 return _error_response(
                     request=request,
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    error_type="user_not_found",
-                    title="User Not Found",
-                    detail=f"User with ID {user_id} not found",
+                    error_code=ApplicationErrorCode.NOT_FOUND,
+                    message=f"User with ID {user_id} not found",
                 )
             return _error_response(
                 request=request,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                error_type="rotation_failed",
-                title="Rotation Failed",
-                detail=f"Failed to trigger user rotation: {error}",
+                error_code=ApplicationErrorCode.COMMAND_EXECUTION_FAILED,
+                message=f"Failed to trigger user rotation: {error}",
             )
 
 
@@ -235,21 +187,6 @@ async def create_user_rotation(
 # =============================================================================
 
 
-@router.get(
-    "/security/config",
-    status_code=status.HTTP_200_OK,
-    response_model=SecurityConfigResponse,
-    responses={
-        200: {
-            "description": "Security configuration",
-            "model": SecurityConfigResponse,
-        },
-        401: {"description": "Not authenticated", "model": AuthErrorResponse},
-        403: {"description": "Not authorized (admin only)", "model": AuthErrorResponse},
-    },
-    summary="Get security configuration",
-    description="Admin-only. Retrieve current security configuration including token version.",
-)
 async def get_security_config(
     request: Request,
     current_user: CurrentUser = Depends(get_current_user),
@@ -293,32 +230,25 @@ async def get_security_config(
 
 def _error_response(
     request: Request,
-    status_code: int,
-    error_type: str,
-    title: str,
-    detail: str,
+    error_code: ApplicationErrorCode,
+    message: str,
 ) -> JSONResponse:
     """Create standardized error response.
 
     Args:
         request: FastAPI request object.
-        status_code: HTTP status code.
-        error_type: Error type identifier.
-        title: Error title.
-        detail: Error detail message.
+        error_code: ApplicationErrorCode.
+        message: Error message.
 
     Returns:
         JSONResponse with RFC 7807 error format.
     """
-    trace_id = get_trace_id()
-    return JSONResponse(
-        status_code=status_code,
-        content=AuthErrorResponse(
-            type=f"{settings.api_base_url}/errors/{error_type}",
-            title=title,
-            status=status_code,
-            detail=detail,
-            instance=str(request.url.path),
-        ).model_dump(),
-        headers={"X-Trace-ID": trace_id} if trace_id else None,
+    app_error = ApplicationError(
+        code=error_code,
+        message=message,
+    )
+    return ErrorResponseBuilder.from_application_error(
+        error=app_error,
+        request=request,
+        trace_id=get_trace_id() or "",
     )

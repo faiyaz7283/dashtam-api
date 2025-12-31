@@ -7,9 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2025-12-31
+
+### Documentation
+
+- **Rate Limit Registry Pattern Documentation**
+  - Added Section 5: Registry Pattern to `docs/architecture/rate-limit-architecture.md` (107 lines)
+  - Documents `RATE_LIMIT_RULES` as Registry Pattern implementation following F7.7 and F8.1
+  - Explains F8.3 self-enforcing compliance tests (23 tests across 5 test classes)
+  - Shows Before/After F8.3 comparison (Configuration Only → Registry Pattern + Compliance Tests)
+  - Documents pattern consistency: metadata-driven catalog, self-enforcing tests, zero drift
+  - Updated metadata: Last Updated to 2025-12-31
+- **Registry Pattern Architecture Updates**
+  - Added "Implemented Applications" section to `docs/architecture/registry-pattern-architecture.md`
+  - Moved Rate Limit Rules Registry from "Future Applications" to "Implemented" (3rd implementation)
+  - Added complete results: 25 endpoint rules, 23 self-enforcing tests, 100% coverage, 5 test classes
+  - Added F8.4 Validation Registry to "Future Applications" with implementation plan ready status
+  - Updated cross-references between F7.7 (Domain Events), F8.1 (Providers), and F8.3 (Rate Limits)
+
+### Technical Notes
+
+- Documentation-only release (PATCH version bump)
+- Completes F8.3 documentation gap identified post-merge
+- All markdown linting passed (zero violations)
+- MkDocs builds successfully (zero errors)
+
+## [1.6.0] - 2025-12-31
+
 ### Added
 
-- **F8.3**: Rate Limit Rules Registry Compliance (Self-Enforcing Validation)
+- **F8.1**: Provider Integration Registry (Registry Pattern for Providers)
   - **Compliance Tests**: Created `tests/unit/test_rate_limit_registry_compliance.py` with 23 self-enforcing tests
   - **5 Test Classes**: Registry Completeness (8 tests), Rule Consistency (4 tests), Pattern Matching (4 tests), Registry Statistics (4 tests), Future-Proofing (3 tests)
   - **Validation Coverage**: All 25 endpoint rules verified for completeness (positive max_tokens/refill_rate/cost, valid scopes, boolean enabled, METHOD /path format, no duplicates, RateLimitRule instances)

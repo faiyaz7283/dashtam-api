@@ -592,11 +592,116 @@ EventMetadata(
 
 ---
 
+## Implemented Applications
+
+The Registry Pattern has been successfully applied to multiple Dashtam components:
+
+### 1. Domain Events Registry (F7.7)
+
+**Status**: ✅ IMPLEMENTED (v1.5.0 - 2025-12-28)
+
+**Purpose**: Auto-wire 69 domain events to their handlers with zero manual subscription code.
+
+**Results**:
+
+- 69 events fully managed by registry
+- 143 subscriptions auto-wired
+- 71% code reduction in container (571 → 168 lines)
+- Zero drift (impossible to forget handler wiring)
+
+**Reference**: `docs/architecture/domain-events-architecture.md` (Section 5.1)
+
+### 2. Provider Integration Registry (F8.1)
+
+**Status**: ✅ IMPLEMENTED (v1.6.0 - 2025-12-31)
+
+**Purpose**: Single source of truth for all financial provider integrations with self-enforcing validation.
+
+**Registry Structure**:
+
+```python
+# src/domain/providers/registry.py
+PROVIDER_REGISTRY: dict[Provider, ProviderMetadata] = {
+    Provider.SCHWAB: ProviderMetadata(
+        slug="schwab",
+        display_name="Charles Schwab",
+        category=ProviderCategory.BROKERAGE,
+        auth_type=ProviderAuthType.OAUTH,
+        capabilities=[ProviderCapability.ACCOUNTS, ProviderCapability.TRANSACTIONS],
+        required_settings=["schwab_client_id", "schwab_client_secret"],
+    ),
+    # ... Alpaca, Chase
+}
+```
+
+**Results**:
+
+- 3 providers cataloged with complete metadata
+- 19 self-enforcing compliance tests
+- 100% coverage for provider registry module
+- Discovered drift: Alpaca missing from manual OAUTH_PROVIDERS set
+- 30% code reduction in container
+
+**Reference**: `docs/architecture/provider-registry-architecture.md`
+
+### 3. Rate Limit Rules Registry (F8.3)
+
+**Status**: ✅ IMPLEMENTED (v1.6.1 - 2025-12-31)
+
+**Purpose**: Self-enforcing validation for rate limit rules to prevent configuration drift.
+
+**Registry Structure**:
+
+```python
+# src/infrastructure/rate_limit/config.py
+RATE_LIMIT_RULES: dict[str, RateLimitRule] = {
+    "POST /api/v1/auth/login": RateLimitRule(
+        max_tokens=5,
+        refill_rate=5.0,
+        scope=RateLimitScope.IP,
+        cost=1,
+        enabled=True,
+    ),
+    # ... 24 more endpoint rules
+}
+```
+
+**Results**:
+
+- 25 endpoint rules validated with 23 self-enforcing tests
+- 100% coverage for rate limit config module
+- 5 test classes: Completeness, Consistency, Pattern Matching, Statistics, Future-Proofing
+- Zero drift: Tests fail if rules have invalid config (negative tokens, invalid scope, malformed patterns)
+
+**Reference**: `docs/architecture/rate-limit-architecture.md` (Section 5: Registry Pattern)
+
+---
+
 ## Future Applications
 
 ### Candidate Areas
 
-#### 1. API Route Registration
+#### 1. Validation Rules (F8.4 - PLANNED)
+
+**Current**: Manual validator + Annotated types scattered across 12 files
+
+**Registry Pattern**:
+
+```python
+VALIDATION_REGISTRY = [
+    ValidationMetadata(
+        rule_name="email",
+        validator_function=validate_email,
+        field_constraints={"min_length": 5, "max_length": 255},
+        description="Email address with format validation",
+        category=ValidationCategory.AUTHENTICATION,
+    ),
+]
+```
+
+**Status**: Implementation plan ready, awaiting approval
+
+#### 2. API Route Registration
 
 **Current**: Manual route definition + middleware + auth + rate limits
 
@@ -615,42 +720,7 @@ ROUTE_REGISTRY = [
 ]
 ```
 
-#### 2. Provider Integration
-
-**Current**: Manual provider class + mapper + API client + config
-
-**Registry Pattern**:
-
-```python
-PROVIDER_REGISTRY = [
-    ProviderMetadata(
-        slug="schwab",
-        provider_class=SchwabProvider,
-        auth_type=AuthType.OAUTH,
-        capabilities=[Capability.ACCOUNTS, Capability.TRANSACTIONS],
-        mapper_class=SchwabMapper,
-    ),
-]
-```
-
-#### 3. Validation Rules
-
-**Current**: Manual validator + error message + test
-
-**Registry Pattern**:
-
-```python
-VALIDATION_REGISTRY = [
-    ValidationMetadata(
-        field="email",
-        validators=[validate_email_format, validate_email_unique],
-        error_code="INVALID_EMAIL",
-        error_message="Email must be valid and unique",
-    ),
-]
-```
-
-#### 4. Feature Flags
+#### 3. Feature Flags
 
 **Current**: Scattered feature checks, hard to audit
 

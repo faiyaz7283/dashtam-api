@@ -379,6 +379,113 @@ RATE_LIMIT_RULES: dict[str, RateLimitRule] = {
 )
 ```
 
+### Registry Pattern (F8.3)
+
+**Pattern**: `RATE_LIMIT_RULES` follows the Registry Pattern - same architectural approach as Domain Events Registry (F7.7) and Provider Registry (F8.1).
+
+**Purpose**: Single source of truth for all rate limit rules with self-enforcing validation to prevent configuration drift.
+
+#### Why Registry Pattern?
+
+**Before F8.3** (Configuration Only):
+
+- ✅ Rate limit rules centralized in `RATE_LIMIT_RULES` dict
+- ✅ Single source of truth for endpoint mappings
+- ❌ No validation that rules have complete configuration
+- ❌ No tests to detect malformed patterns
+- ❌ Drift risk: Could add rule with invalid scope, negative tokens, etc.
+
+**After F8.3** (Registry Pattern + Compliance Tests):
+
+- ✅ Self-enforcing validation: Tests fail if rules incomplete
+- ✅ Zero drift: Can't merge PR with malformed rules
+- ✅ Comprehensive checks: 23 tests across 5 test classes
+- ✅ 100% coverage: Rate limit config module fully validated
+
+#### Self-Enforcing Compliance Tests
+
+**File**: `tests/unit/test_rate_limit_registry_compliance.py` (347 lines, 23 tests)
+
+**Test Coverage**:
+
+1. **Registry Completeness** (8 tests)
+   - All rules have positive `max_tokens`, `refill_rate`, `cost`
+   - All rules have valid `RateLimitScope` enum
+   - All rules have boolean `enabled` flag
+   - Endpoint patterns follow `METHOD /path` format
+   - No duplicate endpoints
+   - All values are `RateLimitRule` instances
+
+2. **Rule Consistency** (4 tests)
+   - Auth endpoints use IP or USER scope (security)
+   - API endpoints use USER scope (standard pattern)
+   - Burst capacity (max_tokens) ≥ refill_rate (usability)
+   - Most rules use cost=1 (standard request cost)
+
+3. **Pattern Matching** (4 tests)
+   - Exact match returns correct rule
+   - Path parameter matching works (`{account_id}` → UUID)
+   - Non-existent endpoints return None
+   - Method mismatch returns None
+
+4. **Registry Statistics** (4 tests)
+   - Minimum 20 endpoint rules (snapshot)
+   - Scope distribution matches patterns (USER > IP)
+   - All rules enabled except GLOBAL emergency brake
+   - Critical endpoints have explicit rules
+
+5. **Future-Proofing** (3 tests)
+   - No wildcard patterns (`*`, `?`)
+   - Paths use lowercase (consistency)
+   - No trailing slashes (consistency)
+
+**Example Test** (prevents drift):
+
+```python
+def test_all_rules_have_positive_max_tokens():
+    """Every rule must have positive max_tokens (bucket capacity)."""
+    for endpoint, rule in RATE_LIMIT_RULES.items():
+        assert rule.max_tokens > 0, (
+            f"Rule for '{endpoint}' has invalid max_tokens: {rule.max_tokens}. "
+            "Must be positive integer."
+        )
+```
+
+**Result**: If someone adds a rule with `max_tokens=0` or `max_tokens=-5`, tests fail → can't merge → zero drift.
+
+#### Registry Pattern Consistency
+
+Rate Limit Rules Registry follows the same pattern as:
+
+**F7.7: Domain Events Registry**:
+
+- Metadata-driven catalog (`EventMetadata` → rate limit rules in dict)
+- Self-enforcing tests (prevent incomplete wiring → prevent invalid config)
+- Helper function (`get_rule_for_endpoint()` → lookup by endpoint pattern)
+- Statistics function (event counts → endpoint counts)
+
+**F8.1: Provider Registry**:
+
+- Single source of truth (`PROVIDER_REGISTRY` → `RATE_LIMIT_RULES`)
+- Enum for categories (`ProviderCategory` → `RateLimitScope`)
+- Self-enforcing tests (19 tests → 23 tests)
+- 100% coverage target (provider registry → rate limit config)
+
+**Pattern Benefits**:
+
+1. **Zero Drift**: Tests fail if rules incomplete or malformed
+2. **Self-Documenting**: Registry is the documentation (25 endpoints mapped)
+3. **Onboarding**: New developers see complete rule catalog in one place
+4. **Refactoring Safety**: Change scope enum → tests fail if missed
+5. **Audit Trail**: Git history shows all rule changes
+
+**Reference**:
+
+- `docs/architecture/registry-pattern-architecture.md` - Registry Pattern theory
+- `docs/architecture/domain-events-architecture.md` - F7.7 Domain Events Registry (Section 5.1)
+- `docs/architecture/provider-registry-architecture.md` - F8.1 Provider Registry
+- `tests/unit/test_rate_limit_registry_compliance.py` - Self-enforcing tests
+
 ---
 
 ## 6. Fail-Open Strategy
@@ -731,4 +838,4 @@ tests/
 
 ---
 
-**Created**: 2025-11-28 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-28 | **Last Updated**: 2025-12-31

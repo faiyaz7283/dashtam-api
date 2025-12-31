@@ -596,7 +596,7 @@ EventMetadata(
 
 The Registry Pattern has been successfully applied to multiple Dashtam components:
 
-### 1. Domain Events Registry (F7.7)
+### 1. Domain Events Registry
 
 **Status**: ✅ IMPLEMENTED (v1.5.0 - 2025-12-28)
 
@@ -611,7 +611,7 @@ The Registry Pattern has been successfully applied to multiple Dashtam component
 
 **Reference**: `docs/architecture/domain-events-architecture.md` (Section 5.1)
 
-### 2. Provider Integration Registry (F8.1)
+### 2. Provider Integration Registry
 
 **Status**: ✅ IMPLEMENTED (v1.6.0 - 2025-12-31)
 
@@ -644,7 +644,7 @@ PROVIDER_REGISTRY: dict[Provider, ProviderMetadata] = {
 
 **Reference**: `docs/architecture/provider-registry-architecture.md`
 
-### 3. Rate Limit Rules Registry (F8.3)
+### 3. Rate Limit Rules Registry
 
 **Status**: ✅ IMPLEMENTED (v1.6.1 - 2025-12-31)
 
@@ -675,33 +675,46 @@ RATE_LIMIT_RULES: dict[str, RateLimitRule] = {
 
 **Reference**: `docs/architecture/rate-limit-architecture.md` (Section 5: Registry Pattern)
 
+### 4. Validation Rules Registry
+
+**Status**: ✅ IMPLEMENTED (v1.6.2 - 2025-12-31)
+
+**Purpose**: Single source of truth for all validation rules with self-documenting metadata and self-enforcing compliance tests.
+
+**Registry Structure**:
+
+```python
+# src/domain/validators/registry.py
+VALIDATION_RULES_REGISTRY: dict[str, ValidationRuleMetadata] = {
+    "email": ValidationRuleMetadata(
+        rule_name="email",
+        validator_function=validate_email,
+        field_constraints={"min_length": 5, "max_length": 255},
+        description="Email address with format validation and lowercase normalization",
+        examples=["user@example.com", "test.user@domain.co.uk"],
+        category=ValidationCategory.AUTHENTICATION,
+    ),
+    # ... password, verification_token, refresh_token
+}
+```
+
+**Results**:
+
+- 4 validation rules cataloged with complete metadata (descriptions, examples, constraints)
+- 18 self-enforcing compliance tests (100% passing)
+- 100% coverage for validation registry module
+- 4 helper functions for easy access (`get_validation_rule`, `get_all_validation_rules`, `get_rules_by_category`, `get_statistics`)
+- Zero drift: Tests fail if validators lack metadata or examples
+
+**Reference**: `docs/architecture/validation-registry-architecture.md`
+
 ---
 
 ## Future Applications
 
 ### Candidate Areas
 
-#### 1. Validation Rules (F8.4 - PLANNED)
-
-**Current**: Manual validator + Annotated types scattered across 12 files
-
-**Registry Pattern**:
-
-```python
-VALIDATION_REGISTRY = [
-    ValidationMetadata(
-        rule_name="email",
-        validator_function=validate_email,
-        field_constraints={"min_length": 5, "max_length": 255},
-        description="Email address with format validation",
-        category=ValidationCategory.AUTHENTICATION,
-    ),
-]
-```
-
-**Status**: Implementation plan ready, awaiting approval
-
-#### 2. API Route Registration
+#### 1. API Route Registration
 
 **Current**: Manual route definition + middleware + auth + rate limits
 
@@ -880,4 +893,4 @@ The Registry Pattern is a **meta-architectural design** that eliminates manual d
 
 ---
 
-**Created**: 2025-12-27 | **Last Updated**: 2025-12-27
+**Created**: 2025-12-27 | **Last Updated**: 2025-12-31

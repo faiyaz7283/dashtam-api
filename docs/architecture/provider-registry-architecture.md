@@ -10,7 +10,6 @@ The Registry Pattern maintains a centralized catalog of pluggable components (pr
 
 ### Implementation Status
 
-**Feature**: F8.1 - Provider Integration Registry  
 **Version**: v1.6.0  
 **Status**: ✅ Implemented
 
@@ -34,7 +33,7 @@ Before the Provider Integration Registry, adding a new provider required coordin
 - Provider capabilities not explicitly documented in code
 - No compile-time verification that all providers have required metadata
 
-**Example of Drift**: During F8.1 development, Alpaca was found to be missing from the manual `OAUTH_PROVIDERS` set despite being OAuth-capable, demonstrating the exact drift risk the registry pattern prevents.
+**Example of Drift**: During registry implementation, Alpaca was found to be missing from the manual `OAUTH_PROVIDERS` set despite being OAuth-capable, demonstrating the exact drift risk the registry pattern prevents.
 
 ### Solution
 
@@ -454,7 +453,7 @@ The container's `get_provider()` now validates providers using the registry:
 
 ```python
 def get_provider(slug: Provider) -> ProviderProtocol:
-    """Get provider implementation (Registry-Driven - F8.1).
+    """Get provider implementation (Registry-Driven).
     
     Validates provider exists in registry and required settings are present.
     """
@@ -496,7 +495,7 @@ OAUTH_PROVIDERS = {"schwab"}  # Could diverge from reality
 
 # After: Registry-driven (zero drift)
 def is_oauth_provider(slug: Provider) -> bool:
-    """Check if provider uses OAuth (Registry-Driven - F8.1)."""
+    """Check if provider uses OAuth (Registry-Driven)."""
     return slug in get_oauth_providers()
 ```
 

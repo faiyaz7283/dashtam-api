@@ -27,6 +27,91 @@ Adding a new provider involves creating/modifying these components:
 
 ---
 
+## Phase 0: Provider Registry
+
+**NEW (v1.6.0)**: Before diving into implementation, add the provider to the Provider Integration Registry.
+
+**Reference**: See `docs/architecture/provider-registry-architecture.md` for complete registry documentation.
+
+### 0.1 Add Provider to Registry
+
+Add entry to `PROVIDER_REGISTRY` in `src/domain/providers/registry.py`:
+
+```python
+PROVIDER_REGISTRY: list[ProviderMetadata] = [
+    # ... existing providers
+    ProviderMetadata(
+        slug=Provider.{PROVIDER_SLUG},
+        display_name="{Provider Display Name}",
+        category=ProviderCategory.BROKERAGE,  # or BANK, CRYPTO, etc.
+        auth_type=ProviderAuthType.OAUTH,     # or API_KEY, FILE_IMPORT, etc.
+        capabilities=[
+            ProviderCapability.ACCOUNTS,
+            ProviderCapability.TRANSACTIONS,
+            ProviderCapability.HOLDINGS,      # Optional
+        ],
+        required_settings=["{provider}_api_key", "{provider}_api_secret"],
+    ),
+]
+```
+
+**Auth Type Selection**:
+
+| Auth Type | When to Use | Example |
+|-----------|-------------|----------|
+| `OAUTH` | OAuth 2.0 Authorization Code flow | Schwab, Fidelity |
+| `API_KEY` | Direct API key authentication | Alpaca Markets |
+| `FILE_IMPORT` | CSV/file-based import (no API) | Chase File Import |
+| `LINK_TOKEN` | Third-party link flow (e.g., Plaid) | Future aggregators |
+| `CERTIFICATE` | mTLS certificate-based auth | Institutional APIs |
+
+**Category Selection**:
+
+- `BROKERAGE`: Investment accounts (stocks, options, etc.)
+- `BANK`: Checking/savings accounts
+- `CRYPTO`: Cryptocurrency exchanges
+- `RETIREMENT`: 401(k), IRA accounts
+- `INVESTMENT`: Robo-advisors, managed portfolios
+- `OTHER`: Miscellaneous providers
+
+**Capabilities**:
+
+- `ACCOUNTS`: Can fetch account information
+- `TRANSACTIONS`: Can fetch transaction history
+- `HOLDINGS`: Can fetch current positions (optional)
+
+**Required Settings**:
+
+- List environment variable names (lowercase, without prefix)
+- Example: `["schwab_app_key", "schwab_app_secret"]`
+- Empty list `[]` if no persistent credentials needed
+
+### 0.2 Run Self-Enforcing Tests
+
+After adding to registry, verify compliance:
+
+```bash
+make test-unit FILE="tests/unit/test_provider_registry_compliance.py"
+```
+
+Tests automatically verify:
+
+- ✅ Provider has display name
+- ✅ Provider has at least one capability
+- ✅ Required settings list is present (empty is valid)
+- ✅ Category is valid enum value
+- ✅ OAuth providers correctly categorized (if OAuth)
+
+**Benefits**:
+
+- Registry becomes single source of truth for provider metadata
+- Container automatically validates provider exists before instantiation
+- OAuth callback routes auto-registered for OAuth providers
+- Settings validation centralized via `required_settings`
+- Self-enforcing tests catch incomplete metadata
+
+---
+
 ## Phase 1: Pre-Development Research
 
 Before writing code, gather this information about the provider:
@@ -1426,34 +1511,71 @@ class ImportFromFileHandler:
 
 ## Phase 4: Container Registration
 
-### 4.1 Register Provider in Factory
+**NEW (v1.6.0)**: The container now uses the Provider Integration Registry for validation and settings checks.
 
-Update `src/core/container/providers.py`:
+**Reference**: See `docs/architecture/provider-registry-architecture.md` for how the registry integrates with the container.
+
+### 4.1 Registry Integration (Automatic)
+
+If you completed **Phase 0: Provider Registry**, the container will automatically:
+
+- ✅ Validate provider exists in registry before instantiation
+- ✅ Check required settings via `metadata.required_settings`
+- ✅ Include OAuth providers in OAuth callback routing (if OAuth)
+- ✅ Provide helpful error messages listing supported providers
+
+No manual changes to `OAUTH_PROVIDERS` set or settings validation logic needed.
+
+### 4.2 Add Provider Factory Case
+
+Update `src/core/container/providers.py` - add your provider case to the `match` statement:
 
 ```python
-def get_provider(slug: str) -> "ProviderProtocol":
-    """Get financial provider adapter by slug."""
+def get_provider(slug: Provider) -> ProviderProtocol:
+    """Get provider implementation (Registry-Driven - F8.1).
+    
+    The registry validates provider exists and required settings are present.
+    This function only handles lazy instantiation of concrete implementations.
+    """
+    # Registry validation happens first (before match/case)
+    metadata = get_provider_metadata(slug)  # Raises ValueError if not in registry
+    
+    # Settings validation via registry
+    settings = get_settings()
+    for setting in metadata.required_settings:
+        if not hasattr(settings, setting) or not getattr(settings, setting):
+            supported = ", ".join(p.value for p in get_all_provider_slugs())
+            raise ValueError(
+                f"Provider '{slug.value}' not configured. "
+                f"Required settings: {metadata.required_settings}. "
+                f"Supported providers: {supported}"
+            )
+    
+    # Lazy instantiation via match/case
     match slug:
-        case "schwab":
+        case Provider.SCHWAB:
             from src.infrastructure.providers.schwab import SchwabProvider
-            # ... existing code ...
             return SchwabProvider(settings=settings)
         
-        case "{provider}":
+        case Provider.{PROVIDER_SLUG}:
             from src.infrastructure.providers.{provider} import {Provider}Provider
-            
-            # Validate required settings
-            if not settings.{provider}_api_key or not settings.{provider}_api_secret:
-                raise ValueError(
-                    f"Provider '{slug}' not configured. "
-                    "Set {PROVIDER}_API_KEY and {PROVIDER}_API_SECRET in environment."
-                )
-            
             return {Provider}Provider(settings=settings)
         
         case _:
-            raise ValueError(f"Unknown provider: {slug}. Supported: 'schwab', '{provider}'")
+            # This should never happen (registry validation above)
+            supported = ", ".join(p.value for p in get_all_provider_slugs())
+            raise ValueError(
+                f"Provider '{slug.value}' implementation missing. "
+                f"Supported: {supported}"
+            )
 ```
+
+**Key Points**:
+
+- Registry validation happens before `match/case`
+- Settings validation uses `metadata.required_settings` from registry
+- Error messages automatically list all supported providers
+- No need to update `OAUTH_PROVIDERS` set (uses `get_oauth_providers()` helper)
 
 ---
 
@@ -2289,4 +2411,4 @@ Before submitting PR:
 
 ---
 
-**Created**: 2025-12-26 | **Last Updated**: 2025-12-26
+**Created**: 2025-12-26 | **Last Updated**: 2025-12-31

@@ -156,6 +156,7 @@ nav:
     - Provider Domain: architecture/provider-domain-model.md
     - Provider Integration: architecture/provider-integration-architecture.md
     - Provider OAuth: architecture/provider-oauth-architecture.md
+    - Provider Registry: architecture/provider-registry-architecture.md
     - Rate Limiting: architecture/rate-limit-architecture.md
     - Registry Pattern: architecture/registry-pattern-architecture.md
     - Repository Pattern: architecture/repository-pattern.md

@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2025-12-31
+
+### Added
+
+- **F8.1**: Provider Integration Registry (Registry Pattern for Providers)
+  - **Registry Structure**: Created `src/domain/providers/registry.py` as single source of truth for all 3 providers (Schwab, Alpaca, Chase)
+  - **ProviderMetadata Dataclass**: Catalog with slug, display_name, category, auth_type, capabilities, and required_settings
+  - **Registry Enums**: `ProviderCategory` (6 types: BROKERAGE, BANK, CRYPTO, RETIREMENT, INVESTMENT, OTHER) and `ProviderAuthType` (5 types: OAUTH, API_KEY, FILE_IMPORT, LINK_TOKEN, CERTIFICATE)
+  - **Helper Functions**: 5 registry helpers (`get_provider_metadata`, `get_all_provider_slugs`, `get_oauth_providers`, `get_providers_by_category`, `get_statistics`)
+  - **Container Integration**: Registry-driven validation and OAuth filtering (removed manual `OAUTH_PROVIDERS` set)
+  - **Self-Enforcing Tests**: 19 compliance tests in `test_provider_registry_compliance.py` verify registry completeness
+  - **Zero Drift**: Registry prevents drift (discovered Alpaca missing from manual `OAUTH_PROVIDERS` set during implementation)
+  - **Benefits**: Single entry point for providers, centralized settings validation, auto-wiring for OAuth callbacks, 30% code reduction in container
+  - Total test count increased from 2,190 to 2,208 tests (+18)
+  - Registry module coverage: 100%
+
+### Changed
+
+- **Container Refactored**: `src/core/container/providers.py` now uses registry for:
+  - Provider lookup validation (`get_provider_metadata()` before instantiation)
+  - Settings validation (uses `metadata.required_settings`)
+  - OAuth filtering (`get_oauth_providers()` replaces manual set)
+  - Error messages (automatically list all supported providers)
+- Overall coverage maintained at 88%
+
+### Documentation
+
+- Created `docs/architecture/provider-registry-architecture.md` (761 lines) - Provider Registry pattern architecture with 7 sections: Overview, Registry Structure, Current Providers, Adding New Providers, Helper Functions, Testing, Future Enhancements
+- Updated `docs/guides/adding-new-providers.md` - Added Phase 0: Provider Registry (prerequisites before implementation)
+- Updated `docs/architecture/provider-integration-architecture.md` - Added registry integration references and updated container examples
+- Updated `docs/architecture/provider-domain-model.md` - Updated metadata timestamp
+- Updated `docs/index.md` - Added Provider Registry reference under Domain Models section
+- Updated `mkdocs.yml` - Added provider-registry-architecture.md to navigation
+
+### Technical Notes
+
+- Registry pattern follows same metadata-driven auto-wiring strategy as F7.7 Domain Events Registry
+- No strict mode needed: Provider lookup is synchronous and fails fast (ValueError) unlike events which are fire-and-forget
+- Adding new provider now requires: (1) Add to registry, (2) Tests verify completeness, (3) Add container factory case
+
 ## [1.5.2] - 2025-12-30
 
 ### Documentation

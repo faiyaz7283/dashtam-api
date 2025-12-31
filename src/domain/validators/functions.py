@@ -3,10 +3,13 @@
 All validation logic defined once, reused everywhere via Annotated types.
 Validators are pure functions that raise ValueError on validation failure.
 
+As of F8.4, all validators are cataloged in the Validation Rules Registry
+(src/domain/validators/registry.py) with complete metadata.
+
 Reference:
+    - docs/architecture/validation-registry-architecture.md (F8.4)
+    - docs/architecture/registry-pattern-architecture.md
     - clean-slate-reference.md §1.5 (Annotated Types)
-    - development-checklist.md §9 (Modern Python Patterns)
-    - development-checklist.md §10b (DRY Principle)
 """
 
 import re

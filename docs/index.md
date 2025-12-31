@@ -65,6 +65,8 @@ principles from the ground up.
   Provider connections with OAuth token management
 - **[Provider Integration](architecture/provider-integration-architecture.md)** -
   Multi-provider architecture (OAuth, API Key, File Import)
+- **[Provider Registry](architecture/provider-registry-architecture.md)** -
+  Registry Pattern for zero-drift provider metadata management
 
 ## Project Overview
 

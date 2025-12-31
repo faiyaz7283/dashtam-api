@@ -219,12 +219,17 @@ class OAuthProviderProtocol(ProviderProtocol, Protocol):
 ```python
 # src/core/container/providers.py
 from typing import TypeGuard
+from src.domain.providers.registry import (
+    get_provider_metadata,
+    get_oauth_providers,
+    get_all_provider_slugs,
+)
 
-# OAuth providers registry (for is_oauth_provider check)
-OAUTH_PROVIDERS = {"schwab"}
-
-def get_provider(slug: str) -> ProviderProtocol:
-    """Factory for provider adapters (all providers).
+def get_provider(slug: Provider) -> ProviderProtocol:
+    """Factory for provider adapters (Registry-Driven - F8.1).
+    
+    The Provider Integration Registry validates provider exists and required
+    settings are present before instantiation.
     
     All providers implement the base ProviderProtocol.
     OAuth providers additionally implement OAuthProviderProtocol.
@@ -233,25 +238,47 @@ def get_provider(slug: str) -> ProviderProtocol:
         Provider implementing ProviderProtocol.
         
     Raises:
-        ValueError: If provider slug is unknown.
+        ValueError: If provider slug is unknown or not configured.
     """
+    # Registry validation (before instantiation)
+    metadata = get_provider_metadata(slug)  # Raises ValueError if not in registry
+    
+    # Settings validation via registry
+    settings = get_settings()
+    for setting in metadata.required_settings:
+        if not hasattr(settings, setting) or not getattr(settings, setting):
+            supported = ", ".join(p.value for p in get_all_provider_slugs())
+            raise ValueError(
+                f"Provider '{slug.value}' not configured. "
+                f"Required settings: {metadata.required_settings}. "
+                f"Supported providers: {supported}"
+            )
+    
+    # Lazy instantiation via match/case
     match slug:
         # OAuth providers (implement OAuthProviderProtocol)
-        case "schwab":
+        case Provider.SCHWAB:
             return SchwabProvider(settings=settings)
         # API Key providers (base ProviderProtocol only)
-        case "alpaca":
+        case Provider.ALPACA:
             return AlpacaProvider(settings=settings)
         # File Import providers (base ProviderProtocol only)
-        case "chase_file":
+        case Provider.CHASE_FILE:
             return ChaseFileProvider()
         case _:
-            raise ValueError(f"Unknown provider: {slug}")
+            # This should never happen (registry validation above)
+            supported = ", ".join(p.value for p in get_all_provider_slugs())
+            raise ValueError(
+                f"Provider '{slug.value}' implementation missing. "
+                f"Supported: {supported}"
+            )
 
 def is_oauth_provider(
     provider: ProviderProtocol,
 ) -> TypeGuard[OAuthProviderProtocol]:
-    """Check if provider supports OAuth.
+    """Check if provider supports OAuth (Registry-Driven - F8.1).
+    
+    Uses Provider Integration Registry to determine OAuth capability.
     
     TypeGuard narrows type after check returns True.
     
@@ -261,8 +288,19 @@ def is_oauth_provider(
             # Type is now OAuthProviderProtocol
             tokens = await provider.exchange_code_for_tokens(code)
     """
-    return provider.slug in OAUTH_PROVIDERS
+    return Provider(provider.slug) in get_oauth_providers()
 ```
+
+**Registry Integration (v1.6.0)**:
+
+Since v1.6.0, the container uses the **Provider Integration Registry** for validation:
+
+- **Provider lookup**: `get_provider_metadata()` validates provider exists in registry
+- **OAuth filtering**: `get_oauth_providers()` replaces manual `OAUTH_PROVIDERS` set
+- **Settings validation**: Uses `metadata.required_settings` from registry
+- **Error messages**: Automatically list all supported providers
+
+See `docs/architecture/provider-registry-architecture.md` for complete registry documentation.
 
 **Usage Patterns**:
 
@@ -729,21 +767,23 @@ The guide covers all three provider types with detailed phases:
 
 ### OAuth Providers (e.g., Schwab)
 
-1. Domain layer: Provider config in settings
-2. Infrastructure: API clients, mappers, provider implementation
-3. Container: Register in factory, add to `OAUTH_PROVIDERS`
-4. Application: OAuth flow handlers
-5. Presentation: OAuth callback endpoints
-6. Testing: Unit + integration + API tests
+1. **Registry**: Add to `PROVIDER_REGISTRY` with `auth_type=OAUTH` (v1.6.0+)
+2. Domain layer: Provider config in settings
+3. Infrastructure: API clients, mappers, provider implementation
+4. Container: Add provider case to `get_provider()` match statement
+5. Application: OAuth flow handlers
+6. Presentation: OAuth callback endpoints (auto-registered via registry)
+7. Testing: Unit + integration + API tests
 
 ### API Key Providers (e.g., Alpaca)
 
-1. Domain layer: Provider config in settings
-2. Infrastructure: API clients, mappers, provider implementation
-3. Container: Register in factory (NOT in `OAUTH_PROVIDERS`)
-4. Application: Reuse existing sync handlers
-5. Presentation: Manual connection endpoint (no OAuth callback)
-6. Testing: Unit + integration + API tests
+1. **Registry**: Add to `PROVIDER_REGISTRY` with `auth_type=API_KEY` (v1.6.0+)
+2. Domain layer: Provider config in settings
+3. Infrastructure: API clients, mappers, provider implementation
+4. Container: Add provider case to `get_provider()` match statement
+5. Application: Reuse existing sync handlers
+6. Presentation: Manual connection endpoint (no OAuth callback)
+7. Testing: Unit + integration + API tests
 
 ### File Import Providers (e.g., Chase)
 
@@ -763,4 +803,4 @@ The guide covers all three provider types with detailed phases:
 
 ---
 
-**Created**: 2025-12-03 | **Last Updated**: 2025-12-27
+**Created**: 2025-12-03 | **Last Updated**: 2025-12-31

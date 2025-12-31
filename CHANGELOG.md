@@ -7,31 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **F8.3**: Rate Limit Rules Registry Compliance (Self-Enforcing Validation)
-  - **Compliance Tests**: Created `tests/unit/test_rate_limit_registry_compliance.py` with 23 self-enforcing tests
-  - **5 Test Classes**: Registry Completeness (8 tests), Rule Consistency (4 tests), Pattern Matching (4 tests), Registry Statistics (4 tests), Future-Proofing (3 tests)
-  - **Validation Coverage**: All 25 endpoint rules verified for completeness (positive max_tokens/refill_rate/cost, valid scopes, boolean enabled, METHOD /path format, no duplicates, RateLimitRule instances)
-  - **Consistency Checks**: Auth endpoints use IP/USER scope, API endpoints use USER scope, critical endpoints have explicit rules
-  - **Pattern Matching Tests**: Exact match, path parameter matching, non-existent endpoints, method mismatch validation
-  - **Future-Proofing**: No wildcards, lowercase paths, no trailing slashes
-  - **Zero Drift**: Tests fail if rules missing required config or have malformed patterns
-  - **100% Coverage**: Rate limit config module achieves 100% test coverage (exceeds 95%+ target)
-  - Total test count increased from 2,208 to 2,231 tests (+23)
-  - All 11 rule constants validated: AUTH_LOGIN_RULE, AUTH_REGISTER_RULE, AUTH_PASSWORD_RESET_RULE, AUTH_TOKEN_REFRESH_RULE, PROVIDER_CONNECT_RULE, PROVIDER_SYNC_RULE, API_READ_RULE, API_WRITE_RULE, EXPORT_RULE, REPORT_RULE, GLOBAL_API_RULE
-
-### Documentation
-
-- Rate limit registry already documented in existing `docs/architecture/rate-limiting-architecture.md`
-- Self-enforcing compliance tests now prevent future drift in rate limit rules
-
-### Technical Notes
-
-- Registry pattern follows same self-enforcing strategy as F8.1 Provider Registry and F7.7 Domain Events Registry
-- Existing registry in `src/infrastructure/rate_limit/config.py` now has comprehensive validation
-- Tests validate 25 endpoint patterns across 5 scopes (IP, USER, USER_PROVIDER, GLOBAL, plus composite rules)
-
 ## [1.6.0] - 2025-12-31
 
 ### Added

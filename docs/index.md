@@ -21,7 +21,8 @@ principles from the ground up.
   Command Query Responsibility Segregation with separate handlers
 - **[Event Registry Pattern](architecture/registry-pattern-architecture.md)** -
   Metadata-driven auto-wiring pattern for eliminating manual drift,
-  zero-maintenance component registration
+  zero-maintenance component registration (4 implementations: Domain Events,
+  Provider Integration, Rate Limit Rules, Validation Rules)
 - **[Directory Structure](architecture/directory-structure.md)** -
   Hexagonal architecture organization, layer responsibilities,
   file naming conventions
@@ -67,6 +68,8 @@ principles from the ground up.
   Multi-provider architecture (OAuth, API Key, File Import)
 - **[Provider Registry](architecture/provider-registry-architecture.md)** -
   Registry Pattern for zero-drift provider metadata management
+- **[Validation Registry](architecture/validation-registry-architecture.md)** -
+  Single source of truth for validation rules with self-enforcing compliance tests
 
 ## Project Overview
 
@@ -240,4 +243,4 @@ See `~/starter/development-checklist.md` for the complete feature development wo
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-12-30
+**Created**: 2025-11-13 | **Last Updated**: 2025-12-31

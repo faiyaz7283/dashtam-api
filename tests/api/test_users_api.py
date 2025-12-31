@@ -132,8 +132,8 @@ class TestCreateUser:
         # Verify: RFC 7807 error response
         assert response.status_code == 409
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/email-already-registered"
-        assert data["title"] == "Email Already Registered"
+        assert data["type"].endswith("/errors/conflict")
+        assert data["title"] == "Resource Conflict"
         assert data["status"] == 409
         assert "already registered" in data["detail"].lower()
         assert data["instance"] == "/api/v1/users"
@@ -159,8 +159,8 @@ class TestCreateUser:
         # Verify: RFC 7807 error response
         assert response.status_code == 400
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/validation-error"
-        assert data["title"] == "Validation Error"
+        assert data["type"].endswith("/errors/command_validation_failed")
+        assert data["title"] == "Validation Failed"
         assert data["status"] == 400
         assert (
             "password" in data["detail"].lower()

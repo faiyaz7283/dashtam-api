@@ -110,7 +110,8 @@ class TestGetRuleForEndpoint:
 
     def test_provider_sync_endpoint(self) -> None:
         """Should match provider sync endpoint with USER_PROVIDER scope."""
-        rule = get_rule_for_endpoint("POST /api/v1/providers/123/sync")
+        # Use actual sync endpoint path from registry
+        rule = get_rule_for_endpoint("POST /api/v1/accounts/syncs")
         assert rule is not None
         assert rule.scope == RateLimitScope.USER_PROVIDER
 

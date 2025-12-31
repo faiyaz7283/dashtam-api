@@ -26,8 +26,6 @@ from src.schemas.auth_schemas import (
     PasswordResetTokenCreateResponse,
     PasswordResetCreateRequest,
     PasswordResetCreateResponse,
-    # Error response
-    AuthErrorResponse,
 )
 from src.schemas.session_schemas import (
     SessionListResponse,
@@ -62,6 +60,4 @@ __all__ = [
     "PasswordResetTokenCreateResponse",
     "PasswordResetCreateRequest",
     "PasswordResetCreateResponse",
-    # Error
-    "AuthErrorResponse",
 ]

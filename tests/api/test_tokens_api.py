@@ -148,8 +148,8 @@ class TestCreateTokens:
         # Verify: RFC 7807 error response
         assert response.status_code == 400
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/token_invalid"
-        assert data["title"] == "Invalid Token"
+        assert data["type"].endswith("/errors/command_validation_failed")
+        assert data["title"] == "Validation Failed"
         assert data["status"] == 400
         assert "invalid" in data["detail"].lower()
         assert data["instance"] == "/api/v1/tokens"
@@ -172,8 +172,8 @@ class TestCreateTokens:
         # Verify: RFC 7807 error response
         assert response.status_code == 401
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/token_expired"
-        assert data["title"] == "Token Expired"
+        assert data["type"].endswith("/errors/unauthorized")
+        assert data["title"] == "Authentication Required"
         assert data["status"] == 401
         assert "expired" in data["detail"].lower()
         assert data["instance"] == "/api/v1/tokens"
@@ -196,8 +196,8 @@ class TestCreateTokens:
         # Verify: RFC 7807 error response
         assert response.status_code == 401
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/token_revoked"
-        assert data["title"] == "Token Revoked"
+        assert data["type"].endswith("/errors/unauthorized")
+        assert data["title"] == "Authentication Required"
         assert data["status"] == 401
         assert "revoked" in data["detail"].lower()
         assert data["instance"] == "/api/v1/tokens"
@@ -220,8 +220,8 @@ class TestCreateTokens:
         # Verify: RFC 7807 error response
         assert response.status_code == 401
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/user_not_found"
-        assert data["title"] == "User Not Found"
+        assert data["type"].endswith("/errors/unauthorized")
+        assert data["title"] == "Authentication Required"
         assert data["status"] == 401
 
     def test_create_tokens_user_inactive(self, client):
@@ -242,8 +242,8 @@ class TestCreateTokens:
         # Verify: RFC 7807 error response
         assert response.status_code == 401
         data = response.json()
-        assert data["type"] == "https://api.dashtam.com/errors/user_inactive"
-        assert data["title"] == "User Inactive"
+        assert data["type"].endswith("/errors/unauthorized")
+        assert data["title"] == "Authentication Required"
         assert data["status"] == 401
 
     def test_create_tokens_missing_refresh_token(self, client):

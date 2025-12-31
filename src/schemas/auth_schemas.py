@@ -270,27 +270,3 @@ class PasswordResetCreateResponse(BaseModel):
         default="Password has been reset successfully. Please create a new session.",
         description="Success message",
     )
-
-
-# =============================================================================
-# Common Error Response
-# =============================================================================
-
-
-class AuthErrorResponse(BaseModel):
-    """Standard error response for auth endpoints.
-
-    Follows RFC 7807 Problem Details structure.
-    """
-
-    type: str = Field(
-        default="about:blank",
-        description="URI reference for error type",
-    )
-    title: str = Field(..., description="Short human-readable summary")
-    status: int = Field(..., description="HTTP status code")
-    detail: str = Field(..., description="Human-readable explanation")
-    instance: str | None = Field(
-        default=None,
-        description="URI reference for specific occurrence",
-    )

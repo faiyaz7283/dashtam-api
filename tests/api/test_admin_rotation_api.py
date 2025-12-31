@@ -356,7 +356,7 @@ class TestUserRotationEndpoint:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         data = response.json()
-        assert data["title"] == "User Not Found"
+        assert data["title"] == "Resource Not Found"
 
     def test_user_rotation_requires_reason(self, client):
         """Test rotation requires reason field."""

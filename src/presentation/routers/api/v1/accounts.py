@@ -1,12 +1,13 @@
-"""Accounts resource router.
+"""Accounts resource handlers.
 
-RESTful endpoints for account management.
+Handler functions for account management endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    GET    /api/v1/accounts                      - List all accounts for user
-    GET    /api/v1/accounts/{id}                 - Get account details
-    POST   /api/v1/accounts/syncs                - Sync accounts from provider
-    GET    /api/v1/providers/{id}/accounts       - List accounts for a connection
+Handlers:
+    list_accounts              - List all accounts for user
+    get_account                - Get account details
+    sync_accounts              - Sync accounts from provider
+    list_accounts_by_connection - List accounts for a connection
 
 Reference:
     - docs/architecture/api-design-patterns.md
@@ -16,7 +17,7 @@ Reference:
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query, Request, status
+from fastapi import Depends, Path, Query, Request
 from fastapi.responses import JSONResponse
 
 from src.application.commands.handlers.sync_accounts_handler import (
@@ -51,9 +52,6 @@ from src.schemas.account_schemas import (
     SyncAccountsRequest,
     SyncAccountsResponse,
 )
-
-
-router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
 
 # =============================================================================
@@ -108,16 +106,10 @@ def _map_account_error(error: str) -> ApplicationError:
 
 
 # =============================================================================
-# Endpoints
+# Handlers
 # =============================================================================
 
 
-@router.get(
-    "",
-    response_model=AccountListResponse,
-    summary="List accounts",
-    description="List all accounts for the authenticated user across all connections.",
-)
 async def list_accounts(
     request: Request,
     current_user: AuthenticatedUser,
@@ -173,16 +165,6 @@ async def list_accounts(
     return AccountListResponse.from_dto(result.value)
 
 
-@router.get(
-    "/{account_id}",
-    response_model=AccountResponse,
-    summary="Get account",
-    description="Get details of a specific account.",
-    responses={
-        404: {"description": "Account not found"},
-        403: {"description": "Not authorized to access this account"},
-    },
-)
 async def get_account(
     request: Request,
     current_user: AuthenticatedUser,
@@ -220,18 +202,6 @@ async def get_account(
     return AccountResponse.from_dto(result.value)
 
 
-@router.post(
-    "/syncs",
-    status_code=status.HTTP_201_CREATED,
-    response_model=SyncAccountsResponse,
-    summary="Sync accounts",
-    description="Sync accounts from a provider connection.",
-    responses={
-        404: {"description": "Connection not found"},
-        403: {"description": "Not authorized to sync this connection"},
-        429: {"description": "Sync rate limit exceeded"},
-    },
-)
 async def sync_accounts(
     request: Request,
     current_user: AuthenticatedUser,
@@ -284,26 +254,13 @@ async def sync_accounts(
 
 
 # =============================================================================
-# Provider-scoped Account Endpoints
+# Provider-scoped Account Handler
 # =============================================================================
 # Note: This endpoint is under /providers/{id}/accounts but implemented here
-# for account-related logic grouping. Registered via include_router with prefix.
+# for account-related logic grouping.
 # =============================================================================
 
 
-provider_accounts_router = APIRouter(prefix="/providers", tags=["Providers"])
-
-
-@provider_accounts_router.get(
-    "/{connection_id}/accounts",
-    response_model=AccountListResponse,
-    summary="List accounts for connection",
-    description="List all accounts for a specific provider connection.",
-    responses={
-        404: {"description": "Connection not found"},
-        403: {"description": "Not authorized to access this connection"},
-    },
-)
 async def list_accounts_by_connection(
     request: Request,
     current_user: AuthenticatedUser,

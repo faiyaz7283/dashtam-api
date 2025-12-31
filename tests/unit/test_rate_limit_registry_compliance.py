@@ -137,10 +137,12 @@ class TestRateLimitRuleConsistency:
 
     def test_api_endpoints_use_user_scope(self):
         """Standard API endpoints should use USER scope."""
+        # Exclude sync endpoints which use USER_PROVIDER scope
         api_endpoints = [
             ep
             for ep in RATE_LIMIT_RULES
-            if "/accounts" in ep or "/transactions" in ep or "/holdings" in ep
+            if ("/accounts" in ep or "/transactions" in ep or "/holdings" in ep)
+            and "/syncs" not in ep  # Sync endpoints use USER_PROVIDER
         ]
 
         for endpoint in api_endpoints:
@@ -291,8 +293,8 @@ class TestRateLimitRegistryStatistics:
         critical_endpoints = [
             "POST /api/v1/sessions",  # Login
             "POST /api/v1/users",  # Registration
-            "POST /api/v1/auth/refresh",  # Token refresh
-            "POST /api/v1/providers",  # Provider connect
+            "POST /api/v1/tokens",  # Token refresh (new RESTful path)
+            "POST /api/v1/providers",  # Provider connect (initiate)
         ]
 
         missing = [ep for ep in critical_endpoints if ep not in RATE_LIMIT_RULES]

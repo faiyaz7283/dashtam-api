@@ -1,43 +1,28 @@
-"""Email verifications resource router.
+"""Email verifications resource handlers.
 
-RESTful endpoints for email verification management.
+Handler functions for email verification endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    POST /api/v1/email-verifications - Create email verification (verify email)
+Handlers:
+    create_email_verification - Create email verification (verify email)
 """
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 
 from src.application.commands.auth_commands import VerifyEmail
 from src.application.commands.handlers.verify_email_handler import VerifyEmailHandler
+from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.core.container import get_verify_email_handler
 from src.core.result import Failure, Success
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 from src.schemas.auth_schemas import (
-    AuthErrorResponse,
     EmailVerificationCreateRequest,
     EmailVerificationCreateResponse,
 )
 
-router = APIRouter(prefix="/email-verifications", tags=["Email Verifications"])
 
-
-@router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    response_model=EmailVerificationCreateResponse,
-    responses={
-        201: {
-            "description": "Email verified successfully",
-            "model": EmailVerificationCreateResponse,
-        },
-        400: {"description": "Invalid or expired token", "model": AuthErrorResponse},
-        404: {"description": "Token not found", "model": AuthErrorResponse},
-    },
-    summary="Create email verification",
-    description="Verify user's email address using verification token from email.",
-)
 async def create_email_verification(
     request: Request,
     data: EmailVerificationCreateRequest,
@@ -72,31 +57,25 @@ async def create_email_verification(
         case Success(value=_):
             return EmailVerificationCreateResponse()
         case Failure(error=error):
-            # Map error to appropriate status code
+            # Map error to ApplicationErrorCode
             error_mapping = {
-                "token_not_found": (status.HTTP_404_NOT_FOUND, "Token Not Found"),
-                "token_expired": (status.HTTP_400_BAD_REQUEST, "Token Expired"),
-                "token_already_used": (
-                    status.HTTP_400_BAD_REQUEST,
-                    "Token Already Used",
-                ),
-                "user_not_found": (status.HTTP_404_NOT_FOUND, "User Not Found"),
+                "token_not_found": ApplicationErrorCode.NOT_FOUND,
+                "token_expired": ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
+                "token_already_used": ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
+                "user_not_found": ApplicationErrorCode.NOT_FOUND,
             }
-            status_code, title = error_mapping.get(
-                error, (status.HTTP_400_BAD_REQUEST, "Verification Failed")
+            error_code = error_mapping.get(
+                error, ApplicationErrorCode.COMMAND_VALIDATION_FAILED
             )
 
-            trace_id = get_trace_id()
-            return JSONResponse(
-                status_code=status_code,
-                content=AuthErrorResponse(
-                    type=f"https://api.dashtam.com/errors/{error}",
-                    title=title,
-                    status=status_code,
-                    detail=_get_user_friendly_error(error),
-                    instance=str(request.url.path),
-                ).model_dump(),
-                headers={"X-Trace-ID": trace_id} if trace_id else None,
+            app_error = ApplicationError(
+                code=error_code,
+                message=_get_user_friendly_error(error),
+            )
+            return ErrorResponseBuilder.from_application_error(
+                error=app_error,
+                request=request,
+                trace_id=get_trace_id() or "",
             )
 
 

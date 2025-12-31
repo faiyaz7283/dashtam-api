@@ -1,13 +1,14 @@
-"""Password resets resource router.
+"""Password resets resource handlers.
 
-RESTful endpoints for password reset management.
+Handler functions for password reset endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    POST /api/v1/password-reset-tokens - Create password reset token (request reset)
-    POST /api/v1/password-resets       - Create password reset (execute reset)
+Handlers:
+    create_password_reset_token - Create password reset token (request reset)
+    create_password_reset       - Create password reset (execute reset)
 """
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 
 from src.application.commands.auth_commands import (
@@ -20,46 +21,22 @@ from src.application.commands.handlers.confirm_password_reset_handler import (
 from src.application.commands.handlers.request_password_reset_handler import (
     RequestPasswordResetHandler,
 )
+from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.core.container import (
     get_confirm_password_reset_handler,
     get_request_password_reset_handler,
 )
 from src.core.result import Failure, Success
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 from src.schemas.auth_schemas import (
-    AuthErrorResponse,
     PasswordResetCreateRequest,
     PasswordResetCreateResponse,
     PasswordResetTokenCreateRequest,
     PasswordResetTokenCreateResponse,
 )
 
-# Router for password reset tokens
-password_reset_tokens_router = APIRouter(
-    prefix="/password-reset-tokens",
-    tags=["Password Reset Tokens"],
-)
 
-# Router for password resets
-password_resets_router = APIRouter(
-    prefix="/password-resets",
-    tags=["Password Resets"],
-)
-
-
-@password_reset_tokens_router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    response_model=PasswordResetTokenCreateResponse,
-    responses={
-        201: {
-            "description": "Password reset email sent (if account exists)",
-            "model": PasswordResetTokenCreateResponse,
-        },
-    },
-    summary="Create password reset token",
-    description="Request a password reset. Always returns success to prevent user enumeration.",
-)
 async def create_password_reset_token(
     request: Request,
     data: PasswordResetTokenCreateRequest,
@@ -98,21 +75,6 @@ async def create_password_reset_token(
     return PasswordResetTokenCreateResponse()
 
 
-@password_resets_router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    response_model=PasswordResetCreateResponse,
-    responses={
-        201: {
-            "description": "Password reset successfully",
-            "model": PasswordResetCreateResponse,
-        },
-        400: {"description": "Invalid or expired token", "model": AuthErrorResponse},
-        404: {"description": "Token not found", "model": AuthErrorResponse},
-    },
-    summary="Create password reset",
-    description="Reset password using token from email. Revokes all sessions.",
-)
 async def create_password_reset(
     request: Request,
     data: PasswordResetCreateRequest,
@@ -148,31 +110,25 @@ async def create_password_reset(
         case Success(value=_):
             return PasswordResetCreateResponse()
         case Failure(error=error):
-            # Map error to appropriate status code
+            # Map error to ApplicationErrorCode
             error_mapping = {
-                "token_not_found": (status.HTTP_404_NOT_FOUND, "Token Not Found"),
-                "token_expired": (status.HTTP_400_BAD_REQUEST, "Token Expired"),
-                "token_already_used": (
-                    status.HTTP_400_BAD_REQUEST,
-                    "Token Already Used",
-                ),
-                "user_not_found": (status.HTTP_404_NOT_FOUND, "User Not Found"),
+                "token_not_found": ApplicationErrorCode.NOT_FOUND,
+                "token_expired": ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
+                "token_already_used": ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
+                "user_not_found": ApplicationErrorCode.NOT_FOUND,
             }
-            status_code, title = error_mapping.get(
-                error, (status.HTTP_400_BAD_REQUEST, "Password Reset Failed")
+            error_code = error_mapping.get(
+                error, ApplicationErrorCode.COMMAND_VALIDATION_FAILED
             )
 
-            trace_id = get_trace_id()
-            return JSONResponse(
-                status_code=status_code,
-                content=AuthErrorResponse(
-                    type=f"https://api.dashtam.com/errors/{error}",
-                    title=title,
-                    status=status_code,
-                    detail=_get_user_friendly_error(error),
-                    instance=str(request.url.path),
-                ).model_dump(),
-                headers={"X-Trace-ID": trace_id} if trace_id else None,
+            app_error = ApplicationError(
+                code=error_code,
+                message=_get_user_friendly_error(error),
+            )
+            return ErrorResponseBuilder.from_application_error(
+                error=app_error,
+                request=request,
+                trace_id=get_trace_id() or "",
             )
 
 

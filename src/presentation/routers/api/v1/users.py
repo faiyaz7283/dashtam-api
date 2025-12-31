@@ -1,40 +1,28 @@
-"""Users resource router.
+"""Users resource handlers.
 
-RESTful endpoints for user management.
+Handler functions for user management endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    POST /api/v1/users - Create new user (registration)
+Handlers:
+    create_user - Create new user (registration)
 """
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 
 from src.application.commands.auth_commands import RegisterUser
 from src.application.commands.handlers.register_user_handler import RegisterUserHandler
+from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.core.container import get_register_user_handler
 from src.core.result import Failure, Success
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
+from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
 from src.schemas.auth_schemas import (
-    AuthErrorResponse,
     UserCreateRequest,
     UserCreateResponse,
 )
 
-router = APIRouter(prefix="/users", tags=["Users"])
 
-
-@router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    response_model=UserCreateResponse,
-    responses={
-        201: {"description": "User created successfully", "model": UserCreateResponse},
-        400: {"description": "Validation error", "model": AuthErrorResponse},
-        409: {"description": "Email already registered", "model": AuthErrorResponse},
-    },
-    summary="Create user",
-    description="Register a new user account. Sends verification email.",
-)
 async def create_user(
     request: Request,
     data: UserCreateRequest,
@@ -73,23 +61,18 @@ async def create_user(
                 email=data.email,
             )
         case Failure(error=error):
-            # Determine status code based on error
+            # Map error to ApplicationErrorCode
             if "already registered" in error.lower():
-                status_code = status.HTTP_409_CONFLICT
-                title = "Email Already Registered"
+                error_code = ApplicationErrorCode.CONFLICT
             else:
-                status_code = status.HTTP_400_BAD_REQUEST
-                title = "Validation Error"
+                error_code = ApplicationErrorCode.COMMAND_VALIDATION_FAILED
 
-            trace_id = get_trace_id()
-            return JSONResponse(
-                status_code=status_code,
-                content=AuthErrorResponse(
-                    type=f"https://api.dashtam.com/errors/{title.lower().replace(' ', '-')}",
-                    title=title,
-                    status=status_code,
-                    detail=error,
-                    instance=str(request.url.path),
-                ).model_dump(),
-                headers={"X-Trace-ID": trace_id} if trace_id else None,
+            app_error = ApplicationError(
+                code=error_code,
+                message=error,
+            )
+            return ErrorResponseBuilder.from_application_error(
+                error=app_error,
+                request=request,
+                trace_id=get_trace_id() or "",
             )

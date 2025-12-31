@@ -1,15 +1,16 @@
-"""Providers resource router.
+"""Providers resource handlers.
 
-RESTful endpoints for provider connection management.
+Handler functions for provider connection endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    GET    /api/v1/providers              - List all connections for user
-    GET    /api/v1/providers/{id}         - Get connection details
-    POST   /api/v1/providers              - Initiate OAuth connection
-    POST   /api/v1/providers/callback     - Handle OAuth callback
-    PATCH  /api/v1/providers/{id}         - Update connection (alias)
-    DELETE /api/v1/providers/{id}         - Disconnect provider
-    POST   /api/v1/providers/{id}/token-refreshes - Refresh provider tokens
+Handlers:
+    list_providers          - List all connections for user
+    get_provider_connection - Get connection details
+    initiate_connection     - Initiate OAuth connection
+    oauth_callback          - Handle OAuth callback
+    update_provider         - Update connection (alias)
+    disconnect_provider     - Disconnect provider
+    refresh_provider_tokens - Refresh provider tokens
 
 Reference:
     - docs/architecture/api-design-patterns.md
@@ -22,7 +23,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query, Request, status
+from fastapi import Depends, Path, Query, Request, status
 from fastapi.responses import JSONResponse, Response
 
 from src.application.commands.handlers.connect_provider_handler import (
@@ -79,8 +80,6 @@ from src.schemas.provider_schemas import (
     TokenRefreshResponse,
     UpdateProviderConnectionRequest,
 )
-
-router = APIRouter(prefix="/providers", tags=["Providers"])
 
 # OAuth state cache key prefix and expiration
 OAUTH_STATE_PREFIX = "oauth_state:"
@@ -173,16 +172,10 @@ def _build_schwab_auth_url(state: str, redirect_uri: str | None = None) -> str:
 
 
 # =============================================================================
-# Endpoints
+# Handlers
 # =============================================================================
 
 
-@router.get(
-    "",
-    response_model=ProviderConnectionListResponse,
-    summary="List provider connections",
-    description="List all provider connections for the authenticated user.",
-)
 async def list_providers(
     request: Request,
     current_user: AuthenticatedUser,
@@ -225,16 +218,6 @@ async def list_providers(
     return ProviderConnectionListResponse.from_dto(result.value)
 
 
-@router.get(
-    "/{connection_id}",
-    response_model=ProviderConnectionResponse,
-    summary="Get provider connection",
-    description="Get details of a specific provider connection.",
-    responses={
-        404: {"description": "Connection not found"},
-        403: {"description": "Not authorized to access this connection"},
-    },
-)
 async def get_provider_connection(
     request: Request,
     current_user: AuthenticatedUser,
@@ -274,16 +257,6 @@ async def get_provider_connection(
     return ProviderConnectionResponse.from_dto(result.value)
 
 
-@router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    response_model=AuthorizationUrlResponse,
-    summary="Initiate provider connection",
-    description="Start OAuth flow to connect a financial provider.",
-    responses={
-        404: {"description": "Provider not supported"},
-    },
-)
 async def initiate_connection(
     request: Request,
     current_user: AuthenticatedUser,
@@ -337,17 +310,6 @@ async def initiate_connection(
     )
 
 
-@router.post(
-    "/callback",
-    status_code=status.HTTP_201_CREATED,
-    response_model=ProviderConnectionResponse,
-    summary="Complete OAuth callback",
-    description="Complete OAuth flow after user consent. Called by frontend after redirect.",
-    responses={
-        400: {"description": "Invalid or expired state"},
-        502: {"description": "Provider authentication failed"},
-    },
-)
 async def oauth_callback(
     request: Request,
     code: Annotated[str, Query(description="Authorization code from provider")],
@@ -553,16 +515,6 @@ async def oauth_callback(
     return ProviderConnectionResponse.from_dto(dto)
 
 
-@router.patch(
-    "/{connection_id}",
-    response_model=ProviderConnectionResponse,
-    summary="Update provider connection",
-    description="Update connection properties (currently only alias).",
-    responses={
-        404: {"description": "Connection not found"},
-        403: {"description": "Not authorized to update this connection"},
-    },
-)
 async def update_provider(
     request: Request,
     current_user: AuthenticatedUser,
@@ -616,17 +568,6 @@ async def update_provider(
     return ProviderConnectionResponse.from_dto(result.value)
 
 
-@router.delete(
-    "/{connection_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_model=None,
-    summary="Disconnect provider",
-    description="Disconnect and remove a provider connection.",
-    responses={
-        404: {"description": "Connection not found"},
-        403: {"description": "Not authorized to disconnect this connection"},
-    },
-)
 async def disconnect_provider(
     request: Request,
     current_user: AuthenticatedUser,
@@ -667,18 +608,6 @@ async def disconnect_provider(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post(
-    "/{connection_id}/token-refreshes",
-    status_code=status.HTTP_201_CREATED,
-    response_model=TokenRefreshResponse,
-    summary="Refresh provider tokens",
-    description="Refresh OAuth tokens for a provider connection.",
-    responses={
-        404: {"description": "Connection not found"},
-        403: {"description": "Not authorized or connection not active"},
-        502: {"description": "Provider token refresh failed"},
-    },
-)
 async def refresh_provider_tokens(
     request: Request,
     current_user: AuthenticatedUser,

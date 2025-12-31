@@ -1,12 +1,12 @@
-"""Holdings resource router.
+"""Holdings resource handlers.
 
-RESTful endpoints for holdings (positions) management.
+Handler functions for holdings (positions) management endpoints.
+Routes are registered via ROUTE_REGISTRY in routes/registry.py.
 
-Endpoints:
-    GET    /api/v1/holdings                        - List all holdings for user
-    GET    /api/v1/holdings/{id}                   - Get holding details
-    GET    /api/v1/accounts/{id}/holdings          - List holdings for an account
-    POST   /api/v1/accounts/{id}/holdings/syncs    - Sync holdings from provider
+Handlers:
+    list_holdings           - List all holdings for user
+    list_holdings_by_account - List holdings for an account
+    sync_holdings           - Sync holdings from provider
 
 Reference:
     - docs/architecture/api-design-patterns.md
@@ -16,7 +16,7 @@ Reference:
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query, Request, status
+from fastapi import Depends, Path, Query, Request
 from fastapi.responses import JSONResponse
 
 from src.application.commands.handlers.sync_holdings_handler import (
@@ -46,9 +46,6 @@ from src.schemas.holding_schemas import (
     SyncHoldingsRequest,
     SyncHoldingsResponse,
 )
-
-
-router = APIRouter(prefix="/holdings", tags=["Holdings"])
 
 
 # =============================================================================
@@ -109,16 +106,10 @@ def _map_holding_error(error: str) -> ApplicationError:
 
 
 # =============================================================================
-# Holdings Collection Endpoints
+# Holdings Collection Handlers
 # =============================================================================
 
 
-@router.get(
-    "",
-    response_model=HoldingListResponse,
-    summary="List holdings",
-    description="List all holdings for the authenticated user across all accounts.",
-)
 async def list_holdings(
     request: Request,
     current_user: AuthenticatedUser,
@@ -172,23 +163,10 @@ async def list_holdings(
 
 
 # =============================================================================
-# Account-scoped Holdings Endpoints (nested resource)
+# Account-scoped Holdings Handlers (nested resource)
 # =============================================================================
 
 
-account_holdings_router = APIRouter(prefix="/accounts", tags=["Accounts"])
-
-
-@account_holdings_router.get(
-    "/{account_id}/holdings",
-    response_model=HoldingListResponse,
-    summary="List holdings for account",
-    description="List all holdings for a specific account.",
-    responses={
-        404: {"description": "Account not found"},
-        403: {"description": "Not authorized to access this account"},
-    },
-)
 async def list_holdings_by_account(
     request: Request,
     current_user: AuthenticatedUser,
@@ -240,18 +218,6 @@ async def list_holdings_by_account(
     return HoldingListResponse.from_dto(result.value)
 
 
-@account_holdings_router.post(
-    "/{account_id}/holdings/syncs",
-    status_code=status.HTTP_201_CREATED,
-    response_model=SyncHoldingsResponse,
-    summary="Sync holdings",
-    description="Sync holdings from provider for a specific account.",
-    responses={
-        404: {"description": "Account not found"},
-        403: {"description": "Not authorized to sync this account"},
-        429: {"description": "Sync rate limit exceeded"},
-    },
-)
 async def sync_holdings(
     request: Request,
     current_user: AuthenticatedUser,

@@ -598,9 +598,7 @@ The Registry Pattern has been successfully applied to multiple Dashtam component
 
 ### 1. Domain Events Registry
 
-**Status**: ✅ IMPLEMENTED (v1.5.0 - 2025-12-28)
-
-**Purpose**: Auto-wire 69 domain events to their handlers with zero manual subscription code.
+**Purpose**: Auto-wire domain events to their handlers with zero manual subscription code.
 
 **Results**:
 
@@ -612,8 +610,6 @@ The Registry Pattern has been successfully applied to multiple Dashtam component
 **Reference**: `docs/architecture/domain-events-architecture.md` (Section 5.1)
 
 ### 2. Provider Integration Registry
-
-**Status**: ✅ IMPLEMENTED (v1.6.0 - 2025-12-31)
 
 **Purpose**: Single source of truth for all financial provider integrations with self-enforcing validation.
 
@@ -646,8 +642,6 @@ PROVIDER_REGISTRY: dict[Provider, ProviderMetadata] = {
 
 ### 3. Rate Limit Rules Registry
 
-**Status**: ✅ IMPLEMENTED (v1.6.1 - 2025-12-31)
-
 **Purpose**: Self-enforcing validation for rate limit rules to prevent configuration drift.
 
 **Registry Structure**:
@@ -676,8 +670,6 @@ RATE_LIMIT_RULES: dict[str, RateLimitRule] = {
 **Reference**: `docs/architecture/rate-limit-architecture.md` (Section 5: Registry Pattern)
 
 ### 4. Validation Rules Registry
-
-**Status**: ✅ IMPLEMENTED (v1.6.2 - 2025-12-31)
 
 **Purpose**: Single source of truth for all validation rules with self-documenting metadata and self-enforcing compliance tests.
 
@@ -708,32 +700,56 @@ VALIDATION_RULES_REGISTRY: dict[str, ValidationRuleMetadata] = {
 
 **Reference**: `docs/architecture/validation-registry-architecture.md`
 
+### 5. Route Metadata Registry
+
+**Purpose**: Single source of truth for all API endpoints with auto-generated routes, auth dependencies, rate limit rules, and OpenAPI documentation.
+
+**Registry Structure**:
+
+```python
+# src/presentation/routers/api/v1/routes/registry.py
+ROUTE_REGISTRY: list[RouteMetadata] = [
+    RouteMetadata(
+        method=HTTPMethod.POST,
+        path="/users",
+        handler=create_user,
+        resource="users",
+        tags=["Users"],
+        summary="Create user",
+        operation_id="create_user",
+        response_model=UserCreateResponse,
+        status_code=201,
+        errors=[
+            ErrorSpec(status=400, description="Validation failed"),
+            ErrorSpec(status=409, description="User already exists"),
+        ],
+        idempotency=IdempotencyLevel.NON_IDEMPOTENT,
+        auth_policy=AuthPolicy(level=AuthLevel.PUBLIC),
+        rate_limit_policy=RateLimitPolicy.AUTH_REGISTER,
+    ),
+    # ... 35 more endpoints (total 36)
+]
+```
+
+**Results**:
+
+- 36 API endpoints cataloged with complete metadata
+- 18 self-enforcing compliance tests (100% passing)
+- FastAPI routes auto-generated from registry at startup
+- Auth dependencies auto-injected based on auth_policy
+- Rate limit rules auto-generated (two-tier configuration pattern)
+- 12 router files converted from decorator-based to pure handler functions
+- Zero drift: Tests fail if routes missing, auth policies inconsistent, or rate limits incomplete
+
+**Reference**: `docs/architecture/route-registry-architecture.md`
+
 ---
 
 ## Future Applications
 
 ### Candidate Areas
 
-#### 1. API Route Registration
-
-**Current**: Manual route definition + middleware + auth + rate limits
-
-**Registry Pattern**:
-
-```python
-ROUTE_REGISTRY = [
-    RouteMetadata(
-        path="/api/v1/users",
-        handler=UserHandler.create,
-        method="POST",
-        requires_auth=True,
-        requires_rate_limit=True,
-        rate_limit_scope="ip",
-    ),
-]
-```
-
-#### 3. Feature Flags
+#### 1. Feature Flags
 
 **Current**: Scattered feature checks, hard to audit
 

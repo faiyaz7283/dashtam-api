@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2025-12-31
+
+### Documentation
+
+- **Rate Limit Registry Pattern Documentation**
+  - Added Section 5: Registry Pattern to `docs/architecture/rate-limit-architecture.md` (107 lines)
+  - Documents `RATE_LIMIT_RULES` as Registry Pattern implementation following F7.7 and F8.1
+  - Explains F8.3 self-enforcing compliance tests (23 tests across 5 test classes)
+  - Shows Before/After F8.3 comparison (Configuration Only → Registry Pattern + Compliance Tests)
+  - Documents pattern consistency: metadata-driven catalog, self-enforcing tests, zero drift
+  - Updated metadata: Last Updated to 2025-12-31
+- **Registry Pattern Architecture Updates**
+  - Added "Implemented Applications" section to `docs/architecture/registry-pattern-architecture.md`
+  - Moved Rate Limit Rules Registry from "Future Applications" to "Implemented" (3rd implementation)
+  - Added complete results: 25 endpoint rules, 23 self-enforcing tests, 100% coverage, 5 test classes
+  - Added F8.4 Validation Registry to "Future Applications" with implementation plan ready status
+  - Updated cross-references between F7.7 (Domain Events), F8.1 (Providers), and F8.3 (Rate Limits)
+
+### Technical Notes
+
+- Documentation-only release (PATCH version bump)
+- Completes F8.3 documentation gap identified post-merge
+- All markdown linting passed (zero violations)
+- MkDocs builds successfully (zero errors)
+
+## [1.6.0] - 2025-12-31
+
+### Added
+
+- **F8.1**: Provider Integration Registry (Registry Pattern for Providers)
+  - **Compliance Tests**: Created `tests/unit/test_rate_limit_registry_compliance.py` with 23 self-enforcing tests
+  - **5 Test Classes**: Registry Completeness (8 tests), Rule Consistency (4 tests), Pattern Matching (4 tests), Registry Statistics (4 tests), Future-Proofing (3 tests)
+  - **Validation Coverage**: All 25 endpoint rules verified for completeness (positive max_tokens/refill_rate/cost, valid scopes, boolean enabled, METHOD /path format, no duplicates, RateLimitRule instances)
+  - **Consistency Checks**: Auth endpoints use IP/USER scope, API endpoints use USER scope, critical endpoints have explicit rules
+  - **Pattern Matching Tests**: Exact match, path parameter matching, non-existent endpoints, method mismatch validation
+  - **Future-Proofing**: No wildcards, lowercase paths, no trailing slashes
+  - **Zero Drift**: Tests fail if rules missing required config or have malformed patterns
+  - **100% Coverage**: Rate limit config module achieves 100% test coverage (exceeds 95%+ target)
+  - Total test count increased from 2,208 to 2,231 tests (+23)
+  - All 11 rule constants validated: AUTH_LOGIN_RULE, AUTH_REGISTER_RULE, AUTH_PASSWORD_RESET_RULE, AUTH_TOKEN_REFRESH_RULE, PROVIDER_CONNECT_RULE, PROVIDER_SYNC_RULE, API_READ_RULE, API_WRITE_RULE, EXPORT_RULE, REPORT_RULE, GLOBAL_API_RULE
+
+### Documentation
+
+- Rate limit registry already documented in existing `docs/architecture/rate-limiting-architecture.md`
+- Self-enforcing compliance tests now prevent future drift in rate limit rules
+
+### Technical Notes
+
+- Registry pattern follows same self-enforcing strategy as F8.1 Provider Registry and F7.7 Domain Events Registry
+- Existing registry in `src/infrastructure/rate_limit/config.py` now has comprehensive validation
+- Tests validate 25 endpoint patterns across 5 scopes (IP, USER, USER_PROVIDER, GLOBAL, plus composite rules)
+
 ## [1.6.0] - 2025-12-31
 
 ### Added

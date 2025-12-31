@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.2] - 2025-12-31
+
+### Documentation
+
+- **F8.4: Validation Rules Registry (4th Registry Pattern Implementation)**
+  - Created `src/domain/validators/registry.py` (206 lines) as single source of truth for all validation rules
+  - **ValidationRuleMetadata Dataclass**: Catalog with rule_name, validator_function, field_constraints, description, examples, and category
+  - **ValidationCategory Enum**: 4 categories (AUTHENTICATION, API_PARAMETERS, PROVIDER_DATA, DOMAIN_VALUES)
+  - **VALIDATION_RULES_REGISTRY**: 4 validation rules cataloged (email, password, verification_token, refresh_token)
+  - **Helper Functions**: 4 registry helpers (`get_validation_rule`, `get_all_validation_rules`, `get_rules_by_category`, `get_statistics`)
+  - **Self-Enforcing Tests**: 18 compliance tests in `test_validation_registry_compliance.py` across 4 test classes
+    - Registry Completeness (8 tests): validator functions, field constraints, descriptions, examples, categories, uniqueness, naming convention
+    - Validator Functions (4 tests): callable validators, error handling, return types, edge cases
+    - Type Consistency (3 tests): domain types integration, no duplicates, examples validation
+    - Statistics (3 tests): minimum rules, category distribution, helper functions
+  - **Zero Drift**: Tests fail if validators lack metadata, examples don't validate, or constraints invalid
+  - **Registry Module Coverage**: 100% achieved
+  - Total test count increased from 2,231 to 2,253 tests (+18)
+- **Comprehensive Architecture Documentation**
+  - Created `docs/architecture/validation-registry-architecture.md` (1,097 lines)
+    - Complete registry structure and metadata documentation
+    - All 4 current validation rules documented with examples
+    - Step-by-step guide for adding new validation rules
+    - Integration examples (documentation generation, API schemas, testing, monitoring)
+    - Design decisions explained (metadata-driven, dict vs list, separate functions, enum categories)
+    - Pattern consistency comparison with Domain Events, Provider, and Rate Limit registries
+    - Future enhancements roadmap (API parameters, provider data, domain values)
+  - Updated `docs/architecture/registry-pattern-architecture.md` - Added Validation Rules Registry as 4th "Implemented Applications" example with complete results
+  - Updated `docs/index.md` - Added Validation Registry reference under Domain Models, updated Event Registry Pattern description to mention 4 implementations
+  - Updated `mkdocs.yml` - Added validation-registry-architecture.md to navigation
+- **Timeless Architecture Standards**
+  - Removed roadmap references (F7.7, F8.1, F8.3, F8.4) from multiple architecture documents
+  - Updated documents to use pattern names instead of feature codes ("Domain Events Registry" not "F7.7")
+  - Architecture docs now timeless and don't reference implementation timeline
+  - Affected files: validation-registry-architecture.md, registry-pattern-architecture.md, provider-registry-architecture.md
+
+### Technical Notes
+
+- Documentation-only release (PATCH version bump)
+- Registry Pattern now has 4 implementations: Domain Events, Provider Integration, Rate Limit Rules, Validation Rules
+- All 4 registries follow same pattern: metadata-driven catalog, self-enforcing tests, helper functions, 100% coverage target
+- All markdown linting passed (zero violations)
+- MkDocs builds successfully (zero warnings)
+- Overall coverage maintained at 88%
+
 ## [1.6.1] - 2025-12-31
 
 ### Documentation

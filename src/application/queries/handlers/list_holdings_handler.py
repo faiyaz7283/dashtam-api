@@ -117,9 +117,6 @@ class ListHoldingsByAccountHandler:
         - HoldingRepository: For holding retrieval
         - AccountRepository: For account lookup
         - ProviderConnectionRepository: For ownership verification
-
-    Returns:
-        Result[HoldingListResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(
@@ -268,9 +265,6 @@ class ListHoldingsByUserHandler:
 
     Dependencies (injected via constructor):
         - HoldingRepository: For holding retrieval
-
-    Returns:
-        Result[HoldingListResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(

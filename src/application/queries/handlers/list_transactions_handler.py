@@ -123,9 +123,6 @@ class ListTransactionsByAccountHandler:
         - TransactionRepository: For transaction retrieval
         - AccountRepository: For account lookup (ownership)
         - ProviderConnectionRepository: For ownership verification
-
-    Returns:
-        Result[TransactionListResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(
@@ -217,9 +214,6 @@ class ListTransactionsByDateRangeHandler:
         - TransactionRepository: For transaction retrieval
         - AccountRepository: For account lookup (ownership)
         - ProviderConnectionRepository: For ownership verification
-
-    Returns:
-        Result[TransactionListResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(
@@ -302,9 +296,6 @@ class ListSecurityTransactionsHandler:
         - TransactionRepository: For transaction retrieval
         - AccountRepository: For account lookup (ownership)
         - ProviderConnectionRepository: For ownership verification
-
-    Returns:
-        Result[TransactionListResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(

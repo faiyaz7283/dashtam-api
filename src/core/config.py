@@ -64,9 +64,6 @@ class Settings(BaseSettings):
     Configuration precedence:
         1. Environment variables (set by Docker compose from .env files)
         2. Default values (only for non-sensitive config)
-
-    Returns:
-        Settings: Application configuration loaded from environment.
     """
 
     # Environment detection

@@ -14,6 +14,7 @@ Reference:
 """
 
 from datetime import UTC, datetime
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import and_, delete, func, select, update
@@ -181,7 +182,7 @@ class SessionRepository:
         stmt = delete(SessionModel).where(SessionModel.id == session_id)
         result = await self._session.execute(stmt)
         await self._session.commit()
-        return result.rowcount > 0
+        return (cast(Any, result).rowcount or 0) > 0
 
     async def delete_all_for_user(self, user_id: UUID) -> int:
         """Delete all sessions for a user (hard delete).
@@ -197,7 +198,7 @@ class SessionRepository:
         stmt = delete(SessionModel).where(SessionModel.user_id == user_id)
         result = await self._session.execute(stmt)
         await self._session.commit()
-        return result.rowcount
+        return cast(Any, result).rowcount or 0
 
     async def revoke_all_for_user(
         self,
@@ -242,7 +243,7 @@ class SessionRepository:
 
         result = await self._session.execute(stmt)
         await self._session.commit()
-        return result.rowcount
+        return cast(Any, result).rowcount or 0
 
     async def get_oldest_active_session(
         self,
@@ -309,7 +310,7 @@ class SessionRepository:
 
         result = await self._session.execute(stmt)
         await self._session.commit()
-        return result.rowcount
+        return cast(Any, result).rowcount or 0
 
     # =========================================================================
     # Additional utility methods (not in protocol but useful)
@@ -343,7 +344,7 @@ class SessionRepository:
 
         result = await self._session.execute(stmt)
         await self._session.commit()
-        return result.rowcount > 0
+        return (cast(Any, result).rowcount or 0) > 0
 
     async def update_provider_access(
         self,
@@ -426,7 +427,7 @@ class SessionRepository:
 
         result = await self._session.execute(stmt)
         await self._session.commit()
-        return result.rowcount > 0
+        return (cast(Any, result).rowcount or 0) > 0
 
     # =========================================================================
     # Mapping methods

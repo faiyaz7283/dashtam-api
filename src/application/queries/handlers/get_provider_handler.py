@@ -79,9 +79,6 @@ class GetProviderConnectionHandler:
     Dependencies (injected via constructor):
         - ProviderConnectionRepository: For data retrieval
         - ProviderConnectionCache: For fast lookups
-
-    Returns:
-        Result[ProviderConnectionResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(

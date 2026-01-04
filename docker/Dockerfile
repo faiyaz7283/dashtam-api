@@ -3,7 +3,7 @@
 # =============================================================================
 # Base Stage - Common setup for all environments
 # =============================================================================
-FROM ghcr.io/astral-sh/uv:0.8.22-python3.13-trixie-slim AS base
+FROM ghcr.io/astral-sh/uv:0.9.21-python3.13-trixie-slim AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -3,7 +3,7 @@ name: dashtam-dev
 services:
   # PostgreSQL Database (Development)
   postgres:
-    image: postgres:17.6-alpine3.22
+    image: postgres:17.7-alpine
     container_name: dashtam-dev-postgres
     env_file:
       - ../env/.env.dev
@@ -21,7 +21,7 @@ services:
 
   # Redis Cache (Development)
   redis:
-    image: redis:8.2.1-alpine3.22
+    image: redis:8.4-alpine
     container_name: dashtam-dev-redis
     env_file:
       - ../env/.env.dev

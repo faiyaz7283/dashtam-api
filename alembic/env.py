@@ -93,7 +93,7 @@ def _should_run_seeders() -> bool:
     """
     # 1) Manual override via -x
     try:
-        xargs = context.get_x_argument(as_dictionary=True)  # type: ignore[arg-type]
+        xargs = context.get_x_argument(as_dictionary=True)
     except Exception:
         xargs = {}
     flag = (xargs.get("run_seeders") or xargs.get("seed") or "").strip().lower()
@@ -161,7 +161,7 @@ async def _run_seeders(engine: "AsyncEngine") -> None:
     from seeds import run_all_seeders  # noqa: E402
 
     # Create async session
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async_session = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore[call-overload]
 
     async with async_session() as session:
         await run_all_seeders(session)

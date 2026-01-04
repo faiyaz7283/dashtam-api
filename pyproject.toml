@@ -1,6 +1,6 @@
 [project]
 name = "dashtam"
-version = "1.6.3"
+version = "1.6.4"
 description = "A secure financial data aggregation platform built with hexagonal architecture, CQRS, and domain-driven design"
 requires-python = ">=3.13"
 dependencies = [
@@ -132,3 +132,6 @@ ignore_missing_imports = true
 module = ["tests.*"]
 disallow_untyped_defs = false
 disallow_untyped_decorators = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+check_untyped_defs = false

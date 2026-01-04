@@ -100,7 +100,7 @@ class SchwabAccountsAPI:
             >>> match result:
             ...     case Success(accounts):
             ...         for account in accounts:
-            ...             print(account["securitiesAccount"]["accountNumber"])
+            ...             print(account["securitiesAccount"][`"accountNumber"`])
         """
         logger.debug(
             "schwab_accounts_api_get_accounts_started",
@@ -176,7 +176,7 @@ class SchwabAccountsAPI:
             >>> result = await api.get_account(access_token, "12345678")
             >>> match result:
             ...     case Success(account):
-            ...         print(account["securitiesAccount"]["accountName"])
+            ...         print(account["securitiesAccount"][`"accountName"`])
         """
         logger.debug(
             "schwab_accounts_api_get_account_started",

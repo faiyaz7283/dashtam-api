@@ -9,6 +9,7 @@ Reference:
 """
 
 from datetime import UTC, datetime
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -233,7 +234,7 @@ class HoldingRepository:
         stmt = delete(HoldingModel).where(HoldingModel.account_id == account_id)
         result = await self._session.execute(stmt)
         await self._session.flush()
-        return result.rowcount
+        return cast(Any, result).rowcount or 0
 
     # =========================================================================
     # Entity ↔ Model Mapping (Private Methods)

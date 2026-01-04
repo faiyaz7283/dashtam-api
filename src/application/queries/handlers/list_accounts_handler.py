@@ -69,9 +69,6 @@ class ListAccountsByConnectionHandler:
     Dependencies (injected via constructor):
         - AccountRepository: For account retrieval
         - ProviderConnectionRepository: For ownership verification
-
-    Returns:
-        Result[AccountListResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(
@@ -197,9 +194,6 @@ class ListAccountsByUserHandler:
         - CacheProtocol: Optional cache for account list caching
         - CacheKeys: Optional cache key utility
         - CacheMetrics: Optional metrics tracker
-
-    Returns:
-        Result[AccountListResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(

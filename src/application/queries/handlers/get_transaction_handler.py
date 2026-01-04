@@ -115,9 +115,6 @@ class GetTransactionHandler:
         - TransactionRepository: For transaction retrieval
         - AccountRepository: For account lookup (ownership chain)
         - ProviderConnectionRepository: For ownership verification
-
-    Returns:
-        Result[TransactionResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(

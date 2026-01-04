@@ -129,32 +129,50 @@ class SyncAccountsHandler:
         connection = await self._connection_repo.find_by_id(command.connection_id)
 
         if connection is None:
-            return cast(Result[SyncAccountsResult, str], Failure(error=SyncAccountsError.CONNECTION_NOT_FOUND))
+            return cast(
+                Result[SyncAccountsResult, str],
+                Failure(error=SyncAccountsError.CONNECTION_NOT_FOUND),
+            )
 
         # 2. Verify ownership
         if connection.user_id != command.user_id:
-            return cast(Result[SyncAccountsResult, str], Failure(error=SyncAccountsError.NOT_OWNED_BY_USER))
+            return cast(
+                Result[SyncAccountsResult, str],
+                Failure(error=SyncAccountsError.NOT_OWNED_BY_USER),
+            )
 
         # 3. Verify connection is active
         if not connection.is_connected():
-            return cast(Result[SyncAccountsResult, str], Failure(error=SyncAccountsError.CONNECTION_NOT_ACTIVE))
+            return cast(
+                Result[SyncAccountsResult, str],
+                Failure(error=SyncAccountsError.CONNECTION_NOT_ACTIVE),
+            )
 
         # 4. Check if recently synced (unless force=True)
         if not command.force and connection.last_sync_at:
             time_since_sync = datetime.now(UTC) - connection.last_sync_at
             if time_since_sync < MIN_SYNC_INTERVAL:
-                return cast(Result[SyncAccountsResult, str], Failure(error=SyncAccountsError.RECENTLY_SYNCED))
+                return cast(
+                    Result[SyncAccountsResult, str],
+                    Failure(error=SyncAccountsError.RECENTLY_SYNCED),
+                )
 
         # 5. Get and decrypt credentials
         if connection.credentials is None:
-            return cast(Result[SyncAccountsResult, str], Failure(error=SyncAccountsError.CREDENTIALS_INVALID))
+            return cast(
+                Result[SyncAccountsResult, str],
+                Failure(error=SyncAccountsError.CREDENTIALS_INVALID),
+            )
 
         decrypt_result = self._encryption_service.decrypt(
             connection.credentials.encrypted_data
         )
 
         if isinstance(decrypt_result, Failure):
-            return cast(Result[SyncAccountsResult, str], Failure(error=SyncAccountsError.CREDENTIALS_DECRYPTION_FAILED))
+            return cast(
+                Result[SyncAccountsResult, str],
+                Failure(error=SyncAccountsError.CREDENTIALS_DECRYPTION_FAILED),
+            )
 
         credentials_data = decrypt_result.value
 

@@ -117,7 +117,10 @@ class RefreshProviderTokensHandler:
                     RefreshProviderTokensError.CONNECTION_NOT_FOUND,
                     needs_user_action=False,
                 )
-                return cast(Result[None, str], Failure(error=RefreshProviderTokensError.CONNECTION_NOT_FOUND))
+                return cast(
+                    Result[None, str],
+                    Failure(error=RefreshProviderTokensError.CONNECTION_NOT_FOUND),
+                )
 
             # Step 3: Validate credentials
             if cmd.credentials is None:
@@ -129,7 +132,10 @@ class RefreshProviderTokensHandler:
                     RefreshProviderTokensError.INVALID_CREDENTIALS,
                     needs_user_action=False,
                 )
-                return cast(Result[None, str], Failure(error=RefreshProviderTokensError.INVALID_CREDENTIALS))
+                return cast(
+                    Result[None, str],
+                    Failure(error=RefreshProviderTokensError.INVALID_CREDENTIALS),
+                )
 
             # Step 4: Update credentials (domain validates ACTIVE status)
             result = connection.update_credentials(cmd.credentials)
@@ -145,7 +151,10 @@ class RefreshProviderTokensHandler:
                         RefreshProviderTokensError.NOT_ACTIVE,
                         needs_user_action=True,
                     )
-                    return cast(Result[None, str], Failure(error=RefreshProviderTokensError.NOT_ACTIVE))
+                    return cast(
+                        Result[None, str],
+                        Failure(error=RefreshProviderTokensError.NOT_ACTIVE),
+                    )
                 case _:
                     pass  # Success case continues
 

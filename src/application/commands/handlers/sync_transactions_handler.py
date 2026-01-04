@@ -145,26 +145,41 @@ class SyncTransactionsHandler:
         connection = await self._connection_repo.find_by_id(command.connection_id)
 
         if connection is None:
-            return cast(Result[SyncTransactionsResult, str], Failure(error=SyncTransactionsError.CONNECTION_NOT_FOUND))
+            return cast(
+                Result[SyncTransactionsResult, str],
+                Failure(error=SyncTransactionsError.CONNECTION_NOT_FOUND),
+            )
 
         # 2. Verify ownership
         if connection.user_id != command.user_id:
-            return cast(Result[SyncTransactionsResult, str], Failure(error=SyncTransactionsError.NOT_OWNED_BY_USER))
+            return cast(
+                Result[SyncTransactionsResult, str],
+                Failure(error=SyncTransactionsError.NOT_OWNED_BY_USER),
+            )
 
         # 3. Verify connection is active
         if not connection.is_connected():
-            return cast(Result[SyncTransactionsResult, str], Failure(error=SyncTransactionsError.CONNECTION_NOT_ACTIVE))
+            return cast(
+                Result[SyncTransactionsResult, str],
+                Failure(error=SyncTransactionsError.CONNECTION_NOT_ACTIVE),
+            )
 
         # 4. Get and decrypt credentials
         if connection.credentials is None:
-            return cast(Result[SyncTransactionsResult, str], Failure(error=SyncTransactionsError.CREDENTIALS_INVALID))
+            return cast(
+                Result[SyncTransactionsResult, str],
+                Failure(error=SyncTransactionsError.CREDENTIALS_INVALID),
+            )
 
         decrypt_result = self._encryption_service.decrypt(
             connection.credentials.encrypted_data
         )
 
         if isinstance(decrypt_result, Failure):
-            return cast(Result[SyncTransactionsResult, str], Failure(error=SyncTransactionsError.CREDENTIALS_DECRYPTION_FAILED))
+            return cast(
+                Result[SyncTransactionsResult, str],
+                Failure(error=SyncTransactionsError.CREDENTIALS_DECRYPTION_FAILED),
+            )
 
         credentials_data = decrypt_result.value
 
@@ -173,9 +188,15 @@ class SyncTransactionsHandler:
             # Sync specific account
             account = await self._account_repo.find_by_id(command.account_id)
             if account is None:
-                return cast(Result[SyncTransactionsResult, str], Failure(error=SyncTransactionsError.ACCOUNT_NOT_FOUND))
+                return cast(
+                    Result[SyncTransactionsResult, str],
+                    Failure(error=SyncTransactionsError.ACCOUNT_NOT_FOUND),
+                )
             if account.connection_id != connection.id:
-                return cast(Result[SyncTransactionsResult, str], Failure(error=SyncTransactionsError.ACCOUNT_NOT_OWNED))
+                return cast(
+                    Result[SyncTransactionsResult, str],
+                    Failure(error=SyncTransactionsError.ACCOUNT_NOT_OWNED),
+                )
             accounts = [account]
         else:
             # Sync all accounts for connection
@@ -185,7 +206,10 @@ class SyncTransactionsHandler:
             )
 
         if not accounts:
-            return cast(Result[SyncTransactionsResult, str], Failure(error=SyncTransactionsError.NO_ACCOUNTS))
+            return cast(
+                Result[SyncTransactionsResult, str],
+                Failure(error=SyncTransactionsError.NO_ACCOUNTS),
+            )
 
         # 6. Determine date range
         end_date = command.end_date or date.today()

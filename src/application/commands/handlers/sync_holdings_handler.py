@@ -139,38 +139,59 @@ class SyncHoldingsHandler:
         account = await self._account_repo.find_by_id(command.account_id)
 
         if account is None:
-            return cast(Result[SyncHoldingsResult, str], Failure(error=SyncHoldingsError.ACCOUNT_NOT_FOUND))
+            return cast(
+                Result[SyncHoldingsResult, str],
+                Failure(error=SyncHoldingsError.ACCOUNT_NOT_FOUND),
+            )
 
         # 2. Fetch connection
         connection = await self._connection_repo.find_by_id(account.connection_id)
 
         if connection is None:
-            return cast(Result[SyncHoldingsResult, str], Failure(error=SyncHoldingsError.CONNECTION_NOT_FOUND))
+            return cast(
+                Result[SyncHoldingsResult, str],
+                Failure(error=SyncHoldingsError.CONNECTION_NOT_FOUND),
+            )
 
         # 3. Verify ownership
         if connection.user_id != command.user_id:
-            return cast(Result[SyncHoldingsResult, str], Failure(error=SyncHoldingsError.NOT_OWNED_BY_USER))
+            return cast(
+                Result[SyncHoldingsResult, str],
+                Failure(error=SyncHoldingsError.NOT_OWNED_BY_USER),
+            )
 
         # 4. Verify connection is active
         if not connection.is_connected():
-            return cast(Result[SyncHoldingsResult, str], Failure(error=SyncHoldingsError.CONNECTION_NOT_ACTIVE))
+            return cast(
+                Result[SyncHoldingsResult, str],
+                Failure(error=SyncHoldingsError.CONNECTION_NOT_ACTIVE),
+            )
 
         # 5. Check if recently synced (unless force=True)
         if not command.force and account.last_synced_at:
             time_since_sync = datetime.now(UTC) - account.last_synced_at
             if time_since_sync < MIN_SYNC_INTERVAL:
-                return cast(Result[SyncHoldingsResult, str], Failure(error=SyncHoldingsError.RECENTLY_SYNCED))
+                return cast(
+                    Result[SyncHoldingsResult, str],
+                    Failure(error=SyncHoldingsError.RECENTLY_SYNCED),
+                )
 
         # 6. Get and decrypt credentials
         if connection.credentials is None:
-            return cast(Result[SyncHoldingsResult, str], Failure(error=SyncHoldingsError.CREDENTIALS_INVALID))
+            return cast(
+                Result[SyncHoldingsResult, str],
+                Failure(error=SyncHoldingsError.CREDENTIALS_INVALID),
+            )
 
         decrypt_result = self._encryption_service.decrypt(
             connection.credentials.encrypted_data
         )
 
         if isinstance(decrypt_result, Failure):
-            return cast(Result[SyncHoldingsResult, str], Failure(error=SyncHoldingsError.CREDENTIALS_DECRYPTION_FAILED))
+            return cast(
+                Result[SyncHoldingsResult, str],
+                Failure(error=SyncHoldingsError.CREDENTIALS_DECRYPTION_FAILED),
+            )
 
         credentials_data = decrypt_result.value
 

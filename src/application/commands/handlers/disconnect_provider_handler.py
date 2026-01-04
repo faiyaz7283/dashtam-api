@@ -113,7 +113,10 @@ class DisconnectProviderHandler:
                     provider_slug,
                     DisconnectProviderError.CONNECTION_NOT_FOUND,
                 )
-                return cast(Result[None, str], Failure(error=DisconnectProviderError.CONNECTION_NOT_FOUND))
+                return cast(
+                    Result[None, str],
+                    Failure(error=DisconnectProviderError.CONNECTION_NOT_FOUND),
+                )
 
             # Step 3: Verify ownership
             if connection.user_id != cmd.user_id:
@@ -123,7 +126,10 @@ class DisconnectProviderHandler:
                     connection.provider_slug,
                     DisconnectProviderError.NOT_OWNED_BY_USER,
                 )
-                return cast(Result[None, str], Failure(error=DisconnectProviderError.NOT_OWNED_BY_USER))
+                return cast(
+                    Result[None, str],
+                    Failure(error=DisconnectProviderError.NOT_OWNED_BY_USER),
+                )
 
             # Step 4: Transition to DISCONNECTED
             # mark_disconnected() always succeeds (any state → DISCONNECTED)

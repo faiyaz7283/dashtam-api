@@ -153,7 +153,10 @@ class ImportFromFileHandler:
         provider_accounts = accounts_result.value
 
         if not provider_accounts:
-            return cast(Result[ImportResult, str], Failure(error=ImportFromFileError.NO_ACCOUNTS))
+            return cast(
+                Result[ImportResult, str],
+                Failure(error=ImportFromFileError.NO_ACCOUNTS),
+            )
 
         # 2. Look up provider to get provider_id
         provider_entity = await self._provider_repo.find_by_slug(command.provider_slug)

@@ -103,12 +103,18 @@ class ConnectProviderHandler:
             # Step 2: Validate credentials
             if cmd.credentials is None:
                 await self._emit_failed(cmd, ConnectProviderError.INVALID_CREDENTIALS)
-                return cast(Result[UUID, str], Failure(error=ConnectProviderError.INVALID_CREDENTIALS))
+                return cast(
+                    Result[UUID, str],
+                    Failure(error=ConnectProviderError.INVALID_CREDENTIALS),
+                )
 
             # Step 3: Validate provider_slug
             if not cmd.provider_slug or len(cmd.provider_slug) > 50:
                 await self._emit_failed(cmd, ConnectProviderError.INVALID_PROVIDER_SLUG)
-                return cast(Result[UUID, str], Failure(error=ConnectProviderError.INVALID_PROVIDER_SLUG))
+                return cast(
+                    Result[UUID, str],
+                    Failure(error=ConnectProviderError.INVALID_PROVIDER_SLUG),
+                )
 
             # Step 4: Create connection entity
             connection_id = uuid7()

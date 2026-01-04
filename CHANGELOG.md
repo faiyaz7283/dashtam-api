@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-01-04
+
+### Changed
+
+- **Infrastructure Upgrades**
+  - **UV**: Upgraded from 0.8.22 to 0.9.21 (Python package manager)
+  - **PostgreSQL**: Upgraded from 17.6 to 17.7 (database)
+  - **Redis**: Upgraded from 8.2.1 to 8.4 (cache)
+  - **FastAPI**: Upgraded from 0.118.0 to 0.128.0 (web framework)
+- **Type Safety Improvements**
+  - Fixed all mypy type errors from FastAPI 0.128.0 upgrade (1,122 → 0 errors)
+  - Updated deprecated `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`
+  - Added proper type annotations to production code
+  - Fixed alembic migration constraint names
+  - Updated mkdocs gen script for third-party library compatibility
+- **Docker Configuration**
+  - Updated `docker/Dockerfile` with UV 0.9.21
+  - Updated `docker-compose.dev.yml`, `docker-compose.test.yml`, `docker-compose.ci.yml` with PostgreSQL 17.7 and Redis 8.4
+
+### Technical Notes
+
+- **100% Mypy Compliance**: All 335 production source files pass type checking with zero errors
+- **Zero Breaking Changes**: All 2,291 tests pass, 88% coverage maintained
+- **Maintenance Release**: Infrastructure updates only, no functional changes
+- Files changed: 9 files (+57 insertions, -19 deletions)
+
 ## [1.6.3] - 2025-12-31
 
 ### Added

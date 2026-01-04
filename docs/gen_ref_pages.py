@@ -13,7 +13,7 @@ import mkdocs_gen_files
 src_root = Path("src")
 
 # Navigation items for literate-nav
-nav = mkdocs_gen_files.Nav()
+nav = mkdocs_gen_files.Nav()  # type: ignore[attr-defined,no-untyped-call]
 
 # Iterate through all Python files in src/
 for path in sorted(src_root.rglob("*.py")):

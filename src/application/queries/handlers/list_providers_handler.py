@@ -51,9 +51,6 @@ class ListProviderConnectionsHandler:
 
     Dependencies (injected via constructor):
         - ProviderConnectionRepository: For data retrieval
-
-    Returns:
-        Result[ProviderConnectionListResult, str]: Success(DTO) always
     """
 
     def __init__(

@@ -190,7 +190,7 @@ def get_statistics() -> dict[str, int | dict[str, int]]:
     Example:
         >>> stats = get_statistics()
         >>> print(f"Total: {stats['total_rules']}")
-        >>> print(f"Auth: {stats['by_category']['authentication']}")
+        >>> print(f"Auth: {stats['by_category'][`'authentication'`]}")
     """
     rules = list(VALIDATION_RULES_REGISTRY.values())
     category_counts: dict[str, int] = {}

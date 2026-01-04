@@ -15,6 +15,7 @@ Reference:
 """
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from uuid_extensions import uuid7
@@ -49,9 +50,6 @@ class DisconnectProviderHandler:
     Dependencies (injected via constructor):
         - ProviderConnectionRepository: For persistence
         - EventBusProtocol: For domain events
-
-    Returns:
-        Result[None, str]: Success(None) or Failure(error)
     """
 
     def __init__(
@@ -115,7 +113,7 @@ class DisconnectProviderHandler:
                     provider_slug,
                     DisconnectProviderError.CONNECTION_NOT_FOUND,
                 )
-                return Failure(error=DisconnectProviderError.CONNECTION_NOT_FOUND)
+                return cast(Result[None, str], Failure(error=DisconnectProviderError.CONNECTION_NOT_FOUND))
 
             # Step 3: Verify ownership
             if connection.user_id != cmd.user_id:
@@ -125,7 +123,7 @@ class DisconnectProviderHandler:
                     connection.provider_slug,
                     DisconnectProviderError.NOT_OWNED_BY_USER,
                 )
-                return Failure(error=DisconnectProviderError.NOT_OWNED_BY_USER)
+                return cast(Result[None, str], Failure(error=DisconnectProviderError.NOT_OWNED_BY_USER))
 
             # Step 4: Transition to DISCONNECTED
             # mark_disconnected() always succeeds (any state → DISCONNECTED)
@@ -152,7 +150,7 @@ class DisconnectProviderHandler:
             # Catch-all for database errors
             error_msg = f"{DisconnectProviderError.DATABASE_ERROR}: {str(e)}"
             await self._emit_failed(cmd, provider_id, provider_slug, error_msg)
-            return Failure(error=error_msg)
+            return cast(Result[None, str], Failure(error=error_msg))
 
     async def _emit_failed(
         self,

@@ -22,7 +22,7 @@ Reference:
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from uuid_extensions import uuid7
@@ -97,9 +97,6 @@ class ImportFromFileHandler:
         - ProviderRepository: For looking up provider by slug
         - ProviderProtocol: File-based provider (e.g., ChaseFileProvider)
         - EventBus: For domain events
-
-    Returns:
-        Result[ImportResult, str]: Success(result) or Failure(error)
     """
 
     def __init__(
@@ -156,7 +153,7 @@ class ImportFromFileHandler:
         provider_accounts = accounts_result.value
 
         if not provider_accounts:
-            return Failure(error=ImportFromFileError.NO_ACCOUNTS)
+            return cast(Result[ImportResult, str], Failure(error=ImportFromFileError.NO_ACCOUNTS))
 
         # 2. Look up provider to get provider_id
         provider_entity = await self._provider_repo.find_by_slug(command.provider_slug)

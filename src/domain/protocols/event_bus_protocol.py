@@ -143,10 +143,6 @@ class EventBusProtocol(Protocol):
                 accept single event parameter and return None. Handler should
                 be idempotent and handle errors gracefully.
 
-        Raises:
-            No exceptions raised. Invalid handlers will fail at publish time
-            (fail-open behavior - logged but not propagated).
-
         Example:
             >>> # Register logging handler
             >>> async def log_user_registered(event: UserRegistered) -> None:
@@ -201,11 +197,6 @@ class EventBusProtocol(Protocol):
             metadata: Optional request metadata (IP address, user agent) for
                 audit trail enrichment (PCI-DSS 10.2.7). Event handlers can
                 access this via event_bus.get_metadata(). Defaults to None.
-
-        Raises:
-            No exceptions raised. Handler failures are logged but not propagated.
-            This ensures one handler failure doesn't break other handlers or
-            the main business logic.
 
         Example:
             >>> # In command handler (after successful business logic)

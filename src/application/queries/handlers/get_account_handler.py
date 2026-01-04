@@ -93,9 +93,6 @@ class GetAccountHandler:
     Dependencies (injected via constructor):
         - AccountRepository: For account retrieval
         - ProviderConnectionRepository: For ownership verification
-
-    Returns:
-        Result[AccountResult, str]: Success(DTO) or Failure(error)
     """
 
     def __init__(

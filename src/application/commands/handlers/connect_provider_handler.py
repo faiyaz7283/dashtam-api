@@ -15,6 +15,7 @@ Reference:
 """
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from uuid_extensions import uuid7
@@ -52,9 +53,6 @@ class ConnectProviderHandler:
     Dependencies (injected via constructor):
         - ProviderConnectionRepository: For persistence
         - EventBusProtocol: For domain events
-
-    Returns:
-        Result[UUID, str]: Success(connection_id) or Failure(error)
     """
 
     def __init__(
@@ -105,12 +103,12 @@ class ConnectProviderHandler:
             # Step 2: Validate credentials
             if cmd.credentials is None:
                 await self._emit_failed(cmd, ConnectProviderError.INVALID_CREDENTIALS)
-                return Failure(error=ConnectProviderError.INVALID_CREDENTIALS)
+                return cast(Result[UUID, str], Failure(error=ConnectProviderError.INVALID_CREDENTIALS))
 
             # Step 3: Validate provider_slug
             if not cmd.provider_slug or len(cmd.provider_slug) > 50:
                 await self._emit_failed(cmd, ConnectProviderError.INVALID_PROVIDER_SLUG)
-                return Failure(error=ConnectProviderError.INVALID_PROVIDER_SLUG)
+                return cast(Result[UUID, str], Failure(error=ConnectProviderError.INVALID_PROVIDER_SLUG))
 
             # Step 4: Create connection entity
             connection_id = uuid7()
@@ -150,7 +148,7 @@ class ConnectProviderHandler:
             # Catch-all for database errors
             error_msg = f"{ConnectProviderError.DATABASE_ERROR}: {str(e)}"
             await self._emit_failed(cmd, error_msg)
-            return Failure(error=error_msg)
+            return cast(Result[UUID, str], Failure(error=error_msg))
 
     async def _emit_failed(self, cmd: ConnectProvider, reason: str) -> None:
         """Emit ProviderConnectionFailed event.

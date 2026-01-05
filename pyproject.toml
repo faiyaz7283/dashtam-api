@@ -2,7 +2,7 @@
 name = "dashtam"
 version = "1.6.5"
 description = "A secure financial data aggregation platform built with hexagonal architecture, CQRS, and domain-driven design"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.16.5",
     "asyncpg>=0.30.0",

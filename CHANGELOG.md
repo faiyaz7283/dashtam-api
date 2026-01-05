@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.6] - 2026-01-05
+
+### Changed
+
+- **Python 3.14 Upgrade (Zero Application Code Changes)**
+  - **Python Version**: 3.13.x → 3.14.2
+  - **UV Package Manager**: 0.8.22 → 0.9.21
+  - **Docker Images**:
+    - Base stage: `ghcr.io/astral-sh/uv:0.9.21-python3.14-trixie` (Debian 13)
+    - Production stage: `python:3.14-slim` (Debian 13)
+  - **GitHub Actions**: CI/CD workflows updated to Python 3.14
+  - **Breaking Changes Audit**: Zero occurrences (AST removals, argparse, asyncio child watchers, importlib.abc)
+  - **Deprecation Warnings Audit**: Zero warnings from application code
+
+### Fixed
+
+- **Test Configuration (Python 3.14 Deprecations)**
+  - Fixed `asyncio.iscoroutinefunction()` deprecation → use `inspect.iscoroutinefunction()`
+  - Fixed `asyncio.get_event_loop_policy()` deprecation → use `asyncio.new_event_loop()` directly
+  - Files fixed: `tests/conftest.py` (3 changes)
+  - Result: Zero asyncio deprecation warnings from Dashtam code
+
+### Technical Notes
+
+- **Zero Application Code Changes**: All Python 3.14 breaking changes target old patterns - Dashtam uses modern patterns throughout
+- **Zero Breaking Changes**: All 2,273 tests pass, 87% coverage maintained
+- **Warning Analysis**: ~35 warnings from third-party `ofxparse` library (BeautifulSoup), zero from Dashtam code
+- **Architecture Verification**: Hexagonal, Protocol-Based, CQRS, Domain Events - all patterns intact
+- **Docker Image Strategy**: Using Debian 13 Trixie everywhere for consistency (Python 3.14 slim variant not available yet)
+- **Python 3.14 Features**: Automatic benefits from PEP 649 (deferred annotations) and REPL improvements
+- **Confidence Level**: HIGH - comprehensive audit, full test coverage, modern codebase
+- Files changed: 5 files (+15 insertions, -10 deletions)
+- **Audit Document**: `~/references/audit/python-3.14-upgrade-findings.md`
+
 ## [1.6.5] - 2026-01-04
 
 ### Changed

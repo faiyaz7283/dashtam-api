@@ -15,7 +15,7 @@
 
 ---
 
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-01-05
 
 ## 1. Project Overview
 
@@ -31,10 +31,10 @@
 
 **Technology Stack**:
 
-- **Backend**: FastAPI (async), Python 3.13+
+- **Backend**: FastAPI (async), Python 3.14+
 - **Database**: PostgreSQL 17+ with async SQLAlchemy
 - **Cache**: Redis 8.2+ (async)
-- **Package Manager**: UV 0.8.22+ (NOT pip)
+- **Package Manager**: UV 0.9.21+ (NOT pip)
 - **Containers**: Docker Compose v2, Traefik reverse proxy
 - **Testing**: pytest with TestClient (synchronous strategy)
 - **CI/CD**: GitHub Actions with Codecov
@@ -128,7 +128,7 @@ class PostgresUserRepository:  # No inheritance!
 
 ### 4. Modern Python Patterns
 
-**CRITICAL**: Use Python 3.13+ features consistently.
+**CRITICAL**: Use Python 3.14+ features consistently.
 
 #### Protocol over ABC (Mandatory)
 

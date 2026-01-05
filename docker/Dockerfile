@@ -3,7 +3,7 @@
 # =============================================================================
 # Base Stage - Common setup for all environments
 # =============================================================================
-FROM ghcr.io/astral-sh/uv:0.9.21-python3.13-trixie-slim AS base
+FROM ghcr.io/astral-sh/uv:0.9.21-python3.14-trixie AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -63,7 +63,7 @@ RUN uv sync --frozen --no-dev
 # =============================================================================
 # Production Stage - Minimal runtime
 # =============================================================================
-FROM python:3.13-slim AS production
+FROM python:3.14-slim AS production
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \

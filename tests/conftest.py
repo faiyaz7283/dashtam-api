@@ -10,6 +10,7 @@ This configuration ensures:
 
 import pytest
 import asyncio
+import inspect
 import pytest_asyncio
 from datetime import UTC, datetime, timedelta
 from redis.asyncio import Redis, ConnectionPool
@@ -45,17 +46,8 @@ def test_settings() -> Settings:
     return Settings()
 
 
-@pytest.fixture(scope="session")
-def event_loop_policy():
-    """Set event loop policy for all tests.
-
-    Using the default policy ensures compatibility across platforms.
-    """
-    return asyncio.get_event_loop_policy()
-
-
 @pytest.fixture(scope="function")
-def event_loop(event_loop_policy):
+def event_loop():
     """Create a new event loop for each test function.
 
     This ensures complete isolation between tests:
@@ -64,8 +56,11 @@ def event_loop(event_loop_policy):
     - Proper cleanup after each test
 
     Scope is 'function' to ensure a new loop per test.
+
+    Note: In Python 3.14+, we use asyncio.new_event_loop() directly
+    instead of the deprecated get_event_loop_policy().
     """
-    loop = event_loop_policy.new_event_loop()
+    loop = asyncio.new_event_loop()
     yield loop
 
     # Cleanup: Close the loop after test
@@ -138,7 +133,7 @@ def pytest_collection_modifyitems(config, items):
     the developer forgets to add @pytest.mark.asyncio.
     """
     for item in items:
-        if asyncio.iscoroutinefunction(item.function):
+        if inspect.iscoroutinefunction(item.function):
             item.add_marker(pytest.mark.asyncio)
 
 

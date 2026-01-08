@@ -88,7 +88,7 @@ class MockListAccountsHandler:
         self._accounts = accounts or []
         self._error = error
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         result = MockAccountListResult(
@@ -111,7 +111,7 @@ class MockGetAccountHandler:
         self._account = account
         self._error = error
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._account)
@@ -134,7 +134,7 @@ class MockSyncAccountsHandler:
         )
         self._error = error
 
-    async def handle(self, command: Any) -> Success | Failure:
+    async def handle(self, command: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._result)

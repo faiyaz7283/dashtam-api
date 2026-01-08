@@ -15,6 +15,7 @@ Architecture:
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 from uuid_extensions import uuid7
 
@@ -44,7 +45,7 @@ def create_account(
     currency: str = "USD",
     is_active: bool = True,
     last_synced_at: datetime | None = None,
-    provider_metadata: dict | None = None,
+    provider_metadata: dict[str, Any] | None = None,
 ) -> Account:
     """Helper to create Account entities for testing."""
     if balance is None:

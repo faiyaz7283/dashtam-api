@@ -341,7 +341,7 @@ ci-test-local: _ensure-env-ci
 	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run ruff format --check src/ tests/ || (echo "❌ Format check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
 	@echo ""
 	@echo "🔍 Step 6: Running type checks..."
-	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run mypy src || (echo "❌ Type check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
+	@docker compose -f compose/docker-compose.ci.yml exec -T app uv run mypy src tests || (echo "❌ Type check failed" && docker compose -f compose/docker-compose.ci.yml down -v && exit 1)
 	@echo ""
 	@echo "🛑 Step 7: Cleanup..."
 	@docker compose -f compose/docker-compose.ci.yml down -v
@@ -448,7 +448,7 @@ format: dev-up
 
 type-check: dev-up
 	@echo "🔍 Running type checks with mypy..."
-	@docker compose -f compose/docker-compose.dev.yml exec -w /app app uv run mypy src
+	@docker compose -f compose/docker-compose.dev.yml exec -w /app app uv run mypy src tests
 
 # ==============================================================================
 # COMPREHENSIVE VERIFICATION
@@ -498,7 +498,7 @@ verify: test-up
 	echo "✅ Lint passed"; \
 	echo ""; \
 	echo "🔍 Step 3/7: Type checking..."; \
-	docker compose -f compose/docker-compose.test.yml exec -T -w /app app uv run mypy src || { echo "❌ Type check failed - manual fixes required"; exit 1; }; \
+	docker compose -f compose/docker-compose.test.yml exec -T -w /app app uv run mypy src tests || { echo "❌ Type check failed - manual fixes required"; exit 1; }; \
 	echo "✅ Type check passed"; \
 	echo ""; \
 	echo "🧪 Step 4/7: Running all tests with coverage..."; \

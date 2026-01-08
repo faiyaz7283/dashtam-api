@@ -299,12 +299,16 @@ class TestGetEncryptionServiceContainer:
                 "src.infrastructure.providers.encryption_service.EncryptionService"
             ) as mock_svc_cls:
                 from src.core.result import Failure
+                from src.core.enums import ErrorCode
                 from src.infrastructure.providers.encryption_service import (
                     EncryptionError,
                 )
 
                 mock_svc_cls.create.return_value = Failure(
-                    error=EncryptionError(code="ENC001", message="Invalid key format")
+                    error=EncryptionError(
+                        code=ErrorCode.ENCRYPTION_KEY_INVALID,
+                        message="Invalid key format",
+                    )
                 )
 
                 with pytest.raises(RuntimeError) as exc_info:

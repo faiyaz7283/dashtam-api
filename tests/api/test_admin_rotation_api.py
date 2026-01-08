@@ -210,18 +210,19 @@ def override_dependencies(global_handler, user_handler, admin_user):
     # Monkeypatch SecurityConfigRepository to return our stub
     import src.presentation.routers.api.v1.admin.token_rotation as rotation_module
 
-    original_repo = rotation_module.SecurityConfigRepository
+    original_repo = getattr(rotation_module, "SecurityConfigRepository", None)
 
-    def stub_repo_factory(session):
+    def stub_repo_factory(session: object) -> StubSecurityConfigRepository:
         return StubSecurityConfigRepository(global_handler)
 
-    rotation_module.SecurityConfigRepository = stub_repo_factory
+    setattr(rotation_module, "SecurityConfigRepository", stub_repo_factory)
 
     yield
 
     # Cleanup
     app.dependency_overrides.clear()
-    rotation_module.SecurityConfigRepository = original_repo
+    if original_repo is not None:
+        setattr(rotation_module, "SecurityConfigRepository", original_repo)
 
 
 @pytest.fixture

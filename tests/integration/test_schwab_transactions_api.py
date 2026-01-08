@@ -58,7 +58,7 @@ def account_number() -> str:
 
 
 @pytest.fixture
-def sample_trade_transaction() -> dict:
+def sample_trade_transaction() -> dict[str, object]:
     """Sample TRADE transaction from Schwab API."""
     return {
         "activityId": "TRD_12345",
@@ -83,7 +83,7 @@ def sample_trade_transaction() -> dict:
 
 
 @pytest.fixture
-def sample_dividend_transaction() -> dict:
+def sample_dividend_transaction() -> dict[str, object]:
     """Sample dividend transaction from Schwab API."""
     return {
         "activityId": "DIV_12345",
@@ -96,7 +96,7 @@ def sample_dividend_transaction() -> dict:
 
 
 @pytest.fixture
-def sample_transfer_transaction() -> dict:
+def sample_transfer_transaction() -> dict[str, object]:
     """Sample transfer transaction from Schwab API."""
     return {
         "activityId": "ACH_12345",
@@ -282,7 +282,7 @@ class TestSuccessResponseParsing:
         api: SchwabTransactionsAPI,
         httpx_mock: HTTPXMock,
         account_number: str,
-        sample_trade_transaction: dict,
+        sample_trade_transaction: dict[str, object],
     ):
         """Single trade transaction JSON is returned."""
         httpx_mock.add_response(json=[sample_trade_transaction])
@@ -306,9 +306,9 @@ class TestSuccessResponseParsing:
         api: SchwabTransactionsAPI,
         httpx_mock: HTTPXMock,
         account_number: str,
-        sample_trade_transaction: dict,
-        sample_dividend_transaction: dict,
-        sample_transfer_transaction: dict,
+        sample_trade_transaction: dict[str, object],
+        sample_dividend_transaction: dict[str, object],
+        sample_transfer_transaction: dict[str, object],
     ):
         """Multiple transactions are returned as raw JSON."""
         httpx_mock.add_response(
@@ -520,7 +520,7 @@ class TestResponseDataValidation:
         api: SchwabTransactionsAPI,
         httpx_mock: HTTPXMock,
         account_number: str,
-        sample_trade_transaction: dict,
+        sample_trade_transaction: dict[str, object],
     ):
         """API returns all transactions as raw JSON (no validation)."""
         # API returns raw JSON - filtering happens in mapper
@@ -602,7 +602,7 @@ class TestRawTransactionData:
         api: SchwabTransactionsAPI,
         httpx_mock: HTTPXMock,
         account_number: str,
-        sample_trade_transaction: dict,
+        sample_trade_transaction: dict[str, object],
     ):
         """Raw instrument data is preserved."""
         httpx_mock.add_response(json=[sample_trade_transaction])
@@ -624,7 +624,7 @@ class TestRawTransactionData:
         api: SchwabTransactionsAPI,
         httpx_mock: HTTPXMock,
         account_number: str,
-        sample_trade_transaction: dict,
+        sample_trade_transaction: dict[str, object],
     ):
         """Raw amount and price data is preserved."""
         httpx_mock.add_response(json=[sample_trade_transaction])
@@ -646,7 +646,7 @@ class TestRawTransactionData:
         api: SchwabTransactionsAPI,
         httpx_mock: HTTPXMock,
         account_number: str,
-        sample_trade_transaction: dict,
+        sample_trade_transaction: dict[str, object],
     ):
         """Raw date strings are preserved."""
         httpx_mock.add_response(json=[sample_trade_transaction])

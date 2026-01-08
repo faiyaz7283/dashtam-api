@@ -90,7 +90,7 @@ class MockListHoldingsHandler:
         self._holdings = holdings or []
         self._error = error
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         result = MockHoldingListResult(
@@ -126,7 +126,7 @@ class MockSyncHoldingsHandler:
         )
         self._error = error
 
-    async def handle(self, command: Any) -> Success | Failure:
+    async def handle(self, command: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._result)

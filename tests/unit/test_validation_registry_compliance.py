@@ -13,6 +13,7 @@ the validation rules registry remains complete and prevents drift.
 Pattern: Registry Pattern with self-enforcing compliance tests.
 """
 
+from typing import Any, cast
 import pytest
 
 from src.domain.validators import (
@@ -257,8 +258,8 @@ class TestValidationRegistryStatistics:
 
     def test_category_distribution(self):
         """Verify category distribution matches expected patterns."""
-        stats = get_statistics()
-        by_category = stats["by_category"]
+        stats: dict[str, Any] = get_statistics()
+        by_category = cast(dict[str, int], stats["by_category"])
 
         # As of F8.4, all 4 rules are AUTHENTICATION
         assert "authentication" in by_category, "No AUTHENTICATION rules found"

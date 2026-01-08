@@ -43,7 +43,8 @@ def test_settings() -> Settings:
             )
     """
     # Load from environment (Docker sets .env.test automatically)
-    return Settings()
+    # mypy doesn't understand pydantic-settings loads required fields from env vars
+    return Settings()  # type: ignore[call-arg]
 
 
 @pytest.fixture(scope="function")
@@ -551,8 +552,8 @@ def cleanup_tracker():
                     # Log but don't fail test on cleanup errors
                     print(f"Cleanup error: {e}")
 
-    tracker = CleanupTracker()  # type: ignore[no-untyped-call]
+    tracker = CleanupTracker()
     yield tracker
 
     # Run cleanup after test
-    asyncio.run(tracker.cleanup_all())  # type: ignore[no-untyped-call]
+    asyncio.run(tracker.cleanup_all())

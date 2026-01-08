@@ -75,6 +75,7 @@ class TestQfxParserSuccess:
         """Extract account information from checking QFX."""
         result = parser.parse(checking_qfx_content, "chase_checking.qfx")
 
+        assert isinstance(result, Success)
         parsed = result.value
         assert parsed.account_id == "123456789"
         assert parsed.account_type == "CHECKING"
@@ -89,6 +90,7 @@ class TestQfxParserSuccess:
         """Extract transactions from checking QFX."""
         result = parser.parse(checking_qfx_content, "chase_checking.qfx")
 
+        assert isinstance(result, Success)
         parsed = result.value
         assert len(parsed.transactions) == 7
 
@@ -108,6 +110,7 @@ class TestQfxParserSuccess:
         """Extract balance from checking QFX."""
         result = parser.parse(checking_qfx_content, "chase_checking.qfx")
 
+        assert isinstance(result, Success)
         parsed = result.value
         assert parsed.balance is not None
         assert parsed.balance.ledger_balance == Decimal("5000.27")
@@ -135,6 +138,7 @@ class TestQfxParserSuccess:
         """Extract transactions from savings QFX."""
         result = parser.parse(savings_qfx_content, "chase_savings.qfx")
 
+        assert isinstance(result, Success)
         parsed = result.value
         assert len(parsed.transactions) == 3
 
@@ -146,6 +150,7 @@ class TestQfxParserSuccess:
         """Transactions with MEMO field are parsed correctly."""
         result = parser.parse(checking_qfx_content, "chase_checking.qfx")
 
+        assert isinstance(result, Success)
         # Find the payroll transaction which has a memo
         payroll_txn = next(
             txn for txn in result.value.transactions if "PAYROLL" in txn.name
@@ -161,6 +166,7 @@ class TestQfxParserSuccess:
         """Debit transactions have negative amounts."""
         result = parser.parse(checking_qfx_content, "chase_checking.qfx")
 
+        assert isinstance(result, Success)
         # Find the rent payment (debit)
         rent_txn = next(
             txn for txn in result.value.transactions if "LANDLORD" in txn.name

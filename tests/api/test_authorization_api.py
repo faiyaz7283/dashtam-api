@@ -179,11 +179,10 @@ def create_client_with_mocks(
     async def mock_get_current_user():
         # Use a simple object instead of class to avoid scoping issues
         class MockUser:
-            pass
+            def __init__(self, uid: str) -> None:
+                self.user_id = uid
 
-        user = MockUser()
-        user.user_id = _user_id  # CurrentUser uses user_id attribute
-        return user
+        return MockUser(_user_id)
 
     app.dependency_overrides[get_authorization] = mock_get_authorization
     app.dependency_overrides[get_current_user] = mock_get_current_user

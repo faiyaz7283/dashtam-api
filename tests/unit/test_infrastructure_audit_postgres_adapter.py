@@ -44,6 +44,7 @@ class TestPostgresAuditAdapterRecord:
         adapter = PostgresAuditAdapter(session=mock_session)
 
         user_id = uuid7()
+        resource_id = uuid7()
         test_context = {"method": "password", "mfa": True}
 
         # Act
@@ -51,7 +52,7 @@ class TestPostgresAuditAdapterRecord:
             action=AuditAction.USER_LOGIN_SUCCESS,
             user_id=user_id,
             resource_type="session",
-            resource_id="session-123",
+            resource_id=resource_id,
             ip_address="192.168.1.1",
             user_agent="Mozilla/5.0",
             context=test_context,
@@ -68,7 +69,7 @@ class TestPostgresAuditAdapterRecord:
         assert audit_log.action == AuditAction.USER_LOGIN_SUCCESS.value
         assert audit_log.user_id == user_id
         assert audit_log.resource_type == "session"
-        assert audit_log.resource_id == "session-123"
+        assert audit_log.resource_id == resource_id
         assert audit_log.ip_address == "192.168.1.1"
         assert audit_log.user_agent == "Mozilla/5.0"
         assert audit_log.context == test_context

@@ -251,7 +251,7 @@ class TestCacheIntegration:
     async def test_error_handling_set_json_invalid_type(self, cache_adapter):
         """Test set_json with non-serializable type returns error."""
         # Try to set non-serializable object (function)
-        invalid_data = {"func": lambda x: x}  # type: ignore[dict-item]
+        invalid_data: dict[str, object] = {"func": lambda x: x}
 
         result = await cache_adapter.set_json("invalid", invalid_data)
         assert isinstance(result, Failure)

@@ -46,7 +46,7 @@ def _build_schwab_account_response(
     account_number: str = "12345678",
     account_type: str = "INDIVIDUAL",
     liquidation_value: float = 50000.00,
-) -> dict:
+) -> dict[str, object]:
     """Build a Schwab account JSON response for testing."""
     return {
         "securitiesAccount": {

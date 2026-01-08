@@ -25,7 +25,7 @@ from src.domain.protocols.session_repository import SessionData
 
 
 @freeze_time("2024-01-01 12:00:00")
-def create_test_session_data(  # type: ignore[no-untyped-def]
+def create_test_session_data(
     session_id=None,
     user_id=None,
     device_info="Chrome on Windows",

@@ -70,7 +70,7 @@ class MockListProviderConnectionsHandler:
         self._connections = connections or []
         self._error = error
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         result = MockProviderConnectionListResult(
@@ -92,7 +92,7 @@ class MockGetProviderConnectionHandler:
         self._connection = connection
         self._error = error
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._connection)
@@ -109,7 +109,7 @@ class MockDisconnectProviderHandler:
         self._connection_id = connection_id
         self._error = error
 
-    async def handle(self, command: Any) -> Success | Failure:
+    async def handle(self, command: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._connection_id)
@@ -342,13 +342,13 @@ class TestInitiateConnection:
 
         # Mock cache for state storage
         class MockCache:
-            async def set(self, key: str, value: str, ttl: int) -> Success:
+            async def set(self, key: str, value: str, ttl: int) -> Success[None]:
                 return Success(value=None)
 
-            async def get(self, key: str) -> Success:
+            async def get(self, key: str) -> Success[None]:
                 return Success(value=None)
 
-            async def delete(self, key: str) -> Success:
+            async def delete(self, key: str) -> Success[None]:
                 return Success(value=None)
 
         app.dependency_overrides[get_cache] = lambda: MockCache()

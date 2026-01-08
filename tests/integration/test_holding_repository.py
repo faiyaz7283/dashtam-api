@@ -263,8 +263,12 @@ class TestHoldingRepositorySave:
             retrieved = await repo.find_by_id(holding.id)
 
         assert retrieved is not None
+        assert retrieved.cost_basis is not None
+        assert retrieved.market_value is not None
         assert retrieved.cost_basis.amount == Decimal("15000.00")
         assert retrieved.market_value.amount == Decimal("17500.00")
+        assert retrieved.average_price is not None
+        assert retrieved.current_price is not None
         assert retrieved.average_price.amount == Decimal("150.00")
         assert retrieved.current_price.amount == Decimal("175.00")
 

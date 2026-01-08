@@ -109,10 +109,24 @@ async def create_provider_in_db(session, provider_id=None, slug=None):
 class StubEventBus:
     """Stub event bus that records published events for verification."""
 
-    def __init__(self):
-        self.events = []
+    def __init__(self) -> None:
+        self.events: list[object] = []
 
-    async def publish(self, event):
+    def subscribe(
+        self,
+        event_type: type,
+        handler: object,
+    ) -> None:
+        """No-op subscribe for test stub."""
+        pass
+
+    async def publish(
+        self,
+        event: object,
+        session: object = None,
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        """Record published event for test verification."""
         self.events.append(event)
 
 
@@ -207,10 +221,12 @@ class TestConnectProviderHandlerSuccess:
             repo = ProviderConnectionRepository(session=session)
             found = await repo.find_by_id(result.value)
 
+            assert found is not None
             assert found.credentials is not None
             assert found.credentials.encrypted_data == encrypted_data
             assert found.credentials.credential_type == CredentialType.OAUTH2
             # Compare without microseconds (DB may truncate)
+            assert found.credentials.expires_at is not None
             assert found.credentials.expires_at.replace(
                 microsecond=0
             ) == expires_at.replace(microsecond=0)
@@ -275,7 +291,7 @@ class TestConnectProviderHandlerValidation:
             user_id=user_id,
             provider_id=provider_id,
             provider_slug=provider_slug,
-            credentials=None,  # Missing credentials
+            credentials=None,  # type: ignore[arg-type]  # Intentional: testing missing credentials
         )
 
         # Act

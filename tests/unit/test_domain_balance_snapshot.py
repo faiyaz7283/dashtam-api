@@ -30,11 +30,11 @@ class TestSnapshotSourceEnum:
 
     def test_snapshot_source_values(self) -> None:
         """Test all SnapshotSource enum values exist."""
-        assert SnapshotSource.ACCOUNT_SYNC == "account_sync"
-        assert SnapshotSource.HOLDINGS_SYNC == "holdings_sync"
-        assert SnapshotSource.MANUAL_SYNC == "manual_sync"
-        assert SnapshotSource.SCHEDULED_SYNC == "scheduled_sync"
-        assert SnapshotSource.INITIAL_CONNECTION == "initial_connection"
+        assert SnapshotSource.ACCOUNT_SYNC.value == "account_sync"
+        assert SnapshotSource.HOLDINGS_SYNC.value == "holdings_sync"
+        assert SnapshotSource.MANUAL_SYNC.value == "manual_sync"
+        assert SnapshotSource.SCHEDULED_SYNC.value == "scheduled_sync"
+        assert SnapshotSource.INITIAL_CONNECTION.value == "initial_connection"
 
     def test_is_automated_account_sync(self) -> None:
         """Test ACCOUNT_SYNC is automated."""

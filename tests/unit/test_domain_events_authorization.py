@@ -10,6 +10,7 @@ Reference:
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from uuid import UUID
 from uuid_extensions import uuid7
 
@@ -33,13 +34,13 @@ from src.domain.events import (
 @pytest.fixture
 def user_id() -> UUID:
     """Test user ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def admin_id() -> UUID:
     """Test admin user ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 # =============================================================================

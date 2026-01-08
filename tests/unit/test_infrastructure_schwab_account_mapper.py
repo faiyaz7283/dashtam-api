@@ -14,6 +14,7 @@ Architecture:
 """
 
 from decimal import Decimal
+from typing import Any
 
 import pytest
 
@@ -44,15 +45,15 @@ def _build_schwab_account(
     liquidation_value: float | int = 50000.00,
     available_funds: float | int | None = 10000.00,
     cash_balance: float | int | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Build a Schwab account JSON structure for testing."""
-    current_balances: dict = {"liquidationValue": liquidation_value}
+    current_balances: dict[str, Any] = {"liquidationValue": liquidation_value}
     if available_funds is not None:
         current_balances["availableFunds"] = available_funds
     if cash_balance is not None:
         current_balances["cashBalance"] = cash_balance
 
-    securities_account: dict = {
+    securities_account: dict[str, Any] = {
         "type": account_type,
         "accountNumber": account_number,
         "currentBalances": current_balances,
@@ -364,7 +365,7 @@ class TestFullAccountMapping:
 
     def test_map_account_missing_securities_account(self, mapper: SchwabAccountMapper):
         """Missing securitiesAccount key returns None."""
-        data = {"someOtherKey": {}}
+        data: dict[str, Any] = {"someOtherKey": {}}
 
         result = mapper.map_account(data)
 
@@ -372,7 +373,7 @@ class TestFullAccountMapping:
 
     def test_map_account_empty_securities_account(self, mapper: SchwabAccountMapper):
         """Empty securitiesAccount returns None."""
-        data = {"securitiesAccount": {}}
+        data: dict[str, Any] = {"securitiesAccount": {}}
 
         result = mapper.map_account(data)
 
@@ -472,7 +473,7 @@ class TestBatchAccountMapping:
 
     def test_map_all_invalid_returns_empty(self, mapper: SchwabAccountMapper):
         """List with all invalid accounts returns empty list."""
-        data_list = [
+        data_list: list[dict[str, Any]] = [
             {"securitiesAccount": {}},
             {"invalid": "data"},
         ]

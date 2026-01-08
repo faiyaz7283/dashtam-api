@@ -87,11 +87,11 @@ class TestAuditActionEnumValues:
         assert AuditAction.USER_LOGIN_ATTEMPTED == AuditAction.USER_LOGIN_ATTEMPTED
 
         # Different enum values are not equal
-        assert AuditAction.USER_LOGIN_ATTEMPTED != AuditAction.USER_LOGOUT
+        assert AuditAction.USER_LOGIN_ATTEMPTED != AuditAction.USER_LOGOUT  # type: ignore[comparison-overlap]
 
         # Enum value equals its string value
-        assert AuditAction.USER_LOGIN_ATTEMPTED == "user_login_attempted"
-        assert AuditAction.DATA_VIEWED == "data_viewed"
+        assert AuditAction.USER_LOGIN_ATTEMPTED.value == "user_login_attempted"
+        assert AuditAction.DATA_VIEWED.value == "data_viewed"
 
 
 @pytest.mark.unit
@@ -186,9 +186,9 @@ class TestAuditActionSerialization:
     def test_enum_to_string(self):
         """Test enum value (not str()) equals string."""
         # str Enum: enum.value is the string, str(enum) is repr
-        assert AuditAction.USER_LOGIN_ATTEMPTED == "user_login_attempted"
-        assert AuditAction.DATA_VIEWED == "data_viewed"
-        assert AuditAction.PROVIDER_CONNECTED == "provider_connected"
+        assert AuditAction.USER_LOGIN_ATTEMPTED.value == "user_login_attempted"
+        assert AuditAction.DATA_VIEWED.value == "data_viewed"
+        assert AuditAction.PROVIDER_CONNECTED.value == "provider_connected"
 
     def test_enum_value_access(self):
         """Test enum .value property returns string."""
@@ -274,12 +274,12 @@ class TestAuditActionEdgeCases:
     def test_enum_comparison_with_string(self):
         """Test enum can be compared with string values."""
         # String comparison works because AuditAction is str Enum
-        assert AuditAction.USER_LOGIN_ATTEMPTED == "user_login_attempted"
-        assert AuditAction.DATA_VIEWED == "data_viewed"
+        assert AuditAction.USER_LOGIN_ATTEMPTED.value == "user_login_attempted"
+        assert AuditAction.DATA_VIEWED.value == "data_viewed"
 
         # Not equal to different strings
-        assert AuditAction.USER_LOGIN_ATTEMPTED != "user_logout"
-        assert AuditAction.DATA_VIEWED != "DATA_VIEWED"  # Case sensitive
+        assert AuditAction.USER_LOGIN_ATTEMPTED.value != "user_logout"  # type: ignore[comparison-overlap]
+        assert AuditAction.DATA_VIEWED.value != "DATA_VIEWED"  # type: ignore[comparison-overlap]
 
     def test_enum_boolean_context(self):
         """Test enum values are truthy."""

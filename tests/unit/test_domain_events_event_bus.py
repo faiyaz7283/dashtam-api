@@ -19,6 +19,7 @@ Architecture:
 import asyncio
 from unittest.mock import MagicMock
 from uuid_extensions import uuid7
+from typing import Any
 
 import pytest
 
@@ -60,6 +61,8 @@ class TestInMemoryEventBusBasicFlow:
         # Assert
         assert handler_called is True
         assert received_event is event
+        # Narrow type for mypy before accessing event-specific attributes
+        assert isinstance(received_event, UserRegistrationSucceeded)
         assert received_event.email == "test@example.com"
 
     @pytest.mark.asyncio
@@ -207,9 +210,10 @@ class TestInMemoryEventBusEventData:
         mock_logger = MagicMock()
         event_bus = InMemoryEventBus(logger=mock_logger)
 
-        received_data = {}
+        received_data: dict[str, Any] = {}
 
-        async def capture_handler(event: UserRegistrationSucceeded) -> None:
+        async def capture_handler(event: DomainEvent) -> None:
+            assert isinstance(event, UserRegistrationSucceeded)
             received_data["user_id"] = event.user_id
             received_data["email"] = event.email
             received_data["event_id"] = event.event_id
@@ -237,12 +241,14 @@ class TestInMemoryEventBusEventData:
         mock_logger = MagicMock()
         event_bus = InMemoryEventBus(logger=mock_logger)
 
-        received_events = []
+        received_events: list[tuple[str, DomainEvent]] = []
 
-        async def registration_handler(event: UserRegistrationSucceeded) -> None:
+        async def registration_handler(event: DomainEvent) -> None:
+            assert isinstance(event, UserRegistrationSucceeded)
             received_events.append(("registration", event))
 
-        async def password_change_handler(event: UserPasswordChangeSucceeded) -> None:
+        async def password_change_handler(event: DomainEvent) -> None:
+            assert isinstance(event, UserPasswordChangeSucceeded)
             received_events.append(("password_change", event))
 
         registration_event = UserRegistrationSucceeded(
@@ -438,7 +444,8 @@ class TestInMemoryEventBusEdgeCases:
 
         received_emails = []
 
-        async def handler(event: UserRegistrationSucceeded) -> None:
+        async def handler(event: DomainEvent) -> None:
+            assert isinstance(event, UserRegistrationSucceeded)
             received_emails.append(event.email)
 
         event1 = UserRegistrationSucceeded(
@@ -471,16 +478,14 @@ class TestInMemoryEventBusEdgeCases:
         mock_logger = MagicMock()
         event_bus = InMemoryEventBus(logger=mock_logger)
 
-        async def handler_with_return(event: DomainEvent) -> str:
-            return "This return value should be ignored"
+        async def handler_with_return(event: DomainEvent) -> None:
+            # Handlers should return None; any return value is ignored by the bus
+            return None
 
         event = UserRegistrationSucceeded(
             user_id=uuid7(), email="test@example.com", verification_token="test_token"
         )
 
-        # Act & Assert - Should not raise exception
+        # Act - Subscribe and publish; return value is None (not used)
         event_bus.subscribe(UserRegistrationSucceeded, handler_with_return)
-        result = await event_bus.publish(event)
-
-        # publish() returns None
-        assert result is None
+        await event_bus.publish(event)

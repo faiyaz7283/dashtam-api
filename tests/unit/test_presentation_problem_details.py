@@ -73,6 +73,8 @@ class TestProblemDetails:
             status=404,
             detail="User with ID '123' does not exist",
             instance="/api/v1/users/123",
+            errors=None,
+            trace_id=None,
         )
 
         # Assert
@@ -108,6 +110,7 @@ class TestProblemDetails:
             detail="Request validation failed",
             instance="/api/v1/auth/register",
             errors=field_errors,
+            trace_id=None,
         )
 
         # Assert
@@ -126,6 +129,7 @@ class TestProblemDetails:
             status=500,
             detail="An unexpected error occurred",
             instance="/api/v1/users",
+            errors=None,
             trace_id="550e8400-e29b-41d4-a716-446655440000",
         )
 
@@ -141,6 +145,7 @@ class TestProblemDetails:
             status=404,
             detail="User not found",
             instance="/api/v1/users/123",
+            errors=None,
             trace_id="abc-123",
         )
 
@@ -165,7 +170,8 @@ class TestProblemDetails:
             status=404,
             detail="User not found",
             instance="/api/v1/users/123",
-            # errors and trace_id not provided (None)
+            errors=None,
+            trace_id=None,
         )
 
         # Act
@@ -217,6 +223,7 @@ class TestProblemDetails:
             status=401,
             detail="Valid authentication credentials are required",
             instance="/api/v1/accounts",
+            errors=None,
             trace_id="abc-def-123",
         )
 
@@ -251,6 +258,7 @@ class TestProblemDetails:
             status=409,
             detail="User with email 'user@example.com' already exists",
             instance="/api/v1/users",
+            errors=None,
             trace_id="conflict-trace-123",
         )
 

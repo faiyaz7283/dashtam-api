@@ -190,6 +190,7 @@ class TestSessionRepositorySave:
             repo = SessionRepository(session=db_session)
             found = await repo.find_by_id(session_id)
 
+            assert found is not None
             assert found.device_info == "Safari on macOS"
             assert found.location == "San Francisco, US"
 
@@ -395,6 +396,7 @@ class TestSessionRepositoryRevokeAll:
         async with test_database.get_session() as db_session:
             repo = SessionRepository(session=db_session)
             current = await repo.find_by_id(current_session_id)
+            assert current is not None
             assert current.is_revoked is False
 
 

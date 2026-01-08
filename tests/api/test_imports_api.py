@@ -51,7 +51,7 @@ class MockImportFromFileHandler:
         self._result = result
         self._error = error
 
-    async def handle(self, command: Any) -> Success | Failure:
+    async def handle(self, command: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._result)

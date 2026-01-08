@@ -145,8 +145,12 @@ class TestJWTServiceIntegration:
         result = service.validate_access_token(token)
         assert isinstance(result, Success)
 
-        iat = datetime.fromtimestamp(result.value["iat"], UTC)
-        exp = datetime.fromtimestamp(result.value["exp"], UTC)
+        iat_value = result.value["iat"]
+        exp_value = result.value["exp"]
+        assert isinstance(iat_value, (int, float))
+        assert isinstance(exp_value, (int, float))
+        iat = datetime.fromtimestamp(iat_value, UTC)
+        exp = datetime.fromtimestamp(exp_value, UTC)
 
         # Expiration should be exactly 30 minutes from issued time
         expiration_delta = exp - iat
@@ -284,7 +288,9 @@ class TestJWTServiceIntegration:
         result = service.validate_access_token(token)
         assert isinstance(result, Success)
         assert result.value["roles"] == roles
-        assert len(result.value["roles"]) == 4
+        roles_value = result.value["roles"]
+        assert isinstance(roles_value, list)
+        assert len(roles_value) == 4
 
     def test_validate_access_token_with_future_iat(self):
         """Test validation with future issued-at time (time travel scenario)."""

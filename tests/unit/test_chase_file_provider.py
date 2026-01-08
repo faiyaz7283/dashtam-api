@@ -25,7 +25,7 @@ def provider() -> ChaseFileProvider:
 
 
 @pytest.fixture
-def checking_credentials() -> dict:
+def checking_credentials() -> dict[str, bytes | str]:
     """Credentials dict with checking account QFX file."""
     fixture_path = (
         Path(__file__).parent.parent / "fixtures" / "chase_checking_account.qfx"
@@ -38,7 +38,7 @@ def checking_credentials() -> dict:
 
 
 @pytest.fixture
-def savings_credentials() -> dict:
+def savings_credentials() -> dict[str, bytes | str]:
     """Credentials dict with savings account QFX file."""
     fixture_path = (
         Path(__file__).parent.parent / "fixtures" / "chase_savings_account.qfx"
@@ -75,7 +75,7 @@ class TestFetchAccounts:
     async def test_fetch_accounts_returns_success(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_accounts returns Success with account list."""
         result = await provider.fetch_accounts(checking_credentials)
@@ -87,11 +87,12 @@ class TestFetchAccounts:
     async def test_fetch_accounts_extracts_account_info(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_accounts extracts correct account information."""
         result = await provider.fetch_accounts(checking_credentials)
 
+        assert isinstance(result, Success)
         account = result.value[0]
         assert account.provider_account_id == "123456789"
         assert account.account_number_masked == "****6789"
@@ -103,11 +104,12 @@ class TestFetchAccounts:
     async def test_fetch_accounts_extracts_balance(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_accounts extracts balance from file."""
         result = await provider.fetch_accounts(checking_credentials)
 
+        assert isinstance(result, Success)
         account = result.value[0]
         assert account.balance == Decimal("5000.27")
         assert account.available_balance == Decimal("4500.27")
@@ -116,11 +118,12 @@ class TestFetchAccounts:
     async def test_fetch_accounts_savings_type(
         self,
         provider: ChaseFileProvider,
-        savings_credentials: dict,
+        savings_credentials: dict[str, bytes | str],
     ):
         """fetch_accounts correctly identifies savings account."""
         result = await provider.fetch_accounts(savings_credentials)
 
+        assert isinstance(result, Success)
         account = result.value[0]
         assert account.account_type == "savings"
         assert account.provider_account_id == "987654321"
@@ -129,11 +132,12 @@ class TestFetchAccounts:
     async def test_fetch_accounts_generates_name(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_accounts generates account name."""
         result = await provider.fetch_accounts(checking_credentials)
 
+        assert isinstance(result, Success)
         account = result.value[0]
         assert "Chase" in account.name
         assert "Checking" in account.name
@@ -155,7 +159,7 @@ class TestFetchAccounts:
     async def test_fetch_accounts_invalid_format_returns_failure(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_accounts with unsupported format returns Failure."""
         checking_credentials["file_format"] = "csv"
@@ -191,7 +195,7 @@ class TestFetchTransactions:
     async def test_fetch_transactions_returns_success(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_transactions returns Success with transaction list."""
         result = await provider.fetch_transactions(
@@ -206,7 +210,7 @@ class TestFetchTransactions:
     async def test_fetch_transactions_extracts_transaction_info(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_transactions extracts correct transaction information."""
         result = await provider.fetch_transactions(
@@ -214,6 +218,7 @@ class TestFetchTransactions:
             provider_account_id="123456789",
         )
 
+        assert isinstance(result, Success)
         # Find the payroll transaction
         payroll_txn = next(txn for txn in result.value if "PAYROLL" in txn.description)
         assert payroll_txn.amount == Decimal("2500.00")
@@ -225,7 +230,7 @@ class TestFetchTransactions:
     async def test_fetch_transactions_maps_transaction_types(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_transactions maps OFX types to Dashtam types."""
         result = await provider.fetch_transactions(
@@ -233,6 +238,7 @@ class TestFetchTransactions:
             provider_account_id="123456789",
         )
 
+        assert isinstance(result, Success)
         # Credit transactions become deposits
         credits = [t for t in result.value if t.amount > 0]
         assert all(t.transaction_type == "deposit" for t in credits)
@@ -245,7 +251,7 @@ class TestFetchTransactions:
     async def test_fetch_transactions_detects_subtypes(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_transactions detects subtypes from transaction names."""
         result = await provider.fetch_transactions(
@@ -253,6 +259,7 @@ class TestFetchTransactions:
             provider_account_id="123456789",
         )
 
+        assert isinstance(result, Success)
         # Find Zelle transaction
         zelle_txn = next(txn for txn in result.value if "Zelle" in txn.description)
         assert zelle_txn.subtype == "zelle"
@@ -265,7 +272,7 @@ class TestFetchTransactions:
     async def test_fetch_transactions_wrong_account_returns_empty(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_transactions with wrong account ID returns empty list."""
         result = await provider.fetch_transactions(
@@ -280,7 +287,7 @@ class TestFetchTransactions:
     async def test_fetch_transactions_with_date_filter(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_transactions applies date filtering."""
         result = await provider.fetch_transactions(
@@ -299,7 +306,7 @@ class TestFetchTransactions:
     async def test_fetch_transactions_start_date_only(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_transactions filters by start_date only."""
         result = await provider.fetch_transactions(
@@ -325,7 +332,7 @@ class TestFetchHoldings:
     async def test_fetch_holdings_returns_empty_list(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """fetch_holdings returns empty list (bank accounts have no holdings)."""
         result = await provider.fetch_holdings(
@@ -349,7 +356,7 @@ class TestProviderCaching:
     async def test_parse_cache_reuses_result(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """Same file content uses cached parse result."""
         # First call parses the file
@@ -368,7 +375,7 @@ class TestProviderCaching:
     async def test_clear_cache_empties_cache(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
     ):
         """clear_cache removes all cached data."""
         await provider.fetch_accounts(checking_credentials)
@@ -381,8 +388,8 @@ class TestProviderCaching:
     async def test_different_files_cached_separately(
         self,
         provider: ChaseFileProvider,
-        checking_credentials: dict,
-        savings_credentials: dict,
+        checking_credentials: dict[str, bytes | str],
+        savings_credentials: dict[str, bytes | str],
     ):
         """Different files are cached separately."""
         await provider.fetch_accounts(checking_credentials)

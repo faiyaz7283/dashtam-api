@@ -38,7 +38,7 @@ class TestErrorResponseBuilder:
 
         # Assert
         assert response.status_code == 404
-        content = response.body.decode()
+        content = bytes(response.body).decode()
         assert "not_found" in content
         assert "Resource Not Found" in content
         assert "User not found" in content
@@ -65,7 +65,7 @@ class TestErrorResponseBuilder:
 
         # Assert
         assert response.status_code == 400
-        content = response.body.decode()
+        content = bytes(response.body).decode()
         assert "command_validation_failed" in content
         assert "Validation Failed" in content
         assert "Email format is invalid" in content
@@ -96,7 +96,7 @@ class TestErrorResponseBuilder:
 
         # Assert
         assert response.status_code == 400
-        content = response.body.decode()
+        content = bytes(response.body).decode()
         # Should include field-specific error details
         assert "email" in content
         assert "invalid_email" in content
@@ -121,7 +121,7 @@ class TestErrorResponseBuilder:
 
         # Assert
         assert response.status_code == 401
-        content = response.body.decode()
+        content = bytes(response.body).decode()
         assert "unauthorized" in content
         assert "Authentication Required" in content
 
@@ -145,7 +145,7 @@ class TestErrorResponseBuilder:
 
         # Assert
         assert response.status_code == 403
-        content = response.body.decode()
+        content = bytes(response.body).decode()
         assert "forbidden" in content
         assert "Access Denied" in content
 
@@ -169,7 +169,7 @@ class TestErrorResponseBuilder:
 
         # Assert
         assert response.status_code == 409
-        content = response.body.decode()
+        content = bytes(response.body).decode()
         assert "conflict" in content
         assert "Resource Conflict" in content
 
@@ -193,7 +193,7 @@ class TestErrorResponseBuilder:
 
         # Assert
         assert response.status_code == 429
-        content = response.body.decode()
+        content = bytes(response.body).decode()
         assert "rate_limit_exceeded" in content
         assert "Rate Limit Exceeded" in content
 
@@ -308,6 +308,6 @@ class TestErrorResponseBuilder:
         )
 
         # Assert
-        content = response.body.decode()
+        content = bytes(response.body).decode()
         # errors field should not be in JSON when None
         assert '"errors":' not in content or '"errors": null' not in content

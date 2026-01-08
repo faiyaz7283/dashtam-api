@@ -11,6 +11,7 @@ Reference:
 from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -47,25 +48,25 @@ from src.domain.value_objects.provider_credentials import ProviderCredentials
 @pytest.fixture
 def user_id() -> UUID:
     """User ID for ownership verification."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def other_user_id() -> UUID:
     """Different user ID for ownership failure tests."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def connection_id() -> UUID:
     """Provider connection ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def account_id() -> UUID:
     """Account ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture

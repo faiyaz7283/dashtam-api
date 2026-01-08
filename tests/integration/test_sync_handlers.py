@@ -211,10 +211,24 @@ def create_provider_transaction_data(
 class StubEventBus:
     """Stub event bus that records published events for verification."""
 
-    def __init__(self):
-        self.events = []
+    def __init__(self) -> None:
+        self.events: list[object] = []
 
-    async def publish(self, event, metadata=None):
+    def subscribe(
+        self,
+        event_type: type,
+        handler: object,
+    ) -> None:
+        """No-op subscribe for test stub."""
+        pass
+
+    async def publish(
+        self,
+        event: object,
+        session: object = None,
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        """Record published event for test verification."""
         self.events.append(event)
 
 

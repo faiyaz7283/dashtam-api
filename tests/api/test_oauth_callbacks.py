@@ -63,7 +63,7 @@ class StubProvider:
 
 
 class StubEncryptionService:
-    def encrypt(self, data: dict):
+    def encrypt(self, data: dict[str, object]) -> Success[bytes]:
         return Success(value=b"encrypted")
 
 
@@ -261,7 +261,7 @@ def test_callback_encryption_failure(monkeypatch, _override_dependencies):
     _set_state(cache, state="encrypt_fail", user_id=user_id)
 
     class FailingEncryption:
-        def encrypt(self, data: dict):
+        def encrypt(self, data: dict[str, object]) -> Failure[ValueError]:
             return Failure(error=ValueError("Encryption hardware failure"))
 
     from src.core.container import get_encryption_service as real_get_enc

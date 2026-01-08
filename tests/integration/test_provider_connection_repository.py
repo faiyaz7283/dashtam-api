@@ -775,6 +775,7 @@ class TestProviderConnectionRepositoryCredentialMapping:
         assert loaded.credentials.encrypted_data == original_data
         assert loaded.credentials.credential_type == CredentialType.OAUTH2
         # Compare with microsecond precision (database may truncate)
+        assert loaded.credentials.expires_at is not None
         assert loaded.credentials.expires_at.replace(
             microsecond=0
         ) == original_expires.replace(microsecond=0)

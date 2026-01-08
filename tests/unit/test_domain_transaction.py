@@ -34,11 +34,11 @@ class TestTransactionType:
 
     def test_all_values_exist(self):
         """Verify all 5 transaction types exist."""
-        assert TransactionType.TRADE == "trade"
-        assert TransactionType.TRANSFER == "transfer"
-        assert TransactionType.INCOME == "income"
-        assert TransactionType.FEE == "fee"
-        assert TransactionType.OTHER == "other"
+        assert TransactionType.TRADE.value == "trade"
+        assert TransactionType.TRANSFER.value == "transfer"
+        assert TransactionType.INCOME.value == "income"
+        assert TransactionType.FEE.value == "fee"
+        assert TransactionType.OTHER.value == "other"
 
     def test_enum_count(self):
         """Verify exactly 5 transaction types."""
@@ -77,43 +77,43 @@ class TestTransactionSubtype:
 
     def test_all_trade_subtypes_exist(self):
         """Verify all 7 TRADE subtypes exist."""
-        assert TransactionSubtype.BUY == "buy"
-        assert TransactionSubtype.SELL == "sell"
-        assert TransactionSubtype.SHORT_SELL == "short_sell"
-        assert TransactionSubtype.BUY_TO_COVER == "buy_to_cover"
-        assert TransactionSubtype.EXERCISE == "exercise"
-        assert TransactionSubtype.ASSIGNMENT == "assignment"
-        assert TransactionSubtype.EXPIRATION == "expiration"
+        assert TransactionSubtype.BUY.value == "buy"
+        assert TransactionSubtype.SELL.value == "sell"
+        assert TransactionSubtype.SHORT_SELL.value == "short_sell"
+        assert TransactionSubtype.BUY_TO_COVER.value == "buy_to_cover"
+        assert TransactionSubtype.EXERCISE.value == "exercise"
+        assert TransactionSubtype.ASSIGNMENT.value == "assignment"
+        assert TransactionSubtype.EXPIRATION.value == "expiration"
 
     def test_all_transfer_subtypes_exist(self):
         """Verify all 7 TRANSFER subtypes exist."""
-        assert TransactionSubtype.DEPOSIT == "deposit"
-        assert TransactionSubtype.WITHDRAWAL == "withdrawal"
-        assert TransactionSubtype.WIRE_IN == "wire_in"
-        assert TransactionSubtype.WIRE_OUT == "wire_out"
-        assert TransactionSubtype.TRANSFER_IN == "transfer_in"
-        assert TransactionSubtype.TRANSFER_OUT == "transfer_out"
-        assert TransactionSubtype.INTERNAL == "internal"
+        assert TransactionSubtype.DEPOSIT.value == "deposit"
+        assert TransactionSubtype.WITHDRAWAL.value == "withdrawal"
+        assert TransactionSubtype.WIRE_IN.value == "wire_in"
+        assert TransactionSubtype.WIRE_OUT.value == "wire_out"
+        assert TransactionSubtype.TRANSFER_IN.value == "transfer_in"
+        assert TransactionSubtype.TRANSFER_OUT.value == "transfer_out"
+        assert TransactionSubtype.INTERNAL.value == "internal"
 
     def test_all_income_subtypes_exist(self):
         """Verify all 4 INCOME subtypes exist."""
-        assert TransactionSubtype.DIVIDEND == "dividend"
-        assert TransactionSubtype.INTEREST == "interest"
-        assert TransactionSubtype.CAPITAL_GAIN == "capital_gain"
-        assert TransactionSubtype.DISTRIBUTION == "distribution"
+        assert TransactionSubtype.DIVIDEND.value == "dividend"
+        assert TransactionSubtype.INTEREST.value == "interest"
+        assert TransactionSubtype.CAPITAL_GAIN.value == "capital_gain"
+        assert TransactionSubtype.DISTRIBUTION.value == "distribution"
 
     def test_all_fee_subtypes_exist(self):
         """Verify all 4 FEE subtypes exist."""
-        assert TransactionSubtype.COMMISSION == "commission"
-        assert TransactionSubtype.ACCOUNT_FEE == "account_fee"
-        assert TransactionSubtype.MARGIN_INTEREST == "margin_interest"
-        assert TransactionSubtype.OTHER_FEE == "other_fee"
+        assert TransactionSubtype.COMMISSION.value == "commission"
+        assert TransactionSubtype.ACCOUNT_FEE.value == "account_fee"
+        assert TransactionSubtype.MARGIN_INTEREST.value == "margin_interest"
+        assert TransactionSubtype.OTHER_FEE.value == "other_fee"
 
     def test_all_other_subtypes_exist(self):
         """Verify all 3 OTHER subtypes exist."""
-        assert TransactionSubtype.ADJUSTMENT == "adjustment"
-        assert TransactionSubtype.JOURNAL == "journal"
-        assert TransactionSubtype.UNKNOWN == "unknown"
+        assert TransactionSubtype.ADJUSTMENT.value == "adjustment"
+        assert TransactionSubtype.JOURNAL.value == "journal"
+        assert TransactionSubtype.UNKNOWN.value == "unknown"
 
     def test_enum_count(self):
         """Verify exactly 25 transaction subtypes."""
@@ -176,15 +176,15 @@ class TestAssetType:
 
     def test_all_values_exist(self):
         """Verify all 9 asset types exist."""
-        assert AssetType.EQUITY == "equity"
-        assert AssetType.ETF == "etf"
-        assert AssetType.OPTION == "option"
-        assert AssetType.MUTUAL_FUND == "mutual_fund"
-        assert AssetType.FIXED_INCOME == "fixed_income"
-        assert AssetType.FUTURES == "futures"
-        assert AssetType.CRYPTOCURRENCY == "cryptocurrency"
-        assert AssetType.CASH_EQUIVALENT == "cash_equivalent"
-        assert AssetType.OTHER == "other"
+        assert AssetType.EQUITY.value == "equity"
+        assert AssetType.ETF.value == "etf"
+        assert AssetType.OPTION.value == "option"
+        assert AssetType.MUTUAL_FUND.value == "mutual_fund"
+        assert AssetType.FIXED_INCOME.value == "fixed_income"
+        assert AssetType.FUTURES.value == "futures"
+        assert AssetType.CRYPTOCURRENCY.value == "cryptocurrency"
+        assert AssetType.CASH_EQUIVALENT.value == "cash_equivalent"
+        assert AssetType.OTHER.value == "other"
 
     def test_enum_count(self):
         """Verify exactly 9 asset types."""
@@ -207,10 +207,10 @@ class TestTransactionStatus:
 
     def test_all_values_exist(self):
         """Verify all 4 transaction statuses exist."""
-        assert TransactionStatus.PENDING == "pending"
-        assert TransactionStatus.SETTLED == "settled"
-        assert TransactionStatus.FAILED == "failed"
-        assert TransactionStatus.CANCELLED == "cancelled"
+        assert TransactionStatus.PENDING.value == "pending"
+        assert TransactionStatus.SETTLED.value == "settled"
+        assert TransactionStatus.FAILED.value == "failed"
+        assert TransactionStatus.CANCELLED.value == "cancelled"
 
     def test_enum_count(self):
         """Verify exactly 4 transaction statuses."""
@@ -315,7 +315,9 @@ class TestTransactionCreation:
         assert transaction.symbol == "AAPL"
         assert transaction.security_name == "Apple Inc."
         assert transaction.quantity == Decimal("10")
+        assert transaction.unit_price is not None
         assert transaction.unit_price.amount == Decimal("105.00")
+        assert transaction.commission is not None
         assert transaction.commission.amount == Decimal("0.00")
         assert transaction.settlement_date == date(2025, 11, 30)
 
@@ -659,7 +661,7 @@ class TestTransactionImmutability:
 
         # Attempt to modify should raise FrozenInstanceError
         with pytest.raises(Exception):  # FrozenInstanceError from dataclasses
-            transaction.status = TransactionStatus.CANCELLED
+            transaction.status = TransactionStatus.CANCELLED  # type: ignore[misc]
 
     def test_transaction_has_no_update_methods(self):
         """Transaction should not have any update methods."""

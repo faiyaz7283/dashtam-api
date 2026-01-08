@@ -12,6 +12,7 @@ Architecture:
 - Tests domain error types (EncryptionKeyError, DecryptionError, etc.)
 """
 
+from typing import Any
 import os
 
 import pytest
@@ -57,6 +58,7 @@ class TestEncryptionServiceCreate:
         assert isinstance(result, Failure)
         assert isinstance(result.error, EncryptionKeyError)
         assert result.error.code == ErrorCode.ENCRYPTION_KEY_INVALID
+        assert result.error.details is not None
         assert "16 bytes" in result.error.message
         assert result.error.details["actual_length"] == "16"
         assert result.error.details["expected_length"] == "32"
@@ -127,7 +129,7 @@ class TestEncryptionRoundTrip:
 
     def test_roundtrip_empty_dict(self, service):
         """Empty dict should roundtrip correctly."""
-        credentials: dict = {}
+        credentials: dict[str, Any] = {}
 
         encrypt_result = service.encrypt(credentials)
         assert isinstance(encrypt_result, Success)
@@ -357,7 +359,7 @@ class TestEncryptionErrors:
     def test_encrypt_non_serializable_data(self, service):
         """Non-JSON-serializable data should fail encryption."""
         # Sets are not JSON serializable
-        credentials = {"items": {1, 2, 3}}  # type: ignore
+        credentials: dict[str, Any] = {"items": {1, 2, 3}}
 
         result = service.encrypt(credentials)
 
@@ -368,7 +370,7 @@ class TestEncryptionErrors:
 
     def test_encrypt_circular_reference(self, service):
         """Circular references should fail encryption."""
-        credentials: dict = {"self": None}
+        credentials: dict[str, Any] = {"self": None}
         credentials["self"] = credentials  # Circular reference
 
         result = service.encrypt(credentials)

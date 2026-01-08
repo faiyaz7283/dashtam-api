@@ -1,6 +1,6 @@
 [project]
 name = "dashtam"
-version = "1.6.5"
+version = "1.6.7"
 description = "A secure financial data aggregation platform built with hexagonal architecture, CQRS, and domain-driven design"
 requires-python = ">=3.14"
 dependencies = [
@@ -128,10 +128,11 @@ ignore_missing_imports = true
 
 # Test files: relax strict typing (common practice)
 # Test functions are simple, pytest fixtures are hard to annotate properly
+# However, check_untyped_defs=true ensures type mismatches in test bodies are caught
 [[tool.mypy.overrides]]
 module = ["tests.*"]
 disallow_untyped_defs = false
 disallow_untyped_decorators = false
 disallow_untyped_calls = false
 disallow_incomplete_defs = false
-check_untyped_defs = false
+check_untyped_defs = true

@@ -129,6 +129,9 @@ class TestHoldingCreation:
 
         assert holding.symbol == "TSLA"
         assert holding.quantity == Decimal("50.5")
+        assert holding.cost_basis is not None
+        assert holding.average_price is not None
+        assert holding.current_price is not None
         assert holding.average_price.amount == Decimal("198.02")
         assert holding.current_price.amount == Decimal("248.02")
         assert holding.last_synced_at == now

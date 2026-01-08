@@ -244,7 +244,15 @@ class TestOAuthCallback:
         # Mock provider that fails token exchange
         class MockProvider:
             async def exchange_code_for_tokens(self, code: str):
-                return Failure(error=ProviderError(message="Token exchange failed"))
+                from src.core.enums import ErrorCode
+
+                return Failure(
+                    error=ProviderError(
+                        message="Token exchange failed",
+                        code=ErrorCode.PROVIDER_UNAVAILABLE,
+                        provider_name="schwab",
+                    )
+                )
 
         app.dependency_overrides[get_cache] = lambda: MockCache()
         app.dependency_overrides[get_provider] = lambda slug: MockProvider()
@@ -289,7 +297,7 @@ class TestOAuthCallback:
 
         # Mock encryption that fails
         class MockEncryption:
-            def encrypt(self, data: dict):
+            def encrypt(self, data: dict[str, object]) -> Failure[str]:
                 return Failure(error="Encryption failed")
 
         app.dependency_overrides[get_cache] = lambda: MockCache()
@@ -342,7 +350,7 @@ class TestOAuthCallback:
 
         # Mock encryption that succeeds
         class MockEncryption:
-            def encrypt(self, data: dict):
+            def encrypt(self, data: dict[str, object]) -> Success[bytes]:
                 return Success(value=b"encrypted_data")
 
         # Mock connect handler that fails

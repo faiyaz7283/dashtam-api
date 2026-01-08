@@ -17,6 +17,7 @@ Architecture:
 
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
 import pytest
 
@@ -53,9 +54,9 @@ def _build_schwab_transaction(
     quantity: float | None = 10.0,
     price: float | None = 100.00,
     commission: float | None = 0.00,
-) -> dict:
+) -> dict[str, Any]:
     """Build a Schwab transaction JSON structure for testing."""
-    data: dict = {
+    data: dict[str, Any] = {
         "activityId": activity_id,
         "type": txn_type,
         "netAmount": net_amount,
@@ -79,7 +80,7 @@ def _build_schwab_transaction(
         if asset_type:
             instrument["assetType"] = asset_type
 
-        txn_item: dict = {"instrument": instrument}
+        txn_item: dict[str, Any] = {"instrument": instrument}
         if quantity:
             txn_item["amount"] = quantity
         if price:

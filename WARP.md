@@ -15,7 +15,7 @@
 
 ---
 
-**Last Updated**: 2026-01-05
+**Last Updated**: 2026-01-08
 
 ## 1. Project Overview
 
@@ -973,7 +973,7 @@ git push origin development
 **Complete Release Checklist**:
 
 1. [ ] Update version in `pyproject.toml`
-2. [ ] Run `uv lock` (inside container) to update lockfile
+2. [ ] Run `uv lock` (inside **dev** container: `docker exec dashtam-dev-app uv lock`)
 3. [ ] Update `CHANGELOG.md` with release notes
 4. [ ] Commit, push, create PR to `development`
 5. [ ] Wait for CI, merge PR to `development`
@@ -1053,6 +1053,18 @@ make test-integration  # Integration tests only
 make test-smoke        # E2E smoke tests
 ```
 
+**Type Safety in Tests**:
+
+Tests are type-checked with `check_untyped_defs = true` in mypy. Key patterns:
+
+- `cast(UUID, uuid7())` for UUID generation
+- `isinstance(result, Success)` before accessing `.value` on Result types
+- `assert obj is not None` before accessing optional attributes
+- Use specific `# type: ignore[error-code]` for intentional type violations
+- Protocol-compliant signatures in test stubs (match exact method signatures)
+
+**Reference**: `docs/architecture/testing-architecture.md` (Type Safety section)
+
 **IMPORTANT**: All tests run in Docker. NEVER run tests on host machine.
 
 ---
@@ -1098,6 +1110,12 @@ make test-up      # Start test environment
 make test         # Run all tests
 make test-down    # Stop test environment
 ```
+
+**Container Usage Guidelines**:
+
+- **Dev container** (`dashtam-dev-app`): Use for `uv lock`, `uv add`, package management, and any operations that modify project files
+- **Test container** (`dashtam-test-app`): Use for running tests via `make test`, `make verify`
+- **CRITICAL**: Always use dev container for `uv lock` to ensure lockfile updates are written to host filesystem
 
 ---
 
@@ -1537,4 +1555,4 @@ async def create_user(
 
 ---
 
-**Last Updated**: 2025-12-31
+**Last Updated**: 2026-01-08

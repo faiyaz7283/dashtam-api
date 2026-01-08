@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from src.core.config import Settings
+from src.core.enums.error_code import ErrorCode
 from src.core.result import Failure, Success
 from src.domain.errors import ProviderAuthenticationError, ProviderUnavailableError
 from src.domain.protocols.provider_protocol import (
@@ -66,13 +67,13 @@ def provider(
 
 
 @pytest.fixture
-def valid_credentials() -> dict:
+def valid_credentials() -> dict[str, str]:
     """Valid API credentials dict."""
     return {"api_key": "PKTEST123", "api_secret": "secret456"}
 
 
 @pytest.fixture
-def sample_account_json() -> dict:
+def sample_account_json() -> dict[str, str]:
     """Sample Alpaca account JSON response."""
     return {
         "account_number": "PA3CRCJ7QUIR",
@@ -85,7 +86,7 @@ def sample_account_json() -> dict:
 
 
 @pytest.fixture
-def sample_position_json() -> dict:
+def sample_position_json() -> dict[str, str]:
     """Sample Alpaca position JSON response."""
     return {
         "asset_id": "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415",
@@ -101,7 +102,7 @@ def sample_position_json() -> dict:
 
 
 @pytest.fixture
-def sample_activity_json() -> dict:
+def sample_activity_json() -> dict[str, str]:
     """Sample Alpaca activity JSON response."""
     return {
         "id": "20210301000000000::8c51c51d-2ccb-4a7c-9bc1-f31b0a7b0ae9",
@@ -141,8 +142,8 @@ class TestFetchAccounts:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
-        sample_account_json: dict,
+        valid_credentials: dict[str, str],
+        sample_account_json: dict[str, str],
     ):
         """Successfully fetch accounts returns ProviderAccountData."""
         mock_accounts_api.get_account.return_value = Success(value=sample_account_json)
@@ -160,11 +161,11 @@ class TestFetchAccounts:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """API authentication failure returns Failure."""
         error = ProviderAuthenticationError(
-            code="PROVIDER_AUTH_FAILED",
+            code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
             message="Invalid credentials",
             provider_name="alpaca",
             is_token_expired=False,
@@ -180,11 +181,11 @@ class TestFetchAccounts:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """API unavailable returns Failure."""
         error = ProviderUnavailableError(
-            code="PROVIDER_UNAVAILABLE",
+            code=ErrorCode.PROVIDER_UNAVAILABLE,
             message="API timeout",
             provider_name="alpaca",
             is_transient=True,
@@ -215,7 +216,7 @@ class TestFetchAccounts:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """Invalid account data returns empty list (mapper returns None)."""
         # Response with no account_number will fail mapping
@@ -242,8 +243,8 @@ class TestFetchHoldings:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
-        sample_position_json: dict,
+        valid_credentials: dict[str, str],
+        sample_position_json: dict[str, str],
     ):
         """Successfully fetch holdings returns ProviderHoldingData."""
         mock_accounts_api.get_positions.return_value = Success(
@@ -263,7 +264,7 @@ class TestFetchHoldings:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """Empty positions returns empty list."""
         mock_accounts_api.get_positions.return_value = Success(value=[])
@@ -277,11 +278,11 @@ class TestFetchHoldings:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """API failure returns Failure."""
         error = ProviderAuthenticationError(
-            code="PROVIDER_AUTH_FAILED",
+            code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
             message="Invalid credentials",
             provider_name="alpaca",
             is_token_expired=False,
@@ -296,7 +297,7 @@ class TestFetchHoldings:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """Multiple positions are all mapped."""
         positions = [
@@ -336,8 +337,8 @@ class TestFetchTransactions:
         self,
         provider: AlpacaProvider,
         mock_transactions_api: AsyncMock,
-        valid_credentials: dict,
-        sample_activity_json: dict,
+        valid_credentials: dict[str, str],
+        sample_activity_json: dict[str, str],
     ):
         """Successfully fetch transactions returns ProviderTransactionData."""
         mock_transactions_api.get_transactions.return_value = Success(
@@ -357,7 +358,7 @@ class TestFetchTransactions:
         self,
         provider: AlpacaProvider,
         mock_transactions_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """Date range is passed to API."""
         mock_transactions_api.get_transactions.return_value = Success(value=[])
@@ -377,7 +378,7 @@ class TestFetchTransactions:
         self,
         provider: AlpacaProvider,
         mock_transactions_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """Empty transactions returns empty list."""
         mock_transactions_api.get_transactions.return_value = Success(value=[])
@@ -391,11 +392,11 @@ class TestFetchTransactions:
         self,
         provider: AlpacaProvider,
         mock_transactions_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """API failure returns Failure."""
         error = ProviderUnavailableError(
-            code="PROVIDER_UNAVAILABLE",
+            code=ErrorCode.PROVIDER_UNAVAILABLE,
             message="Timeout",
             provider_name="alpaca",
             is_transient=True,
@@ -420,8 +421,8 @@ class TestValidateCredentials:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
-        sample_account_json: dict,
+        valid_credentials: dict[str, str],
+        sample_account_json: dict[str, str],
     ):
         """Valid credentials return Success(True)."""
         mock_accounts_api.get_account.return_value = Success(value=sample_account_json)
@@ -435,11 +436,11 @@ class TestValidateCredentials:
         self,
         provider: AlpacaProvider,
         mock_accounts_api: AsyncMock,
-        valid_credentials: dict,
+        valid_credentials: dict[str, str],
     ):
         """Invalid credentials return Failure."""
         error = ProviderAuthenticationError(
-            code="PROVIDER_AUTH_FAILED",
+            code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
             message="Invalid API credentials",
             provider_name="alpaca",
             is_token_expired=False,

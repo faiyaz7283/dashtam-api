@@ -243,6 +243,9 @@ class TestBalanceSnapshotRepositorySave:
             retrieved = await repo.find_by_id(snapshot.id)
 
         assert retrieved is not None
+        assert retrieved.available_balance is not None
+        assert retrieved.holdings_value is not None
+        assert retrieved.cash_value is not None
         assert retrieved.balance.amount == Decimal("10000.00")
         assert retrieved.available_balance.amount == Decimal("9000.00")
         assert retrieved.holdings_value.amount == Decimal("8000.00")

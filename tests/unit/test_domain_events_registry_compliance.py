@@ -15,6 +15,7 @@ Reference:
 """
 
 import pytest
+from typing import Any, cast
 
 from src.domain.enums.audit_action import AuditAction
 from src.domain.events.registry import (
@@ -50,19 +51,19 @@ class TestRegistryCompleteness:
 
     def test_registry_statistics_accurate(self):
         """Registry statistics must match actual counts."""
-        stats = get_statistics()
+        stats: dict[str, Any] = get_statistics()
 
-        assert stats["total_events"] == len(EVENT_REGISTRY)
-        assert stats["total_workflows"] > 0
+        assert cast(int, stats["total_events"]) == len(EVENT_REGISTRY)
+        assert cast(int, stats["total_workflows"]) > 0
 
         # Verify category counts
-        by_category = stats["by_category"]
+        by_category = cast(dict[str, int], stats["by_category"])
         assert "authentication" in by_category
         assert "authorization" in by_category
         assert "provider" in by_category
 
         # Verify phase counts
-        by_phase = stats["by_phase"]
+        by_phase = cast(dict[str, int], stats["by_phase"])
         assert "attempted" in by_phase
         assert "succeeded" in by_phase
         assert "failed" in by_phase
@@ -361,7 +362,7 @@ class TestHelperFunctions:
 
     def test_get_statistics(self):
         """get_statistics returns accurate counts."""
-        stats = get_statistics()
+        stats: dict[str, Any] = get_statistics()
 
         assert "total_events" in stats
         assert "by_category" in stats
@@ -375,4 +376,4 @@ class TestHelperFunctions:
         # All counts should be non-negative
         for key, value in stats.items():
             if key not in ("by_category", "by_phase"):
-                assert value >= 0, f"{key} should be >= 0"
+                assert cast(int, value) >= 0, f"{key} should be >= 0"

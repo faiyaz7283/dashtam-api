@@ -7,6 +7,7 @@ Pattern: Composition over inheritance - adapters can inherit or delegate.
 """
 
 import json
+from typing import Any
 
 from src.core.enums import ErrorCode
 from src.core.result import Failure, Result, Success
@@ -35,7 +36,7 @@ class BaseSecretsAdapter:
         """
         raise NotImplementedError("Subclass must implement get_secret()")
 
-    def get_secret_json(self, secret_path: str) -> Result[dict[str, str], SecretsError]:
+    def get_secret_json(self, secret_path: str) -> Result[dict[str, Any], SecretsError]:
         """Get secret as parsed JSON dictionary.
 
         Shared implementation that:
@@ -47,7 +48,7 @@ class BaseSecretsAdapter:
             secret_path: Path to JSON-formatted secret.
 
         Returns:
-            Success(parsed_dict) if valid JSON.
+            Success(parsed_dict) if valid JSON (dict[str, Any]).
             Failure(SecretsError) if not found, access denied, or invalid JSON.
 
         Example:

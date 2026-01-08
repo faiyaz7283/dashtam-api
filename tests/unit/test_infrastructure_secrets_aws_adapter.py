@@ -181,6 +181,7 @@ class TestAWSAdapterCaching:
 
         # First call
         result1 = adapter.get_secret("test/secret")
+        assert isinstance(result1, Success)
         assert result1.value == "original"
 
         # Manually update cache (simulating what would happen with rotation)
@@ -188,6 +189,7 @@ class TestAWSAdapterCaching:
 
         # Second call should return cached value
         result2 = adapter.get_secret("test/secret")
+        assert isinstance(result2, Success)
         assert result2.value == "updated_in_cache"
 
     @mock_aws
@@ -220,6 +222,7 @@ class TestAWSAdapterCaching:
 
         # First call - caches old value
         result1 = adapter.get_secret("rotating/secret")
+        assert isinstance(result1, Success)
         assert result1.value == "old_value"
 
         # Simulate secret rotation in AWS
@@ -227,11 +230,13 @@ class TestAWSAdapterCaching:
 
         # Without refresh, still returns cached value
         result2 = adapter.get_secret("rotating/secret")
+        assert isinstance(result2, Success)
         assert result2.value == "old_value"
 
         # After refresh, fetches new value
         adapter.refresh_cache()
         result3 = adapter.get_secret("rotating/secret")
+        assert isinstance(result3, Success)
         assert result3.value == "new_value"
 
     @mock_aws
@@ -333,8 +338,12 @@ class TestAWSAdapterGetSecretJson:
         result = adapter.get_secret_json("nested/config")
 
         assert isinstance(result, Success)
-        assert result.value["database"]["host"] == "localhost"
-        assert result.value["credentials"]["password"] == "secret"
+        data = (
+            result.value
+        )  # mypy: infer as str | dict; narrow with cast below if needed
+        assert isinstance(data, dict)
+        assert data["database"]["host"] == "localhost"
+        assert data["credentials"]["password"] == "secret"
 
     @mock_aws
     def test_get_secret_json_caches_parsed_value(self):
@@ -393,5 +402,7 @@ class TestAWSAdapterErrorHandling:
         prod_result = prod_adapter.get_secret("shared/secret")
         staging_result = staging_adapter.get_secret("shared/secret")
 
+        assert isinstance(prod_result, Success)
+        assert isinstance(staging_result, Success)
         assert prod_result.value == "prod_value"
         assert staging_result.value == "staging_value"

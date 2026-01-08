@@ -11,6 +11,7 @@ Reference:
 from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -45,19 +46,19 @@ from src.domain.value_objects.provider_credentials import ProviderCredentials
 @pytest.fixture
 def user_id() -> UUID:
     """User ID for ownership verification."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def other_user_id() -> UUID:
     """Different user ID for ownership failure tests."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def connection_id() -> UUID:
     """Provider connection ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
@@ -534,7 +535,7 @@ async def test_list_accounts_by_user_filter_by_account_type(
         ),
     ]
 
-    query = ListAccountsByUser(user_id=user_id, active_only=False, account_type="ira")
+    query = ListAccountsByUser(user_id=user_id, active_only=False, account_type="ira")  # type: ignore[arg-type]
     mock_account_repo.find_by_user_id.return_value = ira_accounts
 
     # Act
@@ -561,7 +562,9 @@ async def test_list_accounts_by_user_invalid_account_type(
     """ListAccountsByUser returns empty list for invalid account_type string."""
     # Arrange
     query = ListAccountsByUser(
-        user_id=user_id, active_only=False, account_type="invalid-type"
+        user_id=user_id,
+        active_only=False,
+        account_type="invalid-type",  # type: ignore[arg-type]
     )
 
     # Act

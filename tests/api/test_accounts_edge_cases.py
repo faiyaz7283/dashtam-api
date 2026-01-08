@@ -48,10 +48,10 @@ class MockListAccountsByUserHandler:
 
         @dataclass
         class MockAccountListResult:
-            accounts: list = None
+            accounts: list[object] | None = None
             total_count: int = 0
 
-            def __post_init__(self):
+            def __post_init__(self) -> None:
                 if self.accounts is None:
                     self.accounts = []
 

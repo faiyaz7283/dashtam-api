@@ -263,6 +263,7 @@ class TestUserRepositoryUpdate:
         async with test_database.get_session() as session:
             repo = UserRepository(session=session)
             found = await repo.find_by_id(user_id)
+            assert found is not None
             found.password_hash = "new_hash"
             found.is_verified = True
             await repo.update(found)
@@ -299,6 +300,7 @@ class TestUserRepositoryUpdate:
         async with test_database.get_session() as session:
             repo = UserRepository(session=session)
             found = await repo.find_by_id(user_id)
+            assert found is not None
             found.increment_failed_login()
             await repo.update(found)
             await session.commit()

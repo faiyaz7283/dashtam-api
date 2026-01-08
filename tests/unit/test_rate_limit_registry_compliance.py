@@ -256,7 +256,7 @@ class TestRateLimitRegistryStatistics:
 
     def test_registry_scope_distribution(self):
         """Verify scope distribution matches expected patterns."""
-        scope_counts = {}
+        scope_counts: dict[str, int] = {}
         for rule in RATE_LIMIT_RULES.values():
             scope_counts[rule.scope] = scope_counts.get(rule.scope, 0) + 1
 

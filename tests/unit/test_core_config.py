@@ -17,7 +17,8 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from src.core.config import Environment, Settings, get_settings
+from src.core.config import Settings, get_settings
+from src.core.enums.environment import Environment
 
 
 @pytest.fixture
@@ -48,10 +49,10 @@ class TestEnvironmentEnum:
 
     def test_environment_values(self):
         """Test that all expected environments are defined."""
-        assert Environment.DEVELOPMENT == "development"
-        assert Environment.TESTING == "testing"
-        assert Environment.CI == "ci"
-        assert Environment.PRODUCTION == "production"
+        assert Environment.DEVELOPMENT.value == "development"
+        assert Environment.TESTING.value == "testing"
+        assert Environment.CI.value == "ci"
+        assert Environment.PRODUCTION.value == "production"
 
 
 class TestSettingsValidation:
@@ -71,7 +72,7 @@ class TestSettingsValidation:
         with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             with pytest.raises(ValidationError) as exc_info:
-                Settings()
+                Settings()  # type: ignore[call-arg]
 
             errors = exc_info.value.errors()
             assert any(
@@ -85,7 +86,7 @@ class TestSettingsValidation:
         with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             with pytest.raises(ValidationError) as exc_info:
-                Settings()
+                Settings()  # type: ignore[call-arg]
 
             errors = exc_info.value.errors()
             assert any(
@@ -113,7 +114,8 @@ class TestSettingsValidation:
         with patch.dict(os.environ, env_values, clear=True):
             get_settings.cache_clear()
             settings = get_settings()
-            assert settings.cors_origins == [
+            # cors_origins is str in type annotation but list[str] at runtime
+            assert settings.cors_origins == [  # type: ignore[comparison-overlap]
                 "https://example.com",
                 "https://app.example.com",
                 "https://test.com",
@@ -144,7 +146,8 @@ class TestSettingsLoading:
             assert settings.redis_url == "redis://localhost:6379/1"
             assert settings.secret_key == "test-secret-key-minlen-32!!!****"
             assert settings.api_base_url == "https://test.example.com"
-            assert settings.cors_origins == ["https://test.com"]
+            # cors_origins is str in type annotation but list[str] at runtime
+            assert settings.cors_origins == ["https://test.com"]  # type: ignore[comparison-overlap]
 
     def test_settings_defaults(self, base_test_env):
         """Test Settings default values."""
@@ -178,7 +181,7 @@ class TestSettingsLoading:
         with patch.dict(os.environ, {}, clear=True):
             get_settings.cache_clear()
             with pytest.raises(ValidationError) as exc_info:
-                Settings()
+                Settings()  # type: ignore[call-arg]
 
             errors = exc_info.value.errors()
             # Required fields: database_url, redis_url, secret_key, encryption_key,

@@ -177,7 +177,7 @@ class TestAuthPolicyEnforcement:
                 )
 
                 # MANUAL_AUTH routes handle auth themselves
-                is_manual_auth = entry.auth_policy.level == AuthLevel.MANUAL_AUTH
+                is_manual_auth = entry.auth_policy.level == AuthLevel.MANUAL_AUTH  # type: ignore[comparison-overlap]
 
                 # Either has dependency OR is manual (but not both in this case)
                 assert has_auth_dependency or is_manual_auth, (
@@ -354,6 +354,8 @@ class TestMetadataConsistency:
         valid_error_statuses = {400, 401, 403, 404, 409, 415, 422, 429, 500, 502, 503}
 
         for entry in ROUTE_REGISTRY:
+            if entry.errors is None:
+                continue
             for error_spec in entry.errors:
                 assert error_spec.status in valid_error_statuses, (
                     f"Route '{entry.method.value} {entry.path}' "
@@ -404,25 +406,25 @@ class TestRegistryStatistics:
         This test always passes - it's informational only.
         """
         # Count by method
-        method_counts = {}
+        method_counts: dict[str, int] = {}
         for entry in ROUTE_REGISTRY:
             method = entry.method.value
             method_counts[method] = method_counts.get(method, 0) + 1
 
         # Count by auth policy
-        auth_counts = {}
+        auth_counts: dict[str, int] = {}
         for entry in ROUTE_REGISTRY:
             level = entry.auth_policy.level.value
             auth_counts[level] = auth_counts.get(level, 0) + 1
 
         # Count by rate limit policy
-        rate_limit_counts = {}
+        rate_limit_counts: dict[str, int] = {}
         for entry in ROUTE_REGISTRY:
             policy = entry.rate_limit_policy.value
             rate_limit_counts[policy] = rate_limit_counts.get(policy, 0) + 1
 
         # Count by idempotency
-        idempotency_counts = {}
+        idempotency_counts: dict[str, int] = {}
         for entry in ROUTE_REGISTRY:
             level = entry.idempotency.value
             idempotency_counts[level] = idempotency_counts.get(level, 0) + 1

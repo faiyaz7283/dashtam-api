@@ -63,12 +63,14 @@ class TestEventBusContainerIntegration:
 
         # Assert - Check subscriptions exist for critical events
         # InMemoryEventBus stores handlers in _handlers dict
-        assert len(event_bus._handlers) > 0
+        # Access _handlers via internal attribute (protocol doesn't expose it)
+        handlers = getattr(event_bus, "_handlers", {})
+        assert len(handlers) > 0
 
         # Check UserRegistrationSucceeded has multiple handlers
         # (logging, audit, email)
-        assert UserRegistrationSucceeded in event_bus._handlers
-        assert len(event_bus._handlers[UserRegistrationSucceeded]) >= 3
+        assert UserRegistrationSucceeded in handlers
+        assert len(handlers[UserRegistrationSucceeded]) >= 3
 
 
 @pytest.mark.integration

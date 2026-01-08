@@ -96,7 +96,7 @@ class MockGetTransactionHandler:
         self._transaction = transaction
         self._error = error
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._transaction)
@@ -117,7 +117,7 @@ class MockListTransactionsHandler:
         )
         self._error = error
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._result)
@@ -141,7 +141,7 @@ class MockSyncTransactionsHandler:
         )
         self._error = error
 
-    async def handle(self, command: Any) -> Success | Failure:
+    async def handle(self, command: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         return Success(value=self._result)

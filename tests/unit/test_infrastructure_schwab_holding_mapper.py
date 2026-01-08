@@ -4,6 +4,7 @@ Tests the mapping of Schwab position JSON responses to ProviderHoldingData.
 """
 
 from decimal import Decimal
+from typing import Any
 
 import pytest
 
@@ -26,7 +27,7 @@ def mapper() -> SchwabHoldingMapper:
 
 
 @pytest.fixture
-def valid_equity_position() -> dict:
+def valid_equity_position() -> dict[str, Any]:
     """Create a valid equity position from Schwab."""
     return {
         "longQuantity": 100.0,
@@ -45,7 +46,7 @@ def valid_equity_position() -> dict:
 
 
 @pytest.fixture
-def valid_etf_position() -> dict:
+def valid_etf_position() -> dict[str, Any]:
     """Create a valid ETF position from Schwab."""
     return {
         "longQuantity": 50.0,
@@ -62,7 +63,7 @@ def valid_etf_position() -> dict:
 
 
 @pytest.fixture
-def valid_option_position() -> dict:
+def valid_option_position() -> dict[str, Any]:
     """Create a valid option position from Schwab."""
     return {
         "longQuantity": 5.0,
@@ -80,7 +81,7 @@ def valid_option_position() -> dict:
 
 
 @pytest.fixture
-def short_position() -> dict:
+def short_position() -> dict[str, Any]:
     """Create a short position from Schwab."""
     return {
         "longQuantity": 0.0,
@@ -97,7 +98,7 @@ def short_position() -> dict:
 
 
 @pytest.fixture
-def account_with_positions() -> dict:
+def account_with_positions() -> dict[str, Any]:
     """Create a full account response with positions."""
     return {
         "securitiesAccount": {
@@ -140,7 +141,7 @@ class TestMapHoldingValidData:
     """Tests for map_holding with valid position data."""
 
     def test_maps_equity_position(
-        self, mapper: SchwabHoldingMapper, valid_equity_position: dict
+        self, mapper: SchwabHoldingMapper, valid_equity_position: dict[str, Any]
     ) -> None:
         """Test mapping a valid equity position."""
         result = mapper.map_holding(valid_equity_position)
@@ -157,7 +158,7 @@ class TestMapHoldingValidData:
         assert result.provider_holding_id == "schwab_037833100_AAPL"
 
     def test_maps_etf_position(
-        self, mapper: SchwabHoldingMapper, valid_etf_position: dict
+        self, mapper: SchwabHoldingMapper, valid_etf_position: dict[str, Any]
     ) -> None:
         """Test mapping a valid ETF position."""
         result = mapper.map_holding(valid_etf_position)
@@ -169,7 +170,7 @@ class TestMapHoldingValidData:
         assert result.market_value == Decimal("23000")
 
     def test_maps_option_position(
-        self, mapper: SchwabHoldingMapper, valid_option_position: dict
+        self, mapper: SchwabHoldingMapper, valid_option_position: dict[str, Any]
     ) -> None:
         """Test mapping a valid option position."""
         result = mapper.map_holding(valid_option_position)
@@ -182,7 +183,7 @@ class TestMapHoldingValidData:
         assert result.provider_holding_id == "schwab_option_AAPL_012624C195"
 
     def test_maps_short_position(
-        self, mapper: SchwabHoldingMapper, short_position: dict
+        self, mapper: SchwabHoldingMapper, short_position: dict[str, Any]
     ) -> None:
         """Test mapping a short position (negative quantity)."""
         result = mapper.map_holding(short_position)
@@ -193,7 +194,7 @@ class TestMapHoldingValidData:
         assert result.market_value == Decimal("-10000")
 
     def test_calculates_cost_basis_from_average_price(
-        self, mapper: SchwabHoldingMapper, valid_equity_position: dict
+        self, mapper: SchwabHoldingMapper, valid_equity_position: dict[str, Any]
     ) -> None:
         """Test cost basis calculation from average price * quantity."""
         result = mapper.map_holding(valid_equity_position)
@@ -203,7 +204,7 @@ class TestMapHoldingValidData:
         assert result.cost_basis == Decimal("15025.00")
 
     def test_preserves_raw_data(
-        self, mapper: SchwabHoldingMapper, valid_equity_position: dict
+        self, mapper: SchwabHoldingMapper, valid_equity_position: dict[str, Any]
     ) -> None:
         """Test that raw data is preserved in result."""
         result = mapper.map_holding(valid_equity_position)
@@ -342,8 +343,8 @@ class TestMapHoldings:
     def test_maps_multiple_positions(
         self,
         mapper: SchwabHoldingMapper,
-        valid_equity_position: dict,
-        valid_etf_position: dict,
+        valid_equity_position: dict[str, Any],
+        valid_etf_position: dict[str, Any],
     ) -> None:
         """Test mapping multiple positions."""
         positions = [valid_equity_position, valid_etf_position]
@@ -356,7 +357,7 @@ class TestMapHoldings:
     def test_skips_invalid_positions(
         self,
         mapper: SchwabHoldingMapper,
-        valid_equity_position: dict,
+        valid_equity_position: dict[str, Any],
     ) -> None:
         """Test that invalid positions are skipped."""
         positions = [
@@ -384,7 +385,7 @@ class TestMapHoldingsFromAccount:
     """Tests for map_holdings_from_account."""
 
     def test_extracts_positions_from_account(
-        self, mapper: SchwabHoldingMapper, account_with_positions: dict
+        self, mapper: SchwabHoldingMapper, account_with_positions: dict[str, Any]
     ) -> None:
         """Test extracting positions from full account response."""
         results = mapper.map_holdings_from_account(account_with_positions)

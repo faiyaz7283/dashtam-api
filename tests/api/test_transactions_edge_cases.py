@@ -48,10 +48,10 @@ class MockListTransactionsByDateRangeHandler:
 
         @dataclass
         class MockTransactionListResult:
-            transactions: list = None
+            transactions: list[object] | None = None
             total_count: int = 0
 
-            def __post_init__(self):
+            def __post_init__(self) -> None:
                 if self.transactions is None:
                     self.transactions = []
 

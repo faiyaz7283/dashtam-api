@@ -316,6 +316,7 @@ class TestGenerateAuthTokensHandlerTokenContent:
         result = await handler.handle(command)
 
         # Assert
+        assert isinstance(result, Success)
         assert result.value.access_token == expected_jwt
 
     @pytest.mark.asyncio
@@ -358,6 +359,7 @@ class TestGenerateAuthTokensHandlerTokenContent:
         result = await handler.handle(command)
 
         # Assert - Client receives opaque token, NOT the hash
+        assert isinstance(result, Success)
         assert result.value.refresh_token == opaque_token
         assert result.value.refresh_token != token_hash
 

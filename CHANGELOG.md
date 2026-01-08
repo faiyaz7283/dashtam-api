@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.7] - 2026-01-08
+
+### Added
+
+- **Test Type Safety (Pragmatic Approach)**
+  - Enabled `check_untyped_defs = true` in mypy configuration for test files
+  - Type-checking now includes `tests/` directory alongside `src/`
+  - Fixed 436 mypy errors across 132 test files (unit, integration, API tests)
+  - Makefile updated: `make typecheck` and `make verify` now type-check both `src` and `tests`
+
+### Documentation
+
+- **Testing Architecture**: Added "Type Safety in Tests" section to `docs/architecture/testing-architecture.md`
+  - Common type patterns: `cast(UUID, uuid7())`, `isinstance(result, Success)`, `assert obj is not None`
+  - Guidelines for `# type: ignore[error-code]` usage
+  - Protocol-compliant test stub patterns
+- **WARP.md**: Updated Section 12 (Testing Strategy) with type safety patterns and reference
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,273 tests pass, 87% coverage maintained
+- **Pragmatic Typing**: Tests use relaxed mypy settings (`disallow_untyped_defs = false`) but still catch type mismatches in test bodies
+- **Source File Change**: Widened `base_adapter.py` return type from `dict[str, str]` to `dict[str, Any]` for `get_secret_json()`
+- **Key Patterns Applied**:
+  - `cast(UUID, uuid7())` for uuid_utils compatibility
+  - `isinstance(result, Success)` before accessing `.value` on Result types
+  - `Success[object] | Failure[str]` for mock handler return types
+  - Protocol-compliant signatures in StubEventBus (matching `EventBusProtocol`)
+- Files changed: 135+ files (132 test files, pyproject.toml, Makefile, docs)
+
 ## [1.6.6] - 2026-01-05
 
 ### Changed

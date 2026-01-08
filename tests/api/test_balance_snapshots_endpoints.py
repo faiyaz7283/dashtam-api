@@ -81,7 +81,7 @@ class MockGetLatestSnapshotsHandler:
         self._snapshots = snapshots or []
         self._error = error
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         # Build total balance by currency
@@ -111,7 +111,7 @@ class MockGetBalanceHistoryHandler:
         self._error = error
         self._account_id = account_id or uuid7()
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         values = [s.balance for s in self._snapshots] if self._snapshots else []
@@ -142,7 +142,7 @@ class MockListSnapshotsByAccountHandler:
         self._error = error
         self._account_id = account_id or uuid7()
 
-    async def handle(self, query: Any) -> Success | Failure:
+    async def handle(self, query: Any) -> Success[object] | Failure[str]:
         if self._error:
             return Failure(error=self._error)
         values = [s.balance for s in self._snapshots] if self._snapshots else []

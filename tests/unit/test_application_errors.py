@@ -99,7 +99,9 @@ class TestApplicationError:
         assert error.code == ApplicationErrorCode.COMMAND_VALIDATION_FAILED
         assert error.message == "User creation failed: validation error"
         assert error.domain_error == domain_error
-        assert error.domain_error.field == "email"
+        assert (
+            hasattr(error.domain_error, "field") and error.domain_error.field == "email"
+        )
 
     def test_create_error_with_details(self):
         """Test creating ApplicationError with additional details."""

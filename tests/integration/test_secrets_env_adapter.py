@@ -71,6 +71,8 @@ class TestEnvAdapterIntegration:
         result1 = adapter1.get_secret("database/url")
         result2 = adapter2.get_secret("database/url")
 
+        assert isinstance(result1, Success)
+        assert isinstance(result2, Success)
         assert result1.value == result2.value
 
     def test_env_adapter_with_dynamically_set_var(self):
@@ -83,6 +85,7 @@ class TestEnvAdapterIntegration:
             result = adapter.get_secret("integration/test/secret")
 
             assert isinstance(result, Success)
+            # isinstance check above narrows type
             assert result.value == test_var_value
 
     def test_env_adapter_refresh_reflects_environment_changes(self):
@@ -92,6 +95,7 @@ class TestEnvAdapterIntegration:
         with patch.dict(os.environ, {test_var_name: "original_value"}):
             adapter = EnvAdapter()
             result1 = adapter.get_secret("changing/var")
+            assert isinstance(result1, Success)
             assert result1.value == "original_value"
 
             # Change environment variable
@@ -102,6 +106,7 @@ class TestEnvAdapterIntegration:
 
             # Read again - should get new value
             result2 = adapter.get_secret("changing/var")
+            assert isinstance(result2, Success)
             assert result2.value == "new_value"
 
 
@@ -115,14 +120,17 @@ class TestEnvAdapterWithSettings:
 
         # Compare database URL
         db_result = adapter.get_secret("database/url")
+        assert isinstance(db_result, Success)
         assert db_result.value == settings.database_url
 
         # Compare Redis URL
         redis_result = adapter.get_secret("redis/url")
+        assert isinstance(redis_result, Success)
         assert redis_result.value == settings.redis_url
 
         # Compare secret key
         secret_result = adapter.get_secret("secret/key")
+        assert isinstance(secret_result, Success)
         assert secret_result.value == settings.secret_key
 
     def test_env_adapter_can_access_all_required_settings(self):

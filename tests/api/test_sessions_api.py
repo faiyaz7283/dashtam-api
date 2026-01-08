@@ -365,7 +365,7 @@ def override_dependencies(mock_user_id, mock_session_id):
     def mock_get_token_service():
         return StubTokenService(mock_user_id, mock_session_id)
 
-    container_module.get_token_service = mock_get_token_service
+    container_module.get_token_service = mock_get_token_service  # type: ignore[assignment]
 
     # Monkeypatch SessionCache and SessionRepository used in helper functions
     import src.infrastructure.cache as cache_module
@@ -374,21 +374,21 @@ def override_dependencies(mock_user_id, mock_session_id):
     original_redis_session_cache = cache_module.RedisSessionCache
     original_session_repository = repo_module.SessionRepository
 
-    cache_module.RedisSessionCache = StubSessionCache
+    cache_module.RedisSessionCache = StubSessionCache  # type: ignore[assignment,misc]
 
     # SessionRepository needs session_id to return valid session
-    def mock_session_repository_factory(session):
+    def mock_session_repository_factory(session: object) -> StubSessionRepository:
         return StubSessionRepository(mock_session_id)
 
-    repo_module.SessionRepository = mock_session_repository_factory
+    repo_module.SessionRepository = mock_session_repository_factory  # type: ignore[assignment,misc]
 
     yield
 
     # Cleanup
     app.dependency_overrides.clear()
     container_module.get_token_service = original_get_token_service
-    cache_module.RedisSessionCache = original_redis_session_cache
-    repo_module.SessionRepository = original_session_repository
+    cache_module.RedisSessionCache = original_redis_session_cache  # type: ignore[misc]
+    repo_module.SessionRepository = original_session_repository  # type: ignore[misc]
 
 
 @pytest.fixture

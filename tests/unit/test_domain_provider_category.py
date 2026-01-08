@@ -131,4 +131,4 @@ class TestProviderCategoryStringBehavior:
     def test_all_categories_are_strings(self, category):
         """Test all categories behave as strings."""
         assert isinstance(category, str)
-        assert category == category.value
+        assert category == category

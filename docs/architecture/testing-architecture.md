@@ -1465,6 +1465,227 @@ def test_token_expiration():
 
 ---
 
+## Type Safety in Tests
+
+### Configuration
+
+**Pragmatic Approach**: Tests are type-checked with `check_untyped_defs = true` in mypy configuration. This ensures tests follow the same type safety standards as production code.
+
+```toml
+# pyproject.toml
+[tool.mypy]
+check_untyped_defs = true  # Type-check test functions without annotations
+```
+
+**Why type-check tests?**
+
+- **Catch errors early**: Type mismatches in mocks and assertions caught at lint time
+- **Documentation**: Type hints clarify test intent and expected behavior
+- **Refactoring safety**: Tests break visibly when production signatures change
+- **IDE support**: Better autocomplete and inline error detection
+
+**Makefile integration**: Type-checking includes both `src` and `tests`:
+
+```makefile
+make typecheck  # Runs: mypy src tests
+make verify     # Includes typecheck step
+```
+
+### Common Type Patterns in Tests
+
+#### 1. UUID Generation with `uuid7()`
+
+The `uuid_utils.uuid7()` function returns `UUID` but mypy may not recognize the return type without explicit casting.
+
+```python
+from typing import cast
+from uuid import UUID
+from uuid_utils import uuid7
+
+# ✅ CORRECT: Cast uuid7() return value
+user_id: UUID = cast(UUID, uuid7())
+event = UserRegistrationSucceeded(user_id=user_id, email="test@example.com")
+
+# ❌ WRONG: Direct usage without cast
+user_id = uuid7()  # mypy error: Incompatible types
+```
+
+#### 2. Result Type Narrowing
+
+When working with `Result[T, E]` types, use `isinstance()` to narrow the type before accessing `.value` or `.error`.
+
+```python
+from src.core.result import Result, Success, Failure
+
+# ✅ CORRECT: isinstance() narrows type
+result: Result[User, UserError] = await handler.handle(command)
+assert isinstance(result, Success)
+assert result.value.email == "test@example.com"  # .value accessible after narrowing
+
+# ✅ CORRECT: Failure case
+assert isinstance(result, Failure)
+assert result.error.code == ErrorCode.INVALID_EMAIL  # .error accessible
+
+# ❌ WRONG: Direct access without narrowing
+assert result.value.email == "test@example.com"  # mypy error: Item has no attribute 'value'
+```
+
+#### 3. Mock Return Types
+
+When creating mock handlers or services, specify return types that match the protocol.
+
+```python
+from unittest.mock import AsyncMock
+from src.core.result import Success, Failure
+
+# ✅ CORRECT: Specify mock return type
+mock_handler = AsyncMock()
+mock_handler.handle.return_value: Success[UUID] | Failure[str] = Success(value=user_id)
+
+# ✅ CORRECT: For generic success/failure patterns
+from typing import Any
+mock_handler.handle.return_value: Success[object] | Failure[str] = Success(value=user_id)
+```
+
+#### 4. Dict Parameters
+
+When functions accept untyped dicts, use `dict[str, Any]` for flexibility.
+
+```python
+from typing import Any
+
+# ✅ CORRECT: Explicit dict type
+def create_test_payload() -> dict[str, Any]:
+    return {"email": "test@example.com", "password": "SecurePass123!"}
+
+# ✅ CORRECT: As parameter type
+async def test_endpoint(payload: dict[str, Any]) -> None:
+    response = client.post("/api/v1/users", json=payload)
+```
+
+#### 5. Optional Attribute Access
+
+Use assertions to narrow optional types before accessing attributes.
+
+```python
+# ✅ CORRECT: Assert before access
+user = await repository.find_by_id(user_id)
+assert user is not None  # Narrows type from User | None to User
+assert user.email == "test@example.com"
+
+# ❌ WRONG: Direct access on optional
+user = await repository.find_by_id(user_id)
+assert user.email == "test@example.com"  # mypy error: Item could be None
+```
+
+#### 6. Dynamic Attribute Access
+
+For monkeypatching or dynamic attribute manipulation, use `getattr()`/`setattr()` to avoid `attr-defined` errors.
+
+```python
+import sys
+
+# ✅ CORRECT: Use setattr for dynamic module attributes
+setattr(sys.modules["os"], "environ", mock_environ)
+
+# ✅ CORRECT: Use getattr for dynamic access
+original = getattr(module, "some_attribute", None)
+
+# ❌ WRONG: Direct attribute assignment
+sys.modules["os"].environ = mock_environ  # mypy error: Cannot assign to attribute
+```
+
+### When to Use Type Ignore Comments
+
+**Principle**: Use `# type: ignore` sparingly and only with specific error codes.
+
+#### Acceptable Uses
+
+```python
+# 1. Intentional wrong-type testing
+def test_rejects_invalid_type():
+    result = validate_email(12345)  # type: ignore[arg-type]
+    assert isinstance(result, Failure)
+
+# 2. Monkeypatching module attributes
+monkeypatch.setattr(module, "attribute", mock)  # type: ignore[misc]
+
+# 3. Intentional non-overlapping comparison tests
+assert error.code != "unrelated_code"  # type: ignore[comparison-overlap]
+
+# 4. Testing private/internal APIs
+result = obj._internal_method()  # type: ignore[attr-defined]
+```
+
+#### Avoid These Patterns
+
+```python
+# ❌ DON'T: Blanket ignore without error code
+result = something()  # type: ignore
+
+# ❌ DON'T: Ignoring to avoid fixing real issues
+user.nonexistent_attr  # type: ignore  # Fix the test instead!
+
+# ❌ DON'T: Ignoring return type mismatches
+return wrong_type  # type: ignore  # Fix the function signature
+```
+
+### Protocol Compliance in Test Stubs
+
+When creating test stubs or mock implementations, ensure they match the protocol signature exactly.
+
+```python
+from src.domain.protocols.event_bus_protocol import EventBusProtocol
+from src.domain.events.base_event import DomainEvent
+from src.domain.events.event_metadata import EventMetadata
+from sqlalchemy.ext.asyncio import AsyncSession
+
+class StubEventBus:
+    """Test stub matching EventBusProtocol signature."""
+    
+    def __init__(self) -> None:
+        self.published_events: list[DomainEvent] = []
+    
+    async def publish(
+        self,
+        event: DomainEvent,
+        *,
+        session: AsyncSession | None = None,
+        metadata: EventMetadata | None = None,
+    ) -> None:
+        """Match exact protocol signature."""
+        self.published_events.append(event)
+    
+    def subscribe(
+        self,
+        event_type: type[DomainEvent],
+        handler: Any,
+    ) -> None:
+        """Match protocol - even if not used in test."""
+        pass
+```
+
+### Testing Guidelines Summary
+
+**Type Safety Checklist**:
+
+- [ ] `cast(UUID, uuid7())` for UUID generation
+- [ ] `isinstance()` before accessing Result `.value` or `.error`
+- [ ] `assert obj is not None` before accessing optional attributes
+- [ ] `dict[str, Any]` for untyped dict parameters
+- [ ] Specific error codes in `# type: ignore[error-code]` comments
+- [ ] Protocol-compliant signatures in test stubs
+
+**Running Type Checks**:
+
+```bash
+make typecheck       # Type-check src and tests
+make verify          # Full verification including typecheck
+mypy tests/unit/     # Type-check specific directory
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -1540,4 +1761,4 @@ This testing architecture provides:
 
 ---
 
-**Created**: 2025-11-12 | **Last Updated**: 2025-12-07
+**Created**: 2025-11-12 | **Last Updated**: 2026-01-08

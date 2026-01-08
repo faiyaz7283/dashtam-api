@@ -28,7 +28,8 @@ async def redis_client():
         decode_responses=False,
     )
     client = Redis(connection_pool=pool)
-    await client.ping()
+    # Redis.ping() is async but type hint is union - cast for clarity
+    await client.ping()  # type: ignore[misc]
     yield client
     await client.aclose()
     await pool.disconnect()

@@ -27,6 +27,7 @@ Reference:
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -66,19 +67,19 @@ from src.domain.value_objects.provider_credentials import ProviderCredentials
 @pytest.fixture
 def user_id() -> UUID:
     """User ID for ownership verification."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def connection_id() -> UUID:
     """Provider connection ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def account_id() -> UUID:
     """Account ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
@@ -198,9 +199,9 @@ class TestListTransactionsByAccountHandler:
 
         # Execute
         handler = ListTransactionsByAccountHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByAccount(
             account_id=account_id, user_id=user_id, limit=50, offset=0
@@ -244,9 +245,9 @@ class TestListTransactionsByAccountHandler:
 
         # Execute
         handler = ListTransactionsByAccountHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByAccount(
             account_id=account_id,
@@ -302,9 +303,9 @@ class TestListTransactionsByAccountHandler:
 
         # Execute
         handler = ListTransactionsByAccountHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByAccount(
             account_id=account_id, user_id=user_id, limit=10, offset=0
@@ -336,9 +337,9 @@ class TestListTransactionsByAccountHandler:
 
         # Execute
         handler = ListTransactionsByAccountHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByAccount(
             account_id=account_id, user_id=user_id, limit=50, offset=0
@@ -365,9 +366,9 @@ class TestListTransactionsByAccountHandler:
 
         # Execute
         handler = ListTransactionsByAccountHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByAccount(
             account_id=account_id, user_id=user_id, limit=50, offset=0
@@ -390,9 +391,9 @@ class TestListTransactionsByAccountHandler:
 
         # Execute
         handler = ListTransactionsByAccountHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByAccount(
             account_id=account_id, user_id=user_id, limit=50, offset=0
@@ -436,9 +437,9 @@ class TestListTransactionsByAccountHandler:
 
         # Execute
         handler = ListTransactionsByAccountHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByAccount(
             account_id=account_id, user_id=user_id, limit=50, offset=0
@@ -479,9 +480,9 @@ class TestListTransactionsByDateRangeHandler:
 
         # Execute
         handler = ListTransactionsByDateRangeHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByDateRange(
             account_id=account_id,
@@ -510,9 +511,9 @@ class TestListTransactionsByDateRangeHandler:
 
         # Execute
         handler = ListTransactionsByDateRangeHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByDateRange(
             account_id=account_id,
@@ -538,9 +539,9 @@ class TestListTransactionsByDateRangeHandler:
 
         # Execute
         handler = ListTransactionsByDateRangeHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByDateRange(
             account_id=account_id,
@@ -587,9 +588,9 @@ class TestListTransactionsByDateRangeHandler:
 
         # Execute
         handler = ListTransactionsByDateRangeHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListTransactionsByDateRange(
             account_id=account_id,
@@ -633,9 +634,9 @@ class TestListSecurityTransactionsHandler:
 
         # Execute
         handler = ListSecurityTransactionsHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListSecurityTransactions(
             account_id=account_id, user_id=user_id, symbol="AAPL", limit=50
@@ -693,9 +694,9 @@ class TestListSecurityTransactionsHandler:
 
         # Execute
         handler = ListSecurityTransactionsHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListSecurityTransactions(
             account_id=account_id, user_id=user_id, symbol="AAPL", limit=5
@@ -729,9 +730,9 @@ class TestListSecurityTransactionsHandler:
 
         # Execute
         handler = ListSecurityTransactionsHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListSecurityTransactions(
             account_id=account_id, user_id=user_id, symbol="TSLA", limit=50
@@ -757,9 +758,9 @@ class TestListSecurityTransactionsHandler:
 
         # Execute
         handler = ListSecurityTransactionsHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListSecurityTransactions(
             account_id=account_id, user_id=user_id, symbol="AAPL", limit=50
@@ -803,9 +804,9 @@ class TestListSecurityTransactionsHandler:
 
         # Execute
         handler = ListSecurityTransactionsHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = ListSecurityTransactions(
             account_id=account_id, user_id=user_id, symbol="AAPL", limit=50

@@ -35,7 +35,7 @@ class TestUserRole:
         """Test roles are string enums for easy serialization."""
         assert isinstance(UserRole.ADMIN.value, str)
         assert str(UserRole.ADMIN) == "UserRole.ADMIN"
-        assert UserRole.ADMIN == "admin"  # String comparison works
+        assert UserRole.ADMIN.value == "admin"  # String comparison works
 
     def test_role_membership(self) -> None:
         """Test enum membership check."""

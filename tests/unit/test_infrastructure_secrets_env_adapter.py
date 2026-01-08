@@ -50,6 +50,7 @@ class TestEnvAdapterGetSecret:
             assert isinstance(result.error, SecretsError)
             assert result.error.code == ErrorCode.SECRET_NOT_FOUND
             assert "DATABASE_URL" in result.error.message
+            assert result.error.details is not None
             assert result.error.details["secret_path"] == "database/url"
 
     def test_get_secret_path_conversion(self):
@@ -210,6 +211,8 @@ class TestEnvAdapterEdgeCases:
             result1 = adapter1.get_secret("test/secret")
             result2 = adapter2.get_secret("test/secret")
 
+            assert isinstance(result1, Success)
+            assert isinstance(result2, Success)
             assert result1.value == result2.value == "value1"
 
     def test_get_secret_with_numeric_value(self):
@@ -242,4 +245,7 @@ class TestEnvAdapterEdgeCases:
             result3 = adapter.get_secret("DaTaBaSe/UrL")
 
             assert all(isinstance(r, Success) for r in [result1, result2, result3])
+            assert isinstance(result1, Success)
+            assert isinstance(result2, Success)
+            assert isinstance(result3, Success)
             assert result1.value == result2.value == result3.value == "value"

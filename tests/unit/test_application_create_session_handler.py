@@ -548,6 +548,7 @@ class TestCreateSessionHandlerEvents:
         published_event = mock_event_bus.publish.call_args_list[-1][0][0]
         assert isinstance(published_event, SessionCreatedEvent)
         assert published_event.user_id == user_id
+        assert isinstance(result, Success)
         assert published_event.session_id == result.value.session_id
         assert published_event.device_info == "Chrome on Windows"
         assert published_event.location == "New York, US"

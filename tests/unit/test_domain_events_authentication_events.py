@@ -89,7 +89,7 @@ class TestDomainEventBaseProperties:
         with pytest.raises(
             AttributeError
         ):  # dataclasses.FrozenInstanceError inherits from AttributeError
-            event.email = "changed@example.com"
+            event.email = "changed@example.com"  # type: ignore[misc]
 
     def test_event_inherits_from_domain_event(self):
         """Test all events inherit from DomainEvent."""
@@ -362,12 +362,12 @@ class TestEventDataclassStructure:
         # Act & Assert - Positional arguments should fail
         with pytest.raises(TypeError):
             # This should fail because kw_only=True
-            UserRegistrationSucceeded(
+            UserRegistrationSucceeded(  # type: ignore[misc,call-arg]
                 UUID(
                     "12345678-1234-5678-1234-567812345678"
                 ),  # Positional - should fail
-                "test@example.com",
-                "verification_token",
+                "test@example.com",  # type: ignore[arg-type]
+                "verification_token",  # type: ignore[arg-type]
             )
 
     def test_event_with_explicit_event_id(self):

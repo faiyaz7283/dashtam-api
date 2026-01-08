@@ -22,6 +22,7 @@ Reference:
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -55,25 +56,25 @@ from src.domain.value_objects.provider_credentials import ProviderCredentials
 @pytest.fixture
 def user_id() -> UUID:
     """User ID for ownership verification."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def connection_id() -> UUID:
     """Provider connection ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def account_id() -> UUID:
     """Account ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
 def transaction_id() -> UUID:
     """Transaction ID."""
-    return uuid7()
+    return cast(UUID, uuid7())
 
 
 @pytest.fixture
@@ -190,9 +191,9 @@ class TestGetTransactionHandlerSuccess:
 
         # Execute
         handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
@@ -258,9 +259,9 @@ class TestGetTransactionHandlerSuccess:
 
         # Execute
         handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
@@ -309,9 +310,9 @@ class TestGetTransactionHandlerFailures:
 
         # Execute
         handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
@@ -337,9 +338,9 @@ class TestGetTransactionHandlerFailures:
 
         # Execute
         handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
@@ -366,9 +367,9 @@ class TestGetTransactionHandlerFailures:
 
         # Execute
         handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
@@ -413,9 +414,9 @@ class TestGetTransactionHandlerFailures:
 
         # Execute
         handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,
-            account_repo=account_repo,
-            connection_repo=connection_repo,
+            transaction_repo=transaction_repo,  # type: ignore[arg-type]
+            account_repo=account_repo,  # type: ignore[arg-type]
+            connection_repo=connection_repo,  # type: ignore[arg-type]
         )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)

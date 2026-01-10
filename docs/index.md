@@ -6,22 +6,22 @@ Dashtam is a **secure, modern financial data aggregation platform** built from t
 
 Dashtam is built on six foundational architectural pillars:
 
-**[Hexagonal Architecture](architecture/hexagonal-architecture.md)**
+**[Hexagonal Architecture](architecture/hexagonal.md)**
 : Domain at center with zero framework dependencies. Infrastructure adapts to domain through protocols (ports & adapters).
 
-**[Protocol-Based Design](architecture/protocol-based-architecture.md)**
+**[Protocol-Based Design](architecture/protocols.md)**
 : Structural typing with Python `Protocol`. No inheritance required. Framework-independent interfaces.
 
-**[CQRS Pattern](architecture/cqrs-pattern.md)**
+**[CQRS Pattern](architecture/cqrs.md)**
 : Separate command handlers (write) from query handlers (read). Clear separation of concerns.
 
-**[Domain-Driven Design](architecture/domain-driven-design-architecture.md)**
+**[Domain-Driven Design](architecture/domain-driven-design.md)**
 : Pragmatic DDD with entities, value objects, and domain events for critical workflows only.
 
-**[Registry Pattern](architecture/registry-pattern-architecture.md)**
+**[Registry Pattern](architecture/registry.md)**
 : Metadata-driven auto-wiring eliminates manual drift. Single source of truth with self-enforcing tests. **5 implementations**: Domain Events, Provider Integration, Rate Limits, Validation Rules, Route Metadata.
 
-**[Dependency Injection](architecture/dependency-injection-architecture.md)**
+**[Dependency Injection](architecture/dependency-injection.md)**
 : Centralized container with app-scoped singletons and request-scoped dependencies. Protocol-first design.
 
 ## Documentation Structure
@@ -103,11 +103,11 @@ make test
 
 New to Dashtam? Start with these key documents:
 
-1. **[Hexagonal Architecture](architecture/hexagonal-architecture.md)** - Understand the core architectural pattern
-2. **[Protocol-Based Architecture](architecture/protocol-based-architecture.md)** - Learn why we use Protocol over ABC
-3. **[Error Handling Guide](guides/error-handling-guide.md)** - RFC 7807 API errors and Result types
-4. **[Registry Pattern](architecture/registry-pattern-architecture.md)** - How we eliminate manual drift
-5. **[Release Management](guides/release-management.md)** - Complete development workflow
+1. **[Hexagonal Architecture](architecture/hexagonal.md)** - Understand the core architectural pattern
+2. **[Protocol-Based Architecture](architecture/protocols.md)** - Learn why we use Protocol over ABC
+3. **[Error Handling Guide](guides/error-handling.md)** - RFC 7807 API errors and Result types
+4. **[Registry Pattern](architecture/registry.md)** - How we eliminate manual drift
+5. **[Release Management](guides/releases.md)** - Complete development workflow
 
 ## Development Workflow
 

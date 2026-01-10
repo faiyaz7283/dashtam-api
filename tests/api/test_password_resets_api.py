@@ -146,22 +146,24 @@ class TestCreatePasswordResetToken:
             json={"email": "not-an-email"},
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("email" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("email" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_password_reset_token_missing_email(self, client):
         """Should return 422 Unprocessable Entity when email missing."""
         # Execute: Missing email field
         response = client.post("/api/v1/password-reset-tokens", json={})
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("email" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("email" in err.get("field", "").lower() for err in data["errors"])
 
 
 # =============================================================================
@@ -320,11 +322,12 @@ class TestCreatePasswordReset:
             json={"new_password": "NewSecurePass123!"},
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_password_reset_missing_password(self, client):
         """Should return 422 Unprocessable Entity when new_password missing."""
@@ -334,11 +337,12 @@ class TestCreatePasswordReset:
             json={"token": "a" * 64},
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("password" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("password" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_password_reset_token_too_short(self, client):
         """Should return 422 Unprocessable Entity for token < 64 chars."""
@@ -351,11 +355,12 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_password_reset_token_too_long(self, client):
         """Should return 422 Unprocessable Entity for token > 64 chars."""
@@ -368,11 +373,12 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_password_reset_password_too_short(self, client):
         """Should return 422 Unprocessable Entity for password < 8 chars."""
@@ -385,8 +391,9 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("password" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("password" in err.get("field", "").lower() for err in data["errors"])

@@ -1,124 +1,91 @@
 # Dashtam Documentation
 
-Dashtam is a **secure, modern financial data aggregation platform** built from the ground up with clean architecture principles. It demonstrates production-grade hexagonal architecture, protocol-based design, and pragmatic domain-driven design in Python.
+Dashtam is a **secure financial data aggregation platform** built with hexagonal architecture, CQRS, and domain-driven design in Python.
 
 ## Core Architecture
 
-Dashtam is built on six foundational architectural pillars:
+Six foundational pillars:
 
-**[Hexagonal Architecture](architecture/hexagonal-architecture.md)**
-: Domain at center with zero framework dependencies. Infrastructure adapts to domain through protocols (ports & adapters).
-
-**[Protocol-Based Design](architecture/protocol-based-architecture.md)**
-: Structural typing with Python `Protocol`. No inheritance required. Framework-independent interfaces.
-
-**[CQRS Pattern](architecture/cqrs-pattern.md)**
-: Separate command handlers (write) from query handlers (read). Clear separation of concerns.
-
-**[Domain-Driven Design](architecture/domain-driven-design-architecture.md)**
-: Pragmatic DDD with entities, value objects, and domain events for critical workflows only.
-
-**[Registry Pattern](architecture/registry-pattern-architecture.md)**
-: Metadata-driven auto-wiring eliminates manual drift. Single source of truth with self-enforcing tests. **5 implementations**: Domain Events, Provider Integration, Rate Limits, Validation Rules, Route Metadata.
-
-**[Dependency Injection](architecture/dependency-injection-architecture.md)**
-: Centralized container with app-scoped singletons and request-scoped dependencies. Protocol-first design.
+| Pattern | Description |
+|---------|-------------|
+| [Hexagonal Architecture](architecture/hexagonal.md) | Domain at center, zero framework dependencies, ports & adapters |
+| [Protocol-Based Design](architecture/protocols.md) | Structural typing with Python `Protocol`, no inheritance |
+| [CQRS](architecture/cqrs.md) | Separate command (write) and query (read) handlers |
+| [Domain-Driven Design](architecture/domain-driven-design.md) | Entities, value objects, domain events for critical workflows |
+| [Registry Pattern](architecture/registry.md) | Auto-wiring with self-enforcing tests (events, routes, rate limits) |
+| [Dependency Injection](architecture/dependency-injection.md) | Centralized container, protocol-first design |
 
 ## Documentation Structure
 
-**Architecture** (31 docs)
-: Deep dives into architectural patterns, design decisions, and system components. Covers infrastructure (database, cache, audit), security (auth, authorization, rate limiting), and domain models (accounts, transactions, holdings).
+**[Architecture](architecture/hexagonal.md)** — 34 docs covering patterns, infrastructure, security, domain models
 
-**API Reference** (7 docs)
-: REST API documentation for authentication, account operations, provider connections, transactions, holdings, balance snapshots, and admin endpoints.
+**[API Reference](api/authentication.md)** — 15 docs for all REST endpoints (auth, accounts, providers, transactions)
 
-**Guides** (16 docs)
-: Practical how-to guides for common tasks. Includes release management, adding providers, error handling, domain events, and component usage patterns.
+**[Guides](guides/error-handling.md)** — 17 practical how-to guides (releases, providers, error handling)
 
-**Code Reference**
-: Auto-generated API documentation from Python docstrings (Google style).
+**[Code Reference](reference/)** — Auto-generated from Python docstrings
 
 ## Key Features
 
-**Clean Architecture**
-: 100% hexagonal with protocol-based ports & adapters. Domain layer has zero framework dependencies.
-
-**Production-Ready Security**
-: JWT + opaque refresh tokens, Casbin RBAC, token bucket rate limiting, audit trail (PCI-DSS compliant).
-
-**Multi-Provider Integration**
-: OAuth (Schwab), API Key (Alpaca), File Import (Chase). Extensible provider registry pattern.
-
-**Modern Python**
-: Python 3.13+, FastAPI, Pydantic v2, async/await, Result types, Protocol-based design.
-
-**Comprehensive Testing**
-: **2,253 tests** with **88% coverage**. Unit tests for domain/application, integration tests for infrastructure, API tests for endpoints.
+- **Clean Architecture** — 100% hexagonal with protocol-based ports & adapters
+- **Production Security** — JWT + opaque refresh tokens, Casbin RBAC, PCI-DSS audit trails
+- **Multi-Provider** — OAuth (Schwab), API Key (Alpaca), File Import (Chase)
+- **Modern Python** — Python 3.14, FastAPI, Pydantic v2, Result types
+- **Comprehensive Testing** — 2,273 tests, 87% coverage
 
 ## Technology Stack
 
-**Backend**: Python 3.13 | FastAPI | Pydantic v2 | UV package manager
+| Component | Technology |
+|-----------|------------|
+| Language | Python 3.14, UV 0.9.21 |
+| Framework | FastAPI, Pydantic v2 |
+| Database | PostgreSQL 17.7, async SQLAlchemy |
+| Cache | Redis 8.4 |
+| Infrastructure | Docker Compose, Traefik, Alembic |
+| CI/CD | GitHub Actions, Codecov |
 
-**Data**: PostgreSQL 17.6 (async) | SQLAlchemy 2.0 | Alembic | Redis 8.2.1
-
-**Development**: Docker Compose | Traefik (HTTPS) | pytest | ruff | mypy
-
-**CI/CD**: GitHub Actions | Codecov | Self-hosted runners
-
-## Getting Started
-
-### Quick Start
+## Quick Start
 
 ```bash
-# Clone repository
+# Prerequisites: Docker, Make
+sudo sh -c 'echo "127.0.0.1 dashtam.local" >> /etc/hosts'
+
+# Start Traefik (one-time)
+git clone git@github.com:faiyazhaider/docker-services.git ~/docker-services
+cd ~/docker-services && make traefik-up
+
+# Clone and run
 git clone https://github.com/faiyaz7283/Dashtam.git
 cd Dashtam
+make setup && make dev-up
 
-# Start Traefik (reverse proxy)
-make traefik-up
-
-# Start development environment
-make dev-up
-
-# View logs
-make dev-logs
-
-# Run tests
-make test
+# Verify
+curl -k https://dashtam.local/health
 ```
-
-### Development Workflow
-
-1. **Create feature branch** from `development`
-2. **Research architecture** - Identify layers, patterns, dependencies
-3. **Plan implementation** - Create TODO list, get approval
-4. **Implement feature** - Follow hexagonal architecture, CQRS, protocols
-5. **Test incrementally** - Unit → integration → API (85%+ coverage target)
-6. **Verify quality** - `make lint && make format && make type-check`
-7. **Document changes** - Update architecture docs, add usage guides
-8. **Commit with conventional commits** - `feat:`, `fix:`, `docs:`
-9. **Create pull request** to `development` branch
 
 ## Essential Reading
 
-New to Dashtam? Start with these key documents:
+New to Dashtam? Start here:
 
-1. **[Hexagonal Architecture](architecture/hexagonal-architecture.md)** - Understand the core architectural pattern
-2. **[Protocol-Based Architecture](architecture/protocol-based-architecture.md)** - Learn why we use Protocol over ABC
-3. **[Error Handling Guide](guides/error-handling-guide.md)** - RFC 7807 API errors and Result types
-4. **[Registry Pattern](architecture/registry-pattern-architecture.md)** - How we eliminate manual drift
-5. **[Release Management](guides/release-management.md)** - Complete development workflow
+1. [Hexagonal Architecture](architecture/hexagonal.md) — Core pattern
+2. [Protocols](architecture/protocols.md) — Why Protocol over ABC
+3. [Error Handling](guides/error-handling.md) — RFC 7807, Result types
+4. [Registry Pattern](architecture/registry.md) — Auto-wiring, self-enforcing tests
+5. [Release Management](guides/releases.md) — Git flow, versioning
 
-## Development Workflow
+## Development
 
-1. Create feature branch from `development`
-2. Research & plan (identify layers, create TODO list)
-3. Implement with tests (85%+ coverage target)
-4. Verify quality: `make verify` (tests, lint, format, type-check)
-5. Create PR to `development` branch
+```bash
+make dev-up       # Start environment
+make test         # Run all tests
+make verify       # Full CI suite
+make docs-serve   # Live documentation
+```
 
-**Core principles**: Hexagonal architecture | Protocol-based design | Result types (no exceptions) | 100% REST compliance
+**Workflow**: Feature branch → Plan → Implement → Test (85%+) → PR to `development`
+
+**Principles**: Hexagonal architecture | Protocol-based | Result types | 100% REST
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-12-31
+**Created**: 2025-11-13 | **Last Updated**: 2026-01-10

@@ -197,7 +197,8 @@ class AlpacaTransactionsAPI:
             data = response.json()
         except ValueError as e:
             logger.error(
-                f"alpaca_transactions_api_{operation}_invalid_json",
+                "alpaca_transactions_api_invalid_json",
+                operation=operation,
                 error=str(e),
             )
             return Failure(
@@ -213,7 +214,8 @@ class AlpacaTransactionsAPI:
             data = [data] if data else []
 
         logger.debug(
-            f"alpaca_transactions_api_{operation}_succeeded",
+            "alpaca_transactions_api_succeeded",
+            operation=operation,
             count=len(data),
         )
         return Success(value=data)
@@ -237,7 +239,8 @@ class AlpacaTransactionsAPI:
             retry_after = response.headers.get("Retry-After")
             retry_seconds = int(retry_after) if retry_after else None
             logger.warning(
-                f"alpaca_transactions_api_{operation}_rate_limited",
+                "alpaca_transactions_api_rate_limited",
+                operation=operation,
                 retry_after=retry_seconds,
             )
             return Failure(
@@ -251,7 +254,7 @@ class AlpacaTransactionsAPI:
 
         # Authentication errors
         if response.status_code in (401, 403):
-            logger.warning(f"alpaca_transactions_api_{operation}_auth_failed")
+            logger.warning("alpaca_transactions_api_auth_failed", operation=operation)
             return Failure(
                 error=ProviderAuthenticationError(
                     code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
@@ -264,7 +267,8 @@ class AlpacaTransactionsAPI:
         # Server errors
         if response.status_code >= 500:
             logger.warning(
-                f"alpaca_transactions_api_{operation}_server_error",
+                "alpaca_transactions_api_server_error",
+                operation=operation,
                 status_code=response.status_code,
             )
             return Failure(
@@ -282,7 +286,8 @@ class AlpacaTransactionsAPI:
 
         # Unexpected status
         logger.warning(
-            f"alpaca_transactions_api_{operation}_unexpected_status",
+            "alpaca_transactions_api_unexpected_status",
+            operation=operation,
             status_code=response.status_code,
         )
         return Failure(

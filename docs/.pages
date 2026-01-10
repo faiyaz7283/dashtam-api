@@ -1,0 +1,6 @@
+nav:
+  - index.md
+  - API Reference: api
+  - Architecture: architecture
+  - Guides: guides
+  - Code Reference: reference

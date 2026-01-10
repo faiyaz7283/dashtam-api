@@ -282,7 +282,8 @@ class SchwabTransactionsAPI:
             data = response.json()
         except ValueError as e:
             logger.error(
-                f"schwab_transactions_api_{operation}_invalid_json",
+                "schwab_transactions_api_invalid_json",
+                operation=operation,
                 error=str(e),
             )
             return Failure(
@@ -297,14 +298,16 @@ class SchwabTransactionsAPI:
         # Ensure we have a list
         if not isinstance(data, list):
             logger.warning(
-                f"schwab_transactions_api_{operation}_unexpected_format",
+                "schwab_transactions_api_unexpected_format",
+                operation=operation,
                 data_type=type(data).__name__,
             )
             # Some endpoints return single object, wrap in list
             data = [data] if data else []
 
         logger.debug(
-            f"schwab_transactions_api_{operation}_succeeded",
+            "schwab_transactions_api_succeeded",
+            operation=operation,
             count=len(data),
         )
 
@@ -334,7 +337,8 @@ class SchwabTransactionsAPI:
             data = response.json()
         except ValueError as e:
             logger.error(
-                f"schwab_transactions_api_{operation}_invalid_json",
+                "schwab_transactions_api_invalid_json",
+                operation=operation,
                 error=str(e),
             )
             return Failure(
@@ -348,7 +352,8 @@ class SchwabTransactionsAPI:
 
         if not isinstance(data, dict):
             logger.warning(
-                f"schwab_transactions_api_{operation}_unexpected_format",
+                "schwab_transactions_api_unexpected_format",
+                operation=operation,
                 data_type=type(data).__name__,
             )
             return Failure(
@@ -360,7 +365,7 @@ class SchwabTransactionsAPI:
                 )
             )
 
-        logger.debug(f"schwab_transactions_api_{operation}_succeeded")
+        logger.debug("schwab_transactions_api_succeeded", operation=operation)
 
         return Success(value=data)
 
@@ -383,7 +388,8 @@ class SchwabTransactionsAPI:
             retry_after = response.headers.get("Retry-After")
             retry_seconds = int(retry_after) if retry_after else None
             logger.warning(
-                f"schwab_transactions_api_{operation}_rate_limited",
+                "schwab_transactions_api_rate_limited",
+                operation=operation,
                 retry_after=retry_seconds,
             )
             return Failure(
@@ -397,7 +403,7 @@ class SchwabTransactionsAPI:
 
         # Authentication errors
         if response.status_code == 401:
-            logger.warning(f"schwab_transactions_api_{operation}_auth_failed")
+            logger.warning("schwab_transactions_api_auth_failed", operation=operation)
             return Failure(
                 error=ProviderAuthenticationError(
                     code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
@@ -409,7 +415,7 @@ class SchwabTransactionsAPI:
 
         # Forbidden (authorization)
         if response.status_code == 403:
-            logger.warning(f"schwab_transactions_api_{operation}_forbidden")
+            logger.warning("schwab_transactions_api_forbidden", operation=operation)
             return Failure(
                 error=ProviderAuthenticationError(
                     code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
@@ -421,7 +427,7 @@ class SchwabTransactionsAPI:
 
         # Not found
         if response.status_code == 404:
-            logger.warning(f"schwab_transactions_api_{operation}_not_found")
+            logger.warning("schwab_transactions_api_not_found", operation=operation)
             return Failure(
                 error=ProviderInvalidResponseError(
                     code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
@@ -434,7 +440,8 @@ class SchwabTransactionsAPI:
         # Server errors
         if response.status_code >= 500:
             logger.warning(
-                f"schwab_transactions_api_{operation}_server_error",
+                "schwab_transactions_api_server_error",
+                operation=operation,
                 status_code=response.status_code,
             )
             return Failure(
@@ -452,7 +459,8 @@ class SchwabTransactionsAPI:
 
         # Unexpected status
         logger.warning(
-            f"schwab_transactions_api_{operation}_unexpected_status",
+            "schwab_transactions_api_unexpected_status",
+            operation=operation,
             status_code=response.status_code,
         )
         return Failure(

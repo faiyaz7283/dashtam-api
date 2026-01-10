@@ -15,7 +15,11 @@ All authentication endpoints follow RESTful conventions with resource-based URLs
 |----------|--------|----------|-------------|
 | Users | POST | `/users` | Register new user |
 | Sessions | POST | `/sessions` | Login (create session) |
-| Sessions | DELETE | `/sessions/current` | Logout (end session) |
+| Sessions | GET | `/sessions` | List all sessions |
+| Sessions | GET | `/sessions/{session_id}` | Get session details |
+| Sessions | DELETE | `/sessions/current` | Logout (end current session) |
+| Sessions | DELETE | `/sessions/{session_id}` | Revoke specific session |
+| Sessions | DELETE | `/sessions` | Revoke all other sessions |
 | Tokens | POST | `/tokens` | Refresh access token |
 | Email Verifications | POST | `/email-verifications` | Verify email |
 | Password Reset Tokens | POST | `/password-reset-tokens` | Request password reset |
@@ -105,11 +109,73 @@ curl -k -X POST "https://dashtam.local/api/v1/sessions" \
 
 ---
 
-## Logout (End Session)
+## Session Management
+
+### GET /sessions
+
+List all active sessions for the current user.
+
+**Request:**
+
+```bash
+curl -k -X GET "https://dashtam.local/api/v1/sessions" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Success Response (200 OK):**
+
+```json
+{
+  "sessions": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "ip_address": "192.168.1.1",
+      "user_agent": "Mozilla/5.0...",
+      "created_at": "2025-11-25T19:00:00Z",
+      "last_active_at": "2025-11-25T20:00:00Z",
+      "is_current": true
+    }
+  ],
+  "total_count": 1
+}
+```
+
+---
+
+### GET /sessions/{session_id}
+
+Get details of a specific session.
+
+**Request:**
+
+```bash
+curl -k -X GET "https://dashtam.local/api/v1/sessions/{session_id}" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Success Response (200 OK):**
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "ip_address": "192.168.1.1",
+  "user_agent": "Mozilla/5.0...",
+  "created_at": "2025-11-25T19:00:00Z",
+  "last_active_at": "2025-11-25T20:00:00Z",
+  "is_current": false
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or expired token
+- `404 Not Found` - Session not found or not owned by user
+
+---
 
 ### DELETE /sessions/current
 
-End the current user session and revoke tokens.
+End the current session (logout).
 
 **Request:**
 
@@ -130,6 +196,54 @@ No body returned.
 
 - Refresh token is revoked server-side
 - Client should discard stored tokens
+
+---
+
+### DELETE /sessions/{session_id}
+
+Revoke a specific session (logout that device).
+
+**Request:**
+
+```bash
+curl -k -X DELETE "https://dashtam.local/api/v1/sessions/{session_id}" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Success Response (204 No Content):**
+
+No body returned.
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or expired token
+- `404 Not Found` - Session not found or not owned by user
+
+---
+
+### DELETE /sessions
+
+Revoke all sessions except the current one (logout everywhere else).
+
+**Request:**
+
+```bash
+curl -k -X DELETE "https://dashtam.local/api/v1/sessions" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Success Response (200 OK):**
+
+```json
+{
+  "revoked_count": 3,
+  "message": "All other sessions revoked"
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or expired token
 
 ---
 
@@ -341,14 +455,47 @@ All errors follow RFC 7807 Problem Details format:
 
 ---
 
+## Rate Limiting
+
+Authentication endpoints have specific rate limits to prevent abuse:
+
+| Policy | Max Requests | Refill Rate | Scope | Endpoints |
+|--------|--------------|-------------|-------|----------|
+| AUTH_LOGIN | 5 | 5/min | IP | `POST /sessions` |
+| AUTH_REGISTER | 3 | 3/min | IP | `POST /users` |
+| AUTH_PASSWORD_RESET | 3 | 1/min | IP | `POST /password-reset-tokens`, `POST /password-resets`, `POST /email-verifications` |
+| AUTH_TOKEN_REFRESH | 10 | 10/min | User | `POST /tokens` |
+| API_READ | 100 | 100/min | User | `GET /sessions`, `GET /sessions/{id}` |
+| API_WRITE | 50 | 50/min | User | `DELETE /sessions/*` |
+
+**Rate Limit Headers (RFC 6585):**
+
+```text
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+X-RateLimit-Reset: 1699488000
+Retry-After: 60  (only on 429)
+```
+
+---
+
 ## Security Considerations
 
 1. **HTTPS Only** - All endpoints require HTTPS
 2. **Password Hashing** - Passwords hashed with bcrypt (cost factor 12)
 3. **Token Security** - JWTs signed with HS256, refresh tokens are opaque
-4. **Rate Limiting** - Login and password reset endpoints are rate limited
+4. **Rate Limiting** - Per-endpoint limits based on sensitivity (see Rate Limiting section)
 5. **Account Lockout** - Accounts locked after 5 failed login attempts
+6. **Token Rotation** - Refresh tokens rotated on each use (old token invalidated)
 
 ---
 
-**Created**: 2025-11-25 | **Last Updated**: 2025-11-26
+## Implementation References
+
+- **Route Registry**: All authentication endpoints are defined in `src/presentation/routers/api/v1/routes/registry.py` with rate limit policies, auth levels, and OpenAPI metadata.
+- **Handler Orchestration**: Login uses 3-handler pattern (AuthenticateUser → CreateSession → GenerateAuthTokens) for separation of concerns.
+- **Domain Events**: Authentication events (Attempted/Succeeded/Failed) are published and handled by LoggingEventHandler and AuditEventHandler via the Event Registry.
+
+---
+
+**Created**: 2025-11-25 | **Last Updated**: 2026-01-10

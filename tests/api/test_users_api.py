@@ -179,13 +179,16 @@ class TestCreateUser:
             },
         )
 
-        # Verify: FastAPI/Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        # Pydantic returns list of validation errors
-        assert isinstance(data["detail"], list)
-        assert any("email" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert data["title"] == "Validation Failed"
+        assert data["status"] == 422
+        assert "errors" in data
+        # RFC 7807 returns errors array with field-level details
+        assert isinstance(data["errors"], list)
+        assert any("email" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_user_missing_email(self, client):
         """Should return 422 Unprocessable Entity when email missing."""
@@ -197,11 +200,12 @@ class TestCreateUser:
             },
         )
 
-        # Verify
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("email" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("email" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_user_missing_password(self, client):
         """Should return 422 Unprocessable Entity when password missing."""
@@ -213,11 +217,12 @@ class TestCreateUser:
             },
         )
 
-        # Verify
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("password" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("password" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_user_password_too_short(self, client):
         """Should return 422 Unprocessable Entity for password < 8 chars."""
@@ -230,11 +235,12 @@ class TestCreateUser:
             },
         )
 
-        # Verify
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("password" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("password" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_user_password_too_long(self, client):
         """Should return 422 Unprocessable Entity for password > 128 chars."""
@@ -247,25 +253,27 @@ class TestCreateUser:
             },
         )
 
-        # Verify
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("password" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("password" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_user_empty_request_body(self, client):
         """Should return 422 Unprocessable Entity for empty request."""
         # Execute: Empty JSON body
         response = client.post("/api/v1/users", json={})
 
-        # Verify
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
         # Should have errors for both required fields
-        errors = [str(err).lower() for err in data["detail"]]
-        assert any("email" in err for err in errors)
-        assert any("password" in err for err in errors)
+        error_fields = [err.get("field", "").lower() for err in data["errors"]]
+        assert any("email" in field for field in error_fields)
+        assert any("password" in field for field in error_fields)
 
     def test_create_user_invalid_content_type(self, client):
         """Should return 422 when Content-Type is not application/json."""

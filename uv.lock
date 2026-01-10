@@ -533,7 +533,7 @@ wheels = [
 
 [[package]]
 name = "dashtam"
-version = "1.6.7"
+version = "1.6.8"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
@@ -573,6 +573,7 @@ dev = [
     { name = "fakeredis", extra = ["lua"] },
     { name = "freezegun" },
     { name = "httpx" },
+    { name = "mkdocs-awesome-pages-plugin" },
     { name = "moto" },
     { name = "mypy" },
     { name = "pytest" },
@@ -634,6 +635,7 @@ dev = [
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.32.0" },
     { name = "freezegun", specifier = ">=1.5.5" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "mkdocs-awesome-pages-plugin", specifier = ">=2.10.1" },
     { name = "moto", extras = ["logs", "secretsmanager"], specifier = ">=5.1.16" },
     { name = "mypy", specifier = ">=1.18.2" },
     { name = "pytest", specifier = ">=8.4.2" },

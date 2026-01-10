@@ -1,6 +1,6 @@
 [project]
 name = "dashtam"
-version = "1.6.7"
+version = "1.6.8"
 description = "A secure financial data aggregation platform built with hexagonal architecture, CQRS, and domain-driven design"
 requires-python = ">=3.14"
 dependencies = [
@@ -41,6 +41,7 @@ dev = [
     "fakeredis[lua]>=2.32.0",
     "freezegun>=1.5.5",
     "httpx>=0.28.1",
+    "mkdocs-awesome-pages-plugin>=2.10.1",
     "moto[logs,secretsmanager]>=5.1.16",
     "mypy>=1.18.2",
     "pytest>=8.4.2",

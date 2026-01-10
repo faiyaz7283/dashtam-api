@@ -1,0 +1,5 @@
+title: Guides
+nav:
+  - releases.md
+  - error-handling.md
+  - ...  # Auto-include rest alphabetically

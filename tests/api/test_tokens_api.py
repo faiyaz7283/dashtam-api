@@ -256,7 +256,9 @@ class TestCreateTokens:
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
         assert "errors" in data
-        assert any("refresh_token" in err.get("field", "").lower() for err in data["errors"])
+        assert any(
+            "refresh_token" in err.get("field", "").lower() for err in data["errors"]
+        )
 
     def test_create_tokens_empty_refresh_token(self, client):
         """Should return 422 Unprocessable Entity for empty refresh_token."""
@@ -271,7 +273,9 @@ class TestCreateTokens:
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
         assert "errors" in data
-        assert any("refresh_token" in err.get("field", "").lower() for err in data["errors"])
+        assert any(
+            "refresh_token" in err.get("field", "").lower() for err in data["errors"]
+        )
 
     def test_create_tokens_invalid_content_type(self, client):
         """Should return 422 when Content-Type is not application/json."""

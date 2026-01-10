@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.8] - 2026-01-10
+
+### Changed
+
+- **Documentation Audit (63 Files)**
+  - Renamed 61 files to remove redundant suffixes (e.g., `-guide.md`, `-architecture.md`)
+  - Merged duplicate error-handling guides into single comprehensive guide
+  - Updated logging and audit docs with event registry integration
+  - Updated all 15 API docs with rate limits, implementation refs, and schema fixes
+  - Updated all 17 guides with correct import paths and types
+  - Comprehensive audit of all 34 architecture docs
+
+- **Code Migration Audit (Logging & RFC 7807)**
+  - Fixed 12 f-string logging violations in 4 provider API files (Schwab/Alpaca accounts/transactions)
+  - Added `http_exception_handler` and `validation_exception_handler` to `exception_handlers.py`
+  - All HTTPException and RequestValidationError responses now RFC 7807 compliant
+  - Updated 23 API tests to verify new RFC 7807 response format
+
+### Documentation
+
+- **Audit Reference**: `~/references/audit/dashtam-docs-audit-2026-01-08.md`
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,273 tests pass, coverage maintained
+- **Documentation Quality**: `make lint-md` and `make docs-build` pass with zero warnings
+- **Logging Pattern**: Changed from f-string interpolation to lazy `%s` formatting per structlog best practices
+- **Exception Handler Signatures**: Use `Exception` type with runtime assertions for mypy compatibility
+- Files changed: 73+ files (63 docs, 4 provider APIs, 1 exception handler, 5 test files)
+
 ## [1.6.7] - 2026-01-08
 
 ### Added

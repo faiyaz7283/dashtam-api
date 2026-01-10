@@ -307,4 +307,4 @@ Grace period allows gradual token invalidation to prevent mass logout disruption
 
 ---
 
-**Created**: 2025-11-27 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-27 | **Last Updated**: 2026-01-10

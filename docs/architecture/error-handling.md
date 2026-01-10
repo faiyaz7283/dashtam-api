@@ -369,7 +369,7 @@ Domain errors represent business rule violations and validation failures.
 They do NOT inherit from Exception.
 
 - **Base error**: `src/core/errors/domain_error.py` - DomainError base class
-- **Common errors**: `src/core/errors/common_errors.py` - ValidationError,
+- **Common errors**: `src/core/errors/common_error.py` - ValidationError,
   NotFoundError, ConflictError, AuthenticationError, AuthorizationError
 - **ErrorCode enum**: `src/core/enums/error_code.py` - Domain error codes
 
@@ -753,10 +753,8 @@ class CacheError(InfrastructureError):
     pass
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ProviderError(InfrastructureError):
-    """Provider API errors."""
-    provider_name: str
+# Note: ProviderError is in src/domain/errors/provider_error.py
+# (part of ProviderProtocol contract, not infrastructure)
 ```
 
 ### Infrastructure Adapter Error Mapping
@@ -790,7 +788,7 @@ class RedisAdapter:
 
 ## Presentation Layer (RFC 7807)
 
-### Location: `src/presentation/api/v1/errors/`
+### Location: `src/presentation/routers/api/v1/errors/`
 
 ### ProblemDetails Schema
 
@@ -852,7 +850,7 @@ from src.application.errors import ApplicationError, ApplicationErrorCode
 class ErrorResponseBuilder:
     """Build RFC 7807 Problem Details responses."""
     
-    BASE_URL = "https://api.dashtam.com"
+    # Uses settings.api_base_url for error type URLs
     
     @staticmethod
     def from_application_error(
@@ -867,7 +865,7 @@ class ErrorResponseBuilder:
         
         # Build Problem Details
         problem = ProblemDetails(
-            type=f"{ErrorResponseBuilder.BASE_URL}/errors/{error.code.value}",
+            type=f"{settings.api_base_url}/errors/{error.code.value}",
             title=ErrorResponseBuilder._get_title(error.code),
             status=status_code,
             detail=error.message,
@@ -1143,4 +1141,4 @@ layers.
 
 ---
 
-**Created**: 2025-11-11 | **Last Updated**: 2025-11-30
+**Created**: 2025-11-11 | **Last Updated**: 2026-01-10

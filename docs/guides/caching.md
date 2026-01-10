@@ -2,6 +2,8 @@
 
 Practical patterns for using the cache infrastructure in Dashtam.
 
+**Architecture Reference**: `docs/architecture/cache.md` (design decisions, Redis patterns)
+
 ---
 
 ## Quick Start

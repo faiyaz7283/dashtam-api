@@ -829,7 +829,7 @@ CACHE_SERIALIZATION_ERROR = "cache_serialization_error"
 Redis adapter is a thin wrapper - only integration tests needed:
 
 ```python
-# tests/integration/test_infrastructure_cache_redis.py
+# tests/integration/test_cache_redis.py
 import pytest
 from src.infrastructure.cache.redis_adapter import RedisAdapter
 from src.core.result import Success, Failure
@@ -1119,4 +1119,4 @@ general application caching needs.
 
 ---
 
-**Created**: 2025-11-11 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-11 | **Last Updated**: 2026-01-10

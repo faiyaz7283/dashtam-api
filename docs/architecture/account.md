@@ -676,4 +676,4 @@ balance + euros  # Raises CurrencyMismatchError
 
 ---
 
-**Created**: 2025-11-30 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-30 | **Last Updated**: 2026-01-10

@@ -777,4 +777,4 @@ Generator can add deprecation warnings to OpenAPI docs.
 
 ---
 
-**Created**: 2025-12-31 | **Last Updated**: 2025-12-31
+**Created**: 2025-12-31 | **Last Updated**: 2026-01-10

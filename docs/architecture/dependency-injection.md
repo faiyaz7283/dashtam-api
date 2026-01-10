@@ -24,9 +24,9 @@ testable dependency management across all architectural layers.
 
 ### Protocol Locations
 
-All protocols live in `src/domain/protocols/` (26 protocols):
+All protocols live in `src/domain/protocols/` (29 protocols):
 
-**Repository Protocols** (10):
+**Repository Protocols** (12):
 
 - `user_repository.py` - User persistence
 - `email_verification_token_repository.py` - Email token persistence
@@ -38,11 +38,14 @@ All protocols live in `src/domain/protocols/` (26 protocols):
 - `provider_repository.py` - Provider metadata
 - `account_repository.py` - Account persistence
 - `transaction_repository.py` - Transaction persistence
+- `balance_snapshot_repository.py` - Balance snapshot persistence
+- `holding_repository.py` - Holding persistence
 
-**Service Protocols** (16):
+**Service Protocols** (17):
 
 - `cache_protocol.py` - Cache operations (Redis)
 - `session_cache_protocol.py` - Session caching
+- `provider_connection_cache_protocol.py` - Provider connection caching
 - `password_hashing_protocol.py` - Password hashing (bcrypt)
 - `token_generation_protocol.py` - JWT generation
 - `refresh_token_service_protocol.py` - Refresh token operations
@@ -688,4 +691,4 @@ async def get_user(
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-12-04
+**Created**: 2025-11-13 | **Last Updated**: 2026-01-10

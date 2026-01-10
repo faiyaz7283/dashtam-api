@@ -1064,4 +1064,4 @@ Same as staging, but with `ENVIRONMENT=production` and production secret paths.
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-13 | **Last Updated**: 2026-01-10

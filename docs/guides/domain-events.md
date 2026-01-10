@@ -2,6 +2,8 @@
 
 Complete guide for using domain events in Dashtam, including when to use them, how to define and publish events, and common anti-patterns to avoid.
 
+**Architecture Reference**: `docs/architecture/domain-events.md` (event registry, 3-state pattern)
+
 ## When to Use Domain Events
 
 **Pragmatic DDD Approach**: Use domain events **only for critical workflows** that have side effects requiring coordination across multiple systems.

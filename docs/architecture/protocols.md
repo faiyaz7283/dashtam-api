@@ -783,45 +783,66 @@ class RegisterUser(Command):
 
 ```python
 # tests/unit/test_application_register_user_handler.py
-from unittest.mock import AsyncMock
-import pytest
-from uuid import uuid7
+from unittest.mock import AsyncMock, Mock
+from uuid import UUID
 
+import pytest
+from uuid_extensions import uuid7
+
+from src.application.commands.auth_commands import RegisterUser
 from src.application.commands.handlers.register_user_handler import (
     RegisterUserHandler,
 )
-from src.domain.protocols.user_repository import UserRepository
-from src.domain.entities.user import User
 from src.core.result import Success
+from src.domain.entities.user import User
 
-@pytest.mark.asyncio
-async def test_register_user_success():
-    """Test successful user registration."""
-    # Mock protocol - NO inheritance needed!
-    mock_repo = AsyncMock(spec=UserRepository)
-    mock_repo.find_by_email.return_value = None  # User doesn't exist
-    
-    handler = RegisterUserHandler(user_repo=mock_repo)
-    
-    result = await handler.handle(
-        email="test@example.com",
-        password="SecurePass123!",
-    )
-    
-    assert isinstance(result, Success)
-    
-    # Verify repository called
-    mock_repo.save.assert_called_once()
-    saved_user = mock_repo.save.call_args[0][0]
-    assert isinstance(saved_user, User)
-    assert saved_user.email == "test@example.com"
+
+@pytest.mark.unit
+class TestRegisterUserHandler:
+    @pytest.mark.asyncio
+    async def test_register_user_success():
+        """Test successful user registration."""
+        # Arrange - mock all 4 required dependencies
+        mock_user_repo = AsyncMock()
+        mock_user_repo.find_by_email.return_value = None
+        
+        mock_verification_repo = AsyncMock()
+        mock_password_service = Mock()
+        mock_password_service.hash_password.return_value = "hashed_password"
+        mock_event_bus = AsyncMock()
+        
+        handler = RegisterUserHandler(
+            user_repo=mock_user_repo,
+            verification_token_repo=mock_verification_repo,
+            password_service=mock_password_service,
+            event_bus=mock_event_bus,
+        )
+        
+        command = RegisterUser(
+            email="test@example.com",
+            password="SecurePass123!",
+        )
+        
+        # Act
+        result = await handler.handle(command)
+        
+        # Assert
+        assert isinstance(result, Success)
+        assert isinstance(result.value, UUID)
+        
+        # Verify repository called
+        mock_user_repo.save.assert_called_once()
+        saved_user = mock_user_repo.save.call_args[0][0]
+        assert isinstance(saved_user, User)
+        assert saved_user.email == "test@example.com"
 ```
 
 **Key Benefits**:
 
-- ✅ `AsyncMock(spec=UserRepository)` verifies mock has correct methods
+- ✅ `AsyncMock()` creates flexible mocks for all protocol methods
 - ✅ NO inheritance required for mock
-- ✅ Type-safe (mypy checks mock usage)
+- ✅ Class-based test organization with `@pytest.mark.unit`
+- ✅ Command objects separate input data from handler logic
 
 ### Integration Testing with Real Adapters
 
@@ -829,37 +850,51 @@ async def test_register_user_success():
 
 ```python
 # tests/integration/test_user_repository.py
+from datetime import UTC, datetime
+
 import pytest
-from uuid import uuid7
-from sqlalchemy.ext.asyncio import AsyncSession
+from uuid_extensions import uuid7
 
 from src.domain.entities.user import User
 from src.infrastructure.persistence.repositories.user_repository import (
     UserRepository,
 )
 
-@pytest.mark.asyncio
-async def test_user_repository_implements_protocol(db_session: AsyncSession):
-    """Verify UserRepository implements protocol correctly."""
-    repo = UserRepository(session=db_session)
-    
-    # Create user
-    user = User(
-        id=uuid7(),
-        email="test@example.com",
-        is_verified=False,
-    )
-    
-    # Test save (protocol method)
-    await repo.save(user)
-    await db_session.commit()
-    
-    # Test find_by_email (protocol method)
-    found = await repo.find_by_email("test@example.com")
-    
-    assert found is not None
-    assert found.id == user.id
-    assert found.email == user.email
+
+@pytest.mark.integration
+class TestUserRepositorySave:
+    @pytest.mark.asyncio
+    async def test_user_repository_save_and_find(self, test_database):
+        """Verify UserRepository implements protocol correctly."""
+        # Arrange - create user with ALL required fields
+        user_id = uuid7()
+        now = datetime.now(UTC)
+        user = User(
+            id=user_id,
+            email=f"test_{user_id}@example.com",
+            password_hash="hashed_password",
+            is_verified=False,
+            is_active=True,
+            failed_login_attempts=0,
+            locked_until=None,
+            created_at=now,
+            updated_at=now,
+        )
+        
+        # Act - save using context manager pattern
+        async with test_database.get_session() as session:
+            repo = UserRepository(session=session)
+            await repo.save(user)
+            await session.commit()
+        
+        # Assert - use separate session to verify persistence
+        async with test_database.get_session() as session:
+            repo = UserRepository(session=session)
+            found = await repo.find_by_id(user_id)
+        
+        assert found is not None
+        assert found.id == user_id
+        assert found.email == user.email
 ```
 
 ### Type Checking with mypy
@@ -1337,4 +1372,4 @@ logger = logging.getLogger()  # Works!
 
 ---
 
-**Created**: 2025-12-30 | **Last Updated**: 2025-12-30
+**Created**: 2025-12-30 | **Last Updated**: 2026-01-10

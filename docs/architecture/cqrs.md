@@ -672,4 +672,4 @@ async def test_list_providers_returns_all():
 
 ---
 
-**Created**: 2025-12-01 | **Last Updated**: 2025-12-05
+**Created**: 2025-12-01 | **Last Updated**: 2026-01-10

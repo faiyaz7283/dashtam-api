@@ -882,24 +882,55 @@ class RegisterUserHandler:
 
 ```python
 # tests/unit/test_domain_user_entity.py
-def test_user_verify_email():
-    """Test email verification business rule."""
-    user = User(
+from datetime import UTC, datetime, timedelta
+
+import pytest
+from uuid_extensions import uuid7
+
+from src.domain.entities.user import User
+
+
+def create_user(is_verified=True, is_active=True, failed_login_attempts=0):
+    """Helper factory for User entities."""
+    now = datetime.now(UTC)
+    return User(
         id=uuid7(),
         email="test@example.com",
-        is_verified=False,
+        password_hash="hashed_password",
+        is_verified=is_verified,
+        is_active=is_active,
+        failed_login_attempts=failed_login_attempts,
+        locked_until=None,
+        created_at=now,
+        updated_at=now,
     )
-    
-    user.verify_email()
-    
-    assert user.is_verified
 
-def test_user_verify_email_already_verified():
-    """Test cannot verify email twice."""
-    user = User(id=uuid7(), email="test@example.com", is_verified=True)
+
+@pytest.mark.unit
+class TestUserCanLogin:
+    def test_user_can_login_when_verified_active_not_locked(self):
+        """Test user can login when all conditions met."""
+        user = create_user(is_verified=True, is_active=True)
+        
+        assert user.can_login() is True
     
-    with pytest.raises(BusinessRuleError, match="already verified"):
-        user.verify_email()
+    def test_user_cannot_login_when_not_verified(self):
+        """Test user cannot login when not verified."""
+        user = create_user(is_verified=False)
+        
+        assert user.can_login() is False
+
+
+@pytest.mark.unit
+class TestUserLockout:
+    def test_account_locks_after_5_failed_attempts(self):
+        """Test account locks after 5 failed login attempts."""
+        user = create_user(failed_login_attempts=4)
+        
+        user.increment_failed_login()
+        
+        assert user.failed_login_attempts == 5
+        assert user.is_locked() is True
 ```
 
 ### 2. Value Object Tests (Unit)
@@ -907,7 +938,7 @@ def test_user_verify_email_already_verified():
 **Test**: Immutability, equality, domain logic.
 
 ```python
-# tests/unit/test_domain_money_value_object.py
+# tests/unit/test_domain_money.py
 def test_money_add_same_currency():
     """Test adding money with same currency."""
     m1 = Money(amount=Decimal("100.00"), currency="USD")
@@ -933,27 +964,49 @@ def test_money_add_different_currency_raises():
 
 ```python
 # tests/integration/test_user_repository.py
-@pytest.mark.asyncio
-async def test_user_repository_save_and_find(db_session: AsyncSession):
-    """Test repository saves and retrieves entity."""
-    repo = UserRepository(session=db_session)
-    
-    user = User(
-        id=uuid7(),
-        email="test@example.com",
-        is_verified=False,
-    )
-    
-    # Save entity
-    await repo.save(user)
-    await db_session.commit()
-    
-    # Retrieve entity
-    found = await repo.find_by_email("test@example.com")
-    
-    assert found is not None
-    assert found.id == user.id
-    assert found.email == user.email
+from datetime import UTC, datetime
+
+import pytest
+from uuid_extensions import uuid7
+
+from src.domain.entities.user import User
+from src.infrastructure.persistence.repositories.user_repository import UserRepository
+
+
+@pytest.mark.integration
+class TestUserRepositorySave:
+    @pytest.mark.asyncio
+    async def test_user_repository_save_and_find(self, test_database):
+        """Test repository saves and retrieves entity."""
+        # Arrange - create user with ALL required fields
+        user_id = uuid7()
+        now = datetime.now(UTC)
+        user = User(
+            id=user_id,
+            email=f"test_{user_id}@example.com",
+            password_hash="hashed_password",
+            is_verified=False,
+            is_active=True,
+            failed_login_attempts=0,
+            locked_until=None,
+            created_at=now,
+            updated_at=now,
+        )
+        
+        # Act - use test_database fixture with context manager
+        async with test_database.get_session() as session:
+            repo = UserRepository(session=session)
+            await repo.save(user)
+            await session.commit()
+        
+        # Assert - separate session for read
+        async with test_database.get_session() as session:
+            repo = UserRepository(session=session)
+            found = await repo.find_by_email(user.email)
+        
+        assert found is not None
+        assert found.id == user_id
+        assert found.email == user.email
 ```
 
 ### 4. Handler Tests (Unit with Mocks)
@@ -962,26 +1015,52 @@ async def test_user_repository_save_and_find(db_session: AsyncSession):
 
 ```python
 # tests/unit/test_application_register_user_handler.py
-@pytest.mark.asyncio
-async def test_register_user_success():
-    """Test user registration handler."""
-    mock_repo = AsyncMock(spec=UserRepository)
-    mock_repo.find_by_email.return_value = None
-    
-    mock_event_bus = AsyncMock(spec=EventBusProtocol)
-    
-    handler = RegisterUserHandler(
-        user_repo=mock_repo,
-        event_bus=mock_event_bus,
-    )
-    
-    result = await handler.handle(
-        RegisterUser(email="test@example.com", password="SecurePass123!")
-    )
-    
-    assert isinstance(result, Success)
-    mock_repo.save.assert_called_once()
-    assert mock_event_bus.publish.call_count == 2  # ATTEMPT + SUCCESS
+from unittest.mock import AsyncMock, Mock
+from uuid import UUID
+
+import pytest
+
+from src.application.commands.auth_commands import RegisterUser
+from src.application.commands.handlers.register_user_handler import (
+    RegisterUserHandler,
+)
+from src.core.result import Success
+
+
+@pytest.mark.unit
+class TestRegisterUserHandler:
+    @pytest.mark.asyncio
+    async def test_register_user_success(self):
+        """Test user registration handler."""
+        # Arrange - all 4 dependencies required
+        mock_user_repo = AsyncMock()
+        mock_user_repo.find_by_email.return_value = None
+        
+        mock_verification_repo = AsyncMock()
+        mock_password_service = Mock()
+        mock_password_service.hash_password.return_value = "hashed"
+        mock_event_bus = AsyncMock()
+        
+        handler = RegisterUserHandler(
+            user_repo=mock_user_repo,
+            verification_token_repo=mock_verification_repo,
+            password_service=mock_password_service,
+            event_bus=mock_event_bus,
+        )
+        
+        command = RegisterUser(
+            email="test@example.com",
+            password="SecurePass123!",
+        )
+        
+        # Act
+        result = await handler.handle(command)
+        
+        # Assert
+        assert isinstance(result, Success)
+        assert isinstance(result.value, UUID)
+        mock_user_repo.save.assert_called_once()
+        assert mock_event_bus.publish.call_count == 2  # ATTEMPTED + SUCCEEDED
 ```
 
 ---
@@ -1265,4 +1344,4 @@ def test_user_verify_email():
 
 ---
 
-**Created**: 2025-12-30 | **Last Updated**: 2025-12-30
+**Created**: 2025-12-30 | **Last Updated**: 2026-01-10

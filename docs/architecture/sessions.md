@@ -1745,7 +1745,7 @@ class SessionEventHandler:
 
 ### 9.2 Integration Tests (Infrastructure)
 
-**Location**: `tests/integration/test_session_repository_postgres.py`
+**Location**: `tests/integration/test_session_repository.py`
 
 - Save and retrieve session
 - Find active sessions by user
@@ -1755,7 +1755,7 @@ class SessionEventHandler:
 - Revoke oldest session (FIFO)
 - Delete expired sessions
 
-**Location**: `tests/integration/test_session_cache_redis.py`
+**Location**: `tests/integration/test_session_cache.py`
 
 - Set and check active session
 - Delete session from cache
@@ -1763,7 +1763,7 @@ class SessionEventHandler:
 
 ### 9.3 API Tests (Presentation)
 
-**Location**: `tests/api/test_session_endpoints.py`
+**Location**: `tests/api/test_sessions_api.py`
 
 - GET /sessions - list user sessions
 - GET /sessions/{id} - get single session
@@ -1773,4 +1773,4 @@ class SessionEventHandler:
 
 ---
 
-**Created**: 2025-11-26 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-26 | **Last Updated**: 2026-01-10

@@ -714,7 +714,7 @@ The Database class is a thin wrapper around SQLAlchemy. Unit testing it would re
 **Integration tests are the ONLY tests for database infrastructure:**
 
 ```python
-# tests/integration/test_infrastructure_persistence_database.py
+# tests/integration/test_database_postgres.py
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
@@ -1027,4 +1027,4 @@ This ensures our database layer is:
 
 ---
 
-**Created**: 2025-11-09 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-09 | **Last Updated**: 2026-01-10

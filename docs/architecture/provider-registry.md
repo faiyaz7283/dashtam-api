@@ -757,4 +757,4 @@ The Provider Integration Registry is **NOT** intended for:
 
 - **v1.6.0** (2025-12-31): Initial Provider Integration Registry implementation (F8.1)
 
-**Last Updated**: 2025-12-31
+**Last Updated**: 2026-01-10

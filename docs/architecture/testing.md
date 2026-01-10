@@ -65,7 +65,7 @@ graph TB
 
 **How to test**: Unit tests with no mocking
 
-**Example** (`tests/unit/core/test_config.py`):
+**Example** (`tests/unit/test_core_config.py`):
 
 ```python
 def test_settings_from_env():
@@ -94,16 +94,44 @@ isolate tests.
 **Pattern**: Mock protocols (if needed), test business logic in isolation
 
 ```python
-# tests/unit/domain/test_user_entity.py
-def test_user_validates_email():
-    """Domain entity validation (pure logic)."""
-    result = User.create(
-        email="invalid-email",
-        password="SecurePass123!"
+# tests/unit/test_domain_user_entity.py
+from datetime import UTC, datetime
+
+import pytest
+from uuid_extensions import uuid7
+
+from src.domain.entities.user import User
+
+
+def create_user(is_verified=True, is_active=True, failed_login_attempts=0):
+    """Helper factory for User entities in tests."""
+    now = datetime.now(UTC)
+    return User(
+        id=uuid7(),
+        email="test@example.com",
+        password_hash="hashed_password",
+        is_verified=is_verified,
+        is_active=is_active,
+        failed_login_attempts=failed_login_attempts,
+        locked_until=None,
+        created_at=now,
+        updated_at=now,
     )
+
+
+@pytest.mark.unit
+class TestUserCanLogin:
+    def test_user_can_login_when_verified_and_active(self):
+        """Domain entity validation (pure logic)."""
+        user = create_user(is_verified=True, is_active=True)
+        
+        assert user.can_login() is True
     
-    assert isinstance(result, Failure)
-    assert result.error.code == ErrorCode.INVALID_EMAIL
+    def test_user_cannot_login_when_not_verified(self):
+        """Test user cannot login when email not verified."""
+        user = create_user(is_verified=False)
+        
+        assert user.can_login() is False
 ```
 
 **What NOT to test**: Don't unit test protocols (they're interfaces)
@@ -119,33 +147,54 @@ def test_user_validates_email():
 **Pattern**: Mock repository protocols, test handler logic
 
 ```python
-# tests/unit/application/commands/test_register_user.py
-@pytest.mark.asyncio
-async def test_register_user_handler_success():
-    """Test handler with mocked repository."""
-    # Arrange
-    mock_user_repo = AsyncMock(spec=UserRepository)
-    mock_user_repo.find_by_email.return_value = None  # No existing user
-    mock_user_repo.save = AsyncMock()  # Mock save
-    
-    handler = RegisterUserHandler(
-        user_repository=mock_user_repo,
-        event_bus=mock_event_bus
-    )
-    
-    command = RegisterUser(
-        email="test@example.com",
-        password="SecurePass123!"
-    )
-    
-    # Act
-    result = await handler.handle(command)
-    
-    # Assert
-    assert isinstance(result, Success)
-    mock_user_repo.save.assert_called_once()
-    # Verify event published
-    mock_event_bus.publish.assert_called_once()
+# tests/unit/test_application_register_user_handler.py
+from unittest.mock import AsyncMock, Mock
+from uuid import UUID
+
+import pytest
+
+from src.application.commands.auth_commands import RegisterUser
+from src.application.commands.handlers.register_user_handler import (
+    RegisterUserHandler,
+)
+from src.core.result import Success
+
+
+@pytest.mark.unit
+class TestRegisterUserHandler:
+    @pytest.mark.asyncio
+    async def test_register_user_success(self):
+        """Test handler with mocked repositories."""
+        # Arrange - all 4 dependencies required
+        mock_user_repo = AsyncMock()
+        mock_user_repo.find_by_email.return_value = None
+        
+        mock_verification_repo = AsyncMock()
+        mock_password_service = Mock()
+        mock_password_service.hash_password.return_value = "hashed"
+        mock_event_bus = AsyncMock()
+        
+        handler = RegisterUserHandler(
+            user_repo=mock_user_repo,
+            verification_token_repo=mock_verification_repo,
+            password_service=mock_password_service,
+            event_bus=mock_event_bus,
+        )
+        
+        command = RegisterUser(
+            email="test@example.com",
+            password="SecurePass123!",
+        )
+        
+        # Act
+        result = await handler.handle(command)
+        
+        # Assert
+        assert isinstance(result, Success)
+        assert isinstance(result.value, UUID)
+        mock_user_repo.save.assert_called_once()
+        # Verify events: ATTEMPTED + SUCCEEDED
+        assert mock_event_bus.publish.call_count == 2
 ```
 
 **Why mock repositories?** We want to test **handler logic** (validation,
@@ -165,7 +214,12 @@ business rules, event publishing), not database operations.
 external systems. Mocking SQLAlchemy or Redis would just test the mock.
 
 ```python
-# tests/integration/test_infrastructure_cache_redis.py
+# tests/integration/test_cache_redis.py
+import pytest
+
+from src.core.result import Success
+
+
 @pytest.mark.integration
 class TestCacheIntegration:
     """Integration tests for Redis cache."""
@@ -197,7 +251,7 @@ connection per test.
 **Pattern**: Test complete request/response flow, verify status codes
 
 ```python
-# tests/api/test_auth_endpoints.py
+# tests/api/test_users_api.py
 def test_user_registration_flow(client):
     """E2E test with TestClient."""
     response = client.post("/api/v1/users", json={
@@ -301,7 +355,7 @@ Our `tests/conftest.py` provides reusable fixtures following DRY principles.
 bypass singleton** for complete isolation.
 
 ```python
-# tests/integration/test_infrastructure_persistence_database.py
+# tests/integration/test_database_postgres.py
 @pytest_asyncio.fixture
 async def test_database():
     """Provide fresh Database instance for each test."""
@@ -869,8 +923,8 @@ tests/
 │   ├── test_database_postgres.py               # PostgreSQL adapter
 │   └── test_provider_schwab.py                 # Schwab API adapter
 ├── api/                                        # API tests (10%)
-│   ├── test_auth_endpoints.py                  # Auth endpoints
-│   └── test_user_endpoints.py                  # User endpoints
+│   ├── test_users_api.py                       # User endpoints
+│   └── test_sessions_api.py                    # Session endpoints
 └── smoke/                                      # E2E smoke tests
     └── test_user_registration_flow.py          # Complete user journey
 ```
@@ -887,9 +941,9 @@ tests/
   - `test_database_postgres.py` (database component, PostgreSQL)
   - `test_provider_schwab.py` (provider component, Schwab API)
 
-- **API tests**: `test_<domain>_endpoints.py`
-  - `test_auth_endpoints.py` (authentication domain)
-  - `test_user_endpoints.py` (user management domain)
+- **API tests**: `test_<domain>_api.py`
+  - `test_users_api.py` (user management domain)
+  - `test_sessions_api.py` (session management domain)
 
 - **Smoke tests**: `test_<feature>_flow.py`
   - `test_user_registration_flow.py` (complete registration journey)
@@ -1761,4 +1815,4 @@ This testing architecture provides:
 
 ---
 
-**Created**: 2025-11-12 | **Last Updated**: 2026-01-08
+**Created**: 2025-11-12 | **Last Updated**: 2026-01-10

@@ -1040,7 +1040,7 @@ def test_money_value_object_negative():
 
 ### Testing Entity Business Rules
 
-**Test Files**: `tests/unit/test_domain_entities.py`
+**Test Files**: `tests/unit/test_domain_user_entity.py` (or `test_domain_<entity>.py` pattern)
 
 **Pattern**: Test entity method logic
 
@@ -1080,7 +1080,7 @@ def test_user_lockout_after_5_failed_attempts():
 
 ### Testing Result Types
 
-**Test Files**: `tests/unit/test_application_handlers.py`
+**Test Files**: `tests/unit/test_application_<handler>_handler.py` (e.g., `test_application_register_user_handler.py`)
 
 **Pattern**: Test both success and failure paths
 
@@ -1341,4 +1341,4 @@ Dashtam's validation architecture implements **defense-in-depth** with 5 runtime
 
 ---
 
-**Created**: 2025-12-12 | **Last Updated**: 2025-12-12
+**Created**: 2025-12-12 | **Last Updated**: 2026-01-10

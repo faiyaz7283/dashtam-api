@@ -287,7 +287,7 @@ src/infrastructure/
 
 tests/
 ├── unit/
-│   ├── test_domain_holding_entity.py
+│   ├── test_domain_holding.py
 │   └── test_infrastructure_schwab_holding_mapper.py
 └── integration/
     └── test_holding_repository.py
@@ -341,4 +341,4 @@ tests/
 
 ---
 
-**Created**: 2025-12-26 | **Last Updated**: 2025-12-26
+**Created**: 2025-12-26 | **Last Updated**: 2026-01-10

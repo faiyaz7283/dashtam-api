@@ -1093,19 +1093,16 @@ def get_authorization() -> "AuthorizationProtocol":
 
 **Unit Tests** (`tests/unit/`):
 
-- `test_authorization_permission_checker.py` - PermissionChecker logic
-- `test_authorization_role_checker.py` - RoleChecker logic
-- `test_authorization_cache.py` - Cache key generation, TTL
+- `test_domain_enums_authorization.py` - Authorization enum tests
+- `test_domain_events_authorization.py` - Authorization event tests
 
 **Integration Tests** (`tests/integration/`):
 
-- `test_casbin_enforcer.py` - Casbin policy enforcement
-- `test_casbin_postgres_adapter.py` - Policy persistence
-- `test_authorization_cache_integration.py` - Redis caching
+- `test_authorization_casbin.py` - Casbin policy enforcement and adapter
 
 **API Tests** (`tests/api/`):
 
-- `test_authorization_endpoints.py` - Protected endpoint access
+- `test_authorization_api.py` - Protected endpoint access
 
 ---
 
@@ -1148,14 +1145,12 @@ alembic/
 
 tests/
 ├── unit/
-│   ├── test_authorization_permission_checker.py
-│   ├── test_authorization_role_checker.py
-│   └── test_authorization_events.py
+│   ├── test_domain_enums_authorization.py
+│   └── test_domain_events_authorization.py
 ├── integration/
-│   ├── test_casbin_enforcer.py
-│   └── test_casbin_postgres_adapter.py
+│   └── test_authorization_casbin.py
 └── api/
-    └── test_authorization_endpoints.py
+    └── test_authorization_api.py
 ```
 
 ---
@@ -1250,4 +1245,4 @@ RBAC policies are seeded via `alembic/seeds/rbac_seeder.py` (post-migration hook
 
 ---
 
-**Created**: 2025-11-27 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-27 | **Last Updated**: 2026-01-10

@@ -598,7 +598,7 @@ src/domain/
 │   └── transaction.py           # Transaction entity
 ├── enums/
 │   ├── transaction_type.py      # TransactionType enum (5 values)
-│   ├── transaction_subtype.py   # TransactionSubtype enum (24 values)
+│   ├── transaction_subtype.py   # TransactionSubtype enum (25 values)
 │   ├── transaction_status.py    # TransactionStatus enum (4 values)
 │   └── asset_type.py            # AssetType enum (9 values)
 ├── errors/
@@ -634,7 +634,7 @@ docs/architecture/
 
 **TransactionSubtype Enum:**
 
-- All 24 values accessible
+- All 25 values accessible
 - Helper methods (trade_subtypes, transfer_subtypes, income_subtypes, fee_subtypes)
 
 **TransactionStatus Enum:**
@@ -650,4 +650,4 @@ Coverage target: 100%
 
 ---
 
-**Created**: 2025-11-30 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-30 | **Last Updated**: 2026-01-10

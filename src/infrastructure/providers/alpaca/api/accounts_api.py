@@ -213,7 +213,8 @@ class AlpacaAccountsAPI:
             data = response.json()
         except ValueError as e:
             logger.error(
-                f"alpaca_accounts_api_{operation}_invalid_json",
+                "alpaca_accounts_api_invalid_json",
+                operation=operation,
                 error=str(e),
             )
             return Failure(
@@ -235,7 +236,7 @@ class AlpacaAccountsAPI:
                 )
             )
 
-        logger.debug(f"alpaca_accounts_api_{operation}_succeeded")
+        logger.debug("alpaca_accounts_api_succeeded", operation=operation)
         return Success(value=data)
 
     def _handle_list_response(
@@ -260,7 +261,8 @@ class AlpacaAccountsAPI:
             data = response.json()
         except ValueError as e:
             logger.error(
-                f"alpaca_accounts_api_{operation}_invalid_json",
+                "alpaca_accounts_api_invalid_json",
+                operation=operation,
                 error=str(e),
             )
             return Failure(
@@ -276,7 +278,8 @@ class AlpacaAccountsAPI:
             data = [data] if data else []
 
         logger.debug(
-            f"alpaca_accounts_api_{operation}_succeeded",
+            "alpaca_accounts_api_succeeded",
+            operation=operation,
             count=len(data),
         )
         return Success(value=data)
@@ -300,7 +303,8 @@ class AlpacaAccountsAPI:
             retry_after = response.headers.get("Retry-After")
             retry_seconds = int(retry_after) if retry_after else None
             logger.warning(
-                f"alpaca_accounts_api_{operation}_rate_limited",
+                "alpaca_accounts_api_rate_limited",
+                operation=operation,
                 retry_after=retry_seconds,
             )
             return Failure(
@@ -314,7 +318,7 @@ class AlpacaAccountsAPI:
 
         # Authentication errors
         if response.status_code in (401, 403):
-            logger.warning(f"alpaca_accounts_api_{operation}_auth_failed")
+            logger.warning("alpaca_accounts_api_auth_failed", operation=operation)
             return Failure(
                 error=ProviderAuthenticationError(
                     code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
@@ -326,7 +330,7 @@ class AlpacaAccountsAPI:
 
         # Not found
         if response.status_code == 404:
-            logger.warning(f"alpaca_accounts_api_{operation}_not_found")
+            logger.warning("alpaca_accounts_api_not_found", operation=operation)
             return Failure(
                 error=ProviderInvalidResponseError(
                     code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
@@ -339,7 +343,8 @@ class AlpacaAccountsAPI:
         # Server errors
         if response.status_code >= 500:
             logger.warning(
-                f"alpaca_accounts_api_{operation}_server_error",
+                "alpaca_accounts_api_server_error",
+                operation=operation,
                 status_code=response.status_code,
             )
             return Failure(
@@ -357,7 +362,8 @@ class AlpacaAccountsAPI:
 
         # Unexpected status
         logger.warning(
-            f"alpaca_accounts_api_{operation}_unexpected_status",
+            "alpaca_accounts_api_unexpected_status",
+            operation=operation,
             status_code=response.status_code,
         )
         return Failure(

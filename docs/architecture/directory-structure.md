@@ -99,7 +99,7 @@ graph TB
 - Keep flat (no subdirectories)
 - Container provides both app-scoped (singletons) and request-scoped dependencies
 
-**See also**: `dependency-injection-architecture.md` for container pattern details.
+**See also**: `dependency-injection.md` for container pattern details.
 
 ---
 
@@ -975,9 +975,9 @@ class AuditError(DomainError):  # Inherits base fields
 
 ### Related Documentation
 
-- [Import Guidelines](../guides/import-guidelines.md)
-- [Dependency Injection Architecture](dependency-injection-architecture.md)
+- [Import Guidelines](../guides/imports.md)
+- [Dependency Injection Architecture](dependency-injection.md)
 
 ---
 
-**Created**: 2025-11-08 | **Last Updated**: 2025-12-30
+**Created**: 2025-11-08 | **Last Updated**: 2026-01-10

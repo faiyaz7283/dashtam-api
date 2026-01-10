@@ -9,13 +9,13 @@
 
 **Architecture Documentation**:
 
-- `docs/architecture/hexagonal-architecture.md` - Hexagonal architecture theory, ports & adapters, dependency rule
-- `docs/architecture/protocol-based-architecture.md` - Protocol-based design, structural typing, testing with protocols
-- `docs/architecture/domain-driven-design-architecture.md` - Pragmatic DDD, entities vs value objects, domain events, patterns used/skipped
+- `docs/architecture/hexagonal.md` - Hexagonal architecture theory, ports & adapters, dependency rule
+- `docs/architecture/protocols.md` - Protocol-based design, structural typing, testing with protocols
+- `docs/architecture/domain-driven-design.md` - Pragmatic DDD, entities vs value objects, domain events, patterns used/skipped
 
 ---
 
-**Last Updated**: 2026-01-08
+**Last Updated**: 2026-01-10
 
 ## 1. Project Overview
 
@@ -353,7 +353,7 @@ class UserRegistrationSucceeded(DomainEvent):
 - ✅ **Operational events**: Single-state observability/monitoring (activity tracking, security monitoring) - NOT 3-state pattern
 - ❌ **NOT for** simple reads or single-step operations
 
-**Reference**: `docs/architecture/domain-events-architecture.md`
+**Reference**: `docs/architecture/domain-events.md`
 
 ---
 
@@ -466,7 +466,7 @@ tests/              # Flat structure with naming patterns
 └── smoke/          # test_<feature>_flow.py
 
 docs/               # Flat structure with naming patterns
-├── architecture/   # domain-events-architecture.md, etc.
+├── architecture/   # domain-events.md, etc.
 ├── api/            # auth-login.md, providers-oauth-flow.md
 └── guides/         # import-guidelines.md, etc.
 ```
@@ -547,7 +547,7 @@ class RegisterUserHandler:
 - **Integration tests**: Create fresh instances directly (bypass container)
 - **API tests**: Use `app.dependency_overrides` for test dependencies
 
-**Reference**: `docs/architecture/dependency-injection-architecture.md`
+**Reference**: `docs/architecture/dependency-injection.md`
 
 ---
 
@@ -682,7 +682,7 @@ return ErrorResponseBuilder.from_application_error(
 - `errors`: Field-level validation errors (optional)
 - `trace_id`: UUID for log correlation
 
-**Reference**: `docs/guides/error-handling-guide.md` (comprehensive guide with client examples)
+**Reference**: `docs/guides/error-handling.md` (comprehensive guide with client examples)
 
 ---
 
@@ -1063,7 +1063,7 @@ Tests are type-checked with `check_untyped_defs = true` in mypy. Key patterns:
 - Use specific `# type: ignore[error-code]` for intentional type violations
 - Protocol-compliant signatures in test stubs (match exact method signatures)
 
-**Reference**: `docs/architecture/testing-architecture.md` (Type Safety section)
+**Reference**: `docs/architecture/testing.md` (Type Safety section)
 
 **IMPORTANT**: All tests run in Docker. NEVER run tests on host machine.
 
@@ -1485,7 +1485,7 @@ async def create_user(
 - **Maintainability**: Clear boundaries, explicit dependencies
 - **Longevity**: Framework-agnostic domain survives upgrades
 
-**See**: `docs/architecture/hexagonal-architecture.md` for complete architectural details, layer responsibilities, ports & adapters pattern, and integration with other patterns.
+**See**: `docs/architecture/hexagonal.md` for complete architectural details, layer responsibilities, ports & adapters pattern, and integration with other patterns.
 
 #### Why CQRS?
 
@@ -1499,7 +1499,7 @@ async def create_user(
 - **Flexible**: No inheritance required, easier testing
 - **Modern**: Python 3.8+ feature, type checkers understand
 
-**See**: `docs/architecture/protocol-based-architecture.md` for structural vs nominal typing, protocol implementations across Dashtam, testing strategies, and common pitfalls.
+**See**: `docs/architecture/protocols.md` for structural vs nominal typing, protocol implementations across Dashtam, testing strategies, and common pitfalls.
 
 #### Why Result Types?
 
@@ -1555,4 +1555,4 @@ async def create_user(
 
 ---
 
-**Last Updated**: 2026-01-08
+**Last Updated**: 2026-01-10

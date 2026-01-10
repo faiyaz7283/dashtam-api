@@ -104,7 +104,8 @@ async def seed_example_data(session: AsyncSession) -> None:
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from seeds.rbac_seeder import seed_rbac_policies  # Local import (sys.path set by env.py)
+from seeds.provider_seeder import seed_providers
+from seeds.rbac_seeder import seed_rbac_policies
 
 logger = structlog.get_logger(__name__)
 
@@ -113,14 +114,23 @@ async def run_all_seeders(session: AsyncSession) -> None:
     """Run all database seeders. Called after Alembic migrations.
 
     All seeders are idempotent - safe to run on every migration.
-    Uses ON CONFLICT DO NOTHING for insert operations.
+    Uses existence checks or ON CONFLICT DO NOTHING for insert operations.
 
     Args:
         session: Async database session.
     """
+    logger.info("seeding_started")
+
+    # Run RBAC seeder (F1.1b - User Authorization)
     await seed_rbac_policies(session)
+
+    # Run Provider seeder (F4.1 - Provider Integration)
+    await seed_providers(session)
+
     # Add future seeders here:
-    # await seed_security_config(session)
+    # await seed_feature_flags(session)
+
+    logger.info("seeding_completed")
 ```
 
 ### Alembic Integration
@@ -239,9 +249,9 @@ Most "updates" should go through admin APIs instead.
 
 ## Current Seeders
 
-- **`rbac_seeder.py`** (F1.1b) - Default roles, permissions, hierarchy
-- **`security_config_seeder.py`** (F1.3b) - Token rotation defaults
+- **`rbac_seeder.py`** (F1.1b) - Default roles (readonly, user, admin), permissions, and role hierarchy for Casbin RBAC
+- **`provider_seeder.py`** (F4.1) - Built-in providers (Charles Schwab, Alpaca, Chase Bank file import)
 
 ---
 
-**Created**: 2025-11-27 | **Last Updated**: 2025-11-27
+**Created**: 2025-11-27 | **Last Updated**: 2026-01-10

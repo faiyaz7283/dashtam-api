@@ -205,11 +205,12 @@ class TestCreateEmailVerification:
         # Execute: Missing token field
         response = client.post("/api/v1/email-verifications", json={})
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_email_verification_token_too_short(self, client):
         """Should return 422 Unprocessable Entity for token < 64 chars."""
@@ -219,11 +220,12 @@ class TestCreateEmailVerification:
             json={"token": "short"},  # Less than 64 chars
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_email_verification_token_too_long(self, client):
         """Should return 422 Unprocessable Entity for token > 64 chars."""
@@ -233,11 +235,12 @@ class TestCreateEmailVerification:
             json={"token": "a" * 65},  # More than 64 chars
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_email_verification_empty_token(self, client):
         """Should return 422 Unprocessable Entity for empty token."""
@@ -247,11 +250,12 @@ class TestCreateEmailVerification:
             json={"token": ""},
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_email_verification_invalid_content_type(self, client):
         """Should return 422 when Content-Type is not application/json."""

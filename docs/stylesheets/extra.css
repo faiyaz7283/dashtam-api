@@ -1,0 +1,9 @@
+/* Fix API capitalization in top navigation tabs */
+.md-tabs__link[href$="/api/"] {
+  font-size: 0 !important;
+}
+
+.md-tabs__link[href$="/api/"]::after {
+  content: "API";
+  font-size: 0.7rem !important;
+}

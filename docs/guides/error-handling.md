@@ -728,15 +728,271 @@ fields @timestamp, @message
 4. ✅ Store/display `trace_id` for support tickets
 5. ✅ Update error handling tests to assert `ProblemDetails` schema
 
+## Result Types (Railway-Oriented Programming)
+
+Dashtam uses **Result types** for explicit error handling across all layers. Domain functions return `Result[T, Error]` instead of raising exceptions.
+
+**Architecture Flow**: Domain → Application → Presentation
+
+- **Domain**: Returns `Result[T, DomainError]` (NO exceptions)
+- **Application**: Wraps domain errors in `ApplicationError`
+- **Presentation**: Converts to RFC 7807 `ProblemDetails` JSON
+
+### Domain Layer Patterns
+
+#### ValidationError (Field-Specific)
+
+```python
+from src.core.result import Result, Success, Failure
+from src.core.errors import ValidationError
+from src.core.enums import ErrorCode
+
+# ✅ CORRECT: Return Failure with ValidationError
+def validate_password(password: str) -> Result[str, ValidationError]:
+    if len(password) < 12:
+        return Failure(ValidationError(
+            code=ErrorCode.PASSWORD_TOO_WEAK,
+            message="Password must be at least 12 characters",
+            field="password",
+        ))
+    return Success(password)
+
+# ❌ WRONG: Don't raise exceptions in domain
+def validate_password_wrong(password: str) -> str:
+    if len(password) < 12:
+        raise ValueError("Password too weak")  # NO!
+    return password
+```
+
+#### NotFoundError (Resource Missing)
+
+```python
+from src.core.errors import NotFoundError
+
+async def find_user(user_id: UUID) -> Result[User, NotFoundError]:
+    user = await self.users.find_by_id(user_id)
+    
+    if not user:
+        return Failure(NotFoundError(
+            code=ErrorCode.USER_NOT_FOUND,
+            message=f"User with ID '{user_id}' does not exist",
+            resource_type="User",
+            resource_id=str(user_id),
+        ))
+    
+    return Success(user)
+```
+
+#### ConflictError (Duplicate Resource)
+
+```python
+from src.core.errors import ConflictError
+
+async def register_user(email: str) -> Result[User, ConflictError]:
+    existing = await self.users.find_by_email(email)
+    
+    if existing:
+        return Failure(ConflictError(
+            code=ErrorCode.EMAIL_ALREADY_EXISTS,
+            message=f"User with email '{email}' already exists",
+            resource_type="User",
+            conflicting_field="email",
+        ))
+    
+    user = User(email=email)
+    return Success(user)
+```
+
+### Application Layer Patterns
+
+#### Command Handler Error Mapping
+
+```python
+from src.core.errors import ApplicationError, ApplicationErrorCode
+
+class RegisterUserHandler:
+    async def handle(self, cmd: RegisterUserCommand) -> Result[UUID, ApplicationError]:
+        """Register new user with error mapping."""
+        result = await self.user_service.register_user(cmd.email, cmd.password)
+        
+        # Handle failure case first (isinstance pattern for kw_only dataclasses)
+        if isinstance(result, Failure):
+            err = result.error
+            if isinstance(err, ValidationError):
+                return Failure(error=ApplicationError(
+                    code=ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
+                    message=f"Registration failed: {err.message}",
+                    domain_error=err,
+                    details={"field": err.field},
+                ))
+            if isinstance(err, ConflictError):
+                return Failure(error=ApplicationError(
+                    code=ApplicationErrorCode.CONFLICT,
+                    message="Registration failed: email already exists",
+                    domain_error=err,
+                ))
+        
+        # Success case
+        user = result.value
+        await self.event_bus.publish(UserRegistered(user_id=user.id))
+        return Success(value=user.id)
+```
+
+#### Query Handler Error Mapping
+
+```python
+class GetUserHandler:
+    async def handle(self, query: GetUser) -> Result[UserDTO, ApplicationError]:
+        """Get user with error mapping."""
+        result = await self.users.find_by_id(query.user_id)
+        
+        if isinstance(result, Failure):
+            return Failure(error=ApplicationError(
+                code=ApplicationErrorCode.NOT_FOUND,
+                message=f"User not found: {result.error.message}",
+                domain_error=result.error,
+            ))
+        
+        return Success(value=UserDTO.from_entity(result.value))
+```
+
+### Presentation Layer Patterns
+
+Routers dispatch to handlers and convert results to HTTP responses:
+
+```python
+from fastapi import APIRouter, Request, Depends
+from src.presentation.api.error_response_builder import ErrorResponseBuilder
+
+@router.post("/users", status_code=201)
+async def create_user(
+    data: UserCreateRequest,
+    request: Request,
+    handler: RegisterUserHandler = Depends(get_register_handler),
+):
+    """Create new user."""
+    result = await handler.handle(RegisterUserCommand(email=data.email))
+    
+    if isinstance(result, Failure):
+        return ErrorResponseBuilder.from_application_error(
+            error=result.error,
+            request_path=str(request.url.path),
+        )
+    
+    return {"id": str(result.value), "email": data.email}
+```
+
+## Anti-Patterns (What NOT to Do)
+
+### ❌ Don't Raise Exceptions in Domain
+
+```python
+# ❌ WRONG
+def create_user(email: str) -> User:
+    if not is_valid_email(email):
+        raise ValueError("Invalid email")  # NO!
+    return User(email=email)
+
+# ✅ CORRECT
+def create_user(email: str) -> Result[User, ValidationError]:
+    if not is_valid_email(email):
+        return Failure(ValidationError(...))
+    return Success(User(email=email))
+```
+
+### ❌ Don't Use Try-Except for Business Logic
+
+```python
+# ❌ WRONG
+try:
+    user = create_user(email)
+    return {"id": user.id}
+except ValueError as e:
+    return {"error": str(e)}  # NO!
+
+# ✅ CORRECT
+result = create_user(email)
+if isinstance(result, Failure):
+    return ErrorResponseBuilder.from_application_error(...)
+return {"id": result.value.id}
+```
+
+### ❌ Don't Inline Error Responses
+
+```python
+# ❌ WRONG
+@router.post("/users")
+async def create_user(data: dict):
+    if not data.get("email"):
+        return {"error": "Email required"}, 400  # NO!
+
+# ✅ CORRECT: Use ErrorResponseBuilder
+@router.post("/users")
+async def create_user(request: Request, handler=Depends()):
+    result = await handler.handle(...)
+    if isinstance(result, Failure):
+        return ErrorResponseBuilder.from_application_error(...)
+```
+
+## Testing Error Paths
+
+### Unit Tests (Domain Layer)
+
+```python
+def test_validation_error():
+    """Test validation returns Failure."""
+    result = create_user(email="invalid-email")
+    
+    assert isinstance(result, Failure)
+    err = result.error
+    assert isinstance(err, ValidationError)
+    assert err.code == ErrorCode.INVALID_EMAIL
+    assert err.field == "email"
+```
+
+### Integration Tests (Application Layer)
+
+```python
+async def test_command_handler_error_mapping():
+    """Test handler maps domain errors to application errors."""
+    handler = RegisterUserHandler(...)
+    result = await handler.handle(RegisterUserCommand(email="invalid"))
+    
+    assert isinstance(result, Failure)
+    err = result.error
+    assert isinstance(err, ApplicationError)
+    assert err.code == ApplicationErrorCode.COMMAND_VALIDATION_FAILED
+    assert err.domain_error is not None
+```
+
+### API Tests (Presentation Layer)
+
+```python
+def test_api_returns_rfc7807(client):
+    """Test API endpoint returns RFC 7807 response."""
+    response = client.post("/api/v1/users", json={"email": "invalid"})
+    
+    assert response.status_code == 400
+    data = response.json()
+    assert data["type"].endswith("/errors/command_validation_failed")
+    assert data["title"] == "Validation Failed"
+    assert "errors" in data
+    assert "trace_id" in data
+```
+
 ## Best Practices
 
 ### For Backend Developers
 
-1. **Always use ErrorResponseBuilder** - Don't construct JSONResponse manually
-2. **Choose appropriate ApplicationErrorCode** - Maps to correct HTTP status + RFC 7807 metadata
-3. **Include contextual detail** - Help users understand what went wrong
-4. **Add field errors for validation** - Use `errors` array for multi-field validation
-5. **Never expose internal errors** - Map exceptions to generic INTERNAL_ERROR with trace_id
+1. **Always use Result types in domain layer** - No exceptions for business logic
+2. **Map domain errors to application errors** - Add application context
+3. **Use ErrorResponseBuilder for all API errors** - Consistent RFC 7807 format
+4. **Choose appropriate ApplicationErrorCode** - Maps to correct HTTP status + RFC 7807 metadata
+5. **Include contextual detail** - Help users understand what went wrong
+6. **Add field errors for validation** - Use `errors` array for multi-field validation
+7. **Never expose internal errors** - Map exceptions to generic INTERNAL_ERROR with trace_id
+8. **Test error paths thoroughly** - Error handling is critical functionality
+9. **Use isinstance() checks** - For kw_only dataclass Result types
 
 ### For API Consumers
 
@@ -752,7 +1008,8 @@ fields @timestamp, @message
 - **Source Code**: `src/schemas/error_schemas.py`, `src/presentation/api/error_response_builder.py`
 - **Route Metadata Registry**: `src/presentation/routers/api/v1/routes/registry.py` (error specs per endpoint)
 - **Application Errors**: `src/core/errors/application_error.py`
+- **Result Types**: `src/core/result.py`
 
 ---
 
-**Created**: 2025-12-31 | **Last Updated**: 2025-12-31
+**Created**: 2025-12-31 | **Last Updated**: 2026-01-10

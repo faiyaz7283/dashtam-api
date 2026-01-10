@@ -183,7 +183,6 @@ nav:
     - Domain Events: guides/domain-events.md
     - Enum Security: guides/enum-security.md
     - Error Handling: guides/error-handling.md
-    - Error Handling (Legacy): guides/error-handling-usage.md
     - Imports: guides/imports.md
     - Key Management: guides/key-management.md
     - Local CI: guides/local-ci.md

@@ -7,8 +7,91 @@ Quick reference guide for developers implementing audit logging in Dashtam.
 **Related Documentation**:
 
 - Architecture: `architecture/audit.md` (why/what)
+- Event Registry: `src/domain/events/registry.py` (automatic audit wiring)
+- Audit Handler: `src/infrastructure/events/handlers/audit_event_handler.py`
 - API Reference: `src/domain/protocols/audit_protocol.py`
 - Enum Reference: `src/domain/enums/audit_action.py`
+
+---
+
+## Audit Approaches
+
+Dashtam uses **event-driven audit** for all business workflows. Infrastructure-level operations use direct calls.
+
+| Approach | When to Use | Example |
+|----------|-------------|---------------|
+| **Event-Driven** (Primary) | Business workflows with ATTEMPTED → SUCCEEDED/FAILED | User registration, login, provider connection |
+| **Infrastructure Audit** | High-frequency infrastructure operations without 3-state pattern | Authorization permission checks |
+
+### Event-Driven Audit (Primary Approach)
+
+All business workflows use domain events. The `AuditEventHandler` subscribes via the Event Registry and creates audit records automatically:
+
+```python
+# Handler publishes domain event
+await event_bus.publish(
+    UserRegistrationSucceeded(
+        user_id=user_id,
+        email=email,
+    ),
+    session=session,  # REQUIRED: Session for audit commit
+)
+
+# AuditEventHandler AUTOMATICALLY:
+# 1. Receives the event (via registry subscription)
+# 2. Maps to AuditAction.USER_REGISTERED
+# 3. Creates audit record with event context
+```
+
+**Benefits**:
+
+- ✅ Consistent audit records across all handlers
+- ✅ Single source of truth (Event Registry)
+- ✅ No manual `audit.record()` calls in handlers
+- ✅ Test coverage via registry compliance tests
+
+**Event Categories with Audit**:
+
+- Authentication: Registration, Login, Logout, Password Change
+- Authorization: Role Assignment, Role Revocation
+- Provider: Connection, Disconnection, Token Refresh
+- Data Sync: Account Sync, Transaction Sync, Holdings Sync
+- Session: Revocation, Security Alerts
+- Rate Limit: Denied requests
+
+**Reference**: See `src/domain/events/registry.py` for events with `requires_audit=True`.
+
+### Infrastructure Audit (Special Cases)
+
+Direct `audit.record()` calls are reserved for **infrastructure-level operations** that:
+
+1. Happen on every request (high frequency)
+2. Don't follow the ATTEMPTED → SUCCEEDED/FAILED pattern
+3. Are binary outcomes (GRANTED/DENIED, not 3-state)
+
+**Current usage**: Authorization permission checks in `casbin_adapter.py`:
+
+```python
+# Infrastructure adapter - NOT a domain event
+await self._audit.record(
+    action=AuditAction.ACCESS_GRANTED if allowed else AuditAction.ACCESS_DENIED,
+    resource_type="authorization",
+    user_id=user_id,
+    context={"resource": resource, "action": action},
+)
+```
+
+**When to use Infrastructure Audit**:
+
+- ✅ Authorization checks (every API request)
+- ✅ Rate limit enforcement (if not covered by events)
+- ✅ Future: Cache access patterns, API gateway logging
+
+**When NOT to use** (use Event-Driven instead):
+
+- ❌ User actions (registration, login, data changes)
+- ❌ Anything with success/failure outcomes
+- ❌ Business workflows
 
 ---
 
@@ -591,14 +674,22 @@ made these mistakes:
 
 ### Test Pattern: Verify Timeline
 
+**Type Safety**: Tests run with `check_untyped_defs = true` in mypy. Use `isinstance()` to narrow Result types before accessing `.value` or `.error`.
+
 ```python
 # tests/integration/test_audit_registration.py
+from typing import Any
 
-async def test_registration_audit_timeline_success(client, test_database):
+from src.core.result import Success, Failure
+
+
+async def test_registration_audit_timeline_success(
+    client: Any,
+    test_database: Any,
+) -> None:
     """Verify successful registration creates correct audit timeline."""
-    
     # Attempt registration
-    response = client.post("/users", json={
+    response = client.post("/api/v1/users", json={
         "email": "new@example.com",
         "password": "SecurePass123!",
     })
@@ -610,6 +701,9 @@ async def test_registration_audit_timeline_success(client, test_database):
     async with test_database.get_session() as session:
         adapter = PostgresAuditAdapter(session=session)
         result = await adapter.query(limit=100)
+        
+        # Type narrowing: verify Success before accessing .value
+        assert isinstance(result, Success)
         logs = result.value
     
     # Verify timeline: ATTEMPTED → SUCCESS
@@ -624,18 +718,20 @@ async def test_registration_audit_timeline_success(client, test_database):
     
     # Verify database consistency
     user = await get_user_by_id(user_id)
-    assert user is not None
+    assert user is not None  # Type narrowing for optional
     assert user.email == "new@example.com"
 
 
-async def test_registration_audit_timeline_failure(client, test_database):
+async def test_registration_audit_timeline_failure(
+    client: Any,
+    test_database: Any,
+) -> None:
     """Verify failed registration creates correct audit timeline."""
-    
     # Create existing user
     await create_user("duplicate@example.com", "password123")
     
     # Attempt registration with duplicate email
-    response = client.post("/users", json={
+    response = client.post("/api/v1/users", json={
         "email": "duplicate@example.com",
         "password": "SecurePass123!",
     })
@@ -646,6 +742,9 @@ async def test_registration_audit_timeline_failure(client, test_database):
     async with test_database.get_session() as session:
         adapter = PostgresAuditAdapter(session=session)
         result = await adapter.query(limit=100)
+        
+        # Type narrowing: verify Success before accessing .value
+        assert isinstance(result, Success)
         logs = result.value
     
     # Verify timeline: ATTEMPTED → FAILED
@@ -715,15 +814,19 @@ resource_type="thing"
 ### 4. Handle Result Types Properly
 
 ```python
-# ✅ Good: Handle audit failures
+# ✅ Good: Handle audit failures with isinstance() (kw_only dataclasses)
 result = await audit.record(...)
-match result:
-    case Failure(error):
-        # Log but don't fail the request
-        logger.error("Audit failed", error=error.message)
+if isinstance(result, Failure):
+    # Log but don't fail the request
+    logger.error("Audit failed", error=result.error.message)
 
 # ❌ Bad: Ignore result
 await audit.record(...)  # What if it fails?
+
+# ❌ Bad: Pattern matching (doesn't work with kw_only dataclasses)
+match result:
+    case Failure(error):  # mypy error with kw_only=True
+        ...
 ```
 
 ---
@@ -761,4 +864,4 @@ Audit failures are logged separately.
 
 ---
 
-**Created**: 2025-11-17 | **Last Updated**: 2025-11-17
+**Created**: 2025-11-17 | **Last Updated**: 2026-01-10

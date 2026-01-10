@@ -1120,28 +1120,151 @@ async def global_exception_handler(
 
 ---
 
-## 7. Testing Strategy
+## 7. Event-Driven Logging (Event Registry Integration)
 
-### 7.1 Unit Tests (Mock Protocol)
+### 7.1 Overview
+
+Dashtam integrates structured logging with domain events via the **Event Registry Pattern**. The `LoggingEventHandler` subscribes to all critical domain events and logs them with appropriate severity levels.
+
+**Architecture**:
+
+```text
+┌─────────────────────────────────────────────────────┐
+│ EVENT_REGISTRY (Single Source of Truth)             │
+│ - Lists all domain events                           │
+│ - Specifies requires_logging=True/False             │
+└──────────────────────┬──────────────────────────────┘
+                       │ drives
+                       ↓
+┌─────────────────────────────────────────────────────┐
+│ Container (Auto-Wiring)                             │
+│ - Reads registry at startup                         │
+│ - Subscribes LoggingEventHandler to marked events   │
+└──────────────────────┬──────────────────────────────┘
+                       │ creates
+                       ↓
+┌─────────────────────────────────────────────────────┐
+│ LoggingEventHandler                                 │
+│ - INFO: ATTEMPTED and SUCCEEDED events              │
+│ - WARNING: FAILED events                            │
+│ - Structured fields: event_id, occurred_at, etc.    │
+└─────────────────────────────────────────────────────┘
+```
+
+### 7.2 LoggingEventHandler
+
+**File**: `src/infrastructure/events/handlers/logging_event_handler.py`
+
+Handles 70+ domain events across categories:
+
+- **Authentication**: Registration, Login, Logout, Password Change
+- **Authorization**: Role Assignment, Role Revocation
+- **Provider**: Connection, Disconnection, Token Refresh
+- **Data Sync**: Account Sync, Transaction Sync, Holdings Sync, File Import
+- **Session**: Creation, Revocation, Activity, Security Alerts
+- **Rate Limit**: Check Attempted, Allowed, Denied
+
+**Log Levels**:
+
+| Event Phase | Log Level | Example Events |
+|-------------|-----------|----------------|
+| ATTEMPTED | INFO | `UserLoginAttempted`, `AccountSyncAttempted` |
+| SUCCEEDED | INFO | `UserLoginSucceeded`, `AccountSyncSucceeded` |
+| FAILED | WARNING | `UserLoginFailed`, `AccountSyncFailed` |
+| Security | WARNING | `SuspiciousSessionActivityEvent`, `TokenRejectedDueToRotation` |
+
+**Structured Fields**:
+
+```python
+# Example: UserRegistrationSucceeded event
+self._logger.info(
+    "user_registration_succeeded",
+    event_id=str(event.event_id),
+    occurred_at=event.occurred_at.isoformat(),
+    user_id=str(event.user_id),
+    email=event.email,
+)
+```
+
+### 7.3 Event Registry Entry
+
+Each event in the registry specifies whether it requires logging:
+
+```python
+# src/domain/events/registry.py
+EventMetadata(
+    event_class=UserRegistrationSucceeded,
+    category=EventCategory.AUTHENTICATION,
+    workflow_name="user_registration",
+    phase=WorkflowPhase.SUCCEEDED,
+    requires_logging=True,   # ← Logging handler subscribes
+    requires_audit=True,
+    requires_email=True,
+    requires_session=False,
+)
+```
+
+### 7.4 Auto-Wiring in Container
+
+The container reads the registry and subscribes handlers automatically:
+
+```python
+# src/core/container/events.py
+for metadata in EVENT_REGISTRY:
+    if metadata.requires_logging:
+        event_bus.subscribe(
+            metadata.event_class,
+            _get_handler_method(logging_handler, metadata)
+        )
+```
+
+**Benefits**:
+
+- ✅ Single source of truth (no manual subscription lists)
+- ✅ Self-enforcing (tests fail if handler methods missing)
+- ✅ Easy to add new events (add to registry, handler auto-subscribes)
+- ✅ Consistent logging across all domain events
+
+### 7.5 When to Use Event-Driven vs Direct Logging
+
+| Scenario | Approach | Why |
+|----------|----------|-----|
+| Domain events (business workflows) | Event-driven | Consistent, auditable, automatic |
+| Technical debugging (cache hits, etc.) | Direct logging | Lightweight, no event overhead |
+| Request lifecycle (middleware) | Direct logging | Not a domain event |
+| External API calls | Direct logging | Infrastructure concern |
+| Error handling | Both | Event for audit, direct for debugging |
+
+**Reference**: `docs/architecture/domain-events.md`, `src/domain/events/registry.py`
+
+---
+
+## 8. Testing Strategy
+
+**Type Safety**: Tests run with `check_untyped_defs = true` in mypy. Use `isinstance()` to narrow Result types before accessing `.value` or `.error`.
+
+### 8.1 Unit Tests (Mock Protocol)
 
 **Test pattern**: Mock `LoggerProtocol` to verify logging calls.
 
 ```python
 # tests/unit/application/test_register_user_handler.py
+from typing import Any
 from unittest.mock import Mock
-import pytest
 
 from src.application.commands.register_user import RegisterUser
 from src.application.commands.handlers.register_user_handler import RegisterUserHandler
+from src.core.result import Success, Failure
+from src.domain.protocols.logger_protocol import LoggerProtocol
 
 
 @pytest.fixture
-def mock_logger():
+def mock_logger() -> Mock:
     """Mock logger for testing."""
     return Mock(spec=LoggerProtocol)
 
 
-async def test_register_user_logs_success(mock_logger):
+async def test_register_user_logs_success(mock_logger: Mock) -> None:
     """RegisterUserHandler logs successful registration."""
     handler = RegisterUserHandler(
         user_service=mock_user_service,
@@ -1153,18 +1276,17 @@ async def test_register_user_logs_success(mock_logger):
         password="SecurePass123!",
     ))
     
-    assert result.is_success()
+    # Type narrowing: use isinstance() for Result types
+    assert isinstance(result, Success)
     
     # Verify logger was called
-    mock_logger.info.assert_called_once_with(
-        "User registered",
-        user_id=mock.ANY,
-        email="test@example.com",
-        trace_id=mock.ANY,
-    )
+    mock_logger.info.assert_called_once()
+    call_args = mock_logger.info.call_args
+    assert call_args[0][0] == "User registered"
+    assert call_args[1]["email"] == "test@example.com"
 
 
-async def test_register_user_logs_failure(mock_logger):
+async def test_register_user_logs_failure(mock_logger: Mock) -> None:
     """RegisterUserHandler logs registration failures."""
     handler = RegisterUserHandler(
         user_service=mock_user_service_that_fails,
@@ -1176,38 +1298,40 @@ async def test_register_user_logs_failure(mock_logger):
         password="SecurePass123!",
     ))
     
-    assert result.is_failure()
+    # Type narrowing: use isinstance() for Result types
+    assert isinstance(result, Failure)
     
     # Verify warning was logged
-    mock_logger.warning.assert_called_once_with(
-        "User registration failed",
-        email="duplicate@example.com",
-        error_code=mock.ANY,
-        error_message=mock.ANY,
-        trace_id=mock.ANY,
-    )
+    mock_logger.warning.assert_called_once()
+    call_args = mock_logger.warning.call_args
+    assert call_args[0][0] == "User registration failed"
+    assert call_args[1]["email"] == "duplicate@example.com"
 ```
 
-### 7.2 Integration Tests (Real Adapter)
+### 8.2 Integration Tests (Real Adapter)
 
 **Test pattern**: Use real `ConsoleAdapter` with captured output.
 
 ```python
 # tests/integration/logging/test_console_adapter.py
+import json
+from typing import Any
+
 import pytest
-import sys
-from io import StringIO
 
 from src.infrastructure.logging.console_adapter import ConsoleAdapter
 
 
 @pytest.fixture
-def console_logger():
+def console_logger() -> ConsoleAdapter:
     """Create console logger with captured output."""
     return ConsoleAdapter(use_json=True)
 
 
-def test_console_adapter_json_output(console_logger, capsys):
+def test_console_adapter_json_output(
+    console_logger: ConsoleAdapter,
+    capsys: Any,
+) -> None:
     """ConsoleAdapter outputs valid JSON."""
     console_logger.info(
         "Test message",
@@ -1217,7 +1341,7 @@ def test_console_adapter_json_output(console_logger, capsys):
     )
     
     captured = capsys.readouterr()
-    log_entry = json.loads(captured.out)
+    log_entry: dict[str, Any] = json.loads(captured.out)
     
     assert log_entry["level"] == "info"
     assert log_entry["message"] == "Test message"
@@ -1227,7 +1351,10 @@ def test_console_adapter_json_output(console_logger, capsys):
     assert "timestamp" in log_entry
 
 
-def test_console_adapter_error_with_exception(console_logger, capsys):
+def test_console_adapter_error_with_exception(
+    console_logger: ConsoleAdapter,
+    capsys: Any,
+) -> None:
     """ConsoleAdapter includes exception details."""
     exc = ValueError("Something went wrong")
     
@@ -1238,32 +1365,36 @@ def test_console_adapter_error_with_exception(console_logger, capsys):
     )
     
     captured = capsys.readouterr()
-    log_entry = json.loads(captured.out)
+    log_entry: dict[str, Any] = json.loads(captured.out)
     
     assert log_entry["level"] == "error"
     assert log_entry["error_type"] == "ValueError"
     assert log_entry["error_message"] == "Something went wrong"
 ```
 
-### 7.3 Integration Tests (CloudWatch)
+### 8.3 Integration Tests (CloudWatch)
 
 **Test pattern**: Use `moto` to mock AWS CloudWatch.
 
 ```python
 # tests/integration/logging/test_cloudwatch_adapter.py
-import pytest
-from moto import mock_logs
+import asyncio
+from typing import AsyncGenerator, Any
+
 import boto3
+import pytest
+import pytest_asyncio
+from moto import mock_logs
 
 from src.infrastructure.logging.cloudwatch_adapter import CloudWatchAdapter
 
 
-@pytest.fixture
-def cloudwatch_logger():
+@pytest_asyncio.fixture
+async def cloudwatch_logger() -> AsyncGenerator[CloudWatchAdapter, None]:
     """Create CloudWatch logger with mocked AWS."""
     with mock_logs():
         # Create mock CloudWatch client
-        client = boto3.client("logs", region_name="us-east-1")
+        boto3.client("logs", region_name="us-east-1")
         
         logger = CloudWatchAdapter(
             log_group="/dashtam/test/app",
@@ -1279,8 +1410,9 @@ def cloudwatch_logger():
         await logger.close()
 
 
-@pytest.mark.asyncio
-async def test_cloudwatch_adapter_batching(cloudwatch_logger):
+async def test_cloudwatch_adapter_batching(
+    cloudwatch_logger: CloudWatchAdapter,
+) -> None:
     """CloudWatchAdapter batches logs efficiently."""
     # Log multiple messages
     for i in range(15):
@@ -1295,18 +1427,15 @@ async def test_cloudwatch_adapter_batching(cloudwatch_logger):
     
     # Verify logs were sent to CloudWatch
     client = boto3.client("logs", region_name="us-east-1")
-    response = client.filter_log_events(
+    response: dict[str, Any] = client.filter_log_events(
         logGroupName="/dashtam/test/app",
         logStreamName="test-stream",
     )
     
     assert len(response["events"]) == 15
-    
-    # Verify batching reduced API calls (should be 2 batches: 10 + 5)
-    # (In real implementation, track API call count)
 ```
 
-### 7.4 Coverage Target
+### 8.4 Coverage Target
 
 - **Unit tests**: 90%+ coverage for adapters
 - **Integration tests**: 85%+ coverage for real logging flows
@@ -1314,7 +1443,7 @@ async def test_cloudwatch_adapter_batching(cloudwatch_logger):
 
 ---
 
-## 8. Production Deployment
+## 9. Production Deployment
 
 ### 8.1 CloudWatch Setup
 
@@ -1441,7 +1570,7 @@ aws cloudwatch put-metric-alarm \
 
 ---
 
-## 9. Common Patterns
+## 10. Common Patterns
 
 ### 9.1 Performance Logging
 
@@ -1565,7 +1694,7 @@ async def start_background_tasks():
 
 ---
 
-## 10. Security Checklist
+## 11. Security Checklist
 
 **Before deploying to production**:
 
@@ -1581,7 +1710,7 @@ async def start_background_tasks():
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### 11.1 Logs Not Appearing (Development)
 
@@ -1631,7 +1760,7 @@ async def start_background_tasks():
 
 ---
 
-## 12. Migration Guide
+## 13. Migration Guide
 
 ### 12.1 From Print Statements
 
@@ -1698,7 +1827,7 @@ logger.info(
 
 ---
 
-## 13. Future Enhancements
+## 14. Future Enhancements
 
 ### 13.1 Additional Adapters
 
@@ -1750,7 +1879,7 @@ class MultiAdapter:
 
 ---
 
-## 14. References
+## 15. References
 
 ### 14.1 Related Documentation
 
@@ -1775,7 +1904,7 @@ class MultiAdapter:
 
 ---
 
-## Appendix A: Complete Example
+## 16. Appendix A: Complete Example
 
 ### A.1 Full Request Lifecycle
 
@@ -1922,4 +2051,4 @@ request_path=/users status_code=201 duration_ms=77 trace_id=abc-123
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2025-11-13
+**Created**: 2025-11-13 | **Last Updated**: 2026-01-10

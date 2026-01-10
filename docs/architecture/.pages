@@ -1,8 +1,9 @@
 title: Architecture
 nav:
+  - index.md
   - hexagonal.md
   - protocols.md
   - cqrs.md
   - domain-driven-design.md
   - registry.md
-  - ...  # Auto-include rest alphabetically
+  - ...

@@ -49,10 +49,11 @@ flowchart TB
     Application --> Domain
     Infrastructure -.->|implements| Protocols
 
-    style Domain fill:#e1f5fe,stroke:#01579b
-    style Presentation fill:#fff3e0,stroke:#e65100
-    style Application fill:#f3e5f5,stroke:#7b1fa2
-    style Infrastructure fill:#e8f5e9,stroke:#2e7d32
+    %% Transparent fills, visible borders, darker arrows
+    classDef transparentBox fill:none,stroke:#666,stroke-width:2px
+    class Presentation,Application,Domain,Infrastructure transparentBox
+    
+    linkStyle default stroke:#666,stroke-width:2px
 ```
 
 **Dependencies point inward** — Domain defines protocols (ports), Infrastructure implements adapters.

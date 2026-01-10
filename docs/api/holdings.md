@@ -260,4 +260,33 @@ curl -k -X GET "{BASE_URL}/holdings?symbol=AAPL" \
 
 ---
 
-**Created**: 2025-12-26 | **Last Updated**: 2025-12-26
+## Rate Limiting
+
+Holdings endpoints use standard rate limiting:
+
+| Policy | Max Requests | Refill Rate | Scope | Endpoints |
+|--------|--------------|-------------|-------|----------|
+| API_READ | 100 | 100/min | User | `GET /holdings`, `GET /accounts/{id}/holdings` |
+| PROVIDER_SYNC | 10 | 5/min | User+Provider | `POST /accounts/{id}/holdings/syncs` |
+
+**Rate Limit Headers (RFC 6585):**
+
+```text
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-RateLimit-Reset: 1699488000
+Retry-After: 60  (only on 429)
+```
+
+---
+
+## Implementation References
+
+- **Route Registry**: All holdings endpoints are defined in `src/presentation/routers/api/v1/routes/registry.py` with rate limit policies and auth requirements.
+- **Handler Module**: `src/presentation/routers/api/v1/holdings.py`
+- **Domain Events**: Holdings sync emits `HoldingsSyncAttempted`, `HoldingsSyncSucceeded`, `HoldingsSyncFailed` events.
+- **Balance Snapshot**: Holdings sync automatically captures balance snapshots for portfolio tracking.
+
+---
+
+**Created**: 2025-12-26 | **Last Updated**: 2026-01-10

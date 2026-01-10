@@ -60,10 +60,16 @@ curl -k -X GET "{BASE_URL}/accounts" \
       "account_number_masked": "****1234",
       "name": "Individual Brokerage",
       "account_type": "brokerage",
-      "balance": "25000.50",
       "currency": "USD",
-      "available_balance": "24500.00",
+      "balance_amount": "25000.50",
+      "balance_currency": "USD",
+      "available_balance_amount": "24500.00",
+      "available_balance_currency": "USD",
       "is_active": true,
+      "is_investment": true,
+      "is_bank": false,
+      "is_retirement": false,
+      "is_credit": false,
       "last_synced_at": "2025-12-04T15:30:00Z",
       "created_at": "2025-12-01T10:00:00Z",
       "updated_at": "2025-12-04T15:30:00Z"
@@ -75,16 +81,22 @@ curl -k -X GET "{BASE_URL}/accounts" \
       "account_number_masked": "****5678",
       "name": "Roth IRA",
       "account_type": "roth_ira",
-      "balance": "50000.00",
       "currency": "USD",
-      "available_balance": null,
+      "balance_amount": "50000.00",
+      "balance_currency": "USD",
+      "available_balance_amount": null,
+      "available_balance_currency": null,
       "is_active": true,
+      "is_investment": true,
+      "is_bank": false,
+      "is_retirement": true,
+      "is_credit": false,
       "last_synced_at": "2025-12-04T15:30:00Z",
       "created_at": "2025-12-01T10:00:00Z",
       "updated_at": "2025-12-04T15:30:00Z"
     }
   ],
-  "total": 2,
+  "total_count": 2,
   "active_count": 2,
   "total_balance_by_currency": {
     "USD": "75000.50"
@@ -117,10 +129,16 @@ curl -k -X GET "{BASE_URL}/accounts/550e8400-e29b-41d4-a716-446655440000" \
   "account_number_masked": "****1234",
   "name": "Individual Brokerage",
   "account_type": "brokerage",
-  "balance": "25000.50",
   "currency": "USD",
-  "available_balance": "24500.00",
+  "balance_amount": "25000.50",
+  "balance_currency": "USD",
+  "available_balance_amount": "24500.00",
+  "available_balance_currency": "USD",
   "is_active": true,
+  "is_investment": true,
+  "is_bank": false,
+  "is_retirement": false,
+  "is_credit": false,
   "last_synced_at": "2025-12-04T15:30:00Z",
   "created_at": "2025-12-01T10:00:00Z",
   "updated_at": "2025-12-04T15:30:00Z"
@@ -218,14 +236,26 @@ curl -k -X GET "{BASE_URL}/providers/123e4567-e89b-12d3-a456-426614174000/accoun
       "account_number_masked": "****1234",
       "name": "Individual Brokerage",
       "account_type": "brokerage",
-      "balance": "25000.50",
       "currency": "USD",
+      "balance_amount": "25000.50",
+      "balance_currency": "USD",
+      "available_balance_amount": "24500.00",
+      "available_balance_currency": "USD",
       "is_active": true,
-      "last_synced_at": "2025-12-04T15:30:00Z"
+      "is_investment": true,
+      "is_bank": false,
+      "is_retirement": false,
+      "is_credit": false,
+      "last_synced_at": "2025-12-04T15:30:00Z",
+      "created_at": "2025-12-01T10:00:00Z",
+      "updated_at": "2025-12-04T15:30:00Z"
     }
   ],
-  "total": 1,
-  "active_count": 1
+  "total_count": 1,
+  "active_count": 1,
+  "total_balance_by_currency": {
+    "USD": "25000.50"
+  }
 }
 ```
 
@@ -305,4 +335,32 @@ All errors follow RFC 7807 Problem Details format:
 
 ---
 
-**Created**: 2025-12-04 | **Last Updated**: 2025-12-04
+## Rate Limiting
+
+Account endpoints use standard rate limiting:
+
+| Policy | Max Requests | Refill Rate | Scope | Endpoints |
+|--------|--------------|-------------|-------|----------|
+| API_READ | 100 | 100/min | User | `GET /accounts`, `GET /accounts/{id}`, `GET /providers/{id}/accounts` |
+| PROVIDER_SYNC | 10 | 5/min | User+Provider | `POST /accounts/syncs` |
+
+**Rate Limit Headers (RFC 6585):**
+
+```text
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-RateLimit-Reset: 1699488000
+Retry-After: 60  (only on 429)
+```
+
+---
+
+## Implementation References
+
+- **Route Registry**: All account endpoints are defined in `src/presentation/routers/api/v1/routes/registry.py` with rate limit policies and auth requirements.
+- **Handler Module**: `src/presentation/routers/api/v1/accounts.py`
+- **Domain Events**: Account sync emits `AccountSyncAttempted`, `AccountSyncSucceeded`, `AccountSyncFailed` events.
+
+---
+
+**Created**: 2025-12-04 | **Last Updated**: 2026-01-10

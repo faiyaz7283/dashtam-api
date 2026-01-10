@@ -228,7 +228,55 @@ from ..protocols.user_repository import UserRepository
 
 ---
 
-## 6. Common Violations to Avoid
+## 6. Registry Pattern Imports
+
+Dashtam uses registry patterns for events, routes, and rate limits. These follow specific import rules.
+
+### 6.1 Event Registry
+
+**Location**: `src/domain/events/registry.py`
+
+The Event Registry is a **domain** module that catalogs all domain events. Import it in container and infrastructure:
+
+```python
+# ✅ CORRECT: Container imports event registry
+# src/core/container/events.py
+from src.domain.events.registry import EVENT_REGISTRY, EventMetadata
+
+# ✅ CORRECT: Infrastructure imports specific events
+from src.domain.events.auth_events import UserRegistrationSucceeded
+
+# ❌ WRONG: Application layer shouldn't import registry directly
+# (Use event_bus.publish() instead)
+```
+
+### 6.2 Route Registry
+
+**Location**: `src/presentation/routers/api/v1/routes/registry.py`
+
+The Route Registry is a **presentation** module that catalogs all API routes:
+
+```python
+# ✅ CORRECT: Route generator imports registry
+# src/presentation/routers/api/v1/routes/generator.py
+from src.presentation.routers.api.v1.routes.registry import ROUTE_REGISTRY
+from src.presentation.routers.api.v1.routes.metadata import RouteMetadata
+
+# ✅ CORRECT: Rate limit module imports for derivation
+# src/infrastructure/rate_limit/from_registry.py
+from src.presentation.routers.api.v1.routes.registry import ROUTE_REGISTRY
+```
+
+### 6.3 Registry Import Summary
+
+| Registry | Location | Who Can Import |
+|----------|----------|----------------|
+| `EVENT_REGISTRY` | `domain/events/registry.py` | Container, Infrastructure (event handlers) |
+| `ROUTE_REGISTRY` | `presentation/routers/.../registry.py` | Route generator, Rate limit infrastructure |
+
+---
+
+## 7. Common Violations to Avoid
 
 ### 6.1 Application Importing Infrastructure Models
 
@@ -278,7 +326,7 @@ class User:
 
 ---
 
-## 7. Verification Commands
+## 8. Verification Commands
 
 ### Check for Infrastructure Imports in Application Layer
 
@@ -297,9 +345,9 @@ grep -r "from src.application" src/domain/
 ### Verify Import Test
 
 ```bash
-docker compose exec app uv run python -c "from src.application.commands.handlers.register_user_handler import RegisterUserHandler; print('✅')"
+docker compose -f compose/docker-compose.dev.yml exec app uv run python -c "from src.application.commands.handlers.register_user_handler import RegisterUserHandler; print('✅')"
 ```
 
 ---
 
-**Created**: 2025-11-25 | **Last Updated**: 2025-11-25
+**Created**: 2025-11-25 | **Last Updated**: 2026-01-10

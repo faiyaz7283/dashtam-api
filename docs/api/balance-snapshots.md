@@ -275,4 +275,31 @@ curl -k -X GET "{BASE_URL}/accounts/{account_id}/balance-snapshots?source=manual
 
 ---
 
-**Created**: 2025-12-26 | **Last Updated**: 2025-12-26
+## Rate Limiting
+
+Balance snapshot endpoints use standard rate limiting:
+
+| Policy | Max Requests | Refill Rate | Scope | Endpoints |
+|--------|--------------|-------------|-------|----------|
+| API_READ | 100 | 100/min | User | All balance snapshot endpoints |
+
+**Rate Limit Headers (RFC 6585):**
+
+```text
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-RateLimit-Reset: 1699488000
+Retry-After: 60  (only on 429)
+```
+
+---
+
+## Implementation References
+
+- **Route Registry**: All balance snapshot endpoints are defined in `src/presentation/routers/api/v1/routes/registry.py` with rate limit policies and auth requirements.
+- **Handler Module**: `src/presentation/routers/api/v1/balance_snapshots.py`
+- **Snapshot Capture**: Snapshots automatically created during account and holdings sync operations.
+
+---
+
+**Created**: 2025-12-26 | **Last Updated**: 2026-01-10

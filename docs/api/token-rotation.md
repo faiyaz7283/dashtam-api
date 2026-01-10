@@ -6,7 +6,7 @@ Admin-only endpoints for emergency token rotation during security incidents.
 
 **Base URL**: `${BASE_URL}/api/v1/admin`
 
-**Authentication**: Admin role required (TODO: implement admin auth)
+**Authentication**: Admin role required (`AuthLevel.ADMIN` with Casbin RBAC)
 
 ### Setup
 
@@ -237,4 +237,23 @@ curl -k -X POST "${BASE_URL}/api/v1/tokens" \
 
 ---
 
-**Created**: 2025-11-27 | **Last Updated**: 2025-11-27
+## Rate Limiting
+
+Admin endpoints use standard rate limiting:
+
+| Policy | Max Requests | Refill Rate | Scope | Endpoints |
+|--------|--------------|-------------|-------|----------|
+| API_READ | 100 | 100/min | User | `GET /admin/security/config` |
+| API_WRITE | 50 | 50/min | User | `POST /admin/security/rotations`, `POST /admin/users/{id}/rotations` |
+
+---
+
+## Implementation References
+
+- **Route Registry**: All admin endpoints are defined in `src/presentation/routers/api/v1/routes/registry.py` with `AuthLevel.ADMIN` requiring admin role.
+- **Handler Module**: `src/presentation/routers/api/v1/admin/token_rotation.py`
+- **Domain Events**: Token rotation emits domain events for audit logging.
+
+---
+
+**Created**: 2025-11-27 | **Last Updated**: 2026-01-10

@@ -58,8 +58,6 @@ curl -k -X GET "{BASE_URL}/providers" \
   "connections": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
-      "user_id": "123e4567-e89b-12d3-a456-426614174000",
-      "provider_id": "00000000-0000-0000-0000-000000000001",
       "provider_slug": "schwab",
       "alias": "My Schwab Account",
       "status": "active",
@@ -71,7 +69,8 @@ curl -k -X GET "{BASE_URL}/providers" \
       "updated_at": "2025-12-04T15:30:00Z"
     }
   ],
-  "total": 1
+  "total_count": 1,
+  "active_count": 1
 }
 ```
 
@@ -95,8 +94,6 @@ curl -k -X GET "{BASE_URL}/providers/550e8400-e29b-41d4-a716-446655440000" \
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "user_id": "123e4567-e89b-12d3-a456-426614174000",
-  "provider_id": "00000000-0000-0000-0000-000000000001",
   "provider_slug": "schwab",
   "alias": "My Schwab Account",
   "status": "active",
@@ -190,8 +187,6 @@ curl -k -X POST "{BASE_URL}/providers/callback?code=AUTH_CODE&state=abc123def456
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "user_id": "123e4567-e89b-12d3-a456-426614174000",
-  "provider_id": "00000000-0000-0000-0000-000000000001",
   "provider_slug": "schwab",
   "alias": "My Schwab Account",
   "status": "active",
@@ -236,7 +231,12 @@ curl -k -X PATCH "{BASE_URL}/providers/550e8400-e29b-41d4-a716-446655440000" \
   "provider_slug": "schwab",
   "alias": "Personal Brokerage",
   "status": "active",
-  "is_connected": true
+  "is_connected": true,
+  "needs_reauthentication": false,
+  "connected_at": "2025-12-01T10:00:00Z",
+  "last_sync_at": "2025-12-04T15:30:00Z",
+  "created_at": "2025-12-01T10:00:00Z",
+  "updated_at": "2025-12-04T20:00:00Z"
 }
 ```
 
@@ -395,4 +395,35 @@ All errors follow RFC 7807 Problem Details format:
 
 ---
 
-**Created**: 2025-12-04 | **Last Updated**: 2025-12-04
+## Rate Limiting
+
+Provider endpoints use tiered rate limiting based on operation type:
+
+| Policy | Max Requests | Refill Rate | Scope | Endpoints |
+|--------|--------------|-------------|-------|----------|
+| API_READ | 100 | 100/min | User | `GET /providers`, `GET /providers/{id}` |
+| API_WRITE | 50 | 50/min | User | `PATCH /providers/{id}`, `DELETE /providers/{id}` |
+| PROVIDER_CONNECT | 5 | 5/min | User | `POST /providers`, `POST /providers/callback` |
+| PROVIDER_SYNC | 10 | 5/min | User+Provider | `POST /providers/{id}/token-refreshes` |
+
+**Rate Limit Headers (RFC 6585):**
+
+```text
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+X-RateLimit-Reset: 1699488000
+Retry-After: 60  (only on 429)
+```
+
+---
+
+## Implementation References
+
+- **Route Registry**: All provider endpoints are defined in `src/presentation/routers/api/v1/routes/registry.py` with rate limit policies and auth requirements.
+- **Handler Module**: `src/presentation/routers/api/v1/providers.py`
+- **OAuth State Cache**: Provider OAuth state stored in Redis with 10-minute TTL.
+- **Credential Encryption**: Provider credentials encrypted at rest using Fernet.
+
+---
+
+**Created**: 2025-12-04 | **Last Updated**: 2026-01-10

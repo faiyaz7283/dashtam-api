@@ -48,20 +48,28 @@ curl -k -X GET "{BASE_URL}/transactions/550e8400-e29b-41d4-a716-446655440000" \
   "account_id": "123e4567-e89b-12d3-a456-426614174000",
   "provider_transaction_id": "TXN12345678",
   "transaction_type": "trade",
-  "transaction_subtype": "buy",
+  "subtype": "buy",
   "status": "settled",
+  "amount_value": "-1500.00",
+  "amount_currency": "USD",
+  "description": "Buy 10 AAPL @ $150.00",
+  "asset_type": "equity",
+  "symbol": "AAPL",
+  "security_name": "Apple Inc.",
+  "quantity": "10.0",
+  "unit_price_amount": "150.00",
+  "unit_price_currency": "USD",
+  "commission_amount": "0.00",
+  "commission_currency": "USD",
   "transaction_date": "2025-12-01",
   "settlement_date": "2025-12-03",
-  "amount": "-1500.00",
-  "currency": "USD",
-  "description": "Buy 10 AAPL @ $150.00",
-  "symbol": "AAPL",
-  "asset_type": "equity",
-  "quantity": "10.0",
-  "price": "150.00",
-  "fees": "0.00",
-  "net_amount": "-1500.00",
-  "cusip": "037833100",
+  "is_trade": true,
+  "is_transfer": false,
+  "is_income": false,
+  "is_fee": false,
+  "is_debit": true,
+  "is_credit": false,
+  "is_settled": true,
   "created_at": "2025-12-01T10:00:00Z",
   "updated_at": "2025-12-01T10:00:00Z"
 }
@@ -173,32 +181,60 @@ curl -k -X GET "{BASE_URL}/accounts/123e4567-e89b-12d3-a456-426614174000/transac
       "account_id": "123e4567-e89b-12d3-a456-426614174000",
       "provider_transaction_id": "TXN12345678",
       "transaction_type": "trade",
-      "transaction_subtype": "buy",
+      "subtype": "buy",
       "status": "settled",
-      "transaction_date": "2025-12-01",
-      "amount": "-1500.00",
-      "currency": "USD",
+      "amount_value": "-1500.00",
+      "amount_currency": "USD",
       "description": "Buy 10 AAPL @ $150.00",
-      "symbol": "AAPL",
       "asset_type": "equity",
+      "symbol": "AAPL",
+      "security_name": "Apple Inc.",
       "quantity": "10.0",
-      "price": "150.00"
+      "unit_price_amount": "150.00",
+      "unit_price_currency": "USD",
+      "commission_amount": "0.00",
+      "commission_currency": "USD",
+      "transaction_date": "2025-12-01",
+      "settlement_date": "2025-12-03",
+      "is_trade": true,
+      "is_transfer": false,
+      "is_income": false,
+      "is_fee": false,
+      "is_debit": true,
+      "is_credit": false,
+      "is_settled": true,
+      "created_at": "2025-12-01T10:00:00Z",
+      "updated_at": "2025-12-01T10:00:00Z"
     },
     {
       "id": "660e8400-e29b-41d4-a716-446655440001",
       "account_id": "123e4567-e89b-12d3-a456-426614174000",
       "provider_transaction_id": "TXN87654321",
       "transaction_type": "income",
-      "transaction_subtype": "dividend",
+      "subtype": "dividend",
       "status": "settled",
-      "transaction_date": "2025-11-15",
-      "amount": "25.50",
-      "currency": "USD",
+      "amount_value": "25.50",
+      "amount_currency": "USD",
       "description": "AAPL Dividend",
-      "symbol": "AAPL",
       "asset_type": "equity",
+      "symbol": "AAPL",
+      "security_name": "Apple Inc.",
       "quantity": null,
-      "price": null
+      "unit_price_amount": null,
+      "unit_price_currency": null,
+      "commission_amount": null,
+      "commission_currency": null,
+      "transaction_date": "2025-11-15",
+      "settlement_date": "2025-11-17",
+      "is_trade": false,
+      "is_transfer": false,
+      "is_income": true,
+      "is_fee": false,
+      "is_debit": false,
+      "is_credit": true,
+      "is_settled": true,
+      "created_at": "2025-11-15T10:00:00Z",
+      "updated_at": "2025-11-15T10:00:00Z"
     }
   ],
   "total_count": 150,
@@ -313,4 +349,32 @@ All errors follow RFC 7807 Problem Details format:
 
 ---
 
-**Created**: 2025-12-04 | **Last Updated**: 2025-12-04
+## Rate Limiting
+
+Transaction endpoints use standard rate limiting:
+
+| Policy | Max Requests | Refill Rate | Scope | Endpoints |
+|--------|--------------|-------------|-------|----------|
+| API_READ | 100 | 100/min | User | `GET /transactions/{id}`, `GET /accounts/{id}/transactions` |
+| PROVIDER_SYNC | 10 | 5/min | User+Provider | `POST /transactions/syncs` |
+
+**Rate Limit Headers (RFC 6585):**
+
+```text
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-RateLimit-Reset: 1699488000
+Retry-After: 60  (only on 429)
+```
+
+---
+
+## Implementation References
+
+- **Route Registry**: All transaction endpoints are defined in `src/presentation/routers/api/v1/routes/registry.py` with rate limit policies and auth requirements.
+- **Handler Module**: `src/presentation/routers/api/v1/transactions.py`
+- **Domain Events**: Transaction sync emits `TransactionSyncAttempted`, `TransactionSyncSucceeded`, `TransactionSyncFailed` events.
+
+---
+
+**Created**: 2025-12-04 | **Last Updated**: 2026-01-10

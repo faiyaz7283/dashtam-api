@@ -251,11 +251,12 @@ class TestCreateTokens:
         # Execute: Missing refresh_token field
         response = client.post("/api/v1/tokens", json={})
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("refresh_token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("refresh_token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_tokens_empty_refresh_token(self, client):
         """Should return 422 Unprocessable Entity for empty refresh_token."""
@@ -265,11 +266,12 @@ class TestCreateTokens:
             json={"refresh_token": ""},
         )
 
-        # Verify: Pydantic validation error
+        # Verify: RFC 7807 validation error response
         assert response.status_code == 422
         data = response.json()
-        assert "detail" in data
-        assert any("refresh_token" in str(err).lower() for err in data["detail"])
+        assert data["type"].endswith("/errors/validation-failed")
+        assert "errors" in data
+        assert any("refresh_token" in err.get("field", "").lower() for err in data["errors"])
 
     def test_create_tokens_invalid_content_type(self, client):
         """Should return 422 when Content-Type is not application/json."""

@@ -33,99 +33,106 @@ Quick reference guide for developers implementing authorization (RBAC) in Dashta
 
 ## 1. Requiring Authentication + Role
 
-### Basic Role Check
+### Basic Role Check (JWT-based)
+
+Use `require_role` from `auth_dependencies.py` for fast JWT-based role checks:
 
 ```python
 from fastapi import APIRouter, Depends
-from src.presentation.routers.api.middleware.auth_middleware import get_current_user
-from src.application.dependencies.authorization import require_role
-from src.domain.enums import UserRole
-from src.domain.entities import User
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+    require_role,
+)
 
 router = APIRouter()
 
 @router.get("/admin/users")
 async def list_all_users(
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(require_role(UserRole.ADMIN)),
+    current_user: CurrentUser = Depends(require_role("admin")),
 ) -> list[UserResponse]:
     """Admin-only: List all users in system."""
     # Only admins reach here
     ...
 ```
 
-### How `require_role` Works
+### How `require_role` Works (JWT-based)
 
 1. Gets current user from `get_current_user` dependency
-2. Calls Casbin enforcer: `enforcer.has_role_for_user(user_id, role)`
-3. Checks role hierarchy (admin inherits user, user inherits readonly)
-4. Returns `None` if authorized, raises `HTTPException(403)` if not
+2. Checks `roles` array in JWT claims
+3. Returns `CurrentUser` if role matches, raises `HTTPException(403)` if not
+
+**Note**: JWT-based checks are fast but may be stale if role was revoked after token issuance. For sensitive operations, use Casbin-based `require_casbin_role`.
 
 ---
 
-## 2. Requiring Specific Permission
+## 2. Requiring Specific Permission (Casbin-based)
 
 ### Permission Check
 
+Use `require_permission` from `authorization_dependencies.py` for real-time Casbin checks:
+
 ```python
-from src.application.dependencies.authorization import require_permission
-from src.domain.enums import Permission
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
+from src.presentation.routers.api.middleware.authorization_dependencies import (
+    require_permission,
+)
 
 @router.delete("/users/{user_id}")
 async def delete_user(
     user_id: UUID,
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(require_permission(Permission.USERS_DELETE)),
+    current_user: CurrentUser = Depends(get_current_user),
+    _: None = Depends(require_permission("users", "write")),
 ) -> None:
-    """Delete user (requires users:delete permission)."""
+    """Delete user (requires users:write permission)."""
     ...
 ```
 
-### Available Permissions
+### Available Resources and Actions
+
+Permissions are expressed as `resource:action` pairs.
 
 ```python
-class Permission(str, Enum):
-    # User permissions
-    USERS_READ = "users:read"
-    USERS_WRITE = "users:write"
-    USERS_DELETE = "users:delete"
-    
-    # Account permissions
-    ACCOUNTS_READ = "accounts:read"
-    ACCOUNTS_WRITE = "accounts:write"
-    ACCOUNTS_DELETE = "accounts:delete"
-    
-    # Transaction permissions
-    TRANSACTIONS_READ = "transactions:read"
-    TRANSACTIONS_WRITE = "transactions:write"
-    
-    # Provider permissions
-    PROVIDERS_READ = "providers:read"
-    PROVIDERS_WRITE = "providers:write"
-    PROVIDERS_DELETE = "providers:delete"
-    
-    # Session permissions
-    SESSIONS_READ = "sessions:read"
-    SESSIONS_WRITE = "sessions:write"
-    SESSIONS_DELETE = "sessions:delete"
-    
-    # Admin permissions
-    ADMIN_USERS = "admin:users"
-    ADMIN_CONFIG = "admin:config"
-    ADMIN_AUDIT = "admin:audit"
+from src.domain.enums import Resource, Action
+
+# Resources (src/domain/enums/permission.py)
+class Resource(str, Enum):
+    ACCOUNTS = "accounts"
+    TRANSACTIONS = "transactions"
+    PROVIDERS = "providers"
+    SESSIONS = "sessions"
+    USERS = "users"
+    ADMIN = "admin"
+    SECURITY = "security"
+
+# Actions
+class Action(str, Enum):
+    READ = "read"
+    WRITE = "write"
 ```
+
+**Permission Check Format**: `require_permission(resource: str, action: str)`
+
+Examples:
+
+- `require_permission("accounts", "read")` - View accounts
+- `require_permission("users", "write")` - Create/update/delete users
+- `require_permission("admin", "write")` - Admin operations
 
 ---
 
-## 3. Using CasbinAdapter Directly
+## 3. Using AuthorizationProtocol Directly
 
 ### Checking Permission in Handler
 
 ```python
-from src.infrastructure.authorization import CasbinAdapter
+from src.domain.protocols.authorization_protocol import AuthorizationProtocol
 
 class MyCommandHandler:
-    def __init__(self, authorization: CasbinAdapter):
+    def __init__(self, authorization: AuthorizationProtocol):
         self._authorization = authorization
     
     async def handle(self, command: MyCommand) -> Result[..., ...]:
@@ -137,7 +144,7 @@ class MyCommandHandler:
         )
         
         if not allowed:
-            return Failure("permission_denied")
+            return Failure(error="permission_denied")
         
         # Continue with business logic
         ...
@@ -147,7 +154,7 @@ class MyCommandHandler:
 
 ```python
 async def handle(self, command: MyCommand) -> Result[..., ...]:
-    # Check if user is admin
+    # Check if user has admin role
     is_admin = await self._authorization.has_role(
         user_id=command.user_id,
         role="admin",
@@ -158,6 +165,8 @@ async def handle(self, command: MyCommand) -> Result[..., ...]:
         ...
 ```
 
+**Note**: Use `get_authorization()` from container to get `CasbinAdapter` implementing `AuthorizationProtocol`.
+
 ---
 
 ## 4. Role Management (Admin Only)
@@ -165,19 +174,20 @@ async def handle(self, command: MyCommand) -> Result[..., ...]:
 ### Assigning a Role
 
 ```python
-from src.infrastructure.authorization import CasbinAdapter
+from src.domain.protocols.authorization_protocol import AuthorizationProtocol
+from src.presentation.routers.api.middleware.auth_dependencies import CurrentUser
 
 async def assign_role_to_user(
     target_user_id: UUID,
     role: str,
-    admin_user: User,
-    authorization: CasbinAdapter,
+    admin_user: CurrentUser,
+    authorization: AuthorizationProtocol,
 ) -> bool:
     """Assign role to user (admin only)."""
     success = await authorization.assign_role(
         user_id=target_user_id,
         role=role,
-        assigned_by=admin_user.id,
+        assigned_by=admin_user.user_id,
     )
     
     # Events emitted automatically:
@@ -193,15 +203,15 @@ async def assign_role_to_user(
 async def revoke_role_from_user(
     target_user_id: UUID,
     role: str,
-    admin_user: User,
-    authorization: CasbinAdapter,
+    admin_user: CurrentUser,
+    authorization: AuthorizationProtocol,
     reason: str | None = None,
 ) -> bool:
     """Revoke role from user (admin only)."""
     success = await authorization.revoke_role(
         user_id=target_user_id,
         role=role,
-        revoked_by=admin_user.id,
+        revoked_by=admin_user.user_id,
         reason=reason,  # Optional reason for audit
     )
     
@@ -213,7 +223,7 @@ async def revoke_role_from_user(
 ```python
 async def get_user_roles(
     user_id: UUID,
-    authorization: CasbinAdapter,
+    authorization: AuthorizationProtocol,
 ) -> list[str]:
     """Get all roles assigned to user."""
     roles = await authorization.get_roles_for_user(user_id)
@@ -348,13 +358,17 @@ RoleRevocationAttempted → RoleRevocationSucceeded/Failed
 
 ## 8. Common Patterns
 
-### Pattern 1: Admin-Only Endpoint
+### Pattern 1: Admin-Only Endpoint (JWT-based)
 
 ```python
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    require_role,
+)
+
 @router.get("/admin/audit-logs")
 async def get_audit_logs(
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(require_role(UserRole.ADMIN)),
+    current_user: CurrentUser = Depends(require_role("admin")),
 ) -> list[AuditLogResponse]:
     """Admin-only: View audit logs."""
     ...
@@ -363,10 +377,17 @@ async def get_audit_logs(
 ### Pattern 2: Resource Owner Check
 
 ```python
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
+from src.domain.protocols.authorization_protocol import AuthorizationProtocol
+
 @router.get("/accounts/{account_id}")
 async def get_account(
     account_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
+    authorization: AuthorizationProtocol = Depends(get_authorization),
     account_repo: AccountRepository = Depends(get_account_repo),
 ) -> AccountResponse:
     """Get account (must own account or be admin)."""
@@ -376,38 +397,55 @@ async def get_account(
         raise HTTPException(404, "Account not found")
     
     # Owner check
-    if account.user_id != current_user.id:
+    if account.user_id != current_user.user_id:
         # Check if admin (can view any account)
-        if not await authorization.has_role(current_user.id, "admin"):
+        if not await authorization.has_role(current_user.user_id, "admin"):
             raise HTTPException(403, "Cannot access this account")
     
     return AccountResponse.from_entity(account)
 ```
 
-### Pattern 3: Combined Role + Permission
+### Pattern 3: Combined Role + Permission (Casbin-based)
 
 ```python
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
+from src.presentation.routers.api.middleware.authorization_dependencies import (
+    require_casbin_role,
+    require_permission,
+)
+
 @router.post("/admin/users/{user_id}/suspend")
 async def suspend_user(
     user_id: UUID,
-    current_user: User = Depends(get_current_user),
-    _role: None = Depends(require_role(UserRole.ADMIN)),
-    _perm: None = Depends(require_permission(Permission.ADMIN_USERS)),
+    current_user: CurrentUser = Depends(get_current_user),
+    _role: None = Depends(require_casbin_role("admin")),
+    _perm: None = Depends(require_permission("admin", "write")),
 ) -> None:
-    """Suspend user (requires admin role AND admin:users permission)."""
+    """Suspend user (requires admin role AND admin:write permission)."""
     ...
 ```
 
-### Pattern 4: Feature Flag with Role
+### Pattern 4: Feature Flag with Role (Casbin-based)
 
 ```python
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
+from src.domain.protocols.authorization_protocol import AuthorizationProtocol
+from src.core.container import get_authorization
+
 @router.get("/beta/analytics")
 async def beta_analytics(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
+    authorization: AuthorizationProtocol = Depends(get_authorization),
 ) -> AnalyticsResponse:
     """Beta feature: Analytics dashboard."""
-    # Check if user has beta access
-    has_beta = await authorization.has_role(current_user.id, "beta_tester")
+    # Check if user has beta access via Casbin
+    has_beta = await authorization.has_role(current_user.user_id, "beta_tester")
     
     if not has_beta:
         raise HTTPException(403, "Beta access required")
@@ -522,4 +560,4 @@ async def test_role_hierarchy(casbin_adapter):
 
 ---
 
-**Created**: 2025-12-05 | **Last Updated**: 2025-12-05
+**Created**: 2025-12-05 | **Last Updated**: 2026-01-10

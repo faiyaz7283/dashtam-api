@@ -424,15 +424,15 @@ class MyHandler:
 
 | Module | Contents |
 |--------|----------|
-| `infrastructure.py` | `get_cache`, `get_secrets`, `get_database`, `get_db_session`, `get_logger`, `get_encryption_service`, `get_password_hasher`, `get_token_generator`, `get_email_service`, `get_rate_limiter`, `get_audit_service` |
-| `events.py` | `get_event_bus` (with 27 handler subscriptions) |
-| `repositories.py` | `get_user_repository`, `get_session_repository`, `get_provider_connection_repository`, `get_account_repository`, `get_transaction_repository` |
-| `auth_handlers.py` | `get_register_user_handler`, `get_login_user_handler`, `get_refresh_token_handler`, `get_logout_handler`, `get_password_change_handler`, etc. |
-| `provider_handlers.py` | `get_initiate_connection_handler`, `get_complete_connection_handler`, `get_disconnect_provider_handler`, `get_refresh_provider_token_handler` |
-| `data_handlers.py` | `get_sync_accounts_handler`, `get_sync_transactions_handler`, account/transaction query handlers |
-| `providers.py` | `get_provider` (Schwab provider factory) |
-| `authorization.py` | `get_enforcer`, `require_role`, `require_permission` |
+| `infrastructure.py` | `get_cache`, `get_secrets`, `get_database`, `get_db_session`, `get_logger`, `get_encryption_service`, `get_password_service`, `get_token_service`, `get_email_service`, `get_rate_limit`, `get_audit` |
+| `events.py` | `get_event_bus` (with registry-driven handler subscriptions) |
+| `repositories.py` | `get_user_repository`, `get_provider_connection_repository`, `get_provider_repository`, `get_account_repository`, `get_transaction_repository` |
+| `auth_handlers.py` | `get_register_user_handler`, `get_authenticate_user_handler`, `get_generate_auth_tokens_handler`, `get_create_session_handler`, `get_logout_user_handler`, `get_refresh_token_handler`, `get_verify_email_handler`, etc. |
+| `provider_handlers.py` | `get_connect_provider_handler`, `get_disconnect_provider_handler`, `get_refresh_provider_tokens_handler`, `get_get_provider_connection_handler`, `get_list_provider_connections_handler` |
+| `data_handlers.py` | `get_sync_accounts_handler`, `get_sync_holdings_handler`, `get_sync_transactions_handler`, `get_import_from_file_handler`, account/transaction query handlers |
+| `providers.py` | `get_provider`, `is_oauth_provider` |
+| `authorization.py` | `init_enforcer`, `get_enforcer`, `get_authorization` |
 
 ---
 
-**Created**: 2025-12-04 | **Last Updated**: 2025-12-04
+**Created**: 2025-12-04 | **Last Updated**: 2026-01-10

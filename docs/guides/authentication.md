@@ -32,20 +32,21 @@ Quick reference guide for developers implementing authentication flows in Dashta
 
 ```python
 from fastapi import APIRouter, Depends
-from src.presentation.routers.api.middleware.auth_middleware import get_current_user
-from src.domain.entities import User
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
 
 router = APIRouter()
 
 @router.get("/me")
 async def get_my_profile(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> UserResponse:
     """Get current user's profile (requires authentication)."""
     return UserResponse(
-        id=current_user.id,
+        id=current_user.user_id,
         email=current_user.email,
-        is_verified=current_user.is_verified,
     )
 ```
 
@@ -53,18 +54,22 @@ async def get_my_profile(
 
 1. Extracts `Authorization: Bearer {token}` header
 2. Validates JWT signature and expiration
-3. Extracts `user_id` from token payload
-4. Loads user from database
-5. Returns `User` entity or raises `HTTPException(401)`
+3. Extracts user info from token payload (`sub`, `email`, `roles`, `session_id`)
+4. Returns `CurrentUser` dataclass or raises `HTTPException(401)`
+
+**Note**: `CurrentUser` is a dataclass containing JWT payload data, not a database entity.
 
 ### Handling Optional Authentication
 
 ```python
-from src.presentation.routers.api.middleware.auth_middleware import get_optional_user
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user_optional,
+)
 
 @router.get("/public-with-user-context")
 async def public_endpoint(
-    current_user: User | None = Depends(get_optional_user),
+    current_user: CurrentUser | None = Depends(get_current_user_optional),
 ) -> Response:
     """Public endpoint that can use user context if available."""
     if current_user:
@@ -553,38 +558,51 @@ def test_login_invalid_credentials(client: TestClient):
 ### Pattern 1: Protected Endpoint
 
 ```python
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
+
 @router.get("/protected")
 async def protected_endpoint(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> Response:
     # current_user is guaranteed to be authenticated
-    return {"user_id": str(current_user.id)}
+    return {"user_id": str(current_user.user_id)}
 ```
 
 ### Pattern 2: Admin-Only Endpoint
 
 ```python
-from src.application.dependencies.authorization import require_role
-from src.domain.enums import UserRole
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+    require_role,
+)
 
 @router.delete("/admin/users/{user_id}")
 async def delete_user(
     user_id: UUID,
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(require_role(UserRole.ADMIN)),
+    current_user: CurrentUser = Depends(get_current_user),
+    _: CurrentUser = Depends(require_role("admin")),
 ) -> None:
     # Only admins can reach here
     ...
 ```
 
-### Pattern 3: Rate-Limited Auth Endpoint
+### Pattern 3: Real-Time Permission Check (Casbin)
 
 ```python
-from src.presentation.routers.api.middleware.rate_limit_middleware import rate_limit
+from src.presentation.routers.api.middleware.authorization_dependencies import (
+    require_permission,
+)
 
-@router.post("/sessions")
-@rate_limit(key="ip", limit=5, window=60)  # 5 attempts per minute per IP
-async def login(...):
+@router.get("/accounts")
+async def list_accounts(
+    current_user: CurrentUser = Depends(get_current_user),
+    _: None = Depends(require_permission("accounts", "read")),
+) -> Response:
+    # Casbin permission verified against database
     ...
 ```
 
@@ -614,4 +632,4 @@ async def login(...):
 
 ---
 
-**Created**: 2025-12-05 | **Last Updated**: 2025-12-05
+**Created**: 2025-12-05 | **Last Updated**: 2026-01-10

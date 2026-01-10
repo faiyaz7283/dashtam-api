@@ -730,4 +730,4 @@ async def register_user(self, email: str) -> Result[UUID, Error]:
 
 ---
 
-**Created**: 2025-11-18 | **Last Updated**: 2025-12-05
+**Created**: 2025-11-18 | **Last Updated**: 2026-01-10

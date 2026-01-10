@@ -721,4 +721,4 @@ cache_key = CacheKeys.user_data(user_id)
 
 ---
 
-**Created**: 2025-12-05 | **Last Updated**: 2025-12-25 (F6.11)
+**Created**: 2025-12-05 | **Last Updated**: 2026-01-10

@@ -134,52 +134,83 @@ class RateLimitMiddleware:
 
 ---
 
-## 3. Configuring Rate Limit Rules
+## 3. Configuring Rate Limit Rules (Two-Tier Pattern)
 
-### Rule Definition
+Rate limits use a **two-tier configuration pattern** (similar to CSS classes):
+
+### Tier 1: Policy Assignment (registry.py)
+
+Assign a rate limit policy to each endpoint in the Route Metadata Registry:
 
 ```python
-# src/infrastructure/rate_limit/config.py
-from src.domain.enums import RateLimitScope
-from src.domain.value_objects import RateLimitRule
+# src/presentation/routers/api/v1/routes/registry.py
+RouteMetadata(
+    method=HTTPMethod.POST,
+    path="/sessions",
+    handler=create_session,
+    rate_limit_policy=RateLimitPolicy.AUTH_LOGIN,  # Policy assignment
+    ...
+)
+```
 
-RATE_LIMIT_RULES: dict[str, RateLimitRule] = {
-    # Authentication (IP-scoped, restrictive)
-    "POST /api/v1/sessions": RateLimitRule(
+### Tier 2: Policy Implementation (derivations.py)
+
+Define what each policy means:
+
+```python
+# src/presentation/routers/api/v1/routes/derivations.py
+mapping = {
+    RateLimitPolicy.AUTH_LOGIN: RateLimitRule(
         max_tokens=5,
         refill_rate=5.0,  # 5 per minute
         scope=RateLimitScope.IP,
         cost=1,
         enabled=True,
     ),
-    
-    # Registration (IP-scoped)
-    "POST /api/v1/users": RateLimitRule(
+    RateLimitPolicy.AUTH_REGISTER: RateLimitRule(
         max_tokens=3,
         refill_rate=3.0,
         scope=RateLimitScope.IP,
         cost=1,
         enabled=True,
     ),
-    
-    # API endpoints (user-scoped, generous)
-    "GET /api/v1/accounts": RateLimitRule(
+    RateLimitPolicy.API_READ: RateLimitRule(
         max_tokens=100,
         refill_rate=100.0,
         scope=RateLimitScope.USER,
         cost=1,
         enabled=True,
     ),
-    
-    # Provider sync (user+provider scoped)
-    "POST /api/v1/providers/{provider_id}/sync": RateLimitRule(
+    RateLimitPolicy.PROVIDER_SYNC: RateLimitRule(
         max_tokens=10,
-        refill_rate=10.0,
+        refill_rate=5.0,
         scope=RateLimitScope.USER_PROVIDER,
         cost=1,
         enabled=True,
     ),
 }
+```
+
+### To Modify Rate Limits
+
+**Scenario 1**: Change rate limit for ONE specific endpoint
+
+```python
+# In registry.py: Change policy assignment
+RouteMetadata(
+    path="/sessions",
+    rate_limit_policy=RateLimitPolicy.API_READ,  # More generous
+)
+```
+
+**Scenario 2**: Change rate limit for ALL endpoints using a policy
+
+```python
+# In derivations.py: Update policy implementation
+RateLimitPolicy.AUTH_LOGIN: RateLimitRule(
+    max_tokens=10,  # Increase from 5 to 10
+    ...
+)
 ```
 
 ### Scope Types
@@ -533,20 +564,41 @@ async def reset_rate_limit(
 
 ## 10. Adding New Rate Limit Rules
 
-### Step 1: Define Rule
+With the registry-based pattern, adding rate limits is automatic:
+
+### Step 1: Add Route to Registry
 
 ```python
-# src/infrastructure/rate_limit/config.py
-RATE_LIMIT_RULES["POST /api/v1/new-endpoint"] = RateLimitRule(
+# src/presentation/routers/api/v1/routes/registry.py
+RouteMetadata(
+    method=HTTPMethod.POST,
+    path="/new-endpoint",
+    handler=new_endpoint_handler,
+    rate_limit_policy=RateLimitPolicy.API_WRITE,  # Assign existing policy
+    ...
+)
+```
+
+### Step 2: (Optional) Create New Policy
+
+If existing policies don't fit:
+
+```python
+# 1. Add enum value in metadata.py
+class RateLimitPolicy(str, Enum):
+    CUSTOM_NEW = "custom_new"
+
+# 2. Add implementation in derivations.py
+RateLimitPolicy.CUSTOM_NEW: RateLimitRule(
     max_tokens=20,
     refill_rate=20.0,
     scope=RateLimitScope.USER,
     cost=1,
     enabled=True,
-)
+),
 ```
 
-### Step 2: Test Rule
+### Step 3: Test Rule
 
 ```python
 # tests/integration/test_rate_limit_new_endpoint.py
@@ -557,7 +609,7 @@ async def test_new_endpoint_rate_limit():
     # Test refill behavior
 ```
 
-### Step 3: Document
+### Step 4: Document
 
 Update API documentation with rate limit information.
 
@@ -593,4 +645,4 @@ Update API documentation with rate limit information.
 
 ---
 
-**Created**: 2025-12-05 | **Last Updated**: 2025-12-05
+**Created**: 2025-12-05 | **Last Updated**: 2026-01-10

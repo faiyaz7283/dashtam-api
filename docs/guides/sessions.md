@@ -91,15 +91,19 @@ class Session:
 ```python
 from src.application.queries import ListSessions
 from src.core.container import get_list_sessions_handler
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
 
 @router.get("/sessions")
 async def list_my_sessions(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     handler: ListSessionsHandler = Depends(get_list_sessions_handler),
 ) -> list[SessionResponse]:
     """List all active sessions for current user."""
-    result = await handler.handle(ListSessions(
-        user_id=current_user.id,
+result = await handler.handle(ListSessions(
+        user_id=current_user.user_id,
         include_revoked=False,  # Only active sessions
     ))
     
@@ -145,17 +149,21 @@ async def list_my_sessions(
 ```python
 from src.application.commands import RevokeSession
 from src.core.container import get_revoke_session_handler
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    get_current_user,
+)
 
 @router.delete("/sessions/current", status_code=204)
 async def logout(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     session_id: UUID = Depends(get_current_session_id),
     handler: RevokeSessionHandler = Depends(get_revoke_session_handler),
 ) -> None:
     """Logout current session."""
-    await handler.handle(RevokeSession(
+await handler.handle(RevokeSession(
         session_id=session_id,
-        user_id=current_user.id,
+        user_id=current_user.user_id,
         reason="user_logout",
     ))
 ```
@@ -166,13 +174,13 @@ async def logout(
 @router.delete("/sessions/{session_id}", status_code=204)
 async def revoke_session(
     session_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     handler: RevokeSessionHandler = Depends(get_revoke_session_handler),
 ) -> None:
     """Revoke specific session (e.g., log out another device)."""
-    result = await handler.handle(RevokeSession(
+result = await handler.handle(RevokeSession(
         session_id=session_id,
-        user_id=current_user.id,
+        user_id=current_user.user_id,
         reason="user_revoked",
     ))
     
@@ -190,13 +198,13 @@ from src.application.commands import RevokeAllSessions
 
 @router.delete("/sessions", status_code=204)
 async def revoke_all_sessions(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     current_session_id: UUID = Depends(get_current_session_id),
     handler: RevokeAllSessionsHandler = Depends(...),
 ) -> None:
     """Revoke all sessions except current (security: log out everywhere)."""
-    await handler.handle(RevokeAllSessions(
-        user_id=current_user.id,
+await handler.handle(RevokeAllSessions(
+        user_id=current_user.user_id,
         except_session_id=current_session_id,  # Keep current session
         reason="user_security_action",
     ))
@@ -627,19 +635,19 @@ def test_revoke_session(client: TestClient, auth_headers, other_session):
 ### Pattern 1: Get Current Session from JWT
 
 ```python
-from src.presentation.routers.api.middleware.auth_middleware import (
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
     get_current_user,
-    get_current_session_id,
 )
 
 @router.get("/sessions/current")
 async def get_current_session(
-    current_user: User = Depends(get_current_user),
-    session_id: UUID = Depends(get_current_session_id),
+    current_user: CurrentUser = Depends(get_current_user),
     session_repo: SessionRepository = Depends(get_session_repo),
 ) -> SessionResponse:
     """Get details of current session."""
-    session = await session_repo.find_by_id(session_id)
+    # Session ID is available in CurrentUser from JWT
+    session = await session_repo.find_by_id(current_user.session_id)
     return SessionResponse.from_entity(session)
 ```
 
@@ -660,11 +668,15 @@ async def update_session_activity(
 ### Pattern 3: Admin View All Sessions
 
 ```python
+from src.presentation.routers.api.middleware.auth_dependencies import (
+    CurrentUser,
+    require_role,
+)
+
 @router.get("/admin/users/{user_id}/sessions")
 async def admin_list_user_sessions(
     user_id: UUID,
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(require_role(UserRole.ADMIN)),
+    current_user: CurrentUser = Depends(require_role("admin")),
     handler: ListSessionsHandler = Depends(...),
 ) -> list[SessionResponse]:
     """Admin: List all sessions for any user."""
@@ -762,4 +774,4 @@ test_ip_not_in_database_returns_empty SKIPPED
 
 ---
 
-**Created**: 2025-12-05 | **Last Updated**: 2025-12-25
+**Created**: 2025-12-05 | **Last Updated**: 2026-01-10

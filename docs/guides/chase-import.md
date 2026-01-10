@@ -378,4 +378,4 @@ Each import creates a balance snapshot with:
 
 ---
 
-**Created**: 2025-12-27 | **Last Updated**: 2025-12-27
+**Created**: 2025-12-27 | **Last Updated**: 2026-01-10

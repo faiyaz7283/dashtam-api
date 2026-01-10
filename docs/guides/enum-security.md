@@ -326,7 +326,7 @@ def upgrade():
         ));
     """)
     
-    # TransactionSubtype constraint (all 24 values)
+    # TransactionSubtype constraint (all 25 values)
     op.execute("""
         ALTER TABLE transactions
         ADD CONSTRAINT transactions_subtype_check
@@ -440,7 +440,7 @@ class TestEnumIntegrity:
             f"🚨 SECURITY ALERT: TransactionSubtype values changed!\n"
             f"Unauthorized additions: {actual - approved}\n"
             f"Missing values: {approved - actual}\n"
-            f"Count: Expected 24, got {len(actual)}"
+            f"Count: Expected 25, got {len(actual)}"
         )
     
     def test_asset_type_frozen_values(self):
@@ -758,10 +758,10 @@ class TransactionSubtype(str, Enum):
 # tests/unit/test_domain_enum_security.py
 def test_transaction_subtype_frozen_values(self):
     approved = {
-        # ... existing 24 values ...
+        # ... existing 25 values ...
         "stock_split",  # NEW
     }
-    # Update count assertion: 24 → 25
+    # Update count assertion: 25 → 26
 ```
 
 ### Step 6: Create Migration
@@ -811,4 +811,4 @@ Update architecture doc with new subtype and count.
 
 ---
 
-**Created**: 2025-11-30 | **Last Updated**: 2025-11-30
+**Created**: 2025-11-30 | **Last Updated**: 2026-01-10

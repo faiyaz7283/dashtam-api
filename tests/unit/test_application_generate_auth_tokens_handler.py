@@ -26,7 +26,8 @@ import pytest
 from src.application.commands.handlers.generate_auth_tokens_handler import (
     GenerateAuthTokensHandler,
 )
-from src.application.commands.token_commands import AuthTokens, GenerateAuthTokens
+from src.application.commands.token_commands import GenerateAuthTokens
+from src.application.dtos import AuthTokens
 from src.core.result import Success
 from src.domain.entities.security_config import SecurityConfig
 

@@ -70,33 +70,3 @@ class TriggerUserTokenRotation:
     user_id: UUID
     triggered_by: str  # "user", admin ID, or "system"
     reason: str
-
-
-@dataclass(frozen=True, kw_only=True)
-class GlobalRotationResult:
-    """Response from successful global rotation.
-
-    Attributes:
-        previous_version: Version before rotation.
-        new_version: Version after rotation.
-        grace_period_seconds: Time window where old tokens still work.
-    """
-
-    previous_version: int
-    new_version: int
-    grace_period_seconds: int
-
-
-@dataclass(frozen=True, kw_only=True)
-class UserRotationResult:
-    """Response from successful per-user rotation.
-
-    Attributes:
-        user_id: User whose tokens were rotated.
-        previous_version: Version before rotation.
-        new_version: Version after rotation.
-    """
-
-    user_id: UUID
-    previous_version: int
-    new_version: int

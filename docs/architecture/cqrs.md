@@ -520,8 +520,108 @@ src/application/
 │       ├── list_sessions_handler.py
 │       ├── get_provider_handler.py
 │       └── list_providers_handler.py
+├── dtos/                         # Data Transfer Objects
+│   ├── __init__.py
+│   ├── auth_dtos.py              # Auth result DTOs
+│   ├── sync_dtos.py              # Sync operation result DTOs
+│   └── import_dtos.py            # File import result DTO
 └── events/
     └── handlers/                  # Event handlers (logging, audit, email)
+```
+
+---
+
+## DTOs (Data Transfer Objects)
+
+### Purpose
+
+**DTOs are response containers returned by handlers** - distinct from Commands (user intent) and Queries (data requests).
+
+**Why DTOs?**
+
+- **Separation of concerns**: Handlers return structured results, not domain entities
+- **Type safety**: Explicit types for handler return values
+- **Testability**: Easy to verify handler output structure
+- **Decoupling**: Presentation layer doesn't depend on domain entity structure
+
+### Location: Application Layer ONLY
+
+**DTOs live ONLY in `src/application/dtos/`** - they are application-layer concerns.
+
+**Layer-Specific Data Types** (not DTOs):
+
+| Layer | Data Type | Purpose | Location |
+|-------|-----------|---------|----------|
+| Domain | Protocol data types | Port interface contracts | `src/domain/protocols/` |
+| Infrastructure | Internal types | Implementation details | Handler files (inline) |
+| Presentation | Pydantic schemas | API request/response | `src/schemas/` |
+| **Application** | **DTOs** | **Handler results** | `src/application/dtos/` |
+
+### DTO Structure
+
+```text
+src/application/dtos/
+├── __init__.py         # Exports all DTOs
+├── auth_dtos.py        # Authentication-related DTOs
+│   ├── AuthenticatedUser    # Credentials validation result
+│   ├── AuthTokens           # Token generation result
+│   ├── GlobalRotationResult # Global rotation result
+│   └── UserRotationResult   # User rotation result
+├── sync_dtos.py        # Data sync operation DTOs
+│   ├── SyncAccountsResult     # Account sync result
+│   ├── SyncTransactionsResult # Transaction sync result
+│   └── SyncHoldingsResult     # Holdings sync result
+└── import_dtos.py      # File import DTOs
+    └── ImportResult    # File import result
+```
+
+### DTO Pattern
+
+**Characteristics**:
+
+- Frozen dataclasses (`frozen=True, kw_only=True`) for response DTOs
+- Mutable dataclasses for sync results (builder pattern during operation)
+- Named as `{Operation}Result` or `{Concept}` (e.g., `SyncAccountsResult`, `AuthenticatedUser`)
+
+**Example**:
+
+```python
+# src/application/dtos/auth_dtos.py
+@dataclass(frozen=True, kw_only=True)
+class AuthenticatedUser:
+    """Response from successful authentication.
+    
+    Attributes:
+        user_id: User's unique identifier.
+        email: User's email address.
+        roles: User's roles for authorization.
+    """
+    user_id: UUID
+    email: str
+    roles: list[str]
+```
+
+### Usage in Handlers
+
+```python
+# Handler returns DTO
+async def handle(self, cmd: AuthenticateUser) -> Result[AuthenticatedUser, str]:
+    # ... authentication logic ...
+    return Success(value=AuthenticatedUser(
+        user_id=user.id,
+        email=user.email,
+        roles=user.roles,
+    ))
+```
+
+### Importing DTOs
+
+```python
+# ✅ CORRECT: Import from dtos package
+from src.application.dtos import AuthenticatedUser, AuthTokens
+
+# ✅ ALSO CORRECT: Re-exported from commands (backward compatibility)
+from src.application.commands import AuthenticatedUser, AuthTokens
 ```
 
 ---

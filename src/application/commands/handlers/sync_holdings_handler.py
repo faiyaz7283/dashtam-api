@@ -14,7 +14,6 @@ Reference:
     - docs/architecture/api-design-patterns.md
 """
 
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from uuid import UUID
@@ -22,6 +21,7 @@ from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.sync_commands import SyncHoldings
+from src.application.dtos import SyncHoldingsResult
 from src.core.result import Failure, Result, Success
 from src.domain.entities.holding import Holding
 from src.domain.enums.asset_type import AssetType
@@ -39,27 +39,6 @@ from src.domain.protocols.provider_connection_repository import (
 from src.domain.protocols.provider_protocol import ProviderHoldingData, ProviderProtocol
 from src.domain.protocols.encryption_protocol import EncryptionProtocol
 from src.domain.value_objects.money import Money
-
-
-@dataclass
-class SyncHoldingsResult:
-    """Result of holdings sync operation.
-
-    Attributes:
-        created: Number of new holdings created.
-        updated: Number of existing holdings updated.
-        unchanged: Number of holdings unchanged.
-        deactivated: Number of holdings deactivated (no longer in provider).
-        errors: Number of holdings that failed to sync.
-        message: Human-readable summary.
-    """
-
-    created: int
-    updated: int
-    unchanged: int
-    deactivated: int
-    errors: int
-    message: str
 
 
 class SyncHoldingsError:

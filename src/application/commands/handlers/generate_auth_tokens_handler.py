@@ -15,7 +15,8 @@ Architecture:
 - Handler orchestrates token generation without knowing implementation details
 """
 
-from src.application.commands.token_commands import AuthTokens, GenerateAuthTokens
+from src.application.commands.token_commands import GenerateAuthTokens
+from src.application.dtos import AuthTokens
 from src.core.result import Result, Success
 from src.domain.protocols import (
     RefreshTokenRepository,

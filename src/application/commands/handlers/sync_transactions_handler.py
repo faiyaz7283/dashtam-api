@@ -14,7 +14,6 @@ Reference:
     - docs/architecture/api-design-patterns.md
 """
 
-from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import cast
 from uuid import UUID
@@ -22,6 +21,7 @@ from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.sync_commands import SyncTransactions
+from src.application.dtos import SyncTransactionsResult
 from src.core.result import Failure, Result, Success
 from src.domain.entities.transaction import Transaction
 from src.domain.enums.asset_type import AssetType
@@ -45,27 +45,6 @@ from src.domain.protocols.provider_protocol import (
 from src.domain.protocols.transaction_repository import TransactionRepository
 from src.domain.protocols.encryption_protocol import EncryptionProtocol
 from src.domain.value_objects.money import Money
-
-
-@dataclass
-class SyncTransactionsResult:
-    """Result of transaction sync operation.
-
-    Attributes:
-        created: Number of new transactions created.
-        updated: Number of existing transactions updated.
-        unchanged: Number of transactions unchanged.
-        errors: Number of transactions that failed to sync.
-        accounts_synced: Number of accounts processed.
-        message: Human-readable summary.
-    """
-
-    created: int
-    updated: int
-    unchanged: int
-    errors: int
-    accounts_synced: int
-    message: str
 
 
 class SyncTransactionsError:

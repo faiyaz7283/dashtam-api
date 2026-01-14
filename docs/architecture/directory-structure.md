@@ -218,6 +218,11 @@ src/application/
 ├── queries/           # Read operations
 │   ├── __init__.py
 │   └── handlers/      # Query handler implementations
+├── dtos/              # Data Transfer Objects (handler results)
+│   ├── __init__.py
+│   ├── auth_dtos.py   # Auth result DTOs (AuthenticatedUser, AuthTokens, etc.)
+│   ├── sync_dtos.py   # Sync result DTOs (SyncAccountsResult, etc.)
+│   └── import_dtos.py # Import result DTO (ImportResult)
 └── events/            # Event handlers
     ├── __init__.py
     └── handlers/      # Domain event handler implementations

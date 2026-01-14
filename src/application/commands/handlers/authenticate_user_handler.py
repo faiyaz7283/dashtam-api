@@ -31,7 +31,8 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 from uuid_extensions import uuid7
 
-from src.application.commands.auth_commands import AuthenticateUser, AuthenticatedUser
+from src.application.commands.auth_commands import AuthenticateUser
+from src.application.dtos import AuthenticatedUser
 
 if TYPE_CHECKING:
     from fastapi import Request

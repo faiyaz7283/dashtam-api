@@ -9,7 +9,6 @@ to execute the command.
 
 from src.application.commands.auth_commands import (
     AuthenticateUser,
-    AuthenticatedUser,
     ConfirmPasswordReset,
     LogoutUser,
     RefreshAccessToken,
@@ -25,10 +24,8 @@ from src.application.commands.session_commands import (
     RevokeSession,
     UpdateSessionActivity,
 )
-from src.application.commands.token_commands import (
-    AuthTokens,
-    GenerateAuthTokens,
-)
+from src.application.commands.token_commands import GenerateAuthTokens
+from src.application.dtos import AuthenticatedUser, AuthTokens
 from src.application.commands.provider_commands import (
     ConnectProvider,
     DisconnectProvider,

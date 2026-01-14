@@ -20,7 +20,6 @@ Reference:
     - docs/architecture/cqrs-pattern.md
 """
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
@@ -28,6 +27,7 @@ from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.import_commands import ImportFromFile
+from src.application.dtos import ImportResult
 from src.core.result import Failure, Result, Success
 from src.domain.entities.account import Account
 from src.domain.entities.provider_connection import ProviderConnection
@@ -52,27 +52,6 @@ from src.domain.protocols.provider_repository import ProviderRepository
 from src.domain.protocols.transaction_repository import TransactionRepository
 from src.domain.value_objects.money import Money
 from src.domain.value_objects.provider_credentials import ProviderCredentials
-
-
-@dataclass
-class ImportResult:
-    """Result of file import operation.
-
-    Attributes:
-        connection_id: Provider connection ID (created or existing).
-        accounts_created: Number of new accounts created.
-        accounts_updated: Number of existing accounts updated.
-        transactions_created: Number of new transactions imported.
-        transactions_skipped: Number of duplicate transactions skipped.
-        message: Human-readable summary.
-    """
-
-    connection_id: UUID
-    accounts_created: int
-    accounts_updated: int
-    transactions_created: int
-    transactions_skipped: int
-    message: str
 
 
 class ImportFromFileError:

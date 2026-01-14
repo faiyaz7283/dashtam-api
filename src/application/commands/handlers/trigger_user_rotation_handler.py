@@ -17,10 +17,8 @@ On failure:
 from datetime import UTC, datetime
 from uuid_extensions import uuid7
 
-from src.application.commands.rotation_commands import (
-    TriggerUserTokenRotation,
-    UserRotationResult,
-)
+from src.application.commands.rotation_commands import TriggerUserTokenRotation
+from src.application.dtos import UserRotationResult
 from src.core.result import Failure, Result, Success
 from src.domain.events.auth_events import (
     UserTokenRotationAttempted,

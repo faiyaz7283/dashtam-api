@@ -41,23 +41,3 @@ class GenerateAuthTokens:
     email: str
     roles: list[str]
     session_id: UUID
-
-
-@dataclass(frozen=True, kw_only=True)
-class AuthTokens:
-    """Response from successful token generation.
-
-    Contains the authentication tokens to return to the client.
-    This is a response DTO, not a command.
-
-    Attributes:
-        access_token: JWT access token (short-lived, 15 minutes).
-        refresh_token: Opaque refresh token (long-lived, 30 days).
-        token_type: Token type (always "bearer").
-        expires_in: Access token expiration in seconds.
-    """
-
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int = 900  # 15 minutes in seconds

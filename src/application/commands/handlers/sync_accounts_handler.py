@@ -25,14 +25,19 @@ from src.application.commands.sync_commands import SyncAccounts
 from src.core.result import Failure, Result, Success
 from src.domain.entities.account import Account
 from src.domain.enums.account_type import AccountType
+from src.domain.events.data_events import (
+    AccountSyncAttempted,
+    AccountSyncFailed,
+    AccountSyncSucceeded,
+)
 from src.domain.protocols.account_repository import AccountRepository
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
 from src.domain.protocols.provider_protocol import ProviderAccountData, ProviderProtocol
+from src.domain.protocols.encryption_protocol import EncryptionProtocol
 from src.domain.value_objects.money import Money
-from src.infrastructure.providers.encryption_service import EncryptionService
 
 
 @dataclass
@@ -96,7 +101,7 @@ class SyncAccountsHandler:
         self,
         connection_repo: ProviderConnectionRepository,
         account_repo: AccountRepository,
-        encryption_service: EncryptionService,
+        encryption_service: EncryptionProtocol,
         provider: ProviderProtocol,
         event_bus: EventBusProtocol,
     ) -> None:
@@ -125,40 +130,95 @@ class SyncAccountsHandler:
             Success(SyncAccountsResult): Sync completed with counts.
             Failure(error): Connection not found, not owned, or provider error.
         """
-        # 1. Fetch connection
+        # 1. Emit ATTEMPTED event
+        await self._event_bus.publish(
+            AccountSyncAttempted(
+                event_id=uuid7(),
+                occurred_at=datetime.now(UTC),
+                connection_id=command.connection_id,
+                user_id=command.user_id,
+            )
+        )
+
+        # 2. Fetch connection
         connection = await self._connection_repo.find_by_id(command.connection_id)
 
         if connection is None:
+            await self._event_bus.publish(
+                AccountSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    connection_id=command.connection_id,
+                    user_id=command.user_id,
+                    reason="connection_not_found",
+                )
+            )
             return cast(
                 Result[SyncAccountsResult, str],
                 Failure(error=SyncAccountsError.CONNECTION_NOT_FOUND),
             )
 
-        # 2. Verify ownership
+        # 3. Verify ownership
         if connection.user_id != command.user_id:
+            await self._event_bus.publish(
+                AccountSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    connection_id=command.connection_id,
+                    user_id=command.user_id,
+                    reason="not_owned_by_user",
+                )
+            )
             return cast(
                 Result[SyncAccountsResult, str],
                 Failure(error=SyncAccountsError.NOT_OWNED_BY_USER),
             )
 
-        # 3. Verify connection is active
+        # 4. Verify connection is active
         if not connection.is_connected():
+            await self._event_bus.publish(
+                AccountSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    connection_id=command.connection_id,
+                    user_id=command.user_id,
+                    reason="connection_not_active",
+                )
+            )
             return cast(
                 Result[SyncAccountsResult, str],
                 Failure(error=SyncAccountsError.CONNECTION_NOT_ACTIVE),
             )
 
-        # 4. Check if recently synced (unless force=True)
+        # 5. Check if recently synced (unless force=True)
         if not command.force and connection.last_sync_at:
             time_since_sync = datetime.now(UTC) - connection.last_sync_at
             if time_since_sync < MIN_SYNC_INTERVAL:
+                await self._event_bus.publish(
+                    AccountSyncFailed(
+                        event_id=uuid7(),
+                        occurred_at=datetime.now(UTC),
+                        connection_id=command.connection_id,
+                        user_id=command.user_id,
+                        reason="recently_synced",
+                    )
+                )
                 return cast(
                     Result[SyncAccountsResult, str],
                     Failure(error=SyncAccountsError.RECENTLY_SYNCED),
                 )
 
-        # 5. Get and decrypt credentials
+        # 6. Get and decrypt credentials
         if connection.credentials is None:
+            await self._event_bus.publish(
+                AccountSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    connection_id=command.connection_id,
+                    user_id=command.user_id,
+                    reason="credentials_invalid",
+                )
+            )
             return cast(
                 Result[SyncAccountsResult, str],
                 Failure(error=SyncAccountsError.CREDENTIALS_INVALID),
@@ -169,6 +229,15 @@ class SyncAccountsHandler:
         )
 
         if isinstance(decrypt_result, Failure):
+            await self._event_bus.publish(
+                AccountSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    connection_id=command.connection_id,
+                    user_id=command.user_id,
+                    reason="credentials_decryption_failed",
+                )
+            )
             return cast(
                 Result[SyncAccountsResult, str],
                 Failure(error=SyncAccountsError.CREDENTIALS_DECRYPTION_FAILED),
@@ -176,26 +245,49 @@ class SyncAccountsHandler:
 
         credentials_data = decrypt_result.value
 
-        # 6. Fetch accounts from provider (pass full credentials dict)
+        # 7. Fetch accounts from provider (pass full credentials dict)
         # Provider extracts what it needs (access_token for OAuth, api_key for API Key, etc.)
         fetch_result = await self._provider.fetch_accounts(credentials_data)
 
         if isinstance(fetch_result, Failure):
+            await self._event_bus.publish(
+                AccountSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    connection_id=command.connection_id,
+                    user_id=command.user_id,
+                    reason=f"provider_error:{fetch_result.error.message}",
+                )
+            )
             return Failure(
                 error=f"{SyncAccountsError.PROVIDER_ERROR}: {fetch_result.error.message}"
             )
 
         provider_accounts = fetch_result.value
 
-        # 7. Sync accounts to repository
+        # 8. Sync accounts to repository
         sync_result = await self._sync_accounts_to_repository(
             connection_id=connection.id,
             provider_accounts=provider_accounts,
         )
 
-        # 8. Update connection last_sync_at
+        # 9. Update connection last_sync_at
         connection.record_sync()
         await self._connection_repo.save(connection)
+
+        # 10. Emit SUCCEEDED event
+        total_accounts = (
+            sync_result.created + sync_result.updated + sync_result.unchanged
+        )
+        await self._event_bus.publish(
+            AccountSyncSucceeded(
+                event_id=uuid7(),
+                occurred_at=datetime.now(UTC),
+                connection_id=command.connection_id,
+                user_id=command.user_id,
+                account_count=total_accounts,
+            )
+        )
 
         return Success(value=sync_result)
 

@@ -21,7 +21,10 @@ from uuid_extensions import uuid7
 
 from src.application.commands.session_commands import RevokeAllUserSessions
 from src.core.result import Result, Success
-from src.domain.events.session_events import AllSessionsRevokedEvent
+from src.domain.events.session_events import (
+    AllSessionsRevocationAttempted,
+    AllSessionsRevokedEvent,
+)
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.session_cache_protocol import SessionCache
 from src.domain.protocols.session_repository import SessionRepository
@@ -63,20 +66,33 @@ class RevokeAllSessionsHandler:
         Side Effects:
             - Bulk updates sessions in database (marks revoked).
             - Clears all user sessions from cache.
-            - Publishes AllSessionsRevokedEvent.
+            - Publishes 3-state events (Attempted/Succeeded/Failed).
         """
-        # Step 1: Revoke all sessions in database
+        now = datetime.now(UTC)
+
+        # Step 1: Emit ATTEMPTED event
+        await self._event_bus.publish(
+            AllSessionsRevocationAttempted(
+                event_id=uuid7(),
+                occurred_at=now,
+                user_id=cmd.user_id,
+                reason=cmd.reason,
+                except_session_id=cmd.except_session_id,
+            )
+        )
+
+        # Step 2: Revoke all sessions in database
         revoked_count = await self._session_repo.revoke_all_for_user(
             user_id=cmd.user_id,
             reason=cmd.reason,
             except_session_id=cmd.except_session_id,
         )
 
-        # Step 2: Clear cache
+        # Step 3: Clear cache
         # Note: We clear all sessions for user, even the excluded one will be re-cached on next access
         await self._session_cache.delete_all_for_user(cmd.user_id)
 
-        # Step 3: Re-cache the excluded session if present
+        # Step 4: Re-cache the excluded session if present
         if cmd.except_session_id is not None:
             excluded_session = await self._session_repo.find_by_id(
                 cmd.except_session_id
@@ -84,12 +100,11 @@ class RevokeAllSessionsHandler:
             if excluded_session is not None and not excluded_session.is_revoked:
                 await self._session_cache.set(excluded_session)
 
-        # Step 4: Publish event
-        now = datetime.now(UTC)
+        # Step 5: Emit SUCCEEDED event
         await self._event_bus.publish(
             AllSessionsRevokedEvent(
                 event_id=uuid7(),
-                occurred_at=now,
+                occurred_at=datetime.now(UTC),
                 user_id=cmd.user_id,
                 reason=cmd.reason,
                 session_count=revoked_count,
@@ -97,5 +112,5 @@ class RevokeAllSessionsHandler:
             )
         )
 
-        # Step 5: Return count
+        # Step 6: Return count
         return Success(value=revoked_count)

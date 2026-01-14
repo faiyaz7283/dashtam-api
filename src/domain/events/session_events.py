@@ -57,8 +57,27 @@ class SessionCreatedEvent(DomainEvent):
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
+class SessionRevocationAttempted(DomainEvent):
+    """Session revocation attempt initiated (3-state pattern).
+
+    Triggers:
+    - LoggingEventHandler: Log attempt
+    - AuditEventHandler: Record SESSION_REVOCATION_ATTEMPTED
+
+    Attributes:
+        session_id: Session being revoked.
+        user_id: User initiating revocation.
+        reason: Why session is being revoked.
+    """
+
+    session_id: UUID
+    user_id: UUID
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
 class SessionRevokedEvent(DomainEvent):
-    """Emitted when a single session is revoked.
+    """Emitted when a single session is revoked (SUCCEEDED).
 
     Triggered during logout or session deletion. Handlers may:
     - Remove from cache
@@ -78,6 +97,27 @@ class SessionRevokedEvent(DomainEvent):
     reason: str
     device_info: str | None = None
     revoked_by_user: bool = True
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class SessionRevocationFailed(DomainEvent):
+    """Session revocation failed (3-state pattern).
+
+    Triggers:
+    - LoggingEventHandler: Log failure
+    - AuditEventHandler: Record SESSION_REVOCATION_FAILED
+
+    Attributes:
+        session_id: Session that failed to revoke.
+        user_id: User who attempted revocation.
+        reason: Original reason for revocation.
+        failure_reason: Why revocation failed.
+    """
+
+    session_id: UUID
+    user_id: UUID
+    reason: str
+    failure_reason: str
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -103,8 +143,27 @@ class SessionEvictedEvent(DomainEvent):
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
+class AllSessionsRevocationAttempted(DomainEvent):
+    """All sessions revocation attempt initiated (3-state pattern).
+
+    Triggers:
+    - LoggingEventHandler: Log attempt
+    - AuditEventHandler: Record ALL_SESSIONS_REVOCATION_ATTEMPTED
+
+    Attributes:
+        user_id: User whose sessions are being revoked.
+        reason: Why sessions are being revoked.
+        except_session_id: Session to exclude from revocation.
+    """
+
+    user_id: UUID
+    reason: str
+    except_session_id: UUID | None = None
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
 class AllSessionsRevokedEvent(DomainEvent):
-    """Emitted when all sessions for a user are revoked.
+    """Emitted when all sessions for a user are revoked (SUCCEEDED).
 
     Triggered during password change or security event. Handlers may:
     - Clear all cached sessions
@@ -122,6 +181,25 @@ class AllSessionsRevokedEvent(DomainEvent):
     reason: str
     session_count: int
     except_session_id: UUID | None = None
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class AllSessionsRevocationFailed(DomainEvent):
+    """All sessions revocation failed (3-state pattern).
+
+    Triggers:
+    - LoggingEventHandler: Log failure
+    - AuditEventHandler: Record ALL_SESSIONS_REVOCATION_FAILED
+
+    Attributes:
+        user_id: User whose sessions failed to revoke.
+        reason: Original reason for revocation.
+        failure_reason: Why revocation failed.
+    """
+
+    user_id: UUID
+    reason: str
+    failure_reason: str
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

@@ -88,13 +88,19 @@ from src.domain.events.rate_limit_events import (
     RateLimitCheckDenied,
 )
 from src.domain.events.session_events import (
+    # 3-state workflow events
+    SessionRevocationAttempted,
+    SessionRevokedEvent,
+    SessionRevocationFailed,
+    AllSessionsRevocationAttempted,
     AllSessionsRevokedEvent,
+    AllSessionsRevocationFailed,
+    # Operational events
     SessionActivityUpdatedEvent,
     SessionCreatedEvent,
     SessionEvictedEvent,
     SessionLimitExceededEvent,
     SessionProviderAccessEvent,
-    SessionRevokedEvent,
     SuspiciousSessionActivityEvent,
 )
 from src.domain.events.data_events import (
@@ -548,9 +554,9 @@ EVENT_REGISTRY: list[EventMetadata] = [
         audit_action_name="RATE_LIMIT_CHECK_DENIED",
     ),
     # ═══════════════════════════════════════════════════════════
-    # Session Events (10 events - mixed workflow + operational)
+    # Session Events (14 events - 3-state workflows + operational)
     # ═══════════════════════════════════════════════════════════
-    # Workflow Events
+    # Session Creation (operational - single-state)
     EventMetadata(
         event_class=SessionCreatedEvent,
         category=EventCategory.SESSION,
@@ -559,13 +565,29 @@ EVENT_REGISTRY: list[EventMetadata] = [
         requires_audit=False,  # Not required (informational)
         audit_action_name="SESSION_CREATED",
     ),
+    # Session Revocation (3-state workflow)
+    EventMetadata(
+        event_class=SessionRevocationAttempted,
+        category=EventCategory.SESSION,
+        workflow_name="session_revocation",
+        phase=WorkflowPhase.ATTEMPTED,
+        audit_action_name="SESSION_REVOCATION_ATTEMPTED",
+    ),
     EventMetadata(
         event_class=SessionRevokedEvent,
         category=EventCategory.SESSION,
-        workflow_name="session_revoked",
-        phase=WorkflowPhase.OPERATIONAL,  # Single-state workflow event
+        workflow_name="session_revocation",
+        phase=WorkflowPhase.SUCCEEDED,
         audit_action_name="SESSION_REVOKED",
     ),
+    EventMetadata(
+        event_class=SessionRevocationFailed,
+        category=EventCategory.SESSION,
+        workflow_name="session_revocation",
+        phase=WorkflowPhase.FAILED,
+        audit_action_name="SESSION_REVOCATION_FAILED",
+    ),
+    # Session Evicted (operational - single-state)
     EventMetadata(
         event_class=SessionEvictedEvent,
         category=EventCategory.SESSION,
@@ -573,12 +595,27 @@ EVENT_REGISTRY: list[EventMetadata] = [
         phase=WorkflowPhase.OPERATIONAL,  # Single-state workflow event
         audit_action_name="SESSION_EVICTED",
     ),
+    # All Sessions Revocation (3-state workflow)
+    EventMetadata(
+        event_class=AllSessionsRevocationAttempted,
+        category=EventCategory.SESSION,
+        workflow_name="all_sessions_revocation",
+        phase=WorkflowPhase.ATTEMPTED,
+        audit_action_name="ALL_SESSIONS_REVOCATION_ATTEMPTED",
+    ),
     EventMetadata(
         event_class=AllSessionsRevokedEvent,
         category=EventCategory.SESSION,
-        workflow_name="all_sessions_revoked",
-        phase=WorkflowPhase.OPERATIONAL,  # Single-state workflow event
+        workflow_name="all_sessions_revocation",
+        phase=WorkflowPhase.SUCCEEDED,
         audit_action_name="ALL_SESSIONS_REVOKED",
+    ),
+    EventMetadata(
+        event_class=AllSessionsRevocationFailed,
+        category=EventCategory.SESSION,
+        workflow_name="all_sessions_revocation",
+        phase=WorkflowPhase.FAILED,
+        audit_action_name="ALL_SESSIONS_REVOCATION_FAILED",
     ),
     # Operational Events (lightweight, no audit unless security-relevant)
     EventMetadata(

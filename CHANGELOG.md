@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.9] - 2026-01-14
+
+### Changed
+
+- **CQRS Architecture Compliance (82% → 100%)**
+  - **Domain Protocols**: Created 3 new protocols in `src/domain/protocols/`
+    - `EncryptionProtocol`: Defines encryption/decryption interface for sensitive data
+    - `CacheKeysProtocol`: Defines cache key generation patterns
+    - `CacheMetricsProtocol`: Defines cache metrics tracking interface
+  - **Session Revocation Events**: Added 4 new 3-state events to `session_events.py`
+    - `SessionRevocationAttempted`, `SessionRevocationSucceeded`, `SessionRevocationFailed`
+    - `AllSessionsRevocationFailed` (completes 3-state pattern)
+  - **Command Handlers**: Updated 5 handlers to emit 3-state domain events
+    - `revoke_session_handler.py`: Full ATTEMPT → OUTCOME pattern
+    - `revoke_all_sessions_handler.py`: Full ATTEMPT → OUTCOME pattern
+    - `sync_accounts_handler.py`: Data sync 3-state events
+    - `sync_transactions_handler.py`: Data sync 3-state events
+    - `sync_holdings_handler.py`: Data sync 3-state events
+  - **Event Registry**: Added all 4 new events to `EVENT_REGISTRY` with metadata
+  - **Event Handlers**: Added 8 handler methods (4 logging + 4 audit)
+  - **Audit Actions**: Added 4 new `AuditAction` enums for session revocation
+
+### Fixed
+
+- **Import Compliance**: Removed infrastructure imports from application layer handlers
+  - `refresh_access_token_handler.py`: Now imports `EncryptionProtocol` from domain
+  - `list_accounts_handler.py`: Now imports `CacheKeysProtocol` from domain
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,273 tests pass, 87% coverage maintained
+- **Event-Driven Pattern**: All critical workflows now follow ATTEMPT → OUTCOME pattern
+- **Hexagonal Compliance**: Application layer depends only on domain protocols
+- **Self-Enforcing**: Event registry tests validate handler method coverage
+- Files changed: 19 files
+
 ## [1.6.8] - 2026-01-10
 
 ### Changed

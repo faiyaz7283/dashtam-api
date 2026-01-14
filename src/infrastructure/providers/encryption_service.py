@@ -20,64 +20,29 @@ Reference:
 
 import json
 import os
-from dataclasses import dataclass
 from typing import Any
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from src.core.enums import ErrorCode
-from src.core.errors import DomainError
 from src.core.result import Failure, Result, Success
 
+# Import error types from domain protocol (single source of truth)
+from src.domain.protocols.encryption_protocol import (
+    DecryptionError,
+    EncryptionError,
+    EncryptionKeyError,
+    SerializationError,
+)
 
-# =============================================================================
-# Encryption Errors (Domain Error Classes - NOT Exceptions)
-# =============================================================================
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class EncryptionError(DomainError):
-    """Base encryption error.
-
-    Used when encryption or decryption fails.
-    Does NOT inherit from Exception - used in Result types.
-    """
-
-    pass
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class EncryptionKeyError(EncryptionError):
-    """Invalid encryption key.
-
-    Occurs when key doesn't meet requirements (wrong length, etc.).
-    """
-
-    pass
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class DecryptionError(EncryptionError):
-    """Decryption failure.
-
-    Occurs when:
-    - Wrong encryption key
-    - Data has been tampered with
-    - Invalid encrypted data format
-    """
-
-    pass
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class SerializationError(EncryptionError):
-    """Serialization/deserialization failure.
-
-    Occurs when data cannot be serialized to JSON
-    or decrypted data cannot be parsed as JSON.
-    """
-
-    pass
+# Re-export error types for backward compatibility
+__all__ = [
+    "DecryptionError",
+    "EncryptionError",
+    "EncryptionKeyError",
+    "EncryptionService",
+    "SerializationError",
+]
 
 
 # =============================================================================

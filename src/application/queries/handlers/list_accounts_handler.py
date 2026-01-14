@@ -26,8 +26,8 @@ from src.application.queries.handlers.get_account_handler import AccountResult
 from src.core.config import settings
 from src.core.result import Failure, Result, Success
 from src.domain.protocols.cache_protocol import CacheProtocol
-from src.infrastructure.cache.cache_keys import CacheKeys
-from src.infrastructure.cache.cache_metrics import CacheMetrics
+from src.domain.protocols.cache_keys_protocol import CacheKeysProtocol
+from src.domain.protocols.cache_metrics_protocol import CacheMetricsProtocol
 from src.domain.enums.account_type import AccountType
 from src.domain.protocols.account_repository import AccountRepository
 from src.domain.protocols.provider_connection_repository import (
@@ -200,8 +200,8 @@ class ListAccountsByUserHandler:
         self,
         account_repo: AccountRepository,
         cache: CacheProtocol | None = None,
-        cache_keys: CacheKeys | None = None,
-        cache_metrics: CacheMetrics | None = None,
+        cache_keys: CacheKeysProtocol | None = None,
+        cache_metrics: CacheMetricsProtocol | None = None,
     ) -> None:
         """Initialize handler with dependencies.
 

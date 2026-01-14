@@ -841,15 +841,33 @@ class AuditAction(str, Enum):
     # =========================================================================
     # Session Management Events (Security - Session Lifecycle)
     # =========================================================================
-    # Pattern: Operational events (single-state - record lifecycle changes)
+    # Pattern: ATTEMPTED → (SUCCEEDED | FAILED) for 3-state compliance
+
+    SESSION_REVOCATION_ATTEMPTED = "session_revocation_attempted"
+    """Session revocation attempt initiated.
+    
+    Context should include:
+        - session_id: Session being revoked
+        - revoked_by: Who attempted revocation (user, admin, system)
+        - reason: Why revocation requested
+    """
 
     SESSION_REVOKED = "session_revoked"
-    """User session was revoked (security event).
+    """User session was revoked successfully (SUCCESS).
     
     Context should include:
         - session_id: Session that was revoked
         - revoked_by: Who/what revoked session (user, admin, system)
         - reason: Why revoked (logout, timeout, security, admin_action)
+    """
+
+    SESSION_REVOCATION_FAILED = "session_revocation_failed"
+    """Session revocation failed.
+    
+    Context should include:
+        - session_id: Session that failed to revoke
+        - reason: Original reason for revocation
+        - failure_reason: Why revocation failed (not_found, not_owner, already_revoked)
     """
 
     SESSION_EVICTED = "session_evicted"
@@ -861,13 +879,30 @@ class AuditAction(str, Enum):
         - active_sessions_count: Number of active sessions after eviction
     """
 
+    ALL_SESSIONS_REVOCATION_ATTEMPTED = "all_sessions_revocation_attempted"
+    """All sessions revocation attempt initiated.
+    
+    Context should include:
+        - revoked_by: Who attempted revocation (user, admin, system)
+        - reason: Why revocation requested (password_change, security_breach, user_request)
+        - except_session_id: Session to exclude from revocation (if any)
+    """
+
     ALL_SESSIONS_REVOKED = "all_sessions_revoked"
-    """All user sessions were revoked (security event).
+    """All user sessions were revoked successfully (SUCCESS).
     
     Context should include:
         - revoked_by: Who/what revoked all sessions (user, admin, system)
         - reason: Why revoked (password_change, security_breach, user_request)
         - sessions_revoked_count: Number of sessions revoked
+    """
+
+    ALL_SESSIONS_REVOCATION_FAILED = "all_sessions_revocation_failed"
+    """All sessions revocation failed.
+    
+    Context should include:
+        - reason: Original reason for revocation
+        - failure_reason: Why revocation failed
     """
 
     SESSION_PROVIDER_ACCESS = "session_provider_access"

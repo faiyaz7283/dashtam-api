@@ -14,7 +14,6 @@ Reference:
     - docs/architecture/api-design-patterns.md
 """
 
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from uuid import UUID
@@ -22,6 +21,7 @@ from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.sync_commands import SyncAccounts
+from src.application.dtos import SyncAccountsResult
 from src.core.result import Failure, Result, Success
 from src.domain.entities.account import Account
 from src.domain.enums.account_type import AccountType
@@ -38,25 +38,6 @@ from src.domain.protocols.provider_connection_repository import (
 from src.domain.protocols.provider_protocol import ProviderAccountData, ProviderProtocol
 from src.domain.protocols.encryption_protocol import EncryptionProtocol
 from src.domain.value_objects.money import Money
-
-
-@dataclass
-class SyncAccountsResult:
-    """Result of account sync operation.
-
-    Attributes:
-        created: Number of new accounts created.
-        updated: Number of existing accounts updated.
-        unchanged: Number of accounts unchanged.
-        errors: Number of accounts that failed to sync.
-        message: Human-readable summary.
-    """
-
-    created: int
-    updated: int
-    unchanged: int
-    errors: int
-    message: str
 
 
 class SyncAccountsError:

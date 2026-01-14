@@ -10,7 +10,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from src.application.commands.handlers.import_from_file_handler import ImportResult
+from src.application.dtos import ImportResult
 
 
 class ImportResponse(BaseModel):

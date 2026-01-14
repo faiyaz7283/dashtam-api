@@ -67,24 +67,6 @@ class AuthenticateUser:
 
 
 @dataclass(frozen=True, kw_only=True)
-class AuthenticatedUser:
-    """Response from successful authentication.
-
-    Contains user data needed for session creation and token generation.
-    This is a response DTO, not a command.
-
-    Attributes:
-        user_id: User's unique identifier.
-        email: User's email address (normalized).
-        roles: User's roles for authorization.
-    """
-
-    user_id: UUID
-    email: str
-    roles: list[str]
-
-
-@dataclass(frozen=True, kw_only=True)
 class VerifyEmail:
     """Verify user's email address.
 

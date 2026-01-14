@@ -27,7 +27,8 @@ from uuid_extensions import uuid7
 
 import pytest
 
-from src.application.commands.auth_commands import AuthenticateUser, AuthenticatedUser
+from src.application.commands.auth_commands import AuthenticateUser
+from src.application.dtos import AuthenticatedUser
 from src.application.commands.handlers.authenticate_user_handler import (
     AuthenticationError,
     AuthenticateUserHandler,

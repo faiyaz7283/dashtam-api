@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-01-14
+
+### Added
+
+- **DTO (Data Transfer Objects) Module** (`src/application/dtos/`)
+  - Created dedicated directory for application-layer DTOs
+  - Relocated 8 DTOs from scattered command/handler files:
+    - `auth_dtos.py`: `AuthenticatedUser`, `AuthTokens`, `GlobalRotationResult`, `UserRotationResult`
+    - `sync_dtos.py`: `SyncAccountsResult`, `SyncTransactionsResult`, `SyncHoldingsResult`
+    - `import_dtos.py`: `ImportResult`
+  - Centralized exports via `__init__.py`
+  - Backward-compatible: DTOs re-exported from `src.application.commands`
+
+- **DTO Tests** (`tests/unit/test_application_dtos.py`)
+  - 17 unit tests covering all 8 DTOs
+  - Tests for immutability, keyword-only args, module exports
+
+### Changed
+
+- **Documentation Updates**
+  - `docs/architecture/cqrs.md`: Added "DTOs (Data Transfer Objects)" section explaining:
+    - Purpose and benefits of DTOs
+    - Layer-specific data types (DTOs vs Protocol types vs Pydantic schemas)
+    - DTO structure and patterns
+    - Usage examples and import guidelines
+  - `docs/architecture/directory-structure.md`: Updated application layer structure to include `dtos/` directory
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,290 tests pass, 87% coverage maintained
+- **Import Pattern**: `from src.application.dtos import AuthenticatedUser, AuthTokens`
+- **Backward Compatible**: Original command module imports still work via re-exports
+- **Files Changed**: 17 files (4 new, 13 modified)
+- **Preparation for**: F-CQRS-Registry feature (DTOs needed for registry result types)
+
 ## [1.6.9] - 2026-01-14
 
 ### Changed

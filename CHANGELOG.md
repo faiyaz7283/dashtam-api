@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-01-14
+
+### Added
+
+- **CQRS Registry Pattern** (`src/application/cqrs/`)
+  - Single source of truth for all 23 commands and 18 queries
+  - `metadata.py`: `CommandMetadata`, `QueryMetadata`, `CQRSCategory`, `CachePolicy`
+  - `registry.py`: `COMMAND_REGISTRY`, `QUERY_REGISTRY` with full metadata
+  - `computed_views.py`: Helper functions for introspection (`get_all_commands`, `get_statistics`, etc.)
+  - Self-enforcing compliance tests (40 tests) that fail on drift
+
+- **Handler Factory Auto-Wiring** (`src/core/container/handler_factory.py`)
+  - Automatic dependency injection for all 38 CQRS handlers
+  - `handler_factory()`: FastAPI dependency generator with caching
+  - `create_handler()`: Introspects `__init__` type hints, resolves repositories and singletons
+  - Supports 11 repository types and 25+ singleton service types
+  - **Deleted ~1321 lines** of manual factory functions:
+    - `auth_handlers.py` (~557 lines)
+    - `data_handlers.py` (~570 lines)
+    - `provider_handlers.py` (~194 lines)
+
+- **Comprehensive Test Coverage**
+  - `tests/unit/test_core_handler_factory.py` (40 tests, 94% coverage)
+  - Extended `tests/unit/test_cqrs_registry_compliance.py` (55 new tests)
+  - Total: 95 new tests for CQRS registry and handler factory
+
+- **Documentation**
+  - `docs/architecture/cqrs-registry.md`: Detailed CQRS Registry documentation
+  - `docs/architecture/registry.md`: Added CQRS Registry to "Implemented Applications"
+  - `WARP.md`: Added Section 6a (CQRS Registry Pattern)
+  - `docs/guides/dependency-injection.md`: Updated with handler_factory patterns
+
+### Changed
+
+- **Router Migration**
+  - All 17+ API routers migrated to `handler_factory(HandlerClass)` pattern
+  - Test dependency overrides updated: `app.dependency_overrides[handler_factory(Handler)]`
+  - OAuth callbacks updated to use handler_factory
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,385 tests pass, 88% coverage maintained
+- **Coverage Improvement**:
+  - `handler_factory.py`: 0% → 94%
+  - `computed_views.py`: 69% → 94%
+  - `metadata.py`: 77% → 94%
+- **Architecture**: Registry Pattern applied to CQRS (parallel to Event Registry and Route Registry)
+- **Benefits**: Zero manual factory functions, self-enforcing tests, automatic handler wiring
+- Files changed: 50+ files
+
 ## [1.7.0] - 2026-01-14
 
 ### Added

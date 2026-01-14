@@ -15,7 +15,7 @@
 
 ---
 
-**Last Updated**: 2026-01-10
+**Last Updated**: 2026-01-14
 
 ## 1. Project Overview
 
@@ -1423,6 +1423,33 @@ make docs-build   # Must pass with ZERO warnings
 ### 19. AI Agent Workflow
 
 **CRITICAL**: AI agents MUST follow the development workflow for ALL features.
+
+#### Context7 MCP Integration (Mandatory)
+
+**ALWAYS use Context7 MCP for library/framework documentation queries**:
+
+- When writing code that uses external libraries (FastAPI, SQLAlchemy, Redis, etc.)
+- When explaining APIs, setup steps, or configuration
+- When the user asks "how to" questions about any framework
+- **Automatically invoke Context7 tools without requiring explicit "use context7" mention**
+
+**Why**: Ensures up-to-date, version-specific documentation instead of relying on potentially outdated training data.
+
+**MCP Configuration**: Context7 is configured with API key `ctx7sk-139cda41-b3d4-424b-81e6-9af9111a0c73` in Warp.
+
+**Tools Available**:
+
+- `resolve-library-id` - Find Context7-compatible library ID
+- `query-docs` - Fetch latest documentation and code examples
+
+**Example Usage**:
+
+```python
+# When user asks: "How do I create async FastAPI endpoints?"
+# 1. Call resolve-library-id with libraryName="fastapi"
+# 2. Call query-docs with libraryId="/fastapi/fastapi" and query="async endpoints"
+# 3. Provide answer with current, official documentation
+```
 
 #### Mandatory Process
 

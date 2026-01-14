@@ -91,7 +91,6 @@ class RequestPasswordResetHandler:
         token_service: PasswordResetTokenServiceProtocol,
         email_service: EmailServiceProtocol,
         event_bus: EventBusProtocol,
-        verification_url_base: str,
     ) -> None:
         """Initialize password reset request handler with dependencies.
 
@@ -101,14 +100,12 @@ class RequestPasswordResetHandler:
             token_service: Token generation service.
             email_service: Email sending service.
             event_bus: Event bus for publishing domain events.
-            verification_url_base: Base URL for password reset links.
         """
         self._user_repo = user_repo
         self._password_reset_repo = password_reset_repo
         self._token_service = token_service
         self._email_service = email_service
         self._event_bus = event_bus
-        self._verification_url_base = verification_url_base
 
     async def handle(
         self, cmd: RequestPasswordReset, request: "Request | None" = None
@@ -209,7 +206,9 @@ class RequestPasswordResetHandler:
         )
 
         # Step 7: Send password reset email
-        reset_url = f"{self._verification_url_base}/api/v1/auth/password-reset/confirm?token={token}"
+        from src.core.config import settings
+
+        reset_url = f"{settings.verification_url_base}/api/v1/auth/password-reset/confirm?token={token}"
         await self._email_service.send_password_reset_email(
             to_email=user.email,
             reset_url=reset_url,

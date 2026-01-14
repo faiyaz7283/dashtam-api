@@ -43,9 +43,9 @@ from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
+from src.domain.protocols.provider_factory_protocol import ProviderFactoryProtocol
 from src.domain.protocols.provider_protocol import (
     ProviderAccountData,
-    ProviderProtocol,
     ProviderTransactionData,
 )
 from src.domain.protocols.provider_repository import ProviderRepository
@@ -74,7 +74,7 @@ class ImportFromFileHandler:
         - AccountRepository: For account persistence
         - TransactionRepository: For transaction persistence
         - ProviderRepository: For looking up provider by slug
-        - ProviderProtocol: File-based provider (e.g., ChaseFileProvider)
+        - ProviderFactoryProtocol: Factory for runtime provider resolution
         - EventBus: For domain events
     """
 
@@ -84,7 +84,7 @@ class ImportFromFileHandler:
         account_repo: AccountRepository,
         transaction_repo: TransactionRepository,
         provider_repo: ProviderRepository,
-        provider: ProviderProtocol,
+        provider_factory: ProviderFactoryProtocol,
         event_bus: EventBusProtocol,
     ) -> None:
         """Initialize handler with dependencies.
@@ -94,14 +94,14 @@ class ImportFromFileHandler:
             account_repo: Account repository.
             transaction_repo: Transaction repository.
             provider_repo: Provider repository for slug lookups.
-            provider: File-based provider adapter.
+            provider_factory: Factory for runtime provider resolution.
             event_bus: For publishing domain events.
         """
         self._connection_repo = connection_repo
         self._account_repo = account_repo
         self._transaction_repo = transaction_repo
         self._provider_repo = provider_repo
-        self._provider = provider
+        self._provider_factory = provider_factory
         self._event_bus = event_bus
 
     async def handle(self, command: ImportFromFile) -> Result[ImportResult, str]:
@@ -114,6 +114,9 @@ class ImportFromFileHandler:
             Success(ImportResult): Import completed with counts.
             Failure(error): Invalid file or import failed.
         """
+        # 1. Resolve provider from command slug
+        provider = self._provider_factory.get_provider(command.provider_slug)
+
         # Build credentials dict with file data
         credentials_data: dict[str, Any] = {
             "file_content": command.file_content,
@@ -121,8 +124,8 @@ class ImportFromFileHandler:
             "file_name": command.file_name,
         }
 
-        # 1. Parse file via provider.fetch_accounts()
-        accounts_result = await self._provider.fetch_accounts(credentials_data)
+        # 2. Parse file via provider.fetch_accounts()
+        accounts_result = await provider.fetch_accounts(credentials_data)
 
         if isinstance(accounts_result, Failure):
             return Failure(
@@ -137,21 +140,21 @@ class ImportFromFileHandler:
                 Failure(error=ImportFromFileError.NO_ACCOUNTS),
             )
 
-        # 2. Look up provider to get provider_id
+        # 3. Look up provider to get provider_id
         provider_entity = await self._provider_repo.find_by_slug(command.provider_slug)
         if provider_entity is None:
             return Failure(
                 error=f"{ImportFromFileError.PROVIDER_NOT_FOUND}: {command.provider_slug}"
             )
 
-        # 3. Get or create provider connection
+        # 4. Get or create provider connection
         connection = await self._get_or_create_connection(
             user_id=command.user_id,
             provider_slug=command.provider_slug,
             provider_id=provider_entity.id,
         )
 
-        # 3. Import accounts
+        # 5. Import accounts
         accounts_created = 0
         accounts_updated = 0
         account_map: dict[str, UUID] = {}  # provider_account_id -> account.id
@@ -168,7 +171,7 @@ class ImportFromFileHandler:
             else:
                 accounts_updated += 1
 
-        # 4. Import transactions for each account
+        # 6. Import transactions for each account
         transactions_created = 0
         transactions_skipped = 0
 
@@ -176,7 +179,7 @@ class ImportFromFileHandler:
             account_id = account_map[provider_account.provider_account_id]
 
             # Fetch transactions from same file
-            txn_result = await self._provider.fetch_transactions(
+            txn_result = await provider.fetch_transactions(
                 credentials_data,
                 provider_account_id=provider_account.provider_account_id,
             )
@@ -196,7 +199,7 @@ class ImportFromFileHandler:
                 else:
                     transactions_skipped += 1
 
-        # 5. Update connection last_sync_at
+        # 7. Update connection last_sync_at
         connection.record_sync()
         await self._connection_repo.save(connection)
 

@@ -159,9 +159,7 @@ src/core/container/
 ├── infrastructure.py        # Core services: cache, db, secrets, logging, etc.
 ├── events.py               # Event bus with all 27 subscriptions
 ├── repositories.py         # All repository factories
-├── auth_handlers.py        # Auth command/query handlers (15 handlers)
-├── provider_handlers.py    # Provider handlers (5 handlers)
-├── data_handlers.py        # Account/transaction handlers (9 handlers)
+├── handler_factory.py      # Auto-wired CQRS handler injection (38 handlers)
 ├── providers.py            # Financial provider adapter factory
 └── authorization.py        # Casbin RBAC enforcer
 ```

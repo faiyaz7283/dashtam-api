@@ -22,7 +22,7 @@ from src.application.commands.handlers.import_from_file_handler import (
 )
 from src.application.commands.import_commands import ImportFromFile
 from src.application.errors import ApplicationError, ApplicationErrorCode
-from src.core.container import get_import_from_file_handler
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure
 from src.presentation.routers.api.middleware.auth_dependencies import AuthenticatedUser
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
@@ -107,7 +107,7 @@ async def import_from_file(
     request: Request,
     current_user: AuthenticatedUser,
     file: Annotated[UploadFile, File(description="Financial data file (QFX, OFX)")],
-    handler: ImportFromFileHandler = Depends(get_import_from_file_handler),
+    handler: ImportFromFileHandler = Depends(handler_factory(ImportFromFileHandler)),
 ) -> ImportResponse | JSONResponse:
     """Import financial data from an uploaded file.
 

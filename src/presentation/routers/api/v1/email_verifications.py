@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from src.application.commands.auth_commands import VerifyEmail
 from src.application.commands.handlers.verify_email_handler import VerifyEmailHandler
 from src.application.errors import ApplicationError, ApplicationErrorCode
-from src.core.container import get_verify_email_handler
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
@@ -26,7 +26,7 @@ from src.schemas.auth_schemas import (
 async def create_email_verification(
     request: Request,
     data: EmailVerificationCreateRequest,
-    handler: VerifyEmailHandler = Depends(get_verify_email_handler),
+    handler: VerifyEmailHandler = Depends(handler_factory(VerifyEmailHandler)),
 ) -> EmailVerificationCreateResponse | JSONResponse:
     """Create email verification (verify email).
 

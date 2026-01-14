@@ -12,23 +12,24 @@ Practical patterns for working with the Dashtam DI system.
 
 ```python
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.container import get_db_session, get_register_user_handler
 from src.application.commands.handlers.register_user_handler import RegisterUserHandler
+from src.core.container.handler_factory import handler_factory
 
 router = APIRouter()
 
 @router.post("/users", status_code=201)
 async def create_user(
     data: UserCreate,
-    session: AsyncSession = Depends(get_db_session),
-    handler: RegisterUserHandler = Depends(get_register_user_handler),
+    handler: RegisterUserHandler = Depends(handler_factory(RegisterUserHandler)),
 ) -> UserResponse:
-    """Dependencies injected automatically by FastAPI."""
+    """Handler auto-wired with all dependencies via handler_factory."""
     result = await handler.handle(RegisterUser(email=data.email, ...))
     # ... handle result
 ```
+
+**Note**: `handler_factory(HandlerClass)` automatically resolves all handler dependencies
+(repositories, singletons, etc.) based on constructor type hints.
 
 ### Getting Dependencies in Application Layer
 
@@ -109,7 +110,7 @@ __all__ = [
 
 ---
 
-## 3. Creating Handler Factories
+## 3. Handler Factory (Auto-Wired DI)
 
 Handlers use **constructor injection** - they receive dependencies via `__init__`, not by calling container functions.
 
@@ -140,27 +141,29 @@ class SendNotificationHandler:
         return Success(value=None)
 ```
 
-### Pattern: Factory Function (Assembles Dependencies)
+### Pattern: Auto-Wired handler_factory (Recommended)
+
+All CQRS handlers use `handler_factory()` for automatic dependency resolution:
 
 ```python
-# src/core/container/notification_handlers.py
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+# In router - handler_factory introspects __init__ and resolves all dependencies
+from src.core.container.handler_factory import handler_factory
 
-from src.core.container.infrastructure import get_notification
-from src.core.container.repositories import get_user_repository
-
-def get_send_notification_handler(
-    session: AsyncSession = Depends(get_db_session),
-) -> SendNotificationHandler:
-    """Factory assembles handler with all dependencies."""
-    return SendNotificationHandler(
-        users=get_user_repository(session),
-        notifications=get_notification(),
-    )
+@router.post("/notifications")
+async def send_notification(
+    handler: SendNotificationHandler = Depends(handler_factory(SendNotificationHandler)),
+):
+    result = await handler.handle(command)
+    # ...
 ```
 
-**Key principle**: Handlers are protocol-dependent and container-agnostic. Factories are the "glue" that wires everything together.
+`handler_factory` analyzes the handler's constructor type hints and automatically:
+
+- Creates repository instances with the request database session
+- Retrieves singletons (event bus, cache, encryption, etc.) from container
+- Supports all 38 CQRS handlers without manual factory functions
+
+**Key principle**:
 
 ---
 
@@ -219,16 +222,19 @@ class TestSendNotificationHandler:
         mock_notifications.send.assert_called_once_with(str(user.id), "Hello")
 ```
 
-### API Tests: Override Dependencies
+### API Tests: Override Dependencies with handler_factory
 
 ```python
 # tests/api/test_notification_endpoints.py
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 
-from src.presentation.main import app
-from src.core.container import get_send_notification_handler
+from src.application.commands.handlers.send_notification_handler import (
+    SendNotificationHandler,
+)
+from src.core.container.handler_factory import handler_factory
+from src.main import app
 
 @pytest.mark.api
 class TestNotificationEndpoints:
@@ -243,7 +249,9 @@ class TestNotificationEndpoints:
     @pytest.fixture
     def client(self, mock_handler):
         """Test client with overridden dependencies."""
-        app.dependency_overrides[get_send_notification_handler] = lambda: mock_handler
+        # Use handler_factory(HandlerClass) as the override key
+        factory_key = handler_factory(SendNotificationHandler)
+        app.dependency_overrides[factory_key] = lambda: mock_handler
         yield TestClient(app)
         app.dependency_overrides.clear()
     
@@ -257,6 +265,9 @@ class TestNotificationEndpoints:
         assert response.status_code == 200
         mock_handler.handle.assert_called_once()
 ```
+
+**Note**: The key for `dependency_overrides` must be `handler_factory(HandlerClass)` - the same
+callable used in the router's `Depends()`. This ensures the mock is used instead of the real handler.
 
 ### Integration Tests: Real Dependencies
 

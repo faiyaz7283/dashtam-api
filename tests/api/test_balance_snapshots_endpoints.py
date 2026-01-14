@@ -21,6 +21,12 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.queries.handlers.balance_snapshot_handlers import (
+    GetBalanceHistoryHandler,
+    GetLatestBalanceSnapshotsHandler,
+    ListBalanceSnapshotsByAccountHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -247,12 +253,9 @@ class TestGetLatestSnapshots:
 
     def test_get_latest_snapshots_empty(self, client):
         """GET /api/v1/balance-snapshots returns empty when no snapshots."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_latest_snapshots_handler,
-        )
-
-        app.dependency_overrides[get_latest_snapshots_handler] = (
-            lambda: MockGetLatestSnapshotsHandler(snapshots=[])
+        factory_key = handler_factory(GetLatestBalanceSnapshotsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetLatestSnapshotsHandler(
+            snapshots=[]
         )
 
         response = client.get("/api/v1/balance-snapshots")
@@ -262,16 +265,13 @@ class TestGetLatestSnapshots:
         assert data["snapshots"] == []
         assert data["total_count"] == 0
 
-        app.dependency_overrides.pop(get_latest_snapshots_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_latest_snapshots_with_data(self, client, mock_snapshot):
         """GET /api/v1/balance-snapshots returns snapshots list."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_latest_snapshots_handler,
-        )
-
-        app.dependency_overrides[get_latest_snapshots_handler] = (
-            lambda: MockGetLatestSnapshotsHandler(snapshots=[mock_snapshot])
+        factory_key = handler_factory(GetLatestBalanceSnapshotsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetLatestSnapshotsHandler(
+            snapshots=[mock_snapshot]
         )
 
         response = client.get("/api/v1/balance-snapshots")
@@ -281,7 +281,7 @@ class TestGetLatestSnapshots:
         assert len(data["snapshots"]) == 1
         assert data["total_count"] == 1
 
-        app.dependency_overrides.pop(get_latest_snapshots_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -295,14 +295,9 @@ class TestGetBalanceHistory:
 
     def test_get_balance_history_success(self, client, mock_account_id, mock_snapshot):
         """GET /api/v1/accounts/{id}/balance-history returns history."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_balance_history_handler,
-        )
-
-        app.dependency_overrides[get_balance_history_handler] = (
-            lambda: MockGetBalanceHistoryHandler(
-                snapshots=[mock_snapshot], account_id=mock_account_id
-            )
+        factory_key = handler_factory(GetBalanceHistoryHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetBalanceHistoryHandler(
+            snapshots=[mock_snapshot], account_id=mock_account_id
         )
 
         now = datetime.now(UTC)
@@ -318,16 +313,13 @@ class TestGetBalanceHistory:
         data = response.json()
         assert data["total_count"] == 1
 
-        app.dependency_overrides.pop(get_balance_history_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_balance_history_account_not_found(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/balance-history returns 404."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_balance_history_handler,
-        )
-
-        app.dependency_overrides[get_balance_history_handler] = (
-            lambda: MockGetBalanceHistoryHandler(error="Account not found")
+        factory_key = handler_factory(GetBalanceHistoryHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetBalanceHistoryHandler(
+            error="Account not found"
         )
 
         now = datetime.now(UTC)
@@ -341,16 +333,13 @@ class TestGetBalanceHistory:
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_balance_history_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_balance_history_forbidden(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/balance-history returns 403."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_balance_history_handler,
-        )
-
-        app.dependency_overrides[get_balance_history_handler] = (
-            lambda: MockGetBalanceHistoryHandler(error="Account not owned by user")
+        factory_key = handler_factory(GetBalanceHistoryHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetBalanceHistoryHandler(
+            error="Account not owned by user"
         )
 
         now = datetime.now(UTC)
@@ -364,18 +353,13 @@ class TestGetBalanceHistory:
 
         assert response.status_code == 403
 
-        app.dependency_overrides.pop(get_balance_history_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_balance_history_invalid_date_range(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/balance-history returns 400 for invalid range."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_balance_history_handler,
-        )
-
-        app.dependency_overrides[get_balance_history_handler] = (
-            lambda: MockGetBalanceHistoryHandler(
-                error="Invalid date range: end must be after start"
-            )
+        factory_key = handler_factory(GetBalanceHistoryHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetBalanceHistoryHandler(
+            error="Invalid date range: end must be after start"
         )
 
         now = datetime.now(UTC)
@@ -390,20 +374,15 @@ class TestGetBalanceHistory:
 
         assert response.status_code == 400
 
-        app.dependency_overrides.pop(get_balance_history_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_balance_history_with_source_filter(
         self, client, mock_account_id, mock_snapshot
     ):
         """GET /api/v1/accounts/{id}/balance-history with source filter."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_balance_history_handler,
-        )
-
-        app.dependency_overrides[get_balance_history_handler] = (
-            lambda: MockGetBalanceHistoryHandler(
-                snapshots=[mock_snapshot], account_id=mock_account_id
-            )
+        factory_key = handler_factory(GetBalanceHistoryHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetBalanceHistoryHandler(
+            snapshots=[mock_snapshot], account_id=mock_account_id
         )
 
         now = datetime.now(UTC)
@@ -417,7 +396,7 @@ class TestGetBalanceHistory:
 
         assert response.status_code == 200
 
-        app.dependency_overrides.pop(get_balance_history_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -433,11 +412,8 @@ class TestListBalanceSnapshots:
         self, client, mock_account_id, mock_snapshot
     ):
         """GET /api/v1/accounts/{id}/balance-snapshots returns list."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_list_snapshots_handler,
-        )
-
-        app.dependency_overrides[get_list_snapshots_handler] = (
+        factory_key = handler_factory(ListBalanceSnapshotsByAccountHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockListSnapshotsByAccountHandler(
                 snapshots=[mock_snapshot], account_id=mock_account_id
             )
@@ -449,17 +425,14 @@ class TestListBalanceSnapshots:
         data = response.json()
         assert data["total_count"] == 1
 
-        app.dependency_overrides.pop(get_list_snapshots_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_balance_snapshots_with_limit(
         self, client, mock_account_id, mock_snapshot
     ):
         """GET /api/v1/accounts/{id}/balance-snapshots with limit."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_list_snapshots_handler,
-        )
-
-        app.dependency_overrides[get_list_snapshots_handler] = (
+        factory_key = handler_factory(ListBalanceSnapshotsByAccountHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockListSnapshotsByAccountHandler(
                 snapshots=[mock_snapshot], account_id=mock_account_id
             )
@@ -472,15 +445,12 @@ class TestListBalanceSnapshots:
 
         assert response.status_code == 200
 
-        app.dependency_overrides.pop(get_list_snapshots_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_balance_snapshots_account_not_found(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/balance-snapshots returns 404."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_list_snapshots_handler,
-        )
-
-        app.dependency_overrides[get_list_snapshots_handler] = (
+        factory_key = handler_factory(ListBalanceSnapshotsByAccountHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockListSnapshotsByAccountHandler(error="Account not found")
         )
 
@@ -488,15 +458,12 @@ class TestListBalanceSnapshots:
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_list_snapshots_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_balance_snapshots_forbidden(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/balance-snapshots returns 403."""
-        from src.presentation.routers.api.v1.balance_snapshots import (
-            get_list_snapshots_handler,
-        )
-
-        app.dependency_overrides[get_list_snapshots_handler] = (
+        factory_key = handler_factory(ListBalanceSnapshotsByAccountHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockListSnapshotsByAccountHandler(error="Account not owned by user")
         )
 
@@ -504,4 +471,4 @@ class TestListBalanceSnapshots:
 
         assert response.status_code == 403
 
-        app.dependency_overrides.pop(get_list_snapshots_handler, None)
+        app.dependency_overrides.pop(factory_key, None)

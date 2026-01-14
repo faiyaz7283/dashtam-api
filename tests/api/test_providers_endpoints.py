@@ -22,6 +22,16 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.disconnect_provider_handler import (
+    DisconnectProviderHandler,
+)
+from src.application.queries.handlers.get_provider_handler import (
+    GetProviderConnectionHandler,
+)
+from src.application.queries.handlers.list_providers_handler import (
+    ListProviderConnectionsHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.domain.enums.connection_status import ConnectionStatus
 from src.main import app
@@ -210,9 +220,8 @@ class TestListProviders:
 
     def test_list_providers_returns_empty_list(self, client):
         """GET /api/v1/providers returns empty list when no connections."""
-        from src.core.container import get_list_provider_connections_handler
-
-        app.dependency_overrides[get_list_provider_connections_handler] = (
+        factory_key = handler_factory(ListProviderConnectionsHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockListProviderConnectionsHandler(connections=[])
         )
 
@@ -222,13 +231,12 @@ class TestListProviders:
         data = response.json()
         assert data["connections"] == []
 
-        app.dependency_overrides.pop(get_list_provider_connections_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_providers_returns_connections(self, client, mock_connection):
         """GET /api/v1/providers returns list of connections."""
-        from src.core.container import get_list_provider_connections_handler
-
-        app.dependency_overrides[get_list_provider_connections_handler] = (
+        factory_key = handler_factory(ListProviderConnectionsHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockListProviderConnectionsHandler(connections=[mock_connection])
         )
 
@@ -239,13 +247,12 @@ class TestListProviders:
         assert len(data["connections"]) == 1
         assert data["connections"][0]["provider_slug"] == "schwab"
 
-        app.dependency_overrides.pop(get_list_provider_connections_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_providers_handler_error_returns_rfc7807(self, client):
         """GET /api/v1/providers returns RFC 7807 error on handler failure."""
-        from src.core.container import get_list_provider_connections_handler
-
-        app.dependency_overrides[get_list_provider_connections_handler] = (
+        factory_key = handler_factory(ListProviderConnectionsHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockListProviderConnectionsHandler(error="Database unavailable")
         )
 
@@ -257,7 +264,7 @@ class TestListProviders:
         assert "title" in data
         assert data["status"] == 500
 
-        app.dependency_overrides.pop(get_list_provider_connections_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -273,9 +280,8 @@ class TestGetProvider:
         self, client, mock_connection_id, mock_connection
     ):
         """GET /api/v1/providers/{id} returns connection details."""
-        from src.core.container import get_get_provider_connection_handler
-
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        factory_key = handler_factory(GetProviderConnectionHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(connection=mock_connection)
         )
 
@@ -286,13 +292,12 @@ class TestGetProvider:
         assert data["id"] == str(mock_connection_id)
         assert data["provider_slug"] == "schwab"
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_provider_not_found(self, client, mock_connection_id):
         """GET /api/v1/providers/{id} returns 404 when not found."""
-        from src.core.container import get_get_provider_connection_handler
-
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        factory_key = handler_factory(GetProviderConnectionHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(error="Connection not found")
         )
 
@@ -302,13 +307,12 @@ class TestGetProvider:
         data = response.json()
         assert data["status"] == 404
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_provider_forbidden(self, client, mock_connection_id):
         """GET /api/v1/providers/{id} returns 403 when not owned by user."""
-        from src.core.container import get_get_provider_connection_handler
-
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        factory_key = handler_factory(GetProviderConnectionHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(
                 error="Connection not owned by user"
             )
@@ -318,7 +322,7 @@ class TestGetProvider:
 
         assert response.status_code == 403
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_provider_invalid_uuid(self, client):
         """GET /api/v1/providers/{id} returns 422 for invalid UUID."""
@@ -395,9 +399,8 @@ class TestUpdateProvider:
         self, client, mock_connection_id, mock_connection
     ):
         """PATCH /api/v1/providers/{id} returns updated connection."""
-        from src.core.container import get_get_provider_connection_handler
-
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        factory_key = handler_factory(GetProviderConnectionHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(connection=mock_connection)
         )
 
@@ -408,13 +411,12 @@ class TestUpdateProvider:
 
         assert response.status_code == 200
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_update_provider_not_found(self, client, mock_connection_id):
         """PATCH /api/v1/providers/{id} returns 404 when not found."""
-        from src.core.container import get_get_provider_connection_handler
-
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        factory_key = handler_factory(GetProviderConnectionHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(error="Connection not found")
         )
 
@@ -425,7 +427,7 @@ class TestUpdateProvider:
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -439,42 +441,39 @@ class TestDisconnectProvider:
 
     def test_disconnect_provider_returns_no_content(self, client, mock_connection_id):
         """DELETE /api/v1/providers/{id} returns 204 No Content."""
-        from src.core.container import get_disconnect_provider_handler
-
-        app.dependency_overrides[get_disconnect_provider_handler] = (
-            lambda: MockDisconnectProviderHandler(connection_id=mock_connection_id)
+        factory_key = handler_factory(DisconnectProviderHandler)
+        app.dependency_overrides[factory_key] = lambda: MockDisconnectProviderHandler(
+            connection_id=mock_connection_id
         )
 
         response = client.delete(f"/api/v1/providers/{mock_connection_id}")
 
         assert response.status_code == 204
 
-        app.dependency_overrides.pop(get_disconnect_provider_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_disconnect_provider_not_found(self, client, mock_connection_id):
         """DELETE /api/v1/providers/{id} returns 404 when not found."""
-        from src.core.container import get_disconnect_provider_handler
-
-        app.dependency_overrides[get_disconnect_provider_handler] = (
-            lambda: MockDisconnectProviderHandler(error="Connection not found")
+        factory_key = handler_factory(DisconnectProviderHandler)
+        app.dependency_overrides[factory_key] = lambda: MockDisconnectProviderHandler(
+            error="Connection not found"
         )
 
         response = client.delete(f"/api/v1/providers/{mock_connection_id}")
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_disconnect_provider_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_disconnect_provider_forbidden(self, client, mock_connection_id):
         """DELETE /api/v1/providers/{id} returns 403 when not owned by user."""
-        from src.core.container import get_disconnect_provider_handler
-
-        app.dependency_overrides[get_disconnect_provider_handler] = (
-            lambda: MockDisconnectProviderHandler(error="Connection not owned by user")
+        factory_key = handler_factory(DisconnectProviderHandler)
+        app.dependency_overrides[factory_key] = lambda: MockDisconnectProviderHandler(
+            error="Connection not owned by user"
         )
 
         response = client.delete(f"/api/v1/providers/{mock_connection_id}")
 
         assert response.status_code == 403
 
-        app.dependency_overrides.pop(get_disconnect_provider_handler, None)
+        app.dependency_overrides.pop(factory_key, None)

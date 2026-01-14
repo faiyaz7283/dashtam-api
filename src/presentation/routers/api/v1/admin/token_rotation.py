@@ -29,11 +29,8 @@ from src.application.commands.rotation_commands import (
     TriggerGlobalTokenRotation,
     TriggerUserTokenRotation,
 )
-from src.core.container import (
-    get_db_session,
-    get_trigger_global_rotation_handler,
-    get_trigger_user_rotation_handler,
-)
+from src.core.container import get_db_session
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.infrastructure.persistence.repositories import SecurityConfigRepository
 from src.presentation.routers.api.middleware.auth_dependencies import (
@@ -66,7 +63,7 @@ async def create_global_rotation(
     current_user: CurrentUser = Depends(get_current_user),
     _admin_check: None = Depends(require_casbin_role("admin")),
     handler: TriggerGlobalTokenRotationHandler = Depends(
-        get_trigger_global_rotation_handler
+        handler_factory(TriggerGlobalTokenRotationHandler)
     ),
 ) -> GlobalRotationResponse | JSONResponse:
     """Trigger global token rotation.
@@ -127,7 +124,7 @@ async def create_user_rotation(
     current_user: CurrentUser = Depends(get_current_user),
     _admin_check: None = Depends(require_casbin_role("admin")),
     handler: TriggerUserTokenRotationHandler = Depends(
-        get_trigger_user_rotation_handler
+        handler_factory(TriggerUserTokenRotationHandler)
     ),
 ) -> UserRotationResponse | JSONResponse:
     """Trigger per-user token rotation.

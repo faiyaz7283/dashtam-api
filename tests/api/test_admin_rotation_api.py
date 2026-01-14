@@ -21,7 +21,14 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from src.core.result import Success, Failure
+from src.application.commands.handlers.trigger_global_rotation_handler import (
+    TriggerGlobalTokenRotationHandler,
+)
+from src.application.commands.handlers.trigger_user_rotation_handler import (
+    TriggerUserTokenRotationHandler,
+)
+from src.core.container.handler_factory import handler_factory
+from src.core.result import Failure, Success
 from src.main import app
 from src.presentation.routers.api.middleware.auth_dependencies import CurrentUser
 from uuid_extensions import uuid7
@@ -180,8 +187,6 @@ def user_handler():
 def override_dependencies(global_handler, user_handler, admin_user):
     """Override app dependencies with test doubles."""
     from src.core.container import (
-        get_trigger_global_rotation_handler,
-        get_trigger_user_rotation_handler,
         get_db_session,
         get_authorization,
     )
@@ -189,10 +194,12 @@ def override_dependencies(global_handler, user_handler, admin_user):
         get_current_user,
     )
 
-    app.dependency_overrides[get_trigger_global_rotation_handler] = (
-        lambda: global_handler
-    )
-    app.dependency_overrides[get_trigger_user_rotation_handler] = lambda: user_handler
+    # Use handler_factory pattern for handler overrides
+    global_factory_key = handler_factory(TriggerGlobalTokenRotationHandler)
+    user_factory_key = handler_factory(TriggerUserTokenRotationHandler)
+
+    app.dependency_overrides[global_factory_key] = lambda: global_handler
+    app.dependency_overrides[user_factory_key] = lambda: user_handler
 
     # Mock authentication - return admin user
     app.dependency_overrides[get_current_user] = lambda: admin_user

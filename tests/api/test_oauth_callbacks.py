@@ -6,12 +6,16 @@ from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
-
-from src.main import app
-from src.core.result import Success, Failure
-from src.domain.enums.credential_type import CredentialType
-from src.domain.entities.provider import Provider as ProviderEntity
 from uuid_extensions import uuid7
+
+from src.application.commands.handlers.connect_provider_handler import (
+    ConnectProviderHandler,
+)
+from src.core.container.handler_factory import handler_factory
+from src.core.result import Failure, Success
+from src.domain.entities.provider import Provider as ProviderEntity
+from src.domain.enums.credential_type import CredentialType
+from src.main import app
 
 
 # ---- Test doubles ----
@@ -111,13 +115,10 @@ def _override_dependencies(monkeypatch):
 
     app.dependency_overrides[real_get_enc] = _get_enc_override
 
-    # Connect handler
-    from src.core.container import get_connect_provider_handler as real_get_handler
-
-    def _get_handler_override():
-        return StubConnectProviderHandler()
-
-    app.dependency_overrides[real_get_handler] = _get_handler_override
+    # Connect handler - use handler_factory pattern
+    app.dependency_overrides[handler_factory(ConnectProviderHandler)] = (
+        lambda: StubConnectProviderHandler()
+    )
 
     # Provider repo
     repo = StubProviderRepository()
@@ -286,9 +287,9 @@ def test_callback_handler_failure(monkeypatch, _override_dependencies):
         async def handle(self, cmd):
             return Failure(error=ValueError("Database connection lost"))
 
-    from src.core.container import get_connect_provider_handler as real_get_handler
-
-    app.dependency_overrides[real_get_handler] = lambda: FailingHandler()
+    app.dependency_overrides[handler_factory(ConnectProviderHandler)] = (
+        lambda: FailingHandler()
+    )
 
     resp = client.get(
         "/oauth/schwab/callback", params={"code": "abc", "state": "handler_fail"}

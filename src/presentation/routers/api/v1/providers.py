@@ -53,15 +53,11 @@ from src.application.queries.provider_queries import (
 from src.core.config import settings
 from src.core.container import (
     get_cache,
-    get_connect_provider_handler,
-    get_disconnect_provider_handler,
     get_encryption_service,
-    get_get_provider_connection_handler,
-    get_list_provider_connections_handler,
     get_provider,
-    get_refresh_provider_tokens_handler,
     is_oauth_provider,
 )
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure
 from src.domain.enums.credential_type import CredentialType
 from src.domain.protocols.cache_protocol import CacheProtocol
@@ -184,7 +180,7 @@ async def list_providers(
         Query(description="Only return active connections"),
     ] = False,
     handler: ListProviderConnectionsHandler = Depends(
-        get_list_provider_connections_handler
+        handler_factory(ListProviderConnectionsHandler)
     ),
 ) -> ProviderConnectionListResponse | JSONResponse:
     """List all provider connections for user.
@@ -223,7 +219,7 @@ async def get_provider_connection(
     current_user: AuthenticatedUser,
     connection_id: Annotated[UUID, Path(description="Connection UUID")],
     handler: GetProviderConnectionHandler = Depends(
-        get_get_provider_connection_handler
+        handler_factory(GetProviderConnectionHandler)
     ),
 ) -> ProviderConnectionResponse | JSONResponse:
     """Get a specific provider connection.
@@ -316,7 +312,9 @@ async def oauth_callback(
     state: Annotated[str, Query(description="CSRF state token")],
     cache: CacheProtocol = Depends(get_cache),
     encryption: EncryptionService = Depends(get_encryption_service),
-    connect_handler: ConnectProviderHandler = Depends(get_connect_provider_handler),
+    connect_handler: ConnectProviderHandler = Depends(
+        handler_factory(ConnectProviderHandler)
+    ),
 ) -> ProviderConnectionResponse | JSONResponse:
     """Complete OAuth callback and create connection.
 
@@ -521,7 +519,7 @@ async def update_provider(
     connection_id: Annotated[UUID, Path(description="Connection UUID")],
     data: UpdateProviderConnectionRequest,
     get_handler: GetProviderConnectionHandler = Depends(
-        get_get_provider_connection_handler
+        handler_factory(GetProviderConnectionHandler)
     ),
 ) -> ProviderConnectionResponse | JSONResponse:
     """Update a provider connection.
@@ -572,7 +570,9 @@ async def disconnect_provider(
     request: Request,
     current_user: AuthenticatedUser,
     connection_id: Annotated[UUID, Path(description="Connection UUID")],
-    handler: DisconnectProviderHandler = Depends(get_disconnect_provider_handler),
+    handler: DisconnectProviderHandler = Depends(
+        handler_factory(DisconnectProviderHandler)
+    ),
 ) -> Response | JSONResponse:
     """Disconnect a provider connection.
 
@@ -614,10 +614,10 @@ async def refresh_provider_tokens(
     connection_id: Annotated[UUID, Path(description="Connection UUID")],
     data: RefreshProviderTokensRequest | None = None,
     get_handler: GetProviderConnectionHandler = Depends(
-        get_get_provider_connection_handler
+        handler_factory(GetProviderConnectionHandler)
     ),
     refresh_handler: RefreshProviderTokensHandler = Depends(
-        get_refresh_provider_tokens_handler
+        handler_factory(RefreshProviderTokensHandler)
     ),
     encryption: EncryptionService = Depends(get_encryption_service),
 ) -> TokenRefreshResponse | JSONResponse:

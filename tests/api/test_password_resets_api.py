@@ -19,6 +19,13 @@ Note:
 import pytest
 from fastapi.testclient import TestClient
 
+from src.application.commands.handlers.confirm_password_reset_handler import (
+    ConfirmPasswordResetHandler,
+)
+from src.application.commands.handlers.request_password_reset_handler import (
+    RequestPasswordResetHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -99,12 +106,8 @@ class TestCreatePasswordResetToken:
         """Should always return 201 Created to prevent user enumeration."""
         # Setup: Stub handler always returns success
         stub_handler = StubRequestPasswordResetHandler()
-
-        from src.core.container import get_request_password_reset_handler
-
-        app.dependency_overrides[get_request_password_reset_handler] = (
-            lambda: stub_handler
-        )
+        factory_key = handler_factory(RequestPasswordResetHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -122,12 +125,8 @@ class TestCreatePasswordResetToken:
         """Should still return 201 Created even for non-existent email."""
         # Setup: Stub handler always returns success (no user enumeration)
         stub_handler = StubRequestPasswordResetHandler()
-
-        from src.core.container import get_request_password_reset_handler
-
-        app.dependency_overrides[get_request_password_reset_handler] = (
-            lambda: stub_handler
-        )
+        factory_key = handler_factory(RequestPasswordResetHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute: Non-existent email
         response = client.post(
@@ -179,12 +178,8 @@ class TestCreatePasswordReset:
         """Should return 201 Created on successful password reset."""
         # Setup: Stub handler returns success
         stub_handler = StubConfirmPasswordResetHandler(behavior="success")
-
-        from src.core.container import get_confirm_password_reset_handler
-
-        app.dependency_overrides[get_confirm_password_reset_handler] = (
-            lambda: stub_handler
-        )
+        factory_key = handler_factory(ConfirmPasswordResetHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -207,12 +202,8 @@ class TestCreatePasswordReset:
         """Should return 404 Not Found for invalid token."""
         # Setup: Stub handler returns token_not_found
         stub_handler = StubConfirmPasswordResetHandler(behavior="token_not_found")
-
-        from src.core.container import get_confirm_password_reset_handler
-
-        app.dependency_overrides[get_confirm_password_reset_handler] = (
-            lambda: stub_handler
-        )
+        factory_key = handler_factory(ConfirmPasswordResetHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -235,12 +226,8 @@ class TestCreatePasswordReset:
         """Should return 400 Bad Request for expired token."""
         # Setup: Stub handler returns token_expired
         stub_handler = StubConfirmPasswordResetHandler(behavior="token_expired")
-
-        from src.core.container import get_confirm_password_reset_handler
-
-        app.dependency_overrides[get_confirm_password_reset_handler] = (
-            lambda: stub_handler
-        )
+        factory_key = handler_factory(ConfirmPasswordResetHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -263,12 +250,8 @@ class TestCreatePasswordReset:
         """Should return 400 Bad Request for already-used token."""
         # Setup: Stub handler returns token_already_used
         stub_handler = StubConfirmPasswordResetHandler(behavior="token_already_used")
-
-        from src.core.container import get_confirm_password_reset_handler
-
-        app.dependency_overrides[get_confirm_password_reset_handler] = (
-            lambda: stub_handler
-        )
+        factory_key = handler_factory(ConfirmPasswordResetHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -291,12 +274,8 @@ class TestCreatePasswordReset:
         """Should return 404 Not Found when user associated with token not found."""
         # Setup: Stub handler returns user_not_found
         stub_handler = StubConfirmPasswordResetHandler(behavior="user_not_found")
-
-        from src.core.container import get_confirm_password_reset_handler
-
-        app.dependency_overrides[get_confirm_password_reset_handler] = (
-            lambda: stub_handler
-        )
+        factory_key = handler_factory(ConfirmPasswordResetHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(

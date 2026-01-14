@@ -743,6 +743,48 @@ ROUTE_REGISTRY: list[RouteMetadata] = [
 
 **Reference**: `docs/architecture/route-registry.md`
 
+### 6. CQRS Registry
+
+**Purpose**: Single source of truth for all commands and queries with auto-wired handler dependency injection.
+
+**Registry Structure**:
+
+```python
+# src/application/cqrs/registry.py
+COMMAND_REGISTRY: list[CommandMetadata] = [
+    CommandMetadata(
+        command_class=RegisterUser,
+        handler_class=RegisterUserHandler,
+        category=CQRSCategory.AUTH,
+        has_result_dto=False,
+        emits_events=True,
+        requires_transaction=True,
+    ),
+    # ... 22 more commands (total 23)
+]
+
+QUERY_REGISTRY: list[QueryMetadata] = [
+    QueryMetadata(
+        query_class=GetAccount,
+        handler_class=GetAccountHandler,
+        category=CQRSCategory.DATA_SYNC,
+        is_paginated=False,
+        cache_policy=CachePolicy.NONE,
+    ),
+    # ... 17 more queries (total 18)
+]
+```
+
+**Results**:
+
+- 23 commands and 18 queries cataloged with complete metadata
+- 40 self-enforcing compliance tests (100% passing)
+- `handler_factory()` auto-wires all 38 handlers from type hints
+- Legacy factory files deleted (~1321 lines removed)
+- Zero drift: Tests fail if handler missing `handle()` method
+
+**Reference**: `docs/architecture/cqrs-registry.md`
+
 ---
 
 ## Future Applications

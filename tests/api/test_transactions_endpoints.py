@@ -21,6 +21,16 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.sync_transactions_handler import (
+    SyncTransactionsHandler,
+)
+from src.application.queries.handlers.get_transaction_handler import (
+    GetTransactionHandler,
+)
+from src.application.queries.handlers.list_transactions_handler import (
+    ListTransactionsByAccountHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -267,10 +277,9 @@ class TestGetTransaction:
         self, client, mock_transaction_id, mock_transaction
     ):
         """GET /api/v1/transactions/{id} returns transaction details."""
-        from src.core.container import get_get_transaction_handler
-
-        app.dependency_overrides[get_get_transaction_handler] = (
-            lambda: MockGetTransactionHandler(transaction=mock_transaction)
+        factory_key = handler_factory(GetTransactionHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetTransactionHandler(
+            transaction=mock_transaction
         )
 
         response = client.get(f"/api/v1/transactions/{mock_transaction_id}")
@@ -281,14 +290,13 @@ class TestGetTransaction:
         assert data["transaction_type"] == "trade"
         assert data["symbol"] == "AAPL"
 
-        app.dependency_overrides.pop(get_get_transaction_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_transaction_not_found(self, client, mock_transaction_id):
         """GET /api/v1/transactions/{id} returns 404 when not found."""
-        from src.core.container import get_get_transaction_handler
-
-        app.dependency_overrides[get_get_transaction_handler] = (
-            lambda: MockGetTransactionHandler(error="Transaction not found")
+        factory_key = handler_factory(GetTransactionHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetTransactionHandler(
+            error="Transaction not found"
         )
 
         response = client.get(f"/api/v1/transactions/{mock_transaction_id}")
@@ -297,21 +305,20 @@ class TestGetTransaction:
         data = response.json()
         assert data["status"] == 404
 
-        app.dependency_overrides.pop(get_get_transaction_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_transaction_forbidden(self, client, mock_transaction_id):
         """GET /api/v1/transactions/{id} returns 403 when not owned by user."""
-        from src.core.container import get_get_transaction_handler
-
-        app.dependency_overrides[get_get_transaction_handler] = (
-            lambda: MockGetTransactionHandler(error="Transaction not owned by user")
+        factory_key = handler_factory(GetTransactionHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetTransactionHandler(
+            error="Transaction not owned by user"
         )
 
         response = client.get(f"/api/v1/transactions/{mock_transaction_id}")
 
         assert response.status_code == 403
 
-        app.dependency_overrides.pop(get_get_transaction_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_transaction_invalid_uuid(self, client):
         """GET /api/v1/transactions/{id} returns 422 for invalid UUID."""
@@ -331,11 +338,8 @@ class TestSyncTransactions:
 
     def test_sync_transactions_success(self, client, mock_connection_id):
         """POST /api/v1/transactions/syncs triggers transaction sync."""
-        from src.core.container import get_sync_transactions_handler
-
-        app.dependency_overrides[get_sync_transactions_handler] = (
-            lambda: MockSyncTransactionsHandler()
-        )
+        factory_key = handler_factory(SyncTransactionsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncTransactionsHandler()
 
         response = client.post(
             "/api/v1/transactions/syncs",
@@ -347,14 +351,13 @@ class TestSyncTransactions:
         assert data["created"] == 25
         assert data["updated"] == 25
 
-        app.dependency_overrides.pop(get_sync_transactions_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_transactions_connection_not_found(self, client, mock_connection_id):
         """POST /api/v1/transactions/syncs returns 404 for invalid connection."""
-        from src.core.container import get_sync_transactions_handler
-
-        app.dependency_overrides[get_sync_transactions_handler] = (
-            lambda: MockSyncTransactionsHandler(error="Connection not found")
+        factory_key = handler_factory(SyncTransactionsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncTransactionsHandler(
+            error="Connection not found"
         )
 
         response = client.post(
@@ -364,22 +367,19 @@ class TestSyncTransactions:
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_sync_transactions_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_transactions_missing_connection_id(self, client):
         """POST /api/v1/transactions/syncs returns 422 when connection_id missing."""
-        from src.core.container import get_sync_transactions_handler
-
+        factory_key = handler_factory(SyncTransactionsHandler)
         # Mock handler to prevent encryption init during validation
-        app.dependency_overrides[get_sync_transactions_handler] = (
-            lambda: MockSyncTransactionsHandler()
-        )
+        app.dependency_overrides[factory_key] = lambda: MockSyncTransactionsHandler()
 
         response = client.post("/api/v1/transactions/syncs", json={})
 
         assert response.status_code == 422
 
-        app.dependency_overrides.pop(get_sync_transactions_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -393,11 +393,8 @@ class TestListTransactionsByAccount:
 
     def test_list_transactions_returns_empty_list(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/transactions returns empty list."""
-        from src.core.container import get_list_transactions_by_account_handler
-
-        app.dependency_overrides[get_list_transactions_by_account_handler] = (
-            lambda: MockListTransactionsHandler()
-        )
+        factory_key = handler_factory(ListTransactionsByAccountHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListTransactionsHandler()
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}/transactions")
 
@@ -405,21 +402,20 @@ class TestListTransactionsByAccount:
         data = response.json()
         assert data["transactions"] == []
 
-        app.dependency_overrides.pop(get_list_transactions_by_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_transactions_returns_transactions(
         self, client, mock_account_id, mock_transaction
     ):
         """GET /api/v1/accounts/{id}/transactions returns list."""
-        from src.core.container import get_list_transactions_by_account_handler
-
+        factory_key = handler_factory(ListTransactionsByAccountHandler)
         result = MockTransactionListResult(
             transactions=[mock_transaction],
             total_count=1,
             has_more=False,
         )
-        app.dependency_overrides[get_list_transactions_by_account_handler] = (
-            lambda: MockListTransactionsHandler(result=result)
+        app.dependency_overrides[factory_key] = lambda: MockListTransactionsHandler(
+            result=result
         )
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}/transactions")
@@ -429,21 +425,20 @@ class TestListTransactionsByAccount:
         assert len(data["transactions"]) == 1
         assert data["transactions"][0]["symbol"] == "AAPL"
 
-        app.dependency_overrides.pop(get_list_transactions_by_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_transactions_account_not_found(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/transactions returns 404."""
-        from src.core.container import get_list_transactions_by_account_handler
-
-        app.dependency_overrides[get_list_transactions_by_account_handler] = (
-            lambda: MockListTransactionsHandler(error="Account not found")
+        factory_key = handler_factory(ListTransactionsByAccountHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListTransactionsHandler(
+            error="Account not found"
         )
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}/transactions")
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_list_transactions_by_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_transactions_invalid_uuid(self, client):
         """GET /api/v1/accounts/{id}/transactions returns 422 for invalid UUID."""

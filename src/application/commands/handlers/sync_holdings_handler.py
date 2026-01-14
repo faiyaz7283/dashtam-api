@@ -36,7 +36,8 @@ from src.domain.protocols.holding_repository import HoldingRepository
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
-from src.domain.protocols.provider_protocol import ProviderHoldingData, ProviderProtocol
+from src.domain.protocols.provider_factory_protocol import ProviderFactoryProtocol
+from src.domain.protocols.provider_protocol import ProviderHoldingData
 from src.domain.protocols.encryption_protocol import EncryptionProtocol
 from src.domain.value_objects.money import Money
 
@@ -79,7 +80,7 @@ class SyncHoldingsHandler:
         - ProviderConnectionRepository: For connection lookup
         - HoldingRepository: For holding persistence
         - EncryptionService: For credential decryption
-        - ProviderProtocol: Provider adapter (factory-created)
+        - ProviderFactoryProtocol: Factory for runtime provider resolution
         - EventBus: For domain events
     """
 
@@ -89,7 +90,7 @@ class SyncHoldingsHandler:
         connection_repo: ProviderConnectionRepository,
         holding_repo: HoldingRepository,
         encryption_service: EncryptionProtocol,
-        provider: ProviderProtocol,
+        provider_factory: ProviderFactoryProtocol,
         event_bus: EventBusProtocol,
     ) -> None:
         """Initialize handler with dependencies.
@@ -99,14 +100,14 @@ class SyncHoldingsHandler:
             connection_repo: Provider connection repository.
             holding_repo: Holding repository.
             encryption_service: For decrypting credentials.
-            provider: Provider adapter for API calls.
+            provider_factory: Factory for runtime provider resolution.
             event_bus: For publishing domain events.
         """
         self._account_repo = account_repo
         self._connection_repo = connection_repo
         self._holding_repo = holding_repo
         self._encryption_service = encryption_service
-        self._provider = provider
+        self._provider_factory = provider_factory
         self._event_bus = event_bus
 
     async def handle(self, command: SyncHoldings) -> Result[SyncHoldingsResult, str]:
@@ -252,9 +253,12 @@ class SyncHoldingsHandler:
 
         credentials_data = decrypt_result.value
 
-        # 8. Fetch holdings from provider (pass full credentials dict)
+        # 8. Resolve provider from connection slug
+        provider = self._provider_factory.get_provider(connection.provider_slug)
+
+        # 9. Fetch holdings from provider (pass full credentials dict)
         # Provider extracts what it needs (access_token for OAuth, api_key for API Key, etc.)
-        fetch_result = await self._provider.fetch_holdings(
+        fetch_result = await provider.fetch_holdings(
             credentials=credentials_data,
             provider_account_id=account.provider_account_id,
         )
@@ -275,17 +279,17 @@ class SyncHoldingsHandler:
 
         provider_holdings = fetch_result.value
 
-        # 9. Sync holdings to repository
+        # 10. Sync holdings to repository
         sync_result = await self._sync_holdings_to_repository(
             account_id=account.id,
             provider_holdings=provider_holdings,
         )
 
-        # 10. Update account last_sync_at
+        # 11. Update account last_sync_at
         account.mark_synced()
         await self._account_repo.save(account)
 
-        # 11. Emit SUCCEEDED event
+        # 12. Emit SUCCEEDED event
         total_holdings = (
             sync_result.created + sync_result.updated + sync_result.unchanged
         )

@@ -22,10 +22,7 @@ from src.application.commands.handlers.request_password_reset_handler import (
     RequestPasswordResetHandler,
 )
 from src.application.errors import ApplicationError, ApplicationErrorCode
-from src.core.container import (
-    get_confirm_password_reset_handler,
-    get_request_password_reset_handler,
-)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
@@ -40,7 +37,9 @@ from src.schemas.auth_schemas import (
 async def create_password_reset_token(
     request: Request,
     data: PasswordResetTokenCreateRequest,
-    handler: RequestPasswordResetHandler = Depends(get_request_password_reset_handler),
+    handler: RequestPasswordResetHandler = Depends(
+        handler_factory(RequestPasswordResetHandler)
+    ),
 ) -> PasswordResetTokenCreateResponse:
     """Create password reset token (request reset).
 
@@ -78,7 +77,9 @@ async def create_password_reset_token(
 async def create_password_reset(
     request: Request,
     data: PasswordResetCreateRequest,
-    handler: ConfirmPasswordResetHandler = Depends(get_confirm_password_reset_handler),
+    handler: ConfirmPasswordResetHandler = Depends(
+        handler_factory(ConfirmPasswordResetHandler)
+    ),
 ) -> PasswordResetCreateResponse | JSONResponse:
     """Create password reset (execute reset).
 

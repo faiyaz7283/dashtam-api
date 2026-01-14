@@ -25,6 +25,11 @@ from src.application.commands.sync_commands import SyncHoldings
 from src.core.result import Failure, Result, Success
 from src.domain.entities.holding import Holding
 from src.domain.enums.asset_type import AssetType
+from src.domain.events.data_events import (
+    HoldingsSyncAttempted,
+    HoldingsSyncFailed,
+    HoldingsSyncSucceeded,
+)
 from src.domain.protocols.account_repository import AccountRepository
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.holding_repository import HoldingRepository
@@ -32,8 +37,8 @@ from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
 from src.domain.protocols.provider_protocol import ProviderHoldingData, ProviderProtocol
+from src.domain.protocols.encryption_protocol import EncryptionProtocol
 from src.domain.value_objects.money import Money
-from src.infrastructure.providers.encryption_service import EncryptionService
 
 
 @dataclass
@@ -104,7 +109,7 @@ class SyncHoldingsHandler:
         account_repo: AccountRepository,
         connection_repo: ProviderConnectionRepository,
         holding_repo: HoldingRepository,
-        encryption_service: EncryptionService,
+        encryption_service: EncryptionProtocol,
         provider: ProviderProtocol,
         event_bus: EventBusProtocol,
     ) -> None:
@@ -135,49 +140,113 @@ class SyncHoldingsHandler:
             Success(SyncHoldingsResult): Sync completed with counts.
             Failure(error): Account not found, not owned, or provider error.
         """
-        # 1. Fetch account
+        # 1. Emit ATTEMPTED event
+        await self._event_bus.publish(
+            HoldingsSyncAttempted(
+                event_id=uuid7(),
+                occurred_at=datetime.now(UTC),
+                account_id=command.account_id,
+                user_id=command.user_id,
+            )
+        )
+
+        # 2. Fetch account
         account = await self._account_repo.find_by_id(command.account_id)
 
         if account is None:
+            await self._event_bus.publish(
+                HoldingsSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    account_id=command.account_id,
+                    user_id=command.user_id,
+                    reason="account_not_found",
+                )
+            )
             return cast(
                 Result[SyncHoldingsResult, str],
                 Failure(error=SyncHoldingsError.ACCOUNT_NOT_FOUND),
             )
 
-        # 2. Fetch connection
+        # 3. Fetch connection
         connection = await self._connection_repo.find_by_id(account.connection_id)
 
         if connection is None:
+            await self._event_bus.publish(
+                HoldingsSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    account_id=command.account_id,
+                    user_id=command.user_id,
+                    reason="connection_not_found",
+                )
+            )
             return cast(
                 Result[SyncHoldingsResult, str],
                 Failure(error=SyncHoldingsError.CONNECTION_NOT_FOUND),
             )
 
-        # 3. Verify ownership
+        # 4. Verify ownership
         if connection.user_id != command.user_id:
+            await self._event_bus.publish(
+                HoldingsSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    account_id=command.account_id,
+                    user_id=command.user_id,
+                    reason="not_owned_by_user",
+                )
+            )
             return cast(
                 Result[SyncHoldingsResult, str],
                 Failure(error=SyncHoldingsError.NOT_OWNED_BY_USER),
             )
 
-        # 4. Verify connection is active
+        # 5. Verify connection is active
         if not connection.is_connected():
+            await self._event_bus.publish(
+                HoldingsSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    account_id=command.account_id,
+                    user_id=command.user_id,
+                    reason="connection_not_active",
+                )
+            )
             return cast(
                 Result[SyncHoldingsResult, str],
                 Failure(error=SyncHoldingsError.CONNECTION_NOT_ACTIVE),
             )
 
-        # 5. Check if recently synced (unless force=True)
+        # 6. Check if recently synced (unless force=True)
         if not command.force and account.last_synced_at:
             time_since_sync = datetime.now(UTC) - account.last_synced_at
             if time_since_sync < MIN_SYNC_INTERVAL:
+                await self._event_bus.publish(
+                    HoldingsSyncFailed(
+                        event_id=uuid7(),
+                        occurred_at=datetime.now(UTC),
+                        account_id=command.account_id,
+                        user_id=command.user_id,
+                        reason="recently_synced",
+                    )
+                )
                 return cast(
                     Result[SyncHoldingsResult, str],
                     Failure(error=SyncHoldingsError.RECENTLY_SYNCED),
                 )
 
-        # 6. Get and decrypt credentials
+        # 7. Get and decrypt credentials
         if connection.credentials is None:
+            await self._event_bus.publish(
+                HoldingsSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    account_id=command.account_id,
+                    user_id=command.user_id,
+                    reason="credentials_invalid",
+                )
+            )
             return cast(
                 Result[SyncHoldingsResult, str],
                 Failure(error=SyncHoldingsError.CREDENTIALS_INVALID),
@@ -188,6 +257,15 @@ class SyncHoldingsHandler:
         )
 
         if isinstance(decrypt_result, Failure):
+            await self._event_bus.publish(
+                HoldingsSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    account_id=command.account_id,
+                    user_id=command.user_id,
+                    reason="credentials_decryption_failed",
+                )
+            )
             return cast(
                 Result[SyncHoldingsResult, str],
                 Failure(error=SyncHoldingsError.CREDENTIALS_DECRYPTION_FAILED),
@@ -195,7 +273,7 @@ class SyncHoldingsHandler:
 
         credentials_data = decrypt_result.value
 
-        # 7. Fetch holdings from provider (pass full credentials dict)
+        # 8. Fetch holdings from provider (pass full credentials dict)
         # Provider extracts what it needs (access_token for OAuth, api_key for API Key, etc.)
         fetch_result = await self._provider.fetch_holdings(
             credentials=credentials_data,
@@ -203,21 +281,44 @@ class SyncHoldingsHandler:
         )
 
         if isinstance(fetch_result, Failure):
+            await self._event_bus.publish(
+                HoldingsSyncFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    account_id=command.account_id,
+                    user_id=command.user_id,
+                    reason=f"provider_error:{fetch_result.error.message}",
+                )
+            )
             return Failure(
                 error=f"{SyncHoldingsError.PROVIDER_ERROR}: {fetch_result.error.message}"
             )
 
         provider_holdings = fetch_result.value
 
-        # 8. Sync holdings to repository
+        # 9. Sync holdings to repository
         sync_result = await self._sync_holdings_to_repository(
             account_id=account.id,
             provider_holdings=provider_holdings,
         )
 
-        # 9. Update account last_sync_at
+        # 10. Update account last_sync_at
         account.mark_synced()
         await self._account_repo.save(account)
+
+        # 11. Emit SUCCEEDED event
+        total_holdings = (
+            sync_result.created + sync_result.updated + sync_result.unchanged
+        )
+        await self._event_bus.publish(
+            HoldingsSyncSucceeded(
+                event_id=uuid7(),
+                occurred_at=datetime.now(UTC),
+                account_id=command.account_id,
+                user_id=command.user_id,
+                holding_count=total_holdings,
+            )
+        )
 
         return Success(value=sync_result)
 

@@ -20,7 +20,11 @@ from uuid_extensions import uuid7
 
 from src.application.commands.session_commands import RevokeSession
 from src.core.result import Failure, Result, Success
-from src.domain.events.session_events import SessionRevokedEvent
+from src.domain.events.session_events import (
+    SessionRevocationAttempted,
+    SessionRevokedEvent,
+    SessionRevocationFailed,
+)
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.session_cache_protocol import SessionCache
 from src.domain.protocols.session_repository import SessionRepository
@@ -70,39 +74,82 @@ class RevokeSessionHandler:
         Side Effects:
             - Updates session in database (marks revoked).
             - Removes session from cache.
-            - Publishes SessionRevokedEvent.
+            - Publishes 3-state events (Attempted/Succeeded/Failed).
         """
-        # Step 1: Find session
+        now = datetime.now(UTC)
+
+        # Step 1: Emit ATTEMPTED event
+        await self._event_bus.publish(
+            SessionRevocationAttempted(
+                event_id=uuid7(),
+                occurred_at=now,
+                session_id=cmd.session_id,
+                user_id=cmd.user_id,
+                reason=cmd.reason,
+            )
+        )
+
+        # Step 2: Find session
         session = await self._session_repo.find_by_id(cmd.session_id)
         if session is None:
+            await self._event_bus.publish(
+                SessionRevocationFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    session_id=cmd.session_id,
+                    user_id=cmd.user_id,
+                    reason=cmd.reason,
+                    failure_reason=RevokeSessionError.SESSION_NOT_FOUND,
+                )
+            )
             return Failure(error=RevokeSessionError.SESSION_NOT_FOUND)
 
-        # Step 2: Verify ownership
+        # Step 3: Verify ownership
         if session.user_id != cmd.user_id:
+            await self._event_bus.publish(
+                SessionRevocationFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    session_id=cmd.session_id,
+                    user_id=cmd.user_id,
+                    reason=cmd.reason,
+                    failure_reason=RevokeSessionError.NOT_OWNER,
+                )
+            )
             return Failure(error=RevokeSessionError.NOT_OWNER)
 
-        # Step 3: Check not already revoked
+        # Step 4: Check not already revoked
         if session.is_revoked:
+            await self._event_bus.publish(
+                SessionRevocationFailed(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    session_id=cmd.session_id,
+                    user_id=cmd.user_id,
+                    reason=cmd.reason,
+                    failure_reason=RevokeSessionError.ALREADY_REVOKED,
+                )
+            )
             return Failure(error=RevokeSessionError.ALREADY_REVOKED)
 
-        # Step 4: Mark as revoked
-        now = datetime.now(UTC)
+        # Step 5: Mark as revoked
+        revoked_at = datetime.now(UTC)
         session.is_revoked = True
-        session.revoked_at = now
+        session.revoked_at = revoked_at
         session.revoked_reason = cmd.reason
 
-        # Step 5: Update database
+        # Step 6: Update database
         await self._session_repo.save(session)
 
-        # Step 6: Remove from cache
+        # Step 7: Remove from cache
         await self._session_cache.delete(cmd.session_id)
         await self._session_cache.remove_user_session(cmd.user_id, cmd.session_id)
 
-        # Step 7: Publish event
+        # Step 8: Emit SUCCEEDED event
         await self._event_bus.publish(
             SessionRevokedEvent(
                 event_id=uuid7(),
-                occurred_at=now,
+                occurred_at=datetime.now(UTC),
                 session_id=cmd.session_id,
                 user_id=cmd.user_id,
                 reason=cmd.reason,
@@ -110,5 +157,5 @@ class RevokeSessionHandler:
             )
         )
 
-        # Step 8: Return success
+        # Step 9: Return success
         return Success(value=cmd.session_id)

@@ -18,8 +18,17 @@ Usage:
 # Service protocols
 from src.domain.protocols.audit_protocol import AuditProtocol
 from src.domain.protocols.authorization_protocol import AuthorizationProtocol
+from src.domain.protocols.cache_keys_protocol import CacheKeysProtocol
+from src.domain.protocols.cache_metrics_protocol import CacheMetricsProtocol
 from src.domain.protocols.cache_protocol import CacheEntry, CacheProtocol
 from src.domain.protocols.email_service_protocol import EmailServiceProtocol
+from src.domain.protocols.encryption_protocol import (
+    DecryptionError,
+    EncryptionError,
+    EncryptionKeyError,
+    EncryptionProtocol,
+    SerializationError,
+)
 from src.domain.protocols.password_hashing_protocol import PasswordHashingProtocol
 from src.domain.protocols.password_reset_token_service_protocol import (
     PasswordResetTokenServiceProtocol,
@@ -75,10 +84,17 @@ __all__ = [
     "AuditProtocol",
     "AuthorizationProtocol",
     "CacheEntry",
+    "CacheKeysProtocol",
+    "CacheMetricsProtocol",
     "CacheProtocol",
+    "DecryptionError",
     "EmailServiceProtocol",
+    "EncryptionError",
+    "EncryptionKeyError",
+    "EncryptionProtocol",
     "PasswordHashingProtocol",
     "PasswordResetTokenServiceProtocol",
+    "SerializationError",
     "TokenGenerationProtocol",
     # Repository protocols
     "AccountRepository",

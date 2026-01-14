@@ -53,8 +53,8 @@ from src.domain.protocols import (
     UserRepository,
 )
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
-from src.infrastructure.cache.cache_keys import CacheKeys
-from src.infrastructure.cache.cache_metrics import CacheMetrics
+from src.domain.protocols.cache_keys_protocol import CacheKeysProtocol
+from src.domain.protocols.cache_metrics_protocol import CacheMetricsProtocol
 
 
 class RefreshError:
@@ -101,8 +101,8 @@ class RefreshAccessTokenHandler:
         refresh_token_service: RefreshTokenServiceProtocol,
         event_bus: EventBusProtocol,
         cache: CacheProtocol | None = None,
-        cache_keys: CacheKeys | None = None,
-        cache_metrics: CacheMetrics | None = None,
+        cache_keys: CacheKeysProtocol | None = None,
+        cache_metrics: CacheMetricsProtocol | None = None,
         cache_ttl: int = 60,
     ) -> None:
         """Initialize refresh handler with dependencies.

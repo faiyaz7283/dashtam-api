@@ -106,11 +106,16 @@ from src.domain.events.rate_limit_events import (
     RateLimitCheckDenied,
 )
 from src.domain.events.session_events import (
+    # Session Events (3-state workflow)
+    SessionRevocationAttempted,
+    SessionRevokedEvent,
+    SessionRevocationFailed,
+    AllSessionsRevocationAttempted,
+    AllSessionsRevokedEvent,
+    AllSessionsRevocationFailed,
     # Session Events (operational)
     SessionCreatedEvent,
-    SessionRevokedEvent,
     SessionEvictedEvent,
-    AllSessionsRevokedEvent,
     SessionActivityUpdatedEvent,
     SessionProviderAccessEvent,
     SuspiciousSessionActivityEvent,
@@ -997,11 +1002,25 @@ class LoggingEventHandler:
             user_id=str(event.user_id),
         )
 
-    async def handle_session_revoked_operational(
+    async def handle_session_revocation_attempted(
+        self,
+        event: SessionRevocationAttempted,
+    ) -> None:
+        """Log session revocation attempt (INFO level)."""
+        self._logger.info(
+            "session_revocation_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            session_id=str(event.session_id),
+            user_id=str(event.user_id),
+            reason=event.reason,
+        )
+
+    async def handle_session_revocation_succeeded(
         self,
         event: SessionRevokedEvent,
     ) -> None:
-        """Log session revocation (WARNING level - security event)."""
+        """Log session revocation success (WARNING level - security event)."""
         self._logger.warning(
             "session_revoked",
             event_id=str(event.event_id),
@@ -1010,6 +1029,21 @@ class LoggingEventHandler:
             user_id=str(event.user_id),
             revoked_by_user=event.revoked_by_user,
             reason=event.reason,
+        )
+
+    async def handle_session_revocation_failed(
+        self,
+        event: SessionRevocationFailed,
+    ) -> None:
+        """Log session revocation failure (WARNING level)."""
+        self._logger.warning(
+            "session_revocation_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            session_id=str(event.session_id),
+            user_id=str(event.user_id),
+            reason=event.reason,
+            failure_reason=event.failure_reason,
         )
 
     async def handle_session_evicted_operational(
@@ -1026,11 +1060,24 @@ class LoggingEventHandler:
             reason=event.reason,
         )
 
-    async def handle_all_sessions_revoked_operational(
+    async def handle_all_sessions_revocation_attempted(
+        self,
+        event: AllSessionsRevocationAttempted,
+    ) -> None:
+        """Log all sessions revocation attempt (INFO level)."""
+        self._logger.info(
+            "all_sessions_revocation_attempted",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            reason=event.reason,
+        )
+
+    async def handle_all_sessions_revocation_succeeded(
         self,
         event: AllSessionsRevokedEvent,
     ) -> None:
-        """Log all sessions revoked (WARNING level - security event)."""
+        """Log all sessions revoked success (WARNING level - security event)."""
         self._logger.warning(
             "all_sessions_revoked",
             event_id=str(event.event_id),
@@ -1038,6 +1085,20 @@ class LoggingEventHandler:
             user_id=str(event.user_id),
             reason=event.reason,
             session_count=event.session_count,
+        )
+
+    async def handle_all_sessions_revocation_failed(
+        self,
+        event: AllSessionsRevocationFailed,
+    ) -> None:
+        """Log all sessions revocation failure (WARNING level)."""
+        self._logger.warning(
+            "all_sessions_revocation_failed",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            reason=event.reason,
+            failure_reason=event.failure_reason,
         )
 
     async def handle_session_activity_updated_operational(

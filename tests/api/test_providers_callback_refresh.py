@@ -18,6 +18,13 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.connect_provider_handler import (
+    ConnectProviderHandler,
+)
+from src.application.queries.handlers.get_provider_handler import (
+    GetProviderConnectionHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.domain.enums.connection_status import ConnectionStatus
 from src.main import app
@@ -323,7 +330,6 @@ class TestOAuthCallback:
             get_cache,
             get_provider,
             get_encryption_service,
-            get_connect_provider_handler,
         )
         from src.domain.protocols.provider_protocol import OAuthTokens
 
@@ -358,12 +364,11 @@ class TestOAuthCallback:
             async def handle(self, command):
                 return Failure(error="Connection already exists")
 
+        connect_factory_key = handler_factory(ConnectProviderHandler)
         app.dependency_overrides[get_cache] = lambda: MockCache()
         app.dependency_overrides[get_provider] = lambda slug: MockProvider()
         app.dependency_overrides[get_encryption_service] = lambda: MockEncryption()
-        app.dependency_overrides[get_connect_provider_handler] = (
-            lambda: MockConnectHandler()
-        )
+        app.dependency_overrides[connect_factory_key] = lambda: MockConnectHandler()
 
         response = client.post(
             "/api/v1/providers/callback?code=test_code&state=valid_state"
@@ -377,7 +382,7 @@ class TestOAuthCallback:
         app.dependency_overrides.pop(get_cache, None)
         app.dependency_overrides.pop(get_provider, None)
         app.dependency_overrides.pop(get_encryption_service, None)
-        app.dependency_overrides.pop(get_connect_provider_handler, None)
+        app.dependency_overrides.pop(connect_factory_key, None)
 
 
 # =============================================================================
@@ -391,9 +396,8 @@ class TestRefreshProviderTokens:
 
     def test_refresh_tokens_connection_not_found(self, client, mock_connection_id):
         """POST /api/v1/providers/{id}/token-refreshes returns 404 when not found."""
-        from src.core.container import get_get_provider_connection_handler
-
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        factory_key = handler_factory(GetProviderConnectionHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(error="Connection not found")
         )
 
@@ -405,13 +409,13 @@ class TestRefreshProviderTokens:
         data = response.json()
         assert data["status"] == 404
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_refresh_tokens_connection_not_active(
         self, client, mock_connection_id, mock_connection
     ):
         """POST /api/v1/providers/{id}/token-refreshes returns 403 when not active."""
-        from src.core.container import get_get_provider_connection_handler
+        factory_key = handler_factory(GetProviderConnectionHandler)
 
         # Create inactive connection
         inactive_connection = MockProviderConnectionResult(
@@ -429,7 +433,7 @@ class TestRefreshProviderTokens:
             updated_at=mock_connection.updated_at,
         )
 
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(connection=inactive_connection)
         )
 
@@ -441,13 +445,13 @@ class TestRefreshProviderTokens:
         data = response.json()
         assert "not active" in data["detail"].lower()
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_refresh_tokens_unsupported_provider(
         self, client, mock_connection_id, mock_connection
     ):
         """POST /api/v1/providers/{id}/token-refreshes returns 404 for unsupported provider."""
-        from src.core.container import get_get_provider_connection_handler
+        factory_key = handler_factory(GetProviderConnectionHandler)
 
         # Create connection with unsupported provider
         unsupported_connection = MockProviderConnectionResult(
@@ -465,7 +469,7 @@ class TestRefreshProviderTokens:
             updated_at=mock_connection.updated_at,
         )
 
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(connection=unsupported_connection)
         )
 
@@ -477,15 +481,14 @@ class TestRefreshProviderTokens:
         data = response.json()
         assert "not supported" in data["detail"].lower()
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_refresh_tokens_success_placeholder(
         self, client, mock_connection_id, mock_connection
     ):
         """POST /api/v1/providers/{id}/token-refreshes returns 201 (placeholder)."""
-        from src.core.container import get_get_provider_connection_handler
-
-        app.dependency_overrides[get_get_provider_connection_handler] = (
+        factory_key = handler_factory(GetProviderConnectionHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockGetProviderConnectionHandler(connection=mock_connection)
         )
 
@@ -498,4 +501,4 @@ class TestRefreshProviderTokens:
         data = response.json()
         assert "success" in data or "message" in data
 
-        app.dependency_overrides.pop(get_get_provider_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)

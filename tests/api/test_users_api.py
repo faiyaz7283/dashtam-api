@@ -19,6 +19,10 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.register_user_handler import (
+    RegisterUserHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -89,10 +93,8 @@ class TestCreateUser:
         """Should return 201 Created on successful registration."""
         # Setup: Stub handler returns success
         stub_handler = StubRegisterUserHandler(behavior="success")
-
-        from src.core.container import get_register_user_handler
-
-        app.dependency_overrides[get_register_user_handler] = lambda: stub_handler
+        factory_key = handler_factory(RegisterUserHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -115,10 +117,8 @@ class TestCreateUser:
         """Should return 409 Conflict when email already registered."""
         # Setup: Stub handler returns duplicate error
         stub_handler = StubRegisterUserHandler(behavior="duplicate")
-
-        from src.core.container import get_register_user_handler
-
-        app.dependency_overrides[get_register_user_handler] = lambda: stub_handler
+        factory_key = handler_factory(RegisterUserHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -142,10 +142,8 @@ class TestCreateUser:
         """Should return 400 Bad Request on domain validation failure."""
         # Setup: Stub handler returns validation error
         stub_handler = StubRegisterUserHandler(behavior="validation_error")
-
-        from src.core.container import get_register_user_handler
-
-        app.dependency_overrides[get_register_user_handler] = lambda: stub_handler
+        factory_key = handler_factory(RegisterUserHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute: Password passes Pydantic min_length but fails domain validation
         response = client.post(
@@ -293,10 +291,8 @@ class TestCreateUser:
         """Should include X-Trace-ID header on error responses."""
         # Setup: Stub handler returns error
         stub_handler = StubRegisterUserHandler(behavior="duplicate")
-
-        from src.core.container import get_register_user_handler
-
-        app.dependency_overrides[get_register_user_handler] = lambda: stub_handler
+        factory_key = handler_factory(RegisterUserHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(

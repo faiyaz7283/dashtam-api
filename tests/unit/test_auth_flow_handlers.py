@@ -564,7 +564,6 @@ class TestRequestPasswordResetHandlerEdgeCases:
             token_service=mock_token_service,
             email_service=mock_email_service,
             event_bus=event_bus,
-            verification_url_base="https://test.com",
         )
 
         command = RequestPasswordReset(email="nonexistent@example.com")
@@ -599,7 +598,6 @@ class TestRequestPasswordResetHandlerEdgeCases:
             token_service=mock_token_service,
             email_service=mock_email_service,
             event_bus=event_bus,
-            verification_url_base="https://test.com",
         )
 
         command = RequestPasswordReset(email="test@example.com")
@@ -638,7 +636,6 @@ class TestRequestPasswordResetHandlerEdgeCases:
             token_service=mock_token_service,
             email_service=mock_email_service,
             event_bus=event_bus,
-            verification_url_base="https://test.com",
         )
 
         command = RequestPasswordReset(email="test@example.com")

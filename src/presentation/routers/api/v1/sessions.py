@@ -45,18 +45,8 @@ from src.application.commands.session_commands import (
 from src.application.queries.handlers.get_session_handler import GetSessionHandler
 from src.application.queries.handlers.list_sessions_handler import ListSessionsHandler
 from src.application.queries.session_queries import GetSession, ListUserSessions
-from src.core.container import (
-    get_authenticate_user_handler,
-    get_cache,
-    get_create_session_handler,
-    get_db_session,
-    get_generate_auth_tokens_handler,
-    get_get_session_handler,
-    get_list_sessions_handler,
-    get_logout_user_handler,
-    get_revoke_all_sessions_handler,
-    get_revoke_session_handler,
-)
+from src.core.container import get_cache, get_db_session
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.domain.protocols import CacheProtocol
 from src.application.errors import ApplicationError, ApplicationErrorCode
@@ -79,10 +69,14 @@ from src.schemas.session_schemas import (
 async def create_session(
     request: Request,
     data: SessionCreateRequest,
-    auth_handler: AuthenticateUserHandler = Depends(get_authenticate_user_handler),
-    session_handler: CreateSessionHandler = Depends(get_create_session_handler),
+    auth_handler: AuthenticateUserHandler = Depends(
+        handler_factory(AuthenticateUserHandler)
+    ),
+    session_handler: CreateSessionHandler = Depends(
+        handler_factory(CreateSessionHandler)
+    ),
     token_handler: GenerateAuthTokensHandler = Depends(
-        get_generate_auth_tokens_handler
+        handler_factory(GenerateAuthTokensHandler)
     ),
 ) -> SessionCreateResponse | JSONResponse:
     """Create a new session (login).
@@ -196,7 +190,7 @@ async def delete_current_session(
     request: Request,
     data: SessionDeleteRequest,
     authorization: Annotated[str | None, Header()] = None,
-    handler: LogoutUserHandler = Depends(get_logout_user_handler),
+    handler: LogoutUserHandler = Depends(handler_factory(LogoutUserHandler)),
     cache: CacheProtocol = Depends(get_cache),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> Response | JSONResponse:
@@ -436,7 +430,7 @@ async def list_sessions(
     request: Request,
     authorization: Annotated[str | None, Header()] = None,
     active_only: bool = Query(default=True, description="Only return active sessions"),
-    handler: ListSessionsHandler = Depends(get_list_sessions_handler),
+    handler: ListSessionsHandler = Depends(handler_factory(ListSessionsHandler)),
     cache: CacheProtocol = Depends(get_cache),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> SessionListResponse | JSONResponse:
@@ -502,7 +496,7 @@ async def get_session(
     request: Request,
     session_id: UUID = Path(..., description="Session ID"),
     authorization: Annotated[str | None, Header()] = None,
-    handler: GetSessionHandler = Depends(get_get_session_handler),
+    handler: GetSessionHandler = Depends(handler_factory(GetSessionHandler)),
     cache: CacheProtocol = Depends(get_cache),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> SessionResponse | JSONResponse:
@@ -563,7 +557,7 @@ async def revoke_session(
     session_id: UUID = Path(..., description="Session ID to revoke"),
     data: SessionRevokeRequest | None = None,
     authorization: Annotated[str | None, Header()] = None,
-    handler: RevokeSessionHandler = Depends(get_revoke_session_handler),
+    handler: RevokeSessionHandler = Depends(handler_factory(RevokeSessionHandler)),
     cache: CacheProtocol = Depends(get_cache),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> Response | JSONResponse:
@@ -615,7 +609,9 @@ async def revoke_all_sessions(
     request: Request,
     data: SessionRevokeAllRequest | None = None,
     authorization: Annotated[str | None, Header()] = None,
-    handler: RevokeAllSessionsHandler = Depends(get_revoke_all_sessions_handler),
+    handler: RevokeAllSessionsHandler = Depends(
+        handler_factory(RevokeAllSessionsHandler)
+    ),
     cache: CacheProtocol = Depends(get_cache),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> SessionRevokeAllResponse | JSONResponse:

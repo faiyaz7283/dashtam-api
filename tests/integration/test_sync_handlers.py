@@ -208,6 +208,13 @@ def create_provider_transaction_data(
     )
 
 
+def create_mock_provider_factory(mock_provider):
+    """Create a mock ProviderFactoryProtocol that returns the given provider."""
+    factory = Mock()
+    factory.get_provider.return_value = mock_provider
+    return factory
+
+
 class StubEventBus:
     """Stub event bus that records published events for verification."""
 
@@ -314,7 +321,7 @@ class TestSyncAccountsHandlerSuccess:
                 connection_repo=connection_repo,
                 account_repo=account_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -379,7 +386,7 @@ class TestSyncAccountsHandlerSuccess:
                 connection_repo=connection_repo,
                 account_repo=account_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -425,7 +432,7 @@ class TestSyncAccountsHandlerFailure:
                 connection_repo=connection_repo,
                 account_repo=account_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -459,7 +466,7 @@ class TestSyncAccountsHandlerFailure:
                 connection_repo=connection_repo,
                 account_repo=account_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -530,7 +537,7 @@ class TestSyncTransactionsHandlerSuccess:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -589,7 +596,7 @@ class TestSyncTransactionsHandlerSuccess:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -634,7 +641,7 @@ class TestSyncTransactionsHandlerFailure:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -673,7 +680,7 @@ class TestSyncTransactionsHandlerFailure:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -745,7 +752,7 @@ class TestTransactionTypeMapping:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 
@@ -814,7 +821,7 @@ class TestTransactionTypeMapping:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 encryption_service=mock_encryption,
-                provider=mock_provider,
+                provider_factory=create_mock_provider_factory(mock_provider),
                 event_bus=event_bus,
             )
 

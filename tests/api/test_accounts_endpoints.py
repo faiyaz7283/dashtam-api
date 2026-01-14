@@ -22,6 +22,15 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.sync_accounts_handler import (
+    SyncAccountsHandler,
+)
+from src.application.queries.handlers.get_account_handler import GetAccountHandler
+from src.application.queries.handlers.list_accounts_handler import (
+    ListAccountsByConnectionHandler,
+    ListAccountsByUserHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -242,10 +251,9 @@ class TestListAccounts:
 
     def test_list_accounts_returns_empty_list(self, client):
         """GET /api/v1/accounts returns empty list when no accounts."""
-        from src.core.container import get_list_accounts_by_user_handler
-
-        app.dependency_overrides[get_list_accounts_by_user_handler] = (
-            lambda: MockListAccountsHandler(accounts=[])
+        factory_key = handler_factory(ListAccountsByUserHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListAccountsHandler(
+            accounts=[]
         )
 
         response = client.get("/api/v1/accounts")
@@ -254,14 +262,13 @@ class TestListAccounts:
         data = response.json()
         assert data["accounts"] == []
 
-        app.dependency_overrides.pop(get_list_accounts_by_user_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_accounts_returns_accounts(self, client, mock_account):
         """GET /api/v1/accounts returns list of accounts."""
-        from src.core.container import get_list_accounts_by_user_handler
-
-        app.dependency_overrides[get_list_accounts_by_user_handler] = (
-            lambda: MockListAccountsHandler(accounts=[mock_account])
+        factory_key = handler_factory(ListAccountsByUserHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListAccountsHandler(
+            accounts=[mock_account]
         )
 
         response = client.get("/api/v1/accounts")
@@ -271,14 +278,13 @@ class TestListAccounts:
         assert len(data["accounts"]) == 1
         assert data["accounts"][0]["name"] == "My Checking Account"
 
-        app.dependency_overrides.pop(get_list_accounts_by_user_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_accounts_handler_error_returns_rfc7807(self, client):
         """GET /api/v1/accounts returns RFC 7807 error on handler failure."""
-        from src.core.container import get_list_accounts_by_user_handler
-
-        app.dependency_overrides[get_list_accounts_by_user_handler] = (
-            lambda: MockListAccountsHandler(error="Database unavailable")
+        factory_key = handler_factory(ListAccountsByUserHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListAccountsHandler(
+            error="Database unavailable"
         )
 
         response = client.get("/api/v1/accounts")
@@ -289,7 +295,7 @@ class TestListAccounts:
         assert "title" in data
         assert data["status"] == 500
 
-        app.dependency_overrides.pop(get_list_accounts_by_user_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -303,10 +309,9 @@ class TestGetAccount:
 
     def test_get_account_returns_details(self, client, mock_account_id, mock_account):
         """GET /api/v1/accounts/{id} returns account details."""
-        from src.core.container import get_get_account_handler
-
-        app.dependency_overrides[get_get_account_handler] = (
-            lambda: MockGetAccountHandler(account=mock_account)
+        factory_key = handler_factory(GetAccountHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetAccountHandler(
+            account=mock_account
         )
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}")
@@ -316,14 +321,13 @@ class TestGetAccount:
         assert data["id"] == str(mock_account_id)
         assert data["name"] == "My Checking Account"
 
-        app.dependency_overrides.pop(get_get_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_account_not_found(self, client, mock_account_id):
         """GET /api/v1/accounts/{id} returns 404 when not found."""
-        from src.core.container import get_get_account_handler
-
-        app.dependency_overrides[get_get_account_handler] = (
-            lambda: MockGetAccountHandler(error="Account not found")
+        factory_key = handler_factory(GetAccountHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetAccountHandler(
+            error="Account not found"
         )
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}")
@@ -332,21 +336,20 @@ class TestGetAccount:
         data = response.json()
         assert data["status"] == 404
 
-        app.dependency_overrides.pop(get_get_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_account_forbidden(self, client, mock_account_id):
         """GET /api/v1/accounts/{id} returns 403 when not owned by user."""
-        from src.core.container import get_get_account_handler
-
-        app.dependency_overrides[get_get_account_handler] = (
-            lambda: MockGetAccountHandler(error="Account not owned by user")
+        factory_key = handler_factory(GetAccountHandler)
+        app.dependency_overrides[factory_key] = lambda: MockGetAccountHandler(
+            error="Account not owned by user"
         )
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}")
 
         assert response.status_code == 403
 
-        app.dependency_overrides.pop(get_get_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_get_account_invalid_uuid(self, client):
         """GET /api/v1/accounts/{id} returns 422 for invalid UUID."""
@@ -366,11 +369,8 @@ class TestSyncAccounts:
 
     def test_sync_accounts_success(self, client, mock_connection_id):
         """POST /api/v1/accounts/syncs triggers account sync."""
-        from src.core.container import get_sync_accounts_handler
-
-        app.dependency_overrides[get_sync_accounts_handler] = (
-            lambda: MockSyncAccountsHandler()
-        )
+        factory_key = handler_factory(SyncAccountsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncAccountsHandler()
 
         response = client.post(
             "/api/v1/accounts/syncs",
@@ -382,14 +382,13 @@ class TestSyncAccounts:
         assert data["created"] == 2
         assert data["updated"] == 3
 
-        app.dependency_overrides.pop(get_sync_accounts_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_accounts_connection_not_found(self, client, mock_connection_id):
         """POST /api/v1/accounts/syncs returns 404 for invalid connection."""
-        from src.core.container import get_sync_accounts_handler
-
-        app.dependency_overrides[get_sync_accounts_handler] = (
-            lambda: MockSyncAccountsHandler(error="Connection not found")
+        factory_key = handler_factory(SyncAccountsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncAccountsHandler(
+            error="Connection not found"
         )
 
         response = client.post(
@@ -399,22 +398,19 @@ class TestSyncAccounts:
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_sync_accounts_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_accounts_missing_connection_id(self, client):
         """POST /api/v1/accounts/syncs returns 422 when connection_id missing."""
-        from src.core.container import get_sync_accounts_handler
-
+        factory_key = handler_factory(SyncAccountsHandler)
         # Mock handler to prevent encryption init during validation
-        app.dependency_overrides[get_sync_accounts_handler] = (
-            lambda: MockSyncAccountsHandler()
-        )
+        app.dependency_overrides[factory_key] = lambda: MockSyncAccountsHandler()
 
         response = client.post("/api/v1/accounts/syncs", json={})
 
         assert response.status_code == 422
 
-        app.dependency_overrides.pop(get_sync_accounts_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -428,10 +424,9 @@ class TestProviderAccounts:
 
     def test_list_provider_accounts(self, client, mock_connection_id, mock_account):
         """GET /api/v1/providers/{id}/accounts returns accounts for connection."""
-        from src.core.container import get_list_accounts_by_connection_handler
-
-        app.dependency_overrides[get_list_accounts_by_connection_handler] = (
-            lambda: MockListAccountsHandler(accounts=[mock_account])
+        factory_key = handler_factory(ListAccountsByConnectionHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListAccountsHandler(
+            accounts=[mock_account]
         )
 
         response = client.get(f"/api/v1/providers/{mock_connection_id}/accounts")
@@ -440,14 +435,13 @@ class TestProviderAccounts:
         data = response.json()
         assert len(data["accounts"]) == 1
 
-        app.dependency_overrides.pop(get_list_accounts_by_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_provider_accounts_empty(self, client, mock_connection_id):
         """GET /api/v1/providers/{id}/accounts returns empty when no accounts."""
-        from src.core.container import get_list_accounts_by_connection_handler
-
-        app.dependency_overrides[get_list_accounts_by_connection_handler] = (
-            lambda: MockListAccountsHandler(accounts=[])
+        factory_key = handler_factory(ListAccountsByConnectionHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListAccountsHandler(
+            accounts=[]
         )
 
         response = client.get(f"/api/v1/providers/{mock_connection_id}/accounts")
@@ -456,20 +450,19 @@ class TestProviderAccounts:
         data = response.json()
         assert data["accounts"] == []
 
-        app.dependency_overrides.pop(get_list_accounts_by_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_provider_accounts_connection_not_found(
         self, client, mock_connection_id
     ):
         """GET /api/v1/providers/{id}/accounts returns 404 for invalid connection."""
-        from src.core.container import get_list_accounts_by_connection_handler
-
-        app.dependency_overrides[get_list_accounts_by_connection_handler] = (
-            lambda: MockListAccountsHandler(error="Connection not found")
+        factory_key = handler_factory(ListAccountsByConnectionHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListAccountsHandler(
+            error="Connection not found"
         )
 
         response = client.get(f"/api/v1/providers/{mock_connection_id}/accounts")
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_list_accounts_by_connection_handler, None)
+        app.dependency_overrides.pop(factory_key, None)

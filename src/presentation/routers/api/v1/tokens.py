@@ -15,7 +15,7 @@ from src.application.commands.handlers.refresh_access_token_handler import (
     RefreshAccessTokenHandler,
 )
 from src.application.errors import ApplicationError, ApplicationErrorCode
-from src.core.container import get_refresh_token_handler
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
@@ -28,7 +28,9 @@ from src.schemas.auth_schemas import (
 async def create_tokens(
     request: Request,
     data: TokenCreateRequest,
-    handler: RefreshAccessTokenHandler = Depends(get_refresh_token_handler),
+    handler: RefreshAccessTokenHandler = Depends(
+        handler_factory(RefreshAccessTokenHandler)
+    ),
 ) -> TokenCreateResponse | JSONResponse:
     """Create new tokens (refresh).
 

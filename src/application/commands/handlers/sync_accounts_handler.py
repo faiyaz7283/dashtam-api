@@ -35,7 +35,8 @@ from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
-from src.domain.protocols.provider_protocol import ProviderAccountData, ProviderProtocol
+from src.domain.protocols.provider_factory_protocol import ProviderFactoryProtocol
+from src.domain.protocols.provider_protocol import ProviderAccountData
 from src.domain.protocols.encryption_protocol import EncryptionProtocol
 from src.domain.value_objects.money import Money
 
@@ -74,7 +75,7 @@ class SyncAccountsHandler:
         - ProviderConnectionRepository: For connection lookup
         - AccountRepository: For account persistence
         - EncryptionService: For credential decryption
-        - ProviderProtocol: Provider adapter (factory-created)
+        - ProviderFactoryProtocol: Factory for runtime provider resolution
         - EventBus: For domain events
     """
 
@@ -83,7 +84,7 @@ class SyncAccountsHandler:
         connection_repo: ProviderConnectionRepository,
         account_repo: AccountRepository,
         encryption_service: EncryptionProtocol,
-        provider: ProviderProtocol,
+        provider_factory: ProviderFactoryProtocol,
         event_bus: EventBusProtocol,
     ) -> None:
         """Initialize handler with dependencies.
@@ -92,13 +93,13 @@ class SyncAccountsHandler:
             connection_repo: Provider connection repository.
             account_repo: Account repository.
             encryption_service: For decrypting credentials.
-            provider: Provider adapter for API calls.
+            provider_factory: Factory for runtime provider resolution.
             event_bus: For publishing domain events.
         """
         self._connection_repo = connection_repo
         self._account_repo = account_repo
         self._encryption_service = encryption_service
-        self._provider = provider
+        self._provider_factory = provider_factory
         self._event_bus = event_bus
 
     async def handle(self, command: SyncAccounts) -> Result[SyncAccountsResult, str]:
@@ -226,9 +227,12 @@ class SyncAccountsHandler:
 
         credentials_data = decrypt_result.value
 
-        # 7. Fetch accounts from provider (pass full credentials dict)
+        # 7. Resolve provider from connection slug
+        provider = self._provider_factory.get_provider(connection.provider_slug)
+
+        # 8. Fetch accounts from provider (pass full credentials dict)
         # Provider extracts what it needs (access_token for OAuth, api_key for API Key, etc.)
-        fetch_result = await self._provider.fetch_accounts(credentials_data)
+        fetch_result = await provider.fetch_accounts(credentials_data)
 
         if isinstance(fetch_result, Failure):
             await self._event_bus.publish(
@@ -246,17 +250,17 @@ class SyncAccountsHandler:
 
         provider_accounts = fetch_result.value
 
-        # 8. Sync accounts to repository
+        # 9. Sync accounts to repository
         sync_result = await self._sync_accounts_to_repository(
             connection_id=connection.id,
             provider_accounts=provider_accounts,
         )
 
-        # 9. Update connection last_sync_at
+        # 10. Update connection last_sync_at
         connection.record_sync()
         await self._connection_repo.save(connection)
 
-        # 10. Emit SUCCEEDED event
+        # 11. Emit SUCCEEDED event
         total_accounts = (
             sync_result.created + sync_result.updated + sync_result.unchanged
         )

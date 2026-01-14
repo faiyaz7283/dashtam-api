@@ -52,12 +52,37 @@ REPOSITORY_TYPES: dict[str, str] = {
 
 # Service/protocol types that are app-scoped singletons
 SINGLETON_TYPES: dict[str, str] = {
+    # Event Bus
     "EventBusProtocol": "get_event_bus",
+    # Security Services
     "PasswordHashingProtocol": "get_password_service",
     "TokenGenerationProtocol": "get_token_service",
+    "EncryptionProtocol": "get_encryption_service",
+    "EncryptionService": "get_encryption_service",
+    # Token Services
+    "RefreshTokenServiceProtocol": "get_refresh_token_service",
+    "RefreshTokenService": "get_refresh_token_service",
+    "PasswordResetTokenServiceProtocol": "get_password_reset_token_service",
+    # Cache Infrastructure
     "CacheProtocol": "get_cache",
     "CacheKeysProtocol": "get_cache_keys",
+    "CacheKeys": "get_cache_keys",
     "CacheMetricsProtocol": "get_cache_metrics",
+    "CacheMetrics": "get_cache_metrics",
+    # Session & Connection Caches
+    "SessionCache": "get_session_cache",
+    "SessionCacheProtocol": "get_session_cache",
+    "ProviderConnectionCache": "get_provider_connection_cache",
+    "ProviderConnectionCacheProtocol": "get_provider_connection_cache",
+    # Enrichers
+    "DeviceEnricher": "get_device_enricher",
+    "DeviceEnricherProtocol": "get_device_enricher",
+    "LocationEnricher": "get_location_enricher",
+    "LocationEnricherProtocol": "get_location_enricher",
+    # Provider Factory
+    "ProviderFactoryProtocol": "get_provider_factory",
+    "ProviderFactory": "get_provider_factory",
+    # Other Services
     "LoggerProtocol": "get_logger",
     "EmailServiceProtocol": "get_email_service",
 }
@@ -189,6 +214,19 @@ def _get_repository_instance(
         TransactionRepository,
         UserRepository,
     )
+    from src.infrastructure.persistence.repositories.security_config_repository import (
+        SecurityConfigRepository,
+    )
+
+    # Special case: SecurityConfigRepository needs cache and cache_keys
+    if type_name == "SecurityConfigRepository":
+        from src.core.container.infrastructure import get_cache, get_cache_keys
+
+        return SecurityConfigRepository(
+            session=session,
+            cache=get_cache(),
+            cache_keys=get_cache_keys(),
+        )
 
     # Map type names to classes
     repo_classes: dict[str, type] = {
@@ -228,19 +266,52 @@ def _get_singleton_instance(type_name: str) -> Any:
         get_cache,
         get_cache_keys,
         get_cache_metrics,
+        get_device_enricher,
         get_email_service,
+        get_encryption_service,
+        get_location_enricher,
         get_logger,
+        get_password_reset_token_service,
         get_password_service,
+        get_provider_connection_cache,
+        get_provider_factory,
+        get_refresh_token_service,
+        get_session_cache,
         get_token_service,
     )
 
     singleton_factories: dict[str, Any] = {
+        # Event Bus
         "EventBusProtocol": get_event_bus,
+        # Security Services
         "PasswordHashingProtocol": get_password_service,
         "TokenGenerationProtocol": get_token_service,
+        "EncryptionProtocol": get_encryption_service,
+        "EncryptionService": get_encryption_service,
+        # Token Services
+        "RefreshTokenServiceProtocol": get_refresh_token_service,
+        "RefreshTokenService": get_refresh_token_service,
+        "PasswordResetTokenServiceProtocol": get_password_reset_token_service,
+        # Cache Infrastructure
         "CacheProtocol": get_cache,
         "CacheKeysProtocol": get_cache_keys,
+        "CacheKeys": get_cache_keys,
         "CacheMetricsProtocol": get_cache_metrics,
+        "CacheMetrics": get_cache_metrics,
+        # Session & Connection Caches
+        "SessionCache": get_session_cache,
+        "SessionCacheProtocol": get_session_cache,
+        "ProviderConnectionCache": get_provider_connection_cache,
+        "ProviderConnectionCacheProtocol": get_provider_connection_cache,
+        # Enrichers
+        "DeviceEnricher": get_device_enricher,
+        "DeviceEnricherProtocol": get_device_enricher,
+        "LocationEnricher": get_location_enricher,
+        "LocationEnricherProtocol": get_location_enricher,
+        # Provider Factory
+        "ProviderFactoryProtocol": get_provider_factory,
+        "ProviderFactory": get_provider_factory,
+        # Other Services
         "LoggerProtocol": get_logger,
         "EmailServiceProtocol": get_email_service,
     }
@@ -332,3 +403,101 @@ def get_supported_dependencies() -> dict[str, list[str]]:
         "repositories": list(REPOSITORY_TYPES.keys()),
         "singletons": list(SINGLETON_TYPES.keys()),
     }
+
+
+# =============================================================================
+# FastAPI Dependency Generator
+# =============================================================================
+
+# Cache for generated factory functions (enables test overrides)
+_handler_factory_cache: dict[type, Any] = {}
+
+
+def handler_factory(handler_class: type[T]) -> Any:
+    """Generate FastAPI dependency for auto-wired handler creation.
+
+    Creates a dependency function compatible with FastAPI's Depends() that
+    automatically injects all handler dependencies based on type hints.
+
+    The factory function is cached per handler class to enable testing:
+    tests can override the dependency using the same key.
+
+    Args:
+        handler_class: Handler class to generate dependency for.
+
+    Returns:
+        FastAPI-compatible dependency function (cached).
+
+    Example:
+        from src.core.container.handler_factory import handler_factory
+        from src.application.commands.handlers.register_user_handler import (
+            RegisterUserHandler,
+        )
+
+        # In router:
+        async def create_user(
+            handler: RegisterUserHandler = Depends(handler_factory(RegisterUserHandler))
+        ):
+            result = await handler.handle(command)
+
+        # In tests:
+        app.dependency_overrides[handler_factory(RegisterUserHandler)] = (
+            lambda: mock_handler
+        )
+
+    Note:
+        This replaces manual factory functions like `get_register_user_handler`.
+        The returned function uses `create_handler` internally for dependency
+        resolution.
+    """
+    # Return cached factory if exists (enables consistent test overrides)
+    if handler_class in _handler_factory_cache:
+        return _handler_factory_cache[handler_class]
+
+    from fastapi import Depends
+    from src.core.container.infrastructure import get_db_session
+
+    async def _factory(
+        session: AsyncSession = Depends(get_db_session),
+    ) -> T:
+        return await create_handler(handler_class, session)
+
+    # Preserve handler class name for debugging/introspection
+    _factory.__name__ = f"get_{handler_class.__name__.lower()}"
+    _factory.__doc__ = f"Auto-wired factory for {handler_class.__name__}."
+
+    # Cache for reuse
+    _handler_factory_cache[handler_class] = _factory
+
+    return _factory
+
+
+def clear_handler_factory_cache() -> None:
+    """Clear the handler factory cache.
+
+    Useful for test isolation when testing handler_factory itself.
+    """
+    _handler_factory_cache.clear()
+
+
+def get_all_handler_factories() -> dict[str, Any]:
+    """Generate factory functions for all registered handlers.
+
+    Uses the CQRS registry to discover all handlers and creates
+    auto-wired factory functions for each.
+
+    Returns:
+        Dict mapping handler name to factory function.
+
+    Example:
+        >>> factories = get_all_handler_factories()
+        >>> factories['RegisterUserHandler']
+        <function get_registeruserhandler at 0x...>
+    """
+    from src.application.cqrs.computed_views import get_all_handler_classes
+
+    factories: dict[str, Any] = {}
+    for handler_class in get_all_handler_classes():
+        factories[handler_class.__name__] = handler_factory(handler_class)
+
+    return factories

@@ -20,6 +20,10 @@ from dataclasses import dataclass
 import pytest
 from fastapi.testclient import TestClient
 
+from src.application.commands.handlers.refresh_access_token_handler import (
+    RefreshAccessTokenHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -111,10 +115,8 @@ class TestCreateTokens:
         """Should return 201 Created with new tokens on successful refresh."""
         # Setup: Stub handler returns success
         stub_handler = StubRefreshAccessTokenHandler(behavior="success")
-
-        from src.core.container import get_refresh_token_handler
-
-        app.dependency_overrides[get_refresh_token_handler] = lambda: stub_handler
+        factory_key = handler_factory(RefreshAccessTokenHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -134,10 +136,8 @@ class TestCreateTokens:
         """Should return 400 Bad Request for invalid refresh token."""
         # Setup: Stub handler returns invalid error
         stub_handler = StubRefreshAccessTokenHandler(behavior="invalid")
-
-        from src.core.container import get_refresh_token_handler
-
-        app.dependency_overrides[get_refresh_token_handler] = lambda: stub_handler
+        factory_key = handler_factory(RefreshAccessTokenHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -158,10 +158,8 @@ class TestCreateTokens:
         """Should return 401 Unauthorized for expired refresh token."""
         # Setup: Stub handler returns expired error
         stub_handler = StubRefreshAccessTokenHandler(behavior="expired")
-
-        from src.core.container import get_refresh_token_handler
-
-        app.dependency_overrides[get_refresh_token_handler] = lambda: stub_handler
+        factory_key = handler_factory(RefreshAccessTokenHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -182,10 +180,8 @@ class TestCreateTokens:
         """Should return 401 Unauthorized for revoked refresh token."""
         # Setup: Stub handler returns revoked error
         stub_handler = StubRefreshAccessTokenHandler(behavior="revoked")
-
-        from src.core.container import get_refresh_token_handler
-
-        app.dependency_overrides[get_refresh_token_handler] = lambda: stub_handler
+        factory_key = handler_factory(RefreshAccessTokenHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -206,10 +202,8 @@ class TestCreateTokens:
         """Should return 401 Unauthorized when user associated with token not found."""
         # Setup: Stub handler returns user_not_found error
         stub_handler = StubRefreshAccessTokenHandler(behavior="user_not_found")
-
-        from src.core.container import get_refresh_token_handler
-
-        app.dependency_overrides[get_refresh_token_handler] = lambda: stub_handler
+        factory_key = handler_factory(RefreshAccessTokenHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -228,10 +222,8 @@ class TestCreateTokens:
         """Should return 401 Unauthorized when user account is inactive."""
         # Setup: Stub handler returns user_inactive error
         stub_handler = StubRefreshAccessTokenHandler(behavior="user_inactive")
-
-        from src.core.container import get_refresh_token_handler
-
-        app.dependency_overrides[get_refresh_token_handler] = lambda: stub_handler
+        factory_key = handler_factory(RefreshAccessTokenHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -292,10 +284,8 @@ class TestCreateTokens:
         """Should include X-Trace-ID header on error responses."""
         # Setup: Stub handler returns error
         stub_handler = StubRefreshAccessTokenHandler(behavior="expired")
-
-        from src.core.container import get_refresh_token_handler
-
-        app.dependency_overrides[get_refresh_token_handler] = lambda: stub_handler
+        factory_key = handler_factory(RefreshAccessTokenHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(

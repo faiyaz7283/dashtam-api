@@ -433,6 +433,76 @@ for metadata in EVENT_REGISTRY:
 
 ---
 
+### 6a. CQRS Registry Pattern (Handler Auto-Wiring)
+
+**Core Principle**: All commands and queries cataloged in `src/application/cqrs/registry.py` with automated handler dependency injection via `handler_factory()`.
+
+**Purpose**:
+
+- Single source of truth for all CQRS operations (23 commands, 18 queries)
+- Self-enforcing (tests fail if handler missing `handle()` method)
+- Auto-wiring (handler_factory introspects type hints, resolves dependencies)
+- Zero manual factory functions (legacy ~1321 lines deleted)
+
+**Architecture**:
+
+```text
+src/application/cqrs/
+├── __init__.py           # Public exports
+├── metadata.py           # CommandMetadata, QueryMetadata, CQRSCategory
+├── registry.py           # COMMAND_REGISTRY, QUERY_REGISTRY
+└── computed_views.py     # Helper functions (get_all_commands, get_statistics, etc.)
+```
+
+**Registry Entry Pattern**:
+
+```python
+CommandMetadata(
+    command_class=RegisterUser,
+    handler_class=RegisterUserHandler,
+    category=CQRSCategory.AUTH,
+    has_result_dto=False,
+    emits_events=True,
+    requires_transaction=True,
+)
+```
+
+**Handler Factory Usage** (in routers):
+
+```python
+from src.core.container.handler_factory import handler_factory
+
+@router.post("/users", status_code=201)
+async def create_user(
+    handler: RegisterUserHandler = Depends(handler_factory(RegisterUserHandler)),
+):
+    result = await handler.handle(RegisterUser(...))
+```
+
+**How handler_factory Works**:
+
+1. Introspects handler `__init__` type hints
+2. Resolves repositories with request database session
+3. Resolves singletons (event bus, cache, etc.) from container
+4. Creates handler instance with all dependencies injected
+
+**Test Dependency Overrides**:
+
+```python
+factory_key = handler_factory(RegisterUserHandler)
+app.dependency_overrides[factory_key] = lambda: mock_handler
+```
+
+**Validation Tests** (prevent drift):
+
+- `test_all_command_handlers_have_handle_method()` - Fails if handler missing
+- `test_command_names_are_imperative()` - Commands must be Verb* pattern
+- `test_query_names_are_interrogative()` - Queries must be Get*/List* pattern
+
+**Reference**: `docs/architecture/cqrs-registry.md`, `tests/unit/test_cqrs_registry_compliance.py`
+
+---
+
 ### 7. File and Directory Structure
 
 **Core Principle**: Hexagonal layers with protocol consolidation and flat test/docs structure.

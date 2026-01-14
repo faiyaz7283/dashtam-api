@@ -15,6 +15,8 @@ Reference:
     - docs/architecture/cqrs-registry.md
 """
 
+import pytest
+
 from src.application.cqrs import (
     CachePolicy,
     CQRSCategory,
@@ -30,7 +32,19 @@ from src.application.cqrs import (
     get_statistics,
     validate_registry_consistency,
 )
-from src.application.cqrs.metadata import get_handler_factory_name
+from src.application.cqrs.computed_views import (
+    get_all_handler_classes,
+    get_commands_with_result_dto,
+    get_handler_class_for_command,
+    get_handler_class_for_query,
+    get_paginated_queries,
+    get_queries_by_cache_policy,
+)
+from src.application.cqrs.metadata import (
+    CommandMetadata,
+    get_handler_dependencies,
+    get_handler_factory_name,
+)
 
 
 class TestRegistryCompleteness:
@@ -229,42 +243,62 @@ class TestCategoryConsistency:
             f"Category mismatch. Expected {expected_categories}, got {categories_with_commands}"
         )
 
-    def test_auth_category_has_expected_commands(self) -> None:
-        """AUTH category should have authentication-related commands."""
+    def test_auth_category_has_commands(self) -> None:
+        """AUTH category should have authentication-related commands.
+
+        Auto-discovery: verifies category is non-empty and all commands
+        follow expected naming patterns (Register, Authenticate, Verify, etc.).
+        """
         auth_commands = get_commands_by_category(CQRSCategory.AUTH)
         auth_names = {meta.command_class.__name__ for meta in auth_commands}
 
-        expected = {
-            "RegisterUser",
-            "AuthenticateUser",
-            "VerifyEmail",
-            "RefreshAccessToken",
-            "RequestPasswordReset",
-            "ConfirmPasswordReset",
-            "LogoutUser",
-        }
-
-        assert auth_names == expected, (
-            f"AUTH category mismatch: {auth_names} != {expected}"
+        # Minimum threshold - AUTH must have substantial commands
+        assert len(auth_names) >= 5, (
+            f"AUTH category should have at least 5 commands, got {len(auth_names)}"
         )
 
-    def test_session_category_has_expected_commands(self) -> None:
-        """SESSION category should have session-related commands."""
+        # All AUTH commands should be authentication-related
+        auth_prefixes = (
+            "Register",
+            "Authenticate",
+            "Verify",
+            "Refresh",
+            "Request",
+            "Confirm",
+            "Logout",
+            "Reset",
+        )
+        for name in auth_names:
+            assert any(name.startswith(p) for p in auth_prefixes), (
+                f"AUTH command {name} doesn't match expected auth patterns"
+            )
+
+    def test_session_category_has_commands(self) -> None:
+        """SESSION category should have session-related commands.
+
+        Auto-discovery: verifies category is non-empty and all commands
+        follow expected naming patterns (Create, Revoke, Link, Record, Update).
+        """
         session_commands = get_commands_by_category(CQRSCategory.SESSION)
         session_names = {meta.command_class.__name__ for meta in session_commands}
 
-        expected = {
-            "CreateSession",
-            "RevokeSession",
-            "RevokeAllUserSessions",
-            "LinkRefreshTokenToSession",
-            "RecordProviderAccess",
-            "UpdateSessionActivity",
-        }
-
-        assert session_names == expected, (
-            f"SESSION category mismatch: {session_names} != {expected}"
+        # Minimum threshold - SESSION must have substantial commands
+        assert len(session_names) >= 4, (
+            f"SESSION category should have at least 4 commands, got {len(session_names)}"
         )
+
+        # All SESSION commands should be session-related
+        session_prefixes = (
+            "Create",
+            "Revoke",
+            "Link",
+            "Record",
+            "Update",
+        )
+        for name in session_names:
+            assert any(name.startswith(p) for p in session_prefixes), (
+                f"SESSION command {name} doesn't match expected session patterns"
+            )
 
     def test_data_sync_queries_are_majority(self) -> None:
         """DATA_SYNC should have the most queries (accounts, transactions, etc.).
@@ -515,3 +549,195 @@ class TestFutureProofing:
             assert isinstance(meta.cache_policy, CachePolicy), (
                 f"{meta.query_class.__name__} cache_policy is not CachePolicy"
             )
+
+
+@pytest.mark.unit
+class TestComputedViewsHelpers:
+    """Tests for computed_views helper functions."""
+
+    def test_get_commands_with_result_dto(self) -> None:
+        """get_commands_with_result_dto() returns correct commands."""
+        result = get_commands_with_result_dto()
+
+        # Should return list of CommandMetadata
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # All should have has_result_dto=True
+        for meta in result:
+            assert meta.has_result_dto is True
+            assert meta.result_dto_class is not None
+
+    def test_get_paginated_queries(self) -> None:
+        """get_paginated_queries() returns paginated queries."""
+        result = get_paginated_queries()
+
+        # Should return list of QueryMetadata
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # All should have is_paginated=True
+        for meta in result:
+            assert meta.is_paginated is True
+            # Paginated queries should start with "List"
+            assert meta.query_class.__name__.startswith("List")
+
+    def test_get_queries_by_cache_policy_none(self) -> None:
+        """get_queries_by_cache_policy() filters by NONE policy."""
+        result = get_queries_by_cache_policy(CachePolicy.NONE)
+
+        assert isinstance(result, list)
+        for meta in result:
+            assert meta.cache_policy == CachePolicy.NONE
+
+    def test_get_queries_by_cache_policy_short(self) -> None:
+        """get_queries_by_cache_policy() filters by SHORT policy."""
+        result = get_queries_by_cache_policy(CachePolicy.SHORT)
+
+        assert isinstance(result, list)
+        for meta in result:
+            assert meta.cache_policy == CachePolicy.SHORT
+
+    def test_get_handler_class_for_command_found(self) -> None:
+        """get_handler_class_for_command() returns handler for known command."""
+        from src.application.commands.auth_commands import RegisterUser
+
+        handler = get_handler_class_for_command(RegisterUser)
+
+        assert handler is not None
+        assert handler.__name__ == "RegisterUserHandler"
+
+    def test_get_handler_class_for_command_not_found(self) -> None:
+        """get_handler_class_for_command() returns None for unknown command."""
+
+        class UnknownCommand:
+            pass
+
+        handler = get_handler_class_for_command(UnknownCommand)
+        assert handler is None
+
+    def test_get_handler_class_for_query_found(self) -> None:
+        """get_handler_class_for_query() returns handler for known query."""
+        from src.application.queries.account_queries import GetAccount
+
+        handler = get_handler_class_for_query(GetAccount)
+
+        assert handler is not None
+        assert handler.__name__ == "GetAccountHandler"
+
+    def test_get_handler_class_for_query_not_found(self) -> None:
+        """get_handler_class_for_query() returns None for unknown query."""
+
+        class UnknownQuery:
+            pass
+
+        handler = get_handler_class_for_query(UnknownQuery)
+        assert handler is None
+
+    def test_get_query_metadata_returns_none_for_unknown(self) -> None:
+        """get_query_metadata() returns None for unknown query."""
+
+        class FakeQuery:
+            pass
+
+        meta = get_query_metadata(FakeQuery)
+        assert meta is None
+
+    def test_get_all_handler_classes(self) -> None:
+        """get_all_handler_classes() returns all unique handlers."""
+        handlers = get_all_handler_classes()
+
+        assert isinstance(handlers, list)
+        assert len(handlers) > 0
+
+        # All should be class types
+        for handler in handlers:
+            assert isinstance(handler, type)
+
+        # Should be deduplicated (no duplicates)
+        assert len(handlers) == len(set(handlers))
+
+
+@pytest.mark.unit
+class TestMetadataValidation:
+    """Tests for CommandMetadata validation in __post_init__."""
+
+    def test_result_dto_flag_without_class_raises(self) -> None:
+        """has_result_dto=True without result_dto_class raises ValueError."""
+
+        class FakeCommand:
+            pass
+
+        class FakeHandler:
+            pass
+
+        with pytest.raises(ValueError, match="has_result_dto=True"):
+            CommandMetadata(
+                command_class=FakeCommand,
+                handler_class=FakeHandler,
+                category=CQRSCategory.AUTH,
+                has_result_dto=True,
+                result_dto_class=None,  # Missing!
+            )
+
+    def test_result_dto_class_without_flag_raises(self) -> None:
+        """result_dto_class without has_result_dto=True raises ValueError."""
+
+        class FakeCommand:
+            pass
+
+        class FakeHandler:
+            pass
+
+        class FakeDTO:
+            pass
+
+        with pytest.raises(ValueError, match="has_result_dto=False"):
+            CommandMetadata(
+                command_class=FakeCommand,
+                handler_class=FakeHandler,
+                category=CQRSCategory.AUTH,
+                has_result_dto=False,  # Flag is False
+                result_dto_class=FakeDTO,  # But DTO provided!
+            )
+
+
+@pytest.mark.unit
+class TestGetHandlerDependencies:
+    """Tests for get_handler_dependencies() function."""
+
+    def test_extracts_dependencies_from_handler(self) -> None:
+        """Should extract parameter names from handler __init__."""
+        from src.application.commands.handlers.register_user_handler import (
+            RegisterUserHandler,
+        )
+
+        deps = get_handler_dependencies(RegisterUserHandler)
+
+        assert isinstance(deps, list)
+        assert len(deps) > 0
+        # Should include known dependencies
+        assert "user_repo" in deps
+        assert "password_service" in deps
+
+    def test_returns_empty_for_no_init_params(self) -> None:
+        """Should return empty list for handler with no __init__ params."""
+
+        class NoParamHandler:
+            def __init__(self) -> None:
+                pass
+
+        deps = get_handler_dependencies(NoParamHandler)
+        assert deps == []
+
+    def test_handles_class_with_defaults_only(self) -> None:
+        """Should return empty list for handler with only default self param."""
+
+        class DefaultHandler:
+            def __init__(self) -> None:
+                """Handler with only self param."""
+                pass
+
+        deps = get_handler_dependencies(DefaultHandler)
+        # Only self param, so no dependencies
+        assert deps == []

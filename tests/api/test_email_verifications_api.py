@@ -18,6 +18,8 @@ Note:
 import pytest
 from fastapi.testclient import TestClient
 
+from src.application.commands.handlers.verify_email_handler import VerifyEmailHandler
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -90,10 +92,8 @@ class TestCreateEmailVerification:
         """Should return 201 Created on successful email verification."""
         # Setup: Stub handler returns success
         stub_handler = StubVerifyEmailHandler(behavior="success")
-
-        from src.core.container import get_verify_email_handler
-
-        app.dependency_overrides[get_verify_email_handler] = lambda: stub_handler
+        factory_key = handler_factory(VerifyEmailHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -113,10 +113,8 @@ class TestCreateEmailVerification:
         """Should return 404 Not Found for invalid token."""
         # Setup: Stub handler returns token_not_found
         stub_handler = StubVerifyEmailHandler(behavior="token_not_found")
-
-        from src.core.container import get_verify_email_handler
-
-        app.dependency_overrides[get_verify_email_handler] = lambda: stub_handler
+        factory_key = handler_factory(VerifyEmailHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -136,10 +134,8 @@ class TestCreateEmailVerification:
         """Should return 400 Bad Request for expired token."""
         # Setup: Stub handler returns token_expired
         stub_handler = StubVerifyEmailHandler(behavior="token_expired")
-
-        from src.core.container import get_verify_email_handler
-
-        app.dependency_overrides[get_verify_email_handler] = lambda: stub_handler
+        factory_key = handler_factory(VerifyEmailHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -159,10 +155,8 @@ class TestCreateEmailVerification:
         """Should return 400 Bad Request for already-used token."""
         # Setup: Stub handler returns token_already_used
         stub_handler = StubVerifyEmailHandler(behavior="token_already_used")
-
-        from src.core.container import get_verify_email_handler
-
-        app.dependency_overrides[get_verify_email_handler] = lambda: stub_handler
+        factory_key = handler_factory(VerifyEmailHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -182,10 +176,8 @@ class TestCreateEmailVerification:
         """Should return 404 Not Found when user associated with token not found."""
         # Setup: Stub handler returns user_not_found
         stub_handler = StubVerifyEmailHandler(behavior="user_not_found")
-
-        from src.core.container import get_verify_email_handler
-
-        app.dependency_overrides[get_verify_email_handler] = lambda: stub_handler
+        factory_key = handler_factory(VerifyEmailHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(
@@ -272,10 +264,8 @@ class TestCreateEmailVerification:
         """Should include X-Trace-ID header on error responses."""
         # Setup: Stub handler returns error
         stub_handler = StubVerifyEmailHandler(behavior="token_expired")
-
-        from src.core.container import get_verify_email_handler
-
-        app.dependency_overrides[get_verify_email_handler] = lambda: stub_handler
+        factory_key = handler_factory(VerifyEmailHandler)
+        app.dependency_overrides[factory_key] = lambda: stub_handler
 
         # Execute
         response = client.post(

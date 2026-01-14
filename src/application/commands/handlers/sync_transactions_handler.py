@@ -38,10 +38,8 @@ from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
-from src.domain.protocols.provider_protocol import (
-    ProviderProtocol,
-    ProviderTransactionData,
-)
+from src.domain.protocols.provider_factory_protocol import ProviderFactoryProtocol
+from src.domain.protocols.provider_protocol import ProviderTransactionData
 from src.domain.protocols.transaction_repository import TransactionRepository
 from src.domain.protocols.encryption_protocol import EncryptionProtocol
 from src.domain.value_objects.money import Money
@@ -83,7 +81,7 @@ class SyncTransactionsHandler:
         - AccountRepository: For account lookup
         - TransactionRepository: For transaction persistence
         - EncryptionService: For credential decryption
-        - ProviderProtocol: Provider adapter (factory-created)
+        - ProviderFactoryProtocol: Factory for runtime provider resolution
         - EventBus: For domain events
     """
 
@@ -93,7 +91,7 @@ class SyncTransactionsHandler:
         account_repo: AccountRepository,
         transaction_repo: TransactionRepository,
         encryption_service: EncryptionProtocol,
-        provider: ProviderProtocol,
+        provider_factory: ProviderFactoryProtocol,
         event_bus: EventBusProtocol,
     ) -> None:
         """Initialize handler with dependencies.
@@ -103,14 +101,14 @@ class SyncTransactionsHandler:
             account_repo: Account repository.
             transaction_repo: Transaction repository.
             encryption_service: For decrypting credentials.
-            provider: Provider adapter for API calls.
+            provider_factory: Factory for runtime provider resolution.
             event_bus: For publishing domain events.
         """
         self._connection_repo = connection_repo
         self._account_repo = account_repo
         self._transaction_repo = transaction_repo
         self._encryption_service = encryption_service
-        self._provider = provider
+        self._provider_factory = provider_factory
         self._event_bus = event_bus
 
     async def handle(
@@ -292,7 +290,10 @@ class SyncTransactionsHandler:
             end_date - timedelta(days=DEFAULT_SYNC_DAYS)
         )
 
-        # 8. Sync transactions for each account
+        # 8. Resolve provider from connection slug
+        provider = self._provider_factory.get_provider(connection.provider_slug)
+
+        # 9. Sync transactions for each account
         total_created = 0
         total_updated = 0
         total_unchanged = 0
@@ -302,7 +303,7 @@ class SyncTransactionsHandler:
         for account in accounts:
             # Fetch transactions from provider (pass full credentials dict)
             # Provider extracts what it needs (access_token for OAuth, api_key for API Key, etc.)
-            fetch_result = await self._provider.fetch_transactions(
+            fetch_result = await provider.fetch_transactions(
                 credentials=credentials_data,
                 provider_account_id=account.provider_account_id,
                 start_date=start_date,
@@ -341,7 +342,7 @@ class SyncTransactionsHandler:
         if total_errors > 0:
             message += f", {total_errors} errors"
 
-        # 9. Emit SUCCEEDED event
+        # 10. Emit SUCCEEDED event
         await self._event_bus.publish(
             TransactionSyncSucceeded(
                 event_id=uuid7(),

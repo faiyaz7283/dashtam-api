@@ -23,6 +23,17 @@ from src.application.queries.transaction_queries import (
     ListTransactionsByAccount,
     ListTransactionsByDateRange,
 )
+from src.application.queries.balance_snapshot_queries import (
+    GetBalanceHistory,
+    GetLatestBalanceSnapshots,
+    GetUserBalanceHistory,
+    ListBalanceSnapshotsByAccount,
+)
+from src.application.queries.holding_queries import (
+    GetHolding,
+    ListHoldingsByAccount,
+    ListHoldingsByUser,
+)
 
 __all__ = [
     # Session queries
@@ -40,4 +51,13 @@ __all__ = [
     "ListTransactionsByAccount",
     "ListTransactionsByDateRange",
     "ListSecurityTransactions",
+    # Balance snapshot queries (F3.7)
+    "GetBalanceHistory",
+    "GetLatestBalanceSnapshots",
+    "GetUserBalanceHistory",
+    "ListBalanceSnapshotsByAccount",
+    # Holding queries (F3.8)
+    "GetHolding",
+    "ListHoldingsByAccount",
+    "ListHoldingsByUser",
 ]

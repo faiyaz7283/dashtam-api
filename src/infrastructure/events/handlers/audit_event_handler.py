@@ -117,10 +117,15 @@ from src.domain.events.rate_limit_events import (
     RateLimitCheckDenied,
 )
 from src.domain.events.session_events import (
-    # Session Events (operational - only those requiring audit)
+    # Session Events (3-state workflow)
+    SessionRevocationAttempted,
     SessionRevokedEvent,
-    SessionEvictedEvent,
+    SessionRevocationFailed,
+    AllSessionsRevocationAttempted,
     AllSessionsRevokedEvent,
+    AllSessionsRevocationFailed,
+    # Session Events (operational - only those requiring audit)
+    SessionEvictedEvent,
     SessionProviderAccessEvent,
     SuspiciousSessionActivityEvent,
 )
@@ -1685,11 +1690,35 @@ class AuditEventHandler:
     # Session Event Handlers (F7.7 Phase 4 - Operational Events)
     # =========================================================================
 
-    async def handle_session_revoked_operational(
+    async def handle_session_revocation_attempted(
+        self,
+        event: SessionRevocationAttempted,
+    ) -> None:
+        """Record session revocation attempt audit (ATTEMPT).
+
+        Audit Record:
+            - action: SESSION_REVOCATION_ATTEMPTED
+            - user_id: UUID of user initiating revocation
+            - resource_type: "session"
+            - context: {session_id, reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.SESSION_REVOCATION_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=event.session_id,
+            context={
+                "event_id": str(event.event_id),
+                "session_id": str(event.session_id),
+                "reason": event.reason,
+            },
+        )
+
+    async def handle_session_revocation_succeeded(
         self,
         event: SessionRevokedEvent,
     ) -> None:
-        """Record session revocation audit (operational - security event).
+        """Record session revocation success audit (SUCCESS).
 
         Audit Record:
             - action: SESSION_REVOKED
@@ -1707,6 +1736,31 @@ class AuditEventHandler:
                 "session_id": str(event.session_id),
                 "revoked_by_user": event.revoked_by_user,
                 "reason": event.reason,
+            },
+        )
+
+    async def handle_session_revocation_failed(
+        self,
+        event: SessionRevocationFailed,
+    ) -> None:
+        """Record session revocation failure audit (FAILURE).
+
+        Audit Record:
+            - action: SESSION_REVOCATION_FAILED
+            - user_id: UUID of user whose revocation failed
+            - resource_type: "session"
+            - context: {session_id, reason, failure_reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.SESSION_REVOCATION_FAILED,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=event.session_id,
+            context={
+                "event_id": str(event.event_id),
+                "session_id": str(event.session_id),
+                "reason": event.reason,
+                "failure_reason": event.failure_reason,
             },
         )
 
@@ -1734,11 +1788,37 @@ class AuditEventHandler:
             },
         )
 
-    async def handle_all_sessions_revoked_operational(
+    async def handle_all_sessions_revocation_attempted(
+        self,
+        event: AllSessionsRevocationAttempted,
+    ) -> None:
+        """Record all sessions revocation attempt audit (ATTEMPT).
+
+        Audit Record:
+            - action: ALL_SESSIONS_REVOCATION_ATTEMPTED
+            - user_id: UUID of user initiating revocation
+            - resource_type: "session"
+            - context: {reason, except_session_id}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ALL_SESSIONS_REVOCATION_ATTEMPTED,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "reason": event.reason,
+                "except_session_id": str(event.except_session_id)
+                if event.except_session_id
+                else None,
+            },
+        )
+
+    async def handle_all_sessions_revocation_succeeded(
         self,
         event: AllSessionsRevokedEvent,
     ) -> None:
-        """Record all sessions revoked audit (operational - security event).
+        """Record all sessions revoked success audit (SUCCESS).
 
         Audit Record:
             - action: ALL_SESSIONS_REVOKED
@@ -1755,6 +1835,30 @@ class AuditEventHandler:
                 "event_id": str(event.event_id),
                 "reason": event.reason,
                 "session_count": event.session_count,
+            },
+        )
+
+    async def handle_all_sessions_revocation_failed(
+        self,
+        event: AllSessionsRevocationFailed,
+    ) -> None:
+        """Record all sessions revocation failure audit (FAILURE).
+
+        Audit Record:
+            - action: ALL_SESSIONS_REVOCATION_FAILED
+            - user_id: UUID of user whose revocation failed
+            - resource_type: "session"
+            - context: {reason, failure_reason}
+        """
+        await self._create_audit_record(
+            action=AuditAction.ALL_SESSIONS_REVOCATION_FAILED,
+            user_id=event.user_id,
+            resource_type="session",
+            resource_id=None,
+            context={
+                "event_id": str(event.event_id),
+                "reason": event.reason,
+                "failure_reason": event.failure_reason,
             },
         )
 

@@ -66,3 +66,21 @@ for path in sorted(src_root.rglob("*.py")):
 # Write navigation file for literate-nav
 with mkdocs_gen_files.open("reference/SUMMARY.md", "w") as nav_file:
     nav_file.writelines(nav.build_literate_nav())
+
+# Generate index page for reference section
+with mkdocs_gen_files.open("reference/index.md", "w") as index_file:
+    index_file.write("""# Code Reference
+
+Auto-generated API documentation from Python docstrings.
+
+## Modules
+
+- **Core** — Shared kernel (Result types, errors, config, container)
+- **Domain** — Business logic (entities, protocols, events)
+- **Application** — Use cases (commands, queries, handlers)
+- **Infrastructure** — Adapters (database, cache, providers)
+- **Presentation** — API endpoints (FastAPI routers)
+- **Schemas** — Request/response models
+
+Browse the navigation sidebar for complete module listings.
+""")

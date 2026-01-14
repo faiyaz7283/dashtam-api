@@ -1,4 +1,5 @@
 title: API Reference
 nav:
+  - index.md
   - authentication.md
-  - ...  # Auto-include rest alphabetically
+  - ...

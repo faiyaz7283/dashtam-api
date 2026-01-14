@@ -28,7 +28,10 @@ from src.application.commands.session_commands import (
 )
 from src.core.result import Failure, Success
 from src.domain.events.session_events import (
+    AllSessionsRevocationAttempted,
     AllSessionsRevokedEvent,
+    SessionRevocationAttempted,
+    SessionRevocationFailed,
     SessionRevokedEvent,
 )
 from src.domain.protocols.session_repository import SessionData
@@ -147,8 +150,8 @@ class TestRevokeSessionHandlerSuccess:
         mock_cache.remove_user_session.assert_called_once_with(user_id, session_id)
 
     @pytest.mark.asyncio
-    async def test_revoke_session_publishes_event(self):
-        """Test revocation publishes SessionRevokedEvent."""
+    async def test_revoke_session_publishes_3_state_events(self):
+        """Test revocation publishes ATTEMPTED and SUCCEEDED events."""
         user_id = uuid7()
         session_id = uuid7()
         mock_session = create_mock_session_data(
@@ -177,13 +180,22 @@ class TestRevokeSessionHandlerSuccess:
 
         await handler.handle(command)
 
-        mock_event_bus.publish.assert_called_once()
-        event = mock_event_bus.publish.call_args[0][0]
-        assert isinstance(event, SessionRevokedEvent)
-        assert event.session_id == session_id
-        assert event.user_id == user_id
-        assert event.reason == "security_concern"
-        assert event.device_info == "Safari on macOS"
+        # Verify 2 events: ATTEMPTED + SUCCEEDED
+        assert mock_event_bus.publish.call_count == 2
+
+        # First call: ATTEMPTED
+        attempted_event = mock_event_bus.publish.call_args_list[0][0][0]
+        assert isinstance(attempted_event, SessionRevocationAttempted)
+        assert attempted_event.session_id == session_id
+        assert attempted_event.user_id == user_id
+
+        # Second call: SUCCEEDED (SessionRevokedEvent)
+        succeeded_event = mock_event_bus.publish.call_args_list[1][0][0]
+        assert isinstance(succeeded_event, SessionRevokedEvent)
+        assert succeeded_event.session_id == session_id
+        assert succeeded_event.user_id == user_id
+        assert succeeded_event.reason == "security_concern"
+        assert succeeded_event.device_info == "Safari on macOS"
 
 
 @pytest.mark.unit
@@ -193,6 +205,9 @@ class TestRevokeSessionHandlerFailure:
     @pytest.mark.asyncio
     async def test_revoke_session_returns_not_found(self):
         """Test revocation fails with NOT_FOUND when session doesn't exist."""
+        session_id = uuid7()
+        user_id = uuid7()
+
         mock_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None
 
@@ -206,8 +221,8 @@ class TestRevokeSessionHandlerFailure:
         )
 
         command = RevokeSession(
-            session_id=uuid7(),
-            user_id=uuid7(),
+            session_id=session_id,
+            user_id=user_id,
             reason="user_logout",
         )
 
@@ -215,6 +230,14 @@ class TestRevokeSessionHandlerFailure:
 
         assert isinstance(result, Failure)
         assert result.error == RevokeSessionError.SESSION_NOT_FOUND
+
+        # Verify ATTEMPTED + FAILED events emitted
+        assert mock_event_bus.publish.call_count == 2
+        attempted_event = mock_event_bus.publish.call_args_list[0][0][0]
+        assert isinstance(attempted_event, SessionRevocationAttempted)
+        failed_event = mock_event_bus.publish.call_args_list[1][0][0]
+        assert isinstance(failed_event, SessionRevocationFailed)
+        assert failed_event.failure_reason == "session_not_found"
 
     @pytest.mark.asyncio
     async def test_revoke_session_returns_not_owner(self):
@@ -338,8 +361,8 @@ class TestRevokeAllSessionsHandlerSuccess:
         mock_cache.delete_all_for_user.assert_called_once_with(user_id)
 
     @pytest.mark.asyncio
-    async def test_revoke_all_sessions_publishes_event(self):
-        """Test bulk revocation publishes AllSessionsRevokedEvent."""
+    async def test_revoke_all_sessions_publishes_3_state_events(self):
+        """Test bulk revocation publishes ATTEMPTED and SUCCEEDED events."""
         user_id = uuid7()
 
         mock_repo = AsyncMock()
@@ -361,12 +384,21 @@ class TestRevokeAllSessionsHandlerSuccess:
 
         await handler.handle(command)
 
-        mock_event_bus.publish.assert_called_once()
-        event = mock_event_bus.publish.call_args[0][0]
-        assert isinstance(event, AllSessionsRevokedEvent)
-        assert event.user_id == user_id
-        assert event.reason == "logout_everywhere"
-        assert event.session_count == 3
+        # Verify 2 events: ATTEMPTED + SUCCEEDED
+        assert mock_event_bus.publish.call_count == 2
+
+        # First call: ATTEMPTED
+        attempted_event = mock_event_bus.publish.call_args_list[0][0][0]
+        assert isinstance(attempted_event, AllSessionsRevocationAttempted)
+        assert attempted_event.user_id == user_id
+        assert attempted_event.reason == "logout_everywhere"
+
+        # Second call: SUCCEEDED (AllSessionsRevokedEvent)
+        succeeded_event = mock_event_bus.publish.call_args_list[1][0][0]
+        assert isinstance(succeeded_event, AllSessionsRevokedEvent)
+        assert succeeded_event.user_id == user_id
+        assert succeeded_event.reason == "logout_everywhere"
+        assert succeeded_event.session_count == 3
 
     @pytest.mark.asyncio
     async def test_revoke_all_sessions_with_except_session_id(self):

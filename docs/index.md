@@ -17,13 +17,13 @@ Six foundational pillars:
 
 ## Documentation Structure
 
-**[Architecture](architecture/hexagonal.md)** — 34 docs covering patterns, infrastructure, security, domain models
+**[Architecture](architecture/index.md)** — 34 docs covering patterns, infrastructure, security, domain models
 
-**[API Reference](api/authentication.md)** — 15 docs for all REST endpoints (auth, accounts, providers, transactions)
+**[API Reference](api/index.md)** — 15 docs for all REST endpoints (auth, accounts, providers, transactions)
 
-**[Guides](guides/error-handling.md)** — 17 practical how-to guides (releases, providers, error handling)
+**[Guides](guides/index.md)** — 17 practical how-to guides (releases, providers, error handling)
 
-**[Code Reference](reference/)** — Auto-generated from Python docstrings
+**[Code Reference](reference/index.md)** — Auto-generated from Python docstrings
 
 ## Key Features
 

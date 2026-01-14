@@ -35,12 +35,12 @@ from src.application.commands.handlers.connect_provider_handler import (
 from src.application.commands.provider_commands import ConnectProvider
 from src.core.container import (
     get_cache,
-    get_connect_provider_handler,
     get_encryption_service,
     get_provider,
     get_provider_repository,
     is_oauth_provider,
 )
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.domain.enums.credential_type import CredentialType
 from src.domain.protocols.cache_protocol import CacheProtocol
@@ -231,7 +231,7 @@ async def schwab_oauth_callback(
         str | None, Query(description="OAuth error description")
     ] = None,
     cache: CacheProtocol = Depends(get_cache),
-    handler: ConnectProviderHandler = Depends(get_connect_provider_handler),
+    handler: ConnectProviderHandler = Depends(handler_factory(ConnectProviderHandler)),
     encryption_service: EncryptionService = Depends(get_encryption_service),
     provider_repo: ProviderRepository = Depends(get_provider_repository),
 ) -> HTMLResponse:
@@ -438,7 +438,7 @@ async def oauth_callback_dynamic(
         str | None, Query(description="OAuth error description")
     ] = None,
     cache: CacheProtocol = Depends(get_cache),
-    handler: ConnectProviderHandler = Depends(get_connect_provider_handler),
+    handler: ConnectProviderHandler = Depends(handler_factory(ConnectProviderHandler)),
     encryption_service: EncryptionService = Depends(get_encryption_service),
     provider_repo: ProviderRepository = Depends(get_provider_repository),
 ) -> HTMLResponse:

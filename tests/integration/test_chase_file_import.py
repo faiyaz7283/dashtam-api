@@ -15,6 +15,7 @@ Architecture:
 """
 
 from decimal import Decimal
+from unittest.mock import Mock
 
 import pytest
 import pytest_asyncio
@@ -203,6 +204,13 @@ async def create_user_in_db(session, user_id=None, email=None):
     session.add(user)
     await session.commit()
     return user_id
+
+
+def create_mock_provider_factory(provider):
+    """Create a mock ProviderFactoryProtocol that returns the given provider."""
+    factory = Mock()
+    factory.get_provider.return_value = provider
+    return factory
 
 
 async def create_chase_provider_in_db(session):
@@ -440,7 +448,7 @@ class TestImportHandlerIntegration:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 provider_repo=provider_repo,
-                provider=provider,
+                provider_factory=create_mock_provider_factory(provider),
                 event_bus=event_bus,
             )
 
@@ -496,7 +504,7 @@ class TestImportHandlerIntegration:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 provider_repo=provider_repo,
-                provider=provider,
+                provider_factory=create_mock_provider_factory(provider),
                 event_bus=event_bus,
             )
 
@@ -526,7 +534,7 @@ class TestImportHandlerIntegration:
                 account_repo=account_repo2,
                 transaction_repo=transaction_repo2,
                 provider_repo=provider_repo2,
-                provider=provider,
+                provider_factory=create_mock_provider_factory(provider),
                 event_bus=event_bus,
             )
 
@@ -572,7 +580,7 @@ class TestImportHandlerIntegration:
                 account_repo=account_repo,
                 transaction_repo=transaction_repo,
                 provider_repo=provider_repo,
-                provider=provider,
+                provider_factory=create_mock_provider_factory(provider),
                 event_bus=event_bus,
             )
 
@@ -599,7 +607,7 @@ class TestImportHandlerIntegration:
                 account_repo=account_repo2,
                 transaction_repo=transaction_repo2,
                 provider_repo=provider_repo2,
-                provider=provider,
+                provider_factory=create_mock_provider_factory(provider),
                 event_bus=event_bus,
             )
 

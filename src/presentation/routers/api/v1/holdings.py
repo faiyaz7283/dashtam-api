@@ -32,11 +32,7 @@ from src.application.queries.handlers.list_holdings_handler import (
     ListHoldingsByAccountHandler,
     ListHoldingsByUserHandler,
 )
-from src.core.container import (
-    get_list_holdings_by_account_handler,
-    get_list_holdings_by_user_handler,
-    get_sync_holdings_handler,
-)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure
 from src.presentation.routers.api.middleware.auth_dependencies import AuthenticatedUser
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
@@ -125,7 +121,9 @@ async def list_holdings(
         str | None,
         Query(description="Filter by security symbol (e.g., AAPL)"),
     ] = None,
-    handler: ListHoldingsByUserHandler = Depends(get_list_holdings_by_user_handler),
+    handler: ListHoldingsByUserHandler = Depends(
+        handler_factory(ListHoldingsByUserHandler)
+    ),
 ) -> HoldingListResponse | JSONResponse:
     """List all holdings for the authenticated user.
 
@@ -180,7 +178,7 @@ async def list_holdings_by_account(
         Query(description="Filter by asset type (e.g., equity, etf, option)"),
     ] = None,
     handler: ListHoldingsByAccountHandler = Depends(
-        get_list_holdings_by_account_handler
+        handler_factory(ListHoldingsByAccountHandler)
     ),
 ) -> HoldingListResponse | JSONResponse:
     """List holdings for a specific account.
@@ -223,7 +221,7 @@ async def sync_holdings(
     current_user: AuthenticatedUser,
     account_id: Annotated[UUID, Path(description="Account UUID")],
     data: SyncHoldingsRequest,
-    handler: SyncHoldingsHandler = Depends(get_sync_holdings_handler),
+    handler: SyncHoldingsHandler = Depends(handler_factory(SyncHoldingsHandler)),
 ) -> SyncHoldingsResponse | JSONResponse:
     """Sync holdings from provider for an account.
 

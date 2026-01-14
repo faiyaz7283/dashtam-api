@@ -57,12 +57,14 @@ def create_mock_connection(
     user_id: UUID | None = None,
     status: ConnectionStatus = ConnectionStatus.ACTIVE,
     credentials: Any | None = "has_creds",
+    provider_slug: str = "schwab",
 ) -> MagicMock:
     """Create a mock ProviderConnection entity."""
     mock = MagicMock(spec=ProviderConnection)
     mock.id = id or uuid7()
     mock.user_id = user_id or uuid7()
     mock.status = status
+    mock.provider_slug = provider_slug
     mock.is_connected.return_value = status == ConnectionStatus.ACTIVE
 
     if credentials == "has_creds":
@@ -156,6 +158,14 @@ def mock_provider():
 
 
 @pytest.fixture
+def mock_provider_factory(mock_provider):
+    """Create mock ProviderFactoryProtocol that returns mock_provider."""
+    factory = MagicMock()
+    factory.get_provider.return_value = mock_provider
+    return factory
+
+
+@pytest.fixture
 def mock_event_bus():
     """Create mock EventBusProtocol."""
     return AsyncMock()
@@ -167,7 +177,7 @@ def handler(
     mock_connection_repo,
     mock_holding_repo,
     mock_encryption_service,
-    mock_provider,
+    mock_provider_factory,
     mock_event_bus,
 ):
     """Create SyncHoldingsHandler with mocks."""
@@ -176,7 +186,7 @@ def handler(
         connection_repo=mock_connection_repo,
         holding_repo=mock_holding_repo,
         encryption_service=mock_encryption_service,
-        provider=mock_provider,
+        provider_factory=mock_provider_factory,
         event_bus=mock_event_bus,
     )
 

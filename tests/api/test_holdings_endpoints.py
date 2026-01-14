@@ -21,6 +21,14 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.sync_holdings_handler import (
+    SyncHoldingsHandler,
+)
+from src.application.queries.handlers.list_holdings_handler import (
+    ListHoldingsByAccountHandler,
+    ListHoldingsByUserHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -228,10 +236,9 @@ class TestListHoldings:
 
     def test_list_holdings_returns_empty_list(self, client):
         """GET /api/v1/holdings returns empty list when no holdings."""
-        from src.core.container import get_list_holdings_by_user_handler
-
-        app.dependency_overrides[get_list_holdings_by_user_handler] = (
-            lambda: MockListHoldingsHandler(holdings=[])
+        factory_key = handler_factory(ListHoldingsByUserHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListHoldingsHandler(
+            holdings=[]
         )
 
         response = client.get("/api/v1/holdings")
@@ -241,14 +248,13 @@ class TestListHoldings:
         assert data["holdings"] == []
         assert data["total_count"] == 0
 
-        app.dependency_overrides.pop(get_list_holdings_by_user_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_holdings_returns_holdings(self, client, mock_holding):
         """GET /api/v1/holdings returns holdings list."""
-        from src.core.container import get_list_holdings_by_user_handler
-
-        app.dependency_overrides[get_list_holdings_by_user_handler] = (
-            lambda: MockListHoldingsHandler(holdings=[mock_holding])
+        factory_key = handler_factory(ListHoldingsByUserHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListHoldingsHandler(
+            holdings=[mock_holding]
         )
 
         response = client.get("/api/v1/holdings")
@@ -259,21 +265,20 @@ class TestListHoldings:
         assert data["holdings"][0]["symbol"] == "AAPL"
         assert data["total_count"] == 1
 
-        app.dependency_overrides.pop(get_list_holdings_by_user_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_holdings_with_filters(self, client, mock_holding):
         """GET /api/v1/holdings accepts filter parameters."""
-        from src.core.container import get_list_holdings_by_user_handler
-
-        app.dependency_overrides[get_list_holdings_by_user_handler] = (
-            lambda: MockListHoldingsHandler(holdings=[mock_holding])
+        factory_key = handler_factory(ListHoldingsByUserHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListHoldingsHandler(
+            holdings=[mock_holding]
         )
 
         response = client.get("/api/v1/holdings?active_only=true&asset_type=equity")
 
         assert response.status_code == 200
 
-        app.dependency_overrides.pop(get_list_holdings_by_user_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -289,10 +294,9 @@ class TestListHoldingsByAccount:
         self, client, mock_account_id, mock_holding
     ):
         """GET /api/v1/accounts/{id}/holdings returns holdings."""
-        from src.core.container import get_list_holdings_by_account_handler
-
-        app.dependency_overrides[get_list_holdings_by_account_handler] = (
-            lambda: MockListHoldingsHandler(holdings=[mock_holding])
+        factory_key = handler_factory(ListHoldingsByAccountHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListHoldingsHandler(
+            holdings=[mock_holding]
         )
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}/holdings")
@@ -302,14 +306,13 @@ class TestListHoldingsByAccount:
         assert len(data["holdings"]) == 1
         assert data["total_count"] == 1
 
-        app.dependency_overrides.pop(get_list_holdings_by_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_holdings_account_not_found(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/holdings returns 404 when not found."""
-        from src.core.container import get_list_holdings_by_account_handler
-
-        app.dependency_overrides[get_list_holdings_by_account_handler] = (
-            lambda: MockListHoldingsHandler(error="Account not found")
+        factory_key = handler_factory(ListHoldingsByAccountHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListHoldingsHandler(
+            error="Account not found"
         )
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}/holdings")
@@ -318,21 +321,20 @@ class TestListHoldingsByAccount:
         data = response.json()
         assert "not_found" in data["type"]
 
-        app.dependency_overrides.pop(get_list_holdings_by_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_holdings_forbidden(self, client, mock_account_id):
         """GET /api/v1/accounts/{id}/holdings returns 403 when not owned."""
-        from src.core.container import get_list_holdings_by_account_handler
-
-        app.dependency_overrides[get_list_holdings_by_account_handler] = (
-            lambda: MockListHoldingsHandler(error="Account not owned by user")
+        factory_key = handler_factory(ListHoldingsByAccountHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListHoldingsHandler(
+            error="Account not owned by user"
         )
 
         response = client.get(f"/api/v1/accounts/{mock_account_id}/holdings")
 
         assert response.status_code == 403
 
-        app.dependency_overrides.pop(get_list_holdings_by_account_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -346,11 +348,8 @@ class TestSyncHoldings:
 
     def test_sync_holdings_success(self, client, mock_account_id):
         """POST /api/v1/accounts/{id}/holdings/syncs syncs holdings."""
-        from src.core.container import get_sync_holdings_handler
-
-        app.dependency_overrides[get_sync_holdings_handler] = (
-            lambda: MockSyncHoldingsHandler()
-        )
+        factory_key = handler_factory(SyncHoldingsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncHoldingsHandler()
 
         response = client.post(
             f"/api/v1/accounts/{mock_account_id}/holdings/syncs",
@@ -363,15 +362,12 @@ class TestSyncHoldings:
         assert data["updated"] == 2
         assert "message" in data
 
-        app.dependency_overrides.pop(get_sync_holdings_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_holdings_force(self, client, mock_account_id):
         """POST /api/v1/accounts/{id}/holdings/syncs with force=true."""
-        from src.core.container import get_sync_holdings_handler
-
-        app.dependency_overrides[get_sync_holdings_handler] = (
-            lambda: MockSyncHoldingsHandler()
-        )
+        factory_key = handler_factory(SyncHoldingsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncHoldingsHandler()
 
         response = client.post(
             f"/api/v1/accounts/{mock_account_id}/holdings/syncs",
@@ -380,14 +376,13 @@ class TestSyncHoldings:
 
         assert response.status_code == 201
 
-        app.dependency_overrides.pop(get_sync_holdings_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_holdings_account_not_found(self, client, mock_account_id):
         """POST /api/v1/accounts/{id}/holdings/syncs returns 404."""
-        from src.core.container import get_sync_holdings_handler
-
-        app.dependency_overrides[get_sync_holdings_handler] = (
-            lambda: MockSyncHoldingsHandler(error="Account not found")
+        factory_key = handler_factory(SyncHoldingsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncHoldingsHandler(
+            error="Account not found"
         )
 
         response = client.post(
@@ -397,14 +392,13 @@ class TestSyncHoldings:
 
         assert response.status_code == 404
 
-        app.dependency_overrides.pop(get_sync_holdings_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_holdings_rate_limited(self, client, mock_account_id):
         """POST /api/v1/accounts/{id}/holdings/syncs returns 429 when too soon."""
-        from src.core.container import get_sync_holdings_handler
-
-        app.dependency_overrides[get_sync_holdings_handler] = (
-            lambda: MockSyncHoldingsHandler(error="Holdings were recently synced")
+        factory_key = handler_factory(SyncHoldingsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncHoldingsHandler(
+            error="Holdings were recently synced"
         )
 
         response = client.post(
@@ -414,14 +408,13 @@ class TestSyncHoldings:
 
         assert response.status_code == 429
 
-        app.dependency_overrides.pop(get_sync_holdings_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_holdings_provider_error(self, client, mock_account_id):
         """POST /api/v1/accounts/{id}/holdings/syncs returns 502 on provider error."""
-        from src.core.container import get_sync_holdings_handler
-
-        app.dependency_overrides[get_sync_holdings_handler] = (
-            lambda: MockSyncHoldingsHandler(error="Provider API error: timeout")
+        factory_key = handler_factory(SyncHoldingsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncHoldingsHandler(
+            error="Provider API error: timeout"
         )
 
         response = client.post(
@@ -432,4 +425,4 @@ class TestSyncHoldings:
         # Provider errors should map to external service error (502)
         assert response.status_code == 502
 
-        app.dependency_overrides.pop(get_sync_holdings_handler, None)
+        app.dependency_overrides.pop(factory_key, None)

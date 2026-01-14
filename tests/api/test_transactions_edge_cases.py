@@ -12,6 +12,13 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.sync_transactions_handler import (
+    SyncTransactionsHandler,
+)
+from src.application.queries.handlers.list_transactions_handler import (
+    ListTransactionsByDateRangeHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -121,12 +128,9 @@ class TestTransactionsEdgeCases:
 
     def test_sync_transactions_rate_limit_error(self, client, mock_account_id):
         """POST /api/v1/transactions/syncs returns 429 for rate limit errors."""
-        from src.core.container import get_sync_transactions_handler
-
-        app.dependency_overrides[get_sync_transactions_handler] = (
-            lambda: MockSyncTransactionsHandler(
-                error="Sync recently synced, wait before retrying"
-            )
+        factory_key = handler_factory(SyncTransactionsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncTransactionsHandler(
+            error="Sync recently synced, wait before retrying"
         )
 
         response = client.post(
@@ -138,14 +142,13 @@ class TestTransactionsEdgeCases:
         data = response.json()
         assert data["status"] == 429
 
-        app.dependency_overrides.pop(get_sync_transactions_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_transactions_invalid_input_error(self, client, mock_account_id):
         """POST /api/v1/transactions/syncs returns 400 for invalid input errors."""
-        from src.core.container import get_sync_transactions_handler
-
-        app.dependency_overrides[get_sync_transactions_handler] = (
-            lambda: MockSyncTransactionsHandler(error="Invalid date range specified")
+        factory_key = handler_factory(SyncTransactionsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncTransactionsHandler(
+            error="Invalid date range specified"
         )
 
         response = client.post(
@@ -157,14 +160,13 @@ class TestTransactionsEdgeCases:
         data = response.json()
         assert data["status"] == 400
 
-        app.dependency_overrides.pop(get_sync_transactions_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_sync_transactions_default_error_mapping(self, client, mock_account_id):
         """POST /api/v1/transactions/syncs returns 500 for unmapped errors."""
-        from src.core.container import get_sync_transactions_handler
-
-        app.dependency_overrides[get_sync_transactions_handler] = (
-            lambda: MockSyncTransactionsHandler(error="Unknown database error occurred")
+        factory_key = handler_factory(SyncTransactionsHandler)
+        app.dependency_overrides[factory_key] = lambda: MockSyncTransactionsHandler(
+            error="Unknown database error occurred"
         )
 
         response = client.post(
@@ -176,15 +178,14 @@ class TestTransactionsEdgeCases:
         data = response.json()
         assert data["status"] == 500
 
-        app.dependency_overrides.pop(get_sync_transactions_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_transactions_by_account_date_range_error(
         self, client, mock_account_id
     ):
         """GET /api/v1/accounts/{id}/transactions handles date range errors."""
-        from src.core.container import get_list_transactions_by_date_range_handler
-
-        app.dependency_overrides[get_list_transactions_by_date_range_handler] = (
+        factory_key = handler_factory(ListTransactionsByDateRangeHandler)
+        app.dependency_overrides[factory_key] = (
             lambda: MockListTransactionsByDateRangeHandler(error="Account not found")
         )
 
@@ -198,4 +199,4 @@ class TestTransactionsEdgeCases:
         data = response.json()
         assert data["status"] == 404
 
-        app.dependency_overrides.pop(get_list_transactions_by_date_range_handler, None)
+        app.dependency_overrides.pop(factory_key, None)

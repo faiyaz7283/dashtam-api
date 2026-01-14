@@ -67,6 +67,7 @@ from src.domain.protocols.provider_connection_repository import (
     ProviderConnectionRepository,
 )
 from src.domain.protocols.provider_repository import ProviderRepository
+from src.domain.protocols.provider_factory_protocol import ProviderFactoryProtocol
 from src.domain.protocols.provider_protocol import (
     OAuthProviderProtocol,
     OAuthTokens,
@@ -124,6 +125,7 @@ __all__ = [
     "OAuthTokens",
     "ProviderAccountData",
     "ProviderConnectionRepository",
+    "ProviderFactoryProtocol",
     "ProviderHoldingData",
     "ProviderProtocol",
     "ProviderRepository",

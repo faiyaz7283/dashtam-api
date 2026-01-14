@@ -32,9 +32,24 @@ if TYPE_CHECKING:
     from src.domain.protocols.email_protocol import EmailProtocol
     from src.domain.protocols.logger_protocol import LoggerProtocol
     from src.domain.protocols.password_hashing_protocol import PasswordHashingProtocol
+    from src.domain.protocols.password_reset_token_service_protocol import (
+        PasswordResetTokenServiceProtocol,
+    )
+    from src.domain.protocols.provider_factory_protocol import ProviderFactoryProtocol
     from src.domain.protocols.rate_limit_protocol import RateLimitProtocol
+    from src.domain.protocols.refresh_token_service_protocol import (
+        RefreshTokenServiceProtocol,
+    )
     from src.domain.protocols.secrets_protocol import SecretsProtocol
+    from src.domain.protocols.session_cache_protocol import SessionCache
+    from src.domain.protocols.session_enricher_protocol import (
+        DeviceEnricher,
+        LocationEnricher,
+    )
     from src.domain.protocols.token_generation_protocol import TokenGenerationProtocol
+    from src.domain.protocols.provider_connection_cache_protocol import (
+        ProviderConnectionCache,
+    )
     from src.infrastructure.cache.cache_keys import CacheKeys
     from src.infrastructure.cache.cache_metrics import CacheMetrics
     from src.infrastructure.providers.encryption_service import EncryptionService
@@ -521,3 +536,126 @@ def get_logger() -> "LoggerProtocol":
 
         use_json = env in {"testing", "ci"}
         return ConsoleAdapter(use_json=use_json)
+
+
+# ============================================================================
+# Session & Cache Infrastructure (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_session_cache() -> "SessionCache":
+    """Get session cache singleton (app-scoped).
+
+    Returns RedisSessionCache for session storage with user indexing.
+    Uses shared Redis connection pool.
+
+    Returns:
+        Session cache implementing SessionCache protocol.
+    """
+    from src.infrastructure.cache import RedisSessionCache
+
+    return RedisSessionCache(cache=get_cache())
+
+
+@lru_cache()
+def get_provider_connection_cache() -> "ProviderConnectionCache":
+    """Get provider connection cache singleton (app-scoped).
+
+    Returns RedisProviderConnectionCache for connection storage.
+    Uses shared Redis connection pool.
+
+    Returns:
+        Provider connection cache implementing ProviderConnectionCache protocol.
+    """
+    from src.infrastructure.cache import RedisProviderConnectionCache
+
+    return RedisProviderConnectionCache(cache=get_cache())
+
+
+# ============================================================================
+# Enrichers (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_device_enricher() -> "DeviceEnricher":
+    """Get device enricher singleton (app-scoped).
+
+    Returns UserAgentDeviceEnricher for parsing user agent strings.
+
+    Returns:
+        Device enricher implementing DeviceEnricher protocol.
+    """
+    from src.infrastructure.enrichers.device_enricher import UserAgentDeviceEnricher
+
+    return UserAgentDeviceEnricher(logger=get_logger())
+
+
+@lru_cache()
+def get_location_enricher() -> "LocationEnricher":
+    """Get location enricher singleton (app-scoped).
+
+    Returns IPLocationEnricher for IP geolocation.
+
+    Returns:
+        Location enricher implementing LocationEnricher protocol.
+    """
+    from src.infrastructure.enrichers.location_enricher import IPLocationEnricher
+
+    return IPLocationEnricher(logger=get_logger())
+
+
+# ============================================================================
+# Token Services (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_refresh_token_service() -> "RefreshTokenServiceProtocol":
+    """Get refresh token service singleton (app-scoped).
+
+    Returns RefreshTokenService for generating and verifying refresh tokens.
+
+    Returns:
+        Refresh token service implementing RefreshTokenServiceProtocol.
+    """
+    from src.infrastructure.security.refresh_token_service import RefreshTokenService
+
+    return RefreshTokenService()
+
+
+@lru_cache()
+def get_password_reset_token_service() -> "PasswordResetTokenServiceProtocol":
+    """Get password reset token service singleton (app-scoped).
+
+    Returns PasswordResetTokenService for generating password reset tokens.
+
+    Returns:
+        Password reset token service implementing PasswordResetTokenServiceProtocol.
+    """
+    from src.infrastructure.security.password_reset_token_service import (
+        PasswordResetTokenService,
+    )
+
+    return PasswordResetTokenService()
+
+
+# ============================================================================
+# Provider Factory (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_provider_factory() -> "ProviderFactoryProtocol":
+    """Get provider factory singleton (app-scoped).
+
+    Returns ProviderFactory for runtime provider resolution.
+    Used by handlers that need to resolve providers dynamically.
+
+    Returns:
+        Provider factory implementing ProviderFactoryProtocol.
+    """
+    from src.infrastructure.providers.provider_factory import ProviderFactory
+
+    return ProviderFactory()

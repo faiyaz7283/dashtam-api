@@ -103,7 +103,6 @@ class RefreshAccessTokenHandler:
         cache: CacheProtocol | None = None,
         cache_keys: CacheKeysProtocol | None = None,
         cache_metrics: CacheMetricsProtocol | None = None,
-        cache_ttl: int = 60,
     ) -> None:
         """Initialize refresh handler with dependencies.
 
@@ -117,7 +116,6 @@ class RefreshAccessTokenHandler:
             cache: Optional cache for security config (MEDIUM priority optimization).
             cache_keys: Optional cache key builder.
             cache_metrics: Optional cache metrics tracker.
-            cache_ttl: Cache TTL in seconds (default: 60 = 1 minute).
         """
         self._user_repo = user_repo
         self._refresh_token_repo = refresh_token_repo
@@ -128,7 +126,6 @@ class RefreshAccessTokenHandler:
         self._cache = cache
         self._cache_keys = cache_keys
         self._cache_metrics = cache_metrics
-        self._cache_ttl = cache_ttl
 
     async def handle(
         self, cmd: RefreshAccessToken, request: "Request | None" = None
@@ -458,7 +455,11 @@ class RefreshAccessTokenHandler:
                     }
                 )
 
-                await self._cache.set(cache_key, cache_value, ttl=self._cache_ttl)
+                from src.core.config import settings
+
+                await self._cache.set(
+                    cache_key, cache_value, ttl=settings.cache_security_ttl
+                )
             except Exception as e:
                 # Fail-open: Cache write failure should not block response
                 logger.warning(

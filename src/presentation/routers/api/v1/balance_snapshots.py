@@ -13,14 +13,12 @@ Reference:
     - docs/architecture/error-handling-architecture.md
 """
 
-from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Path, Query, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.errors import ApplicationError, ApplicationErrorCode
 from src.application.queries.balance_snapshot_queries import (
@@ -33,87 +31,15 @@ from src.application.queries.handlers.balance_snapshot_handlers import (
     GetLatestBalanceSnapshotsHandler,
     ListBalanceSnapshotsByAccountHandler,
 )
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure
-from src.domain.protocols.account_repository import AccountRepository
-from src.domain.protocols.balance_snapshot_repository import BalanceSnapshotRepository
-from src.domain.protocols.provider_connection_repository import (
-    ProviderConnectionRepository,
-)
-from src.infrastructure.persistence.repositories import (
-    AccountRepository as AccountRepositoryImpl,
-    BalanceSnapshotRepository as BalanceSnapshotRepositoryImpl,
-    ProviderConnectionRepository as ProviderConnectionRepositoryImpl,
-)
 from src.presentation.routers.api.middleware.auth_dependencies import AuthenticatedUser
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
-from src.core.container import get_database
 from src.schemas.balance_snapshot_schemas import (
     BalanceHistoryResponse,
     LatestSnapshotsResponse,
 )
-
-
-# =============================================================================
-# Dependency Injection Factories
-# =============================================================================
-
-
-async def get_balance_snapshot_repo(
-    session: AsyncSession = Depends(lambda: get_database().get_session()),
-) -> AsyncGenerator[BalanceSnapshotRepository, None]:
-    """Get BalanceSnapshotRepository instance."""
-    async with get_database().get_session() as session:
-        yield BalanceSnapshotRepositoryImpl(session)
-
-
-async def get_account_repo(
-    session: AsyncSession = Depends(lambda: get_database().get_session()),
-) -> AsyncGenerator[AccountRepository, None]:
-    """Get AccountRepository instance."""
-    async with get_database().get_session() as session:
-        yield AccountRepositoryImpl(session)
-
-
-async def get_connection_repo(
-    session: AsyncSession = Depends(lambda: get_database().get_session()),
-) -> AsyncGenerator[ProviderConnectionRepository, None]:
-    """Get ProviderConnectionRepository instance."""
-    async with get_database().get_session() as session:
-        yield ProviderConnectionRepositoryImpl(session)
-
-
-async def get_balance_history_handler(
-    snapshot_repo: BalanceSnapshotRepository = Depends(get_balance_snapshot_repo),
-    account_repo: AccountRepository = Depends(get_account_repo),
-    connection_repo: ProviderConnectionRepository = Depends(get_connection_repo),
-) -> GetBalanceHistoryHandler:
-    """Get GetBalanceHistoryHandler instance."""
-    return GetBalanceHistoryHandler(
-        snapshot_repo=snapshot_repo,
-        account_repo=account_repo,
-        connection_repo=connection_repo,
-    )
-
-
-async def get_list_snapshots_handler(
-    snapshot_repo: BalanceSnapshotRepository = Depends(get_balance_snapshot_repo),
-    account_repo: AccountRepository = Depends(get_account_repo),
-    connection_repo: ProviderConnectionRepository = Depends(get_connection_repo),
-) -> ListBalanceSnapshotsByAccountHandler:
-    """Get ListBalanceSnapshotsByAccountHandler instance."""
-    return ListBalanceSnapshotsByAccountHandler(
-        snapshot_repo=snapshot_repo,
-        account_repo=account_repo,
-        connection_repo=connection_repo,
-    )
-
-
-async def get_latest_snapshots_handler(
-    snapshot_repo: BalanceSnapshotRepository = Depends(get_balance_snapshot_repo),
-) -> GetLatestBalanceSnapshotsHandler:
-    """Get GetLatestBalanceSnapshotsHandler instance."""
-    return GetLatestBalanceSnapshotsHandler(snapshot_repo=snapshot_repo)
 
 
 # =============================================================================
@@ -167,7 +93,9 @@ def _map_snapshot_error(error: str) -> ApplicationError:
 async def get_latest_snapshots(
     request: Request,
     current_user: AuthenticatedUser,
-    handler: GetLatestBalanceSnapshotsHandler = Depends(get_latest_snapshots_handler),
+    handler: GetLatestBalanceSnapshotsHandler = Depends(
+        handler_factory(GetLatestBalanceSnapshotsHandler)
+    ),
 ) -> LatestSnapshotsResponse | JSONResponse:
     """Get latest balance snapshot for each account.
 
@@ -206,7 +134,9 @@ async def get_balance_history(
             description="Filter by snapshot source (account_sync, manual_sync, etc.)"
         ),
     ] = None,
-    handler: GetBalanceHistoryHandler = Depends(get_balance_history_handler),
+    handler: GetBalanceHistoryHandler = Depends(
+        handler_factory(GetBalanceHistoryHandler)
+    ),
 ) -> BalanceHistoryResponse | JSONResponse:
     """Get balance history for an account.
 
@@ -246,7 +176,9 @@ async def list_balance_snapshots(
         str | None,
         Query(description="Filter by snapshot source"),
     ] = None,
-    handler: ListBalanceSnapshotsByAccountHandler = Depends(get_list_snapshots_handler),
+    handler: ListBalanceSnapshotsByAccountHandler = Depends(
+        handler_factory(ListBalanceSnapshotsByAccountHandler)
+    ),
 ) -> BalanceHistoryResponse | JSONResponse:
     """List recent balance snapshots for an account.
 

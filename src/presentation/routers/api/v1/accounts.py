@@ -36,12 +36,7 @@ from src.application.queries.handlers.list_accounts_handler import (
     ListAccountsByConnectionHandler,
     ListAccountsByUserHandler,
 )
-from src.core.container import (
-    get_get_account_handler,
-    get_list_accounts_by_connection_handler,
-    get_list_accounts_by_user_handler,
-    get_sync_accounts_handler,
-)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure
 from src.presentation.routers.api.middleware.auth_dependencies import AuthenticatedUser
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
@@ -121,7 +116,9 @@ async def list_accounts(
         str | None,
         Query(description="Filter by account type (e.g., brokerage, ira)"),
     ] = None,
-    handler: ListAccountsByUserHandler = Depends(get_list_accounts_by_user_handler),
+    handler: ListAccountsByUserHandler = Depends(
+        handler_factory(ListAccountsByUserHandler)
+    ),
 ) -> AccountListResponse | JSONResponse:
     """List all accounts for the authenticated user.
 
@@ -169,7 +166,7 @@ async def get_account(
     request: Request,
     current_user: AuthenticatedUser,
     account_id: Annotated[UUID, Path(description="Account UUID")],
-    handler: GetAccountHandler = Depends(get_get_account_handler),
+    handler: GetAccountHandler = Depends(handler_factory(GetAccountHandler)),
 ) -> AccountResponse | JSONResponse:
     """Get a specific account.
 
@@ -206,7 +203,7 @@ async def sync_accounts(
     request: Request,
     current_user: AuthenticatedUser,
     data: SyncAccountsRequest,
-    handler: SyncAccountsHandler = Depends(get_sync_accounts_handler),
+    handler: SyncAccountsHandler = Depends(handler_factory(SyncAccountsHandler)),
 ) -> SyncAccountsResponse | JSONResponse:
     """Sync accounts from a provider connection.
 
@@ -270,7 +267,7 @@ async def list_accounts_by_connection(
         Query(description="Only return active accounts"),
     ] = False,
     handler: ListAccountsByConnectionHandler = Depends(
-        get_list_accounts_by_connection_handler
+        handler_factory(ListAccountsByConnectionHandler)
     ),
 ) -> AccountListResponse | JSONResponse:
     """List accounts for a specific provider connection.

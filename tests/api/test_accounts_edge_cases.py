@@ -12,6 +12,10 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.queries.handlers.list_accounts_handler import (
+    ListAccountsByUserHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -103,12 +107,9 @@ class TestAccountsEdgeCases:
 
     def test_list_accounts_rate_limit_error(self, client):
         """GET /api/v1/accounts returns 429 for rate limit errors."""
-        from src.core.container import get_list_accounts_by_user_handler
-
-        app.dependency_overrides[get_list_accounts_by_user_handler] = (
-            lambda: MockListAccountsByUserHandler(
-                error="Sync too soon, try again later"
-            )
+        factory_key = handler_factory(ListAccountsByUserHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListAccountsByUserHandler(
+            error="Sync too soon, try again later"
         )
 
         response = client.get("/api/v1/accounts")
@@ -117,16 +118,13 @@ class TestAccountsEdgeCases:
         data = response.json()
         assert data["status"] == 429
 
-        app.dependency_overrides.pop(get_list_accounts_by_user_handler, None)
+        app.dependency_overrides.pop(factory_key, None)
 
     def test_list_accounts_invalid_input_error(self, client):
         """GET /api/v1/accounts returns 400 for invalid input errors."""
-        from src.core.container import get_list_accounts_by_user_handler
-
-        app.dependency_overrides[get_list_accounts_by_user_handler] = (
-            lambda: MockListAccountsByUserHandler(
-                error="Invalid account type specified"
-            )
+        factory_key = handler_factory(ListAccountsByUserHandler)
+        app.dependency_overrides[factory_key] = lambda: MockListAccountsByUserHandler(
+            error="Invalid account type specified"
         )
 
         response = client.get("/api/v1/accounts")
@@ -135,4 +133,4 @@ class TestAccountsEdgeCases:
         data = response.json()
         assert data["status"] == 400
 
-        app.dependency_overrides.pop(get_list_accounts_by_user_handler, None)
+        app.dependency_overrides.pop(factory_key, None)

@@ -37,12 +37,7 @@ from src.application.queries.transaction_queries import (
     ListTransactionsByAccount,
     ListTransactionsByDateRange,
 )
-from src.core.container import (
-    get_get_transaction_handler,
-    get_list_transactions_by_account_handler,
-    get_list_transactions_by_date_range_handler,
-    get_sync_transactions_handler,
-)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure
 from src.presentation.routers.api.middleware.auth_dependencies import AuthenticatedUser
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
@@ -115,7 +110,7 @@ async def get_transaction(
     request: Request,
     current_user: AuthenticatedUser,
     transaction_id: Annotated[UUID, Path(description="Transaction UUID")],
-    handler: GetTransactionHandler = Depends(get_get_transaction_handler),
+    handler: GetTransactionHandler = Depends(handler_factory(GetTransactionHandler)),
 ) -> TransactionResponse | JSONResponse:
     """Get a specific transaction.
 
@@ -152,7 +147,9 @@ async def sync_transactions(
     request: Request,
     current_user: AuthenticatedUser,
     data: SyncTransactionsRequest,
-    handler: SyncTransactionsHandler = Depends(get_sync_transactions_handler),
+    handler: SyncTransactionsHandler = Depends(
+        handler_factory(SyncTransactionsHandler)
+    ),
 ) -> SyncTransactionsResponse | JSONResponse:
     """Sync transactions from a provider connection.
 
@@ -235,10 +232,10 @@ async def list_transactions_by_account(
         Query(description="Filter by end date (inclusive)"),
     ] = None,
     account_handler: ListTransactionsByAccountHandler = Depends(
-        get_list_transactions_by_account_handler
+        handler_factory(ListTransactionsByAccountHandler)
     ),
     date_handler: ListTransactionsByDateRangeHandler = Depends(
-        get_list_transactions_by_date_range_handler
+        handler_factory(ListTransactionsByDateRangeHandler)
     ),
 ) -> TransactionListResponse | JSONResponse:
     """List transactions for a specific account.

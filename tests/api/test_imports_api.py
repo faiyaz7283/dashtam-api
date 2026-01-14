@@ -19,6 +19,10 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.import_from_file_handler import (
+    ImportFromFileHandler,
+)
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -246,11 +250,10 @@ class TestImportFromFile:
         self, client, mock_import_result, sample_qfx_content
     ):
         """Test successful QFX file import."""
-        from src.core.container import get_import_from_file_handler
-
-        # Arrange - mock handler
+        # Arrange - mock handler using handler_factory key
         mock_handler = MockImportFromFileHandler(result=mock_import_result)
-        app.dependency_overrides[get_import_from_file_handler] = lambda: mock_handler
+        factory_key = handler_factory(ImportFromFileHandler)
+        app.dependency_overrides[factory_key] = lambda: mock_handler
 
         try:
             # Act
@@ -274,17 +277,16 @@ class TestImportFromFile:
             assert data["transactions_skipped"] == 0
             assert "connection_id" in data
         finally:
-            app.dependency_overrides.pop(get_import_from_file_handler, None)
+            app.dependency_overrides.pop(factory_key, None)
 
     def test_import_ofx_file_success(
         self, client, mock_import_result, sample_qfx_content
     ):
         """Test successful OFX file import (same format as QFX)."""
-        from src.core.container import get_import_from_file_handler
-
-        # Arrange
+        # Arrange - mock handler using handler_factory key
         mock_handler = MockImportFromFileHandler(result=mock_import_result)
-        app.dependency_overrides[get_import_from_file_handler] = lambda: mock_handler
+        factory_key = handler_factory(ImportFromFileHandler)
+        app.dependency_overrides[factory_key] = lambda: mock_handler
 
         try:
             # Act - use .ofx extension
@@ -302,7 +304,7 @@ class TestImportFromFile:
             # Assert
             assert response.status_code == 201
         finally:
-            app.dependency_overrides.pop(get_import_from_file_handler, None)
+            app.dependency_overrides.pop(factory_key, None)
 
     def test_import_unsupported_format_returns_415(self, client):
         """Test importing unsupported file format returns 415."""
@@ -333,13 +335,12 @@ class TestImportFromFile:
 
     def test_import_invalid_file_returns_400(self, client):
         """Test importing invalid/unparseable file returns 400."""
-        from src.core.container import get_import_from_file_handler
-
         # Arrange - handler returns parse error
         mock_handler = MockImportFromFileHandler(
             error="Invalid or unparseable file: Failed to parse QFX file"
         )
-        app.dependency_overrides[get_import_from_file_handler] = lambda: mock_handler
+        factory_key = handler_factory(ImportFromFileHandler)
+        app.dependency_overrides[factory_key] = lambda: mock_handler
 
         try:
             # Act
@@ -362,15 +363,14 @@ class TestImportFromFile:
                 or "unparseable" in data["detail"].lower()
             )
         finally:
-            app.dependency_overrides.pop(get_import_from_file_handler, None)
+            app.dependency_overrides.pop(factory_key, None)
 
     def test_import_no_accounts_returns_400(self, client):
         """Test file with no account data returns 400."""
-        from src.core.container import get_import_from_file_handler
-
         # Arrange
         mock_handler = MockImportFromFileHandler(error="File contains no account data")
-        app.dependency_overrides[get_import_from_file_handler] = lambda: mock_handler
+        factory_key = handler_factory(ImportFromFileHandler)
+        app.dependency_overrides[factory_key] = lambda: mock_handler
 
         try:
             # Act
@@ -390,7 +390,7 @@ class TestImportFromFile:
             data = response.json()
             assert "no account" in data["detail"].lower()
         finally:
-            app.dependency_overrides.pop(get_import_from_file_handler, None)
+            app.dependency_overrides.pop(factory_key, None)
 
     def test_import_requires_authentication(self, client):
         """Test import endpoint requires authentication."""
@@ -433,11 +433,10 @@ class TestImportFromFile:
         self, client, mock_import_result, sample_qfx_content
     ):
         """Test file extension matching is case-insensitive."""
-        from src.core.container import get_import_from_file_handler
-
         # Arrange
         mock_handler = MockImportFromFileHandler(result=mock_import_result)
-        app.dependency_overrides[get_import_from_file_handler] = lambda: mock_handler
+        factory_key = handler_factory(ImportFromFileHandler)
+        app.dependency_overrides[factory_key] = lambda: mock_handler
 
         try:
             # Act - uppercase extension
@@ -455,7 +454,7 @@ class TestImportFromFile:
             # Assert
             assert response.status_code == 201
         finally:
-            app.dependency_overrides.pop(get_import_from_file_handler, None)
+            app.dependency_overrides.pop(factory_key, None)
 
 
 # =============================================================================
@@ -471,10 +470,9 @@ class TestImportResponseSchema:
         self, client, mock_import_result, sample_qfx_content
     ):
         """Test successful import response contains all required fields."""
-        from src.core.container import get_import_from_file_handler
-
         mock_handler = MockImportFromFileHandler(result=mock_import_result)
-        app.dependency_overrides[get_import_from_file_handler] = lambda: mock_handler
+        factory_key = handler_factory(ImportFromFileHandler)
+        app.dependency_overrides[factory_key] = lambda: mock_handler
 
         try:
             response = client.post(
@@ -506,7 +504,7 @@ class TestImportResponseSchema:
             assert isinstance(data["transactions_skipped"], int)
             assert isinstance(data["message"], str)
         finally:
-            app.dependency_overrides.pop(get_import_from_file_handler, None)
+            app.dependency_overrides.pop(factory_key, None)
 
     def test_error_response_is_rfc7807_compliant(self, client):
         """Test error responses follow RFC 7807 Problem Details format."""

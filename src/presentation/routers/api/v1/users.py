@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from src.application.commands.auth_commands import RegisterUser
 from src.application.commands.handlers.register_user_handler import RegisterUserHandler
 from src.application.errors import ApplicationError, ApplicationErrorCode
-from src.core.container import get_register_user_handler
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.presentation.routers.api.middleware.trace_middleware import get_trace_id
 from src.presentation.routers.api.v1.errors import ErrorResponseBuilder
@@ -26,7 +26,7 @@ from src.schemas.auth_schemas import (
 async def create_user(
     request: Request,
     data: UserCreateRequest,
-    handler: RegisterUserHandler = Depends(get_register_user_handler),
+    handler: RegisterUserHandler = Depends(handler_factory(RegisterUserHandler)),
 ) -> UserCreateResponse | JSONResponse:
     """Create a new user (registration).
 

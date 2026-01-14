@@ -28,6 +28,25 @@ import pytest
 from fastapi.testclient import TestClient
 from uuid_extensions import uuid7
 
+from src.application.commands.handlers.authenticate_user_handler import (
+    AuthenticateUserHandler,
+)
+from src.application.commands.handlers.create_session_handler import (
+    CreateSessionHandler,
+)
+from src.application.commands.handlers.generate_auth_tokens_handler import (
+    GenerateAuthTokensHandler,
+)
+from src.application.commands.handlers.logout_user_handler import LogoutUserHandler
+from src.application.commands.handlers.revoke_all_sessions_handler import (
+    RevokeAllSessionsHandler,
+)
+from src.application.commands.handlers.revoke_session_handler import (
+    RevokeSessionHandler,
+)
+from src.application.queries.handlers.get_session_handler import GetSessionHandler
+from src.application.queries.handlers.list_sessions_handler import ListSessionsHandler
+from src.core.container.handler_factory import handler_factory
 from src.core.result import Failure, Success
 from src.main import app
 
@@ -313,38 +332,34 @@ def mock_session_id():
 def override_dependencies(mock_user_id, mock_session_id):
     """Override app dependencies with test doubles."""
     from src.core.container import (
-        get_authenticate_user_handler,
         get_cache,
-        get_create_session_handler,
         get_db_session,
-        get_generate_auth_tokens_handler,
-        get_logout_user_handler,
-        get_list_sessions_handler,
-        get_get_session_handler,
-        get_revoke_session_handler,
-        get_revoke_all_sessions_handler,
     )
     from unittest.mock import AsyncMock
 
-    # Override all session-related handlers
-    app.dependency_overrides[get_authenticate_user_handler] = (
+    # Override all session-related handlers using handler_factory
+    app.dependency_overrides[handler_factory(AuthenticateUserHandler)] = (
         lambda: StubAuthenticateUserHandler()
     )
-    app.dependency_overrides[get_create_session_handler] = (
+    app.dependency_overrides[handler_factory(CreateSessionHandler)] = (
         lambda: StubCreateSessionHandler()
     )
-    app.dependency_overrides[get_generate_auth_tokens_handler] = (
+    app.dependency_overrides[handler_factory(GenerateAuthTokensHandler)] = (
         lambda: StubGenerateAuthTokensHandler()
     )
-    app.dependency_overrides[get_logout_user_handler] = lambda: StubLogoutUserHandler()
-    app.dependency_overrides[get_list_sessions_handler] = (
+    app.dependency_overrides[handler_factory(LogoutUserHandler)] = (
+        lambda: StubLogoutUserHandler()
+    )
+    app.dependency_overrides[handler_factory(ListSessionsHandler)] = (
         lambda: StubListSessionsHandler()
     )
-    app.dependency_overrides[get_get_session_handler] = lambda: StubGetSessionHandler()
-    app.dependency_overrides[get_revoke_session_handler] = (
+    app.dependency_overrides[handler_factory(GetSessionHandler)] = (
+        lambda: StubGetSessionHandler()
+    )
+    app.dependency_overrides[handler_factory(RevokeSessionHandler)] = (
         lambda: StubRevokeSessionHandler()
     )
-    app.dependency_overrides[get_revoke_all_sessions_handler] = (
+    app.dependency_overrides[handler_factory(RevokeAllSessionsHandler)] = (
         lambda: StubRevokeAllSessionsHandler()
     )
 

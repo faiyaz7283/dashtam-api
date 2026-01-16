@@ -605,7 +605,7 @@ requires-dist = [
     { name = "casbin-async-sqlalchemy-adapter", specifier = ">=1.15.0" },
     { name = "cryptography", specifier = ">=46.0.2" },
     { name = "email-validator", specifier = ">=2.3.0" },
-    { name = "fastapi", specifier = ">=0.118.0" },
+    { name = "fastapi", specifier = ">=0.128.0" },
     { name = "geoip2", specifier = ">=5.1.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "ofxparse", specifier = ">=0.21" },

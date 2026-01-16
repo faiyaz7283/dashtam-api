@@ -17,7 +17,7 @@ implementation, but the architecture is designed to be adapter-agnostic.
    Redis is just one implementation
 2. **Async-First**: All cache operations are async for non-blocking I/O
 3. **Fail-Open**: Cache failures should not break core functionality
-4. **Type Safety**: Strong typing with Python 3.13+ features
+4. **Type Safety**: Strong typing with Python 3.14+ features
 5. **Protocol-Based**: Using Python Protocol for interfaces
 
 ### Architectural Decisions

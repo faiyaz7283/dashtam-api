@@ -70,7 +70,7 @@ class EventBusProtocol(Protocol):
     """Protocol for event bus implementations.
 
     Defines the contract that all event bus adapters must implement. This is
-    a structural protocol (no inheritance required) following Python 3.13+
+    a structural protocol (no inheritance required) following Python 3.14+
     best practices for interface definition.
 
     The event bus uses the Publisher-Subscriber pattern:

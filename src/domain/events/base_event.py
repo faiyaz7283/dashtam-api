@@ -82,7 +82,7 @@ class DomainEvent:
     Design Decisions:
         - **Frozen dataclass**: Ensures events are immutable (facts don't change)
         - **kw_only=True**: Forces keyword arguments (clarity, prevents mistakes)
-        - **slots=True**: Memory optimization (Python 3.10+)
+        - **slots=True**: Memory optimization
         - **Auto-generated IDs**: Simplifies event creation, ensures uniqueness
         - **UTC timestamps**: Avoids timezone confusion in distributed systems
 

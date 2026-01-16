@@ -350,7 +350,7 @@ class CasbinAdapter:
 
     Note:
         Enforcer is initialized at FastAPI startup (async required).
-        See src/main.py @app.on_event("startup") for initialization.
+        See src/main.py lifespan context manager for initialization.
 
     Usage:
         adapter = CasbinAdapter(

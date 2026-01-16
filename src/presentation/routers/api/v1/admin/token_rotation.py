@@ -120,7 +120,7 @@ async def create_global_rotation(
 async def create_user_rotation(
     request: Request,
     data: UserRotationRequest,
-    user_id: UUID = Path(..., description="User ID to rotate tokens for"),
+    user_id: UUID = Path(description="User ID to rotate tokens for"),
     current_user: CurrentUser = Depends(get_current_user),
     _admin_check: None = Depends(require_casbin_role("admin")),
     handler: TriggerUserTokenRotationHandler = Depends(

@@ -11,7 +11,7 @@ Architecture:
 - No framework dependencies in domain layer
 """
 
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol, ReadOnly, TypedDict
 
 from src.core.errors import DomainError
 from src.core.result import Result
@@ -24,17 +24,17 @@ class CacheEntry(TypedDict):
     NOT exposed to domain services (they just get string values).
 
     Attributes:
-        key: Cache key.
+        key: Cache key (immutable - ReadOnly).
         value: Cached value (string).
         ttl: Time to live in seconds (None = no expiration).
-        created_at: Unix timestamp when entry was created.
+        created_at: Unix timestamp when entry was created (immutable - ReadOnly).
         expires_at: Unix timestamp when entry expires (None if no TTL).
     """
 
-    key: str
+    key: ReadOnly[str]
     value: str
     ttl: int | None
-    created_at: float
+    created_at: ReadOnly[float]
     expires_at: float | None
 
 

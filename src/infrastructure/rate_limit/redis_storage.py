@@ -14,8 +14,6 @@ Note:
     RateLimitProtocol. It is not exposed directly to the presentation layer.
 """
 
-from __future__ import annotations
-
 import asyncio
 from dataclasses import dataclass
 from functools import partial

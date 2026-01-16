@@ -19,7 +19,7 @@ while maintaining proper error propagation and user-friendly HTTP responses.
 4. **Machine-Readable Codes**: All errors have enums for client handling
 5. **User-Friendly Messages**: Human-readable descriptions for end users
 6. **Detailed Logging**: Structured logs with trace IDs for debugging
-7. **Type Safety**: Strong typing with Python 3.13+ features
+7. **Type Safety**: Strong typing with Python 3.14+ features
 
 ### Exception Handling Boundaries
 

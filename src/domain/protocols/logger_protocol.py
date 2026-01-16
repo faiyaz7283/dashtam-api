@@ -32,8 +32,6 @@ Usage:
     request_logger.info("Request started")  # trace_id, user_id auto-included
 """
 
-from __future__ import annotations
-
 from typing import Any, Protocol
 
 

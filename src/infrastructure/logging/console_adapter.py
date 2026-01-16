@@ -9,8 +9,6 @@ structural subtyping). Any object with the same call signatures is compatible
 with LoggerProtocol.
 """
 
-from __future__ import annotations
-
 import logging
 import sys
 from typing import Any

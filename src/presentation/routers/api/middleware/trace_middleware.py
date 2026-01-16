@@ -4,8 +4,6 @@
 - Exposes get_trace_id() helper for logging calls outside request handlers
 """
 
-from __future__ import annotations
-
 from contextvars import ContextVar
 from typing import Awaitable, Callable
 from uuid_extensions import uuid7

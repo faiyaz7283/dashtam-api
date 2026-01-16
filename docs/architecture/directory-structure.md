@@ -89,7 +89,7 @@ graph TB
   - `providers.py` - Provider factory registration
   - `repositories.py` - Repository factories
 
-**Dependencies**: None (pure Python 3.13+)
+**Dependencies**: None (pure Python 3.14+)
 
 **Rules**:
 
@@ -917,7 +917,7 @@ class MemcachedAdapter:  # No inheritance
 - Different implementations (Redis, Memcached, InMemory)
 - Structural typing (no inheritance required)
 - Easy to swap implementations
-- Follows Python 3.13+ best practices
+- Follows Python 3.14+ best practices
 
 **Examples**: CacheProtocol, SecretsProtocol, LoggerProtocol, AuditProtocol
 

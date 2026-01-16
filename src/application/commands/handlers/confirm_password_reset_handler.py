@@ -23,8 +23,6 @@ Architecture:
 - NO infrastructure imports (repositories are injected via protocols)
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING

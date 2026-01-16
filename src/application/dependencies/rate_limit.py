@@ -31,8 +31,6 @@ Reference:
     - docs/architecture/rate-limit-architecture.md (Section 4)
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Annotated, Any, Callable, Coroutine
 
 from fastapi import Depends, HTTPException, Request

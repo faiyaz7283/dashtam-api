@@ -1594,7 +1594,7 @@ async def create_user(
 
 - **Pythonic**: Structural typing (duck typing with safety)
 - **Flexible**: No inheritance required, easier testing
-- **Modern**: Python 3.8+ feature, type checkers understand
+- **Modern**: Standard Python feature, type checkers understand
 
 **See**: `docs/architecture/protocols.md` for structural vs nominal typing, protocol implementations across Dashtam, testing strategies, and common pitfalls.
 

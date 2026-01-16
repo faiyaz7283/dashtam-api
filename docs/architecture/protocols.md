@@ -12,7 +12,7 @@
 - Difficult to adapt third-party code
 - Coupling between interface definition and implementation
 
-**Solution**: Protocol-based architecture using Python 3.8+ `Protocol`:
+**Solution**: Protocol-based architecture using Python `Protocol`:
 
 - **Structural typing**: Classes satisfy protocols by shape, not inheritance
 - **No inheritance required**: Duck typing with type safety

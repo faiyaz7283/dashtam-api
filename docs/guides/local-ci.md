@@ -191,7 +191,7 @@ make ci-lint
 **Possible causes**:
 
 1. **mypy version mismatch**
-2. **Different Python version** - CI uses Python 3.13
+2. **Different Python version** - CI uses Python 3.14
 
 **Solution**:
 

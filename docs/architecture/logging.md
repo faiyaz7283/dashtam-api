@@ -1655,11 +1655,14 @@ async def call_schwab_api(
 ### 9.3 Background Task Logging
 
 ```python
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from src.presentation.routers.api.middleware.trace_middleware import trace_id_context
 
-@app.on_event("startup")
-async def start_background_tasks():
-    """Start background tasks with logging."""
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan with background task startup."""
     logger = get_logger()
     
     async def refresh_tokens():
@@ -1688,8 +1691,14 @@ async def start_background_tasks():
                 trace_id=trace_id,
             )
     
-    # Schedule task
+    # Schedule task at startup
     asyncio.create_task(refresh_tokens())
+    
+    yield
+    
+    # Shutdown: cleanup if needed
+
+app = FastAPI(lifespan=lifespan)
 ```
 
 ---

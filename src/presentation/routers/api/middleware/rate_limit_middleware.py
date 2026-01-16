@@ -21,8 +21,6 @@ Reference:
     - docs/architecture/rate-limit-architecture.md (Section 4, 6, 7)
 """
 
-from __future__ import annotations
-
 import json
 from typing import TYPE_CHECKING, Awaitable, Callable
 

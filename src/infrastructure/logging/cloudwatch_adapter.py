@@ -9,8 +9,6 @@ Notes:
 - Designed to be created once (singleton via container.get_logger()).
 """
 
-from __future__ import annotations
-
 import atexit
 import json
 import threading

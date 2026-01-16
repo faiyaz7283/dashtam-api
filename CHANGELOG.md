@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-01-16
+
+### Security
+
+- **CVE-2026-23490**: Updated `pyasn1` 0.6.1 → 0.6.2 (OID decoder vulnerability)
+- **CVE-2026-21441**: Updated `urllib3` 2.6.2 → 2.6.3 (decompression bomb bypass, 8.9 High)
+- **GHSA-87hc-h4r5-73f7**: Updated `werkzeug` 3.1.4 → 3.1.5 (Windows device name vulnerability)
+
+### Changed
+
+- **FastAPI Upgrade**: 0.118.0 → 0.128.0
+  - Fixes v1.6.8 release oversight where FastAPI was not actually upgraded
+  - Simplified `Path()` parameters (removed Ellipsis, FastAPI 0.128 style)
+- **Python 3.14 Modernization**
+  - Removed `from __future__ import annotations` from 13 files (PEP 649 native)
+  - Added `ReadOnly` to `CacheEntry` TypedDict
+  - Updated version references in 9 documentation files
+- **Documentation**
+  - Updated deprecated `@app.on_event` examples to modern `lifespan` pattern
+  - Fixed GitHub repo URL in `mkdocs.yml`
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,385 tests pass, 88% coverage maintained
+- **Audit Reports**: See `~/references/audit/` for Python 3.14 and FastAPI audits
+- Files changed: 29+ files
+
 ## [1.8.0] - 2026-01-14
 
 ### Added

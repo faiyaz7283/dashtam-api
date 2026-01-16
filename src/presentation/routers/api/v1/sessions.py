@@ -494,7 +494,7 @@ async def list_sessions(
 
 async def get_session(
     request: Request,
-    session_id: UUID = Path(..., description="Session ID"),
+    session_id: UUID = Path(description="Session ID"),
     authorization: Annotated[str | None, Header()] = None,
     handler: GetSessionHandler = Depends(handler_factory(GetSessionHandler)),
     cache: CacheProtocol = Depends(get_cache),
@@ -554,7 +554,7 @@ async def get_session(
 
 async def revoke_session(
     request: Request,
-    session_id: UUID = Path(..., description="Session ID to revoke"),
+    session_id: UUID = Path(description="Session ID to revoke"),
     data: SessionRevokeRequest | None = None,
     authorization: Annotated[str | None, Header()] = None,
     handler: RevokeSessionHandler = Depends(handler_factory(RevokeSessionHandler)),

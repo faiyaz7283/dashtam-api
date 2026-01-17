@@ -44,7 +44,7 @@ def test_app():
     # Test endpoint that returns application error
     @app.get("/test/application-error")
     async def test_application_error(request: Request):
-        """Test endpoint that returns ApplicationError as RFC 7807."""
+        """Test endpoint that returns ApplicationError as RFC 9457."""
         error = ApplicationError(
             code=ApplicationErrorCode.NOT_FOUND,
             message="Test resource not found",
@@ -100,7 +100,7 @@ class TestErrorHandlingFlow:
     """Integration tests for complete error handling flow."""
 
     def test_unhandled_exception_converts_to_rfc7807(self, client):
-        """Test unhandled exception converts to RFC 7807 Problem Details."""
+        """Test unhandled exception converts to RFC 9457 Problem Details."""
         # Act
         response = client.get("/test/exception")
 
@@ -108,7 +108,7 @@ class TestErrorHandlingFlow:
         assert response.status_code == 500
         data = response.json()
 
-        # Verify RFC 7807 structure (required fields)
+        # Verify RFC 9457 structure (required fields)
         assert "type" in data
         assert "title" in data
         assert "status" in data
@@ -122,7 +122,7 @@ class TestErrorHandlingFlow:
         assert data["instance"] == "/test/exception"
 
     def test_application_error_returns_rfc7807(self, client):
-        """Test ApplicationError converts to RFC 7807 response."""
+        """Test ApplicationError converts to RFC 9457 response."""
         # Act
         response = client.get("/test/application-error")
 
@@ -130,7 +130,7 @@ class TestErrorHandlingFlow:
         assert response.status_code == 404
         data = response.json()
 
-        # Verify RFC 7807 structure
+        # Verify RFC 9457 structure
         assert data["type"].endswith("/errors/not_found")
         assert data["title"] == "Resource Not Found"
         assert data["status"] == 404
@@ -147,7 +147,7 @@ class TestErrorHandlingFlow:
         assert response.status_code == 400
         data = response.json()
 
-        # Verify RFC 7807 structure
+        # Verify RFC 9457 structure
         assert data["status"] == 400
         assert data["title"] == "Validation Failed"
 
@@ -170,7 +170,7 @@ class TestErrorHandlingFlow:
         # Assert
         data = response.json()
         # In TestClient, trace_id might not be set by middleware
-        # We verify RFC 7807 structure is valid either way
+        # We verify RFC 9457 structure is valid either way
         if "trace_id" in data:
             # If present, should be non-empty
             assert data["trace_id"]
@@ -185,7 +185,7 @@ class TestErrorHandlingFlow:
         assert response.headers["content-type"] == "application/json"
 
     def test_error_response_excludes_none_fields(self, client):
-        """Test RFC 7807 response excludes fields with None values."""
+        """Test RFC 9457 response excludes fields with None values."""
         # Act
         response = client.get("/test/application-error")
 
@@ -195,10 +195,10 @@ class TestErrorHandlingFlow:
         assert "errors" not in data
 
     def test_multiple_requests_return_valid_rfc7807(self, client):
-        """Test multiple requests each return valid RFC 7807 responses.
+        """Test multiple requests each return valid RFC 9457 responses.
 
         Note: TestClient limitations prevent testing trace_id uniqueness,
-        but we verify each response has proper RFC 7807 structure.
+        but we verify each response has proper RFC 9457 structure.
         """
         # Act
         response1 = client.get("/test/exception")
@@ -208,7 +208,7 @@ class TestErrorHandlingFlow:
         data1 = response1.json()
         data2 = response2.json()
 
-        # Both should be valid RFC 7807 responses
+        # Both should be valid RFC 9457 responses
         for data in [data1, data2]:
             assert data["status"] == 500
             assert data["title"] == "Internal Server Error"
@@ -226,7 +226,7 @@ class TestErrorHandlingFlow:
         assert isinstance(data, dict)
 
     def test_rfc7807_type_url_is_well_formed(self, client):
-        """Test RFC 7807 type field contains valid URL."""
+        """Test RFC 9457 type field contains valid URL."""
         # Act
         response = client.get("/test/application-error")
 
@@ -239,7 +239,7 @@ class TestErrorHandlingFlow:
         assert "/errors/" in type_url
 
     def test_rfc7807_instance_matches_request_path(self, client):
-        """Test RFC 7807 instance field matches actual request path."""
+        """Test RFC 9457 instance field matches actual request path."""
         # Act
         response = client.get("/test/application-error")
 

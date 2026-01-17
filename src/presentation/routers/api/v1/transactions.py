@@ -54,7 +54,7 @@ from src.schemas.transaction_schemas import (
 # Error Mapping (String → ApplicationError)
 # =============================================================================
 # Note: Handlers currently return Result[T, str]. This mapping converts
-# string errors to ApplicationError for RFC 7807 compliance.
+# string errors to ApplicationError for RFC 9457 compliance.
 # TODO (Phase 6): Refactor handlers to return Result[T, ApplicationError]
 # =============================================================================
 
@@ -63,7 +63,7 @@ def _map_transaction_error(error: str) -> ApplicationError:
     """Map handler string error to ApplicationError.
 
     Converts handler error strings to typed ApplicationError for
-    RFC 7807 compliant error responses.
+    RFC 9457 compliant error responses.
 
     Args:
         error: Error string from handler.
@@ -124,7 +124,7 @@ async def get_transaction(
 
     Returns:
         TransactionResponse with transaction details.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     query = GetTransaction(
         transaction_id=transaction_id,
@@ -166,7 +166,7 @@ async def sync_transactions(
 
     Returns:
         SyncTransactionsResponse with sync statistics.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     command = SyncTransactions(
         user_id=current_user.user_id,
@@ -260,7 +260,7 @@ async def list_transactions_by_account(
 
     Returns:
         TransactionListResponse with list of transactions.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     # Use date range handler if dates provided, otherwise use account handler
     if start_date and end_date:

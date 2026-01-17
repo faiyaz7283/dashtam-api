@@ -1,13 +1,13 @@
-"""RFC 7807 Problem Details for HTTP APIs.
+"""RFC 9457 Problem Details for HTTP APIs.
 
-This module implements RFC 7807 (Problem Details for HTTP APIs) using Pydantic
+This module implements RFC 9457 (Problem Details for HTTP APIs) using Pydantic
 models for structured error responses.
 
-RFC 7807: https://tools.ietf.org/html/rfc7807
+RFC 9457: https://www.rfc-editor.org/rfc/rfc9457.html
 
 Exports:
     ErrorDetail: Individual field-specific error
-    ProblemDetails: RFC 7807 compliant error response schema
+    ProblemDetails: RFC 9457 compliant error response schema
 """
 
 from pydantic import BaseModel, Field
@@ -37,10 +37,10 @@ class ErrorDetail(BaseModel):
 
 
 class ProblemDetails(BaseModel):
-    """RFC 7807 Problem Details for HTTP APIs.
+    """RFC 9457 Problem Details for HTTP APIs.
 
     Standard error response format providing structured information about errors
-    in HTTP APIs. All fields follow RFC 7807 specification.
+    in HTTP APIs. All fields follow RFC 9457 specification.
 
     Attributes:
         type: URI reference identifying the problem type

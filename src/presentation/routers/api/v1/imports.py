@@ -127,7 +127,7 @@ async def import_from_file(
 
     Returns:
         ImportResponse with import counts.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     # Get filename and extension
     filename = file.filename or "unknown"

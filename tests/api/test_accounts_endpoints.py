@@ -8,7 +8,7 @@ Tests the complete HTTP request/response cycle for account management:
 
 Architecture:
 - Uses FastAPI TestClient with real app + dependency overrides
-- Tests validation, authorization, and RFC 7807 error responses
+- Tests validation, authorization, and RFC 9457 error responses
 - Mocks handlers to test HTTP layer behavior
 """
 
@@ -281,7 +281,7 @@ class TestListAccounts:
         app.dependency_overrides.pop(factory_key, None)
 
     def test_list_accounts_handler_error_returns_rfc7807(self, client):
-        """GET /api/v1/accounts returns RFC 7807 error on handler failure."""
+        """GET /api/v1/accounts returns RFC 9457 error on handler failure."""
         factory_key = handler_factory(ListAccountsByUserHandler)
         app.dependency_overrides[factory_key] = lambda: MockListAccountsHandler(
             error="Database unavailable"

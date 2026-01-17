@@ -8,7 +8,7 @@ Architecture:
 - Uses real app with dependency overrides
 - Mocks handlers to test request/response flow
 - Tests validation, error responses, and success paths
-- Verifies RFC 7807 compliance for errors
+- Verifies RFC 9457 compliance for errors
 
 Note:
     These tests focus on request validation and error response formats.
@@ -145,7 +145,7 @@ class TestCreatePasswordResetToken:
             json={"email": "not-an-email"},
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -157,7 +157,7 @@ class TestCreatePasswordResetToken:
         # Execute: Missing email field
         response = client.post("/api/v1/password-reset-tokens", json={})
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -214,7 +214,7 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 404
         data = response.json()
         assert data["type"].endswith("/errors/not_found")
@@ -238,7 +238,7 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 400
         data = response.json()
         assert data["type"].endswith("/errors/command_validation_failed")
@@ -262,7 +262,7 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 400
         data = response.json()
         assert data["type"].endswith("/errors/command_validation_failed")
@@ -286,7 +286,7 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 404
         data = response.json()
         assert data["type"].endswith("/errors/not_found")
@@ -301,7 +301,7 @@ class TestCreatePasswordReset:
             json={"new_password": "NewSecurePass123!"},
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -316,7 +316,7 @@ class TestCreatePasswordReset:
             json={"token": "a" * 64},
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -334,7 +334,7 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -352,7 +352,7 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -370,7 +370,7 @@ class TestCreatePasswordReset:
             },
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")

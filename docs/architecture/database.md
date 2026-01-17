@@ -241,7 +241,7 @@ class UserRepository:
 
 - Infrastructure: Database exceptions → Domain errors
 - Application: Domain errors → Application errors
-- Presentation: Application errors → RFC 7807 Problem Details
+- Presentation: Application errors → RFC 9457 Problem Details
 
 ### Structured Logging Integration
 
@@ -959,7 +959,7 @@ The database architecture is fully integrated with Dashtam's architecture ecosys
 
 - Database operations return Result types (Success/Failure)
 - No exceptions thrown to domain layer
-- Errors mapped: SQLAlchemy exceptions → Domain errors → RFC 7807
+- Errors mapped: SQLAlchemy exceptions → Domain errors → RFC 9457
 
 **Structured Logging** (see `docs/architecture/logging.md`):
 

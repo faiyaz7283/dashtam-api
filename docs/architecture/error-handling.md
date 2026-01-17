@@ -15,7 +15,7 @@ while maintaining proper error propagation and user-friendly HTTP responses.
 
 1. **No Exceptions in Domain Business Logic**: Domain services and entities use Result types, not exceptions
 2. **Railway-Oriented Programming**: Errors flow through pipeline as data
-3. **RFC 7807 Compliance**: HTTP API errors follow industry standard
+3. **RFC 9457 Compliance**: HTTP API errors follow industry standard
 4. **Machine-Readable Codes**: All errors have enums for client handling
 5. **User-Friendly Messages**: Human-readable descriptions for end users
 6. **Detailed Logging**: Structured logs with trace IDs for debugging
@@ -244,9 +244,9 @@ class UserService:
 
 ## Industry Standards
 
-### RFC 7807: Problem Details for HTTP APIs
+### RFC 9457: Problem Details for HTTP APIs
 
-**Official Standard**: [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807)
+**Official Standard**: [RFC 9457](https://datatracker.ietf.org/doc/html/rfc7807)
 
 **Required Fields**:
 
@@ -314,7 +314,7 @@ class UserService:
 graph TB
     subgraph "Presentation Layer"
         API[FastAPI Endpoints]
-        RFC[RFC 7807 Problem Details]
+        RFC[RFC 9457 Problem Details]
         HTTP[HTTP Status Codes]
     end
     
@@ -357,7 +357,7 @@ graph TB
 1. **Infrastructure**: Catches exceptions → Maps to DomainError
 2. **Domain**: Business logic returns Result[T, DomainError]
 3. **Application**: Maps DomainError → ApplicationError
-4. **Presentation**: Maps ApplicationError → RFC 7807 ProblemDetails
+4. **Presentation**: Maps ApplicationError → RFC 9457 ProblemDetails
 
 ---
 
@@ -786,7 +786,7 @@ class RedisAdapter:
 
 ---
 
-## Presentation Layer (RFC 7807)
+## Presentation Layer (RFC 9457)
 
 ### Location: `src/presentation/routers/api/v1/errors/`
 
@@ -803,7 +803,7 @@ class ErrorDetail(BaseModel):
 
 
 class ProblemDetails(BaseModel):
-    """RFC 7807 Problem Details for HTTP APIs."""
+    """RFC 9457 Problem Details for HTTP APIs."""
     
     type: str = Field(
         ...,
@@ -848,7 +848,7 @@ from fastapi.responses import JSONResponse
 from src.application.errors import ApplicationError, ApplicationErrorCode
 
 class ErrorResponseBuilder:
-    """Build RFC 7807 Problem Details responses."""
+    """Build RFC 9457 Problem Details responses."""
     
     # Uses settings.api_base_url for error type URLs
     
@@ -858,7 +858,7 @@ class ErrorResponseBuilder:
         request: Request,
         trace_id: str,
     ) -> JSONResponse:
-        """Convert ApplicationError to RFC 7807 response."""
+        """Convert ApplicationError to RFC 9457 response."""
         
         # Map to HTTP status
         status_code = ErrorResponseBuilder._get_status_code(error.code)
@@ -1087,7 +1087,7 @@ async def test_create_user_command_handler():
 
 ```python
 def test_register_user_validation_error(client):
-    """Test API returns RFC 7807 response."""
+    """Test API returns RFC 9457 response."""
     response = client.post("/api/v1/auth/register", json={
         "email": "invalid",
         "password": "weak",
@@ -1129,7 +1129,7 @@ Dashtam's error handling architecture provides:
 
 - **Type-Safe Errors**: ErrorCode enums with frozen dataclasses
 - **Railway-Oriented Programming**: Result types throughout
-- **RFC 7807 Compliance**: Industry-standard HTTP API errors
+- **RFC 9457 Compliance**: Industry-standard HTTP API errors
 - **Clear Separation**: Domain → Application → Infrastructure → Presentation
 - **User-Friendly**: Human-readable messages with machine-readable codes
 - **Developer-Friendly**: Detailed logs with trace IDs for debugging

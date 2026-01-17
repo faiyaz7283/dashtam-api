@@ -9,7 +9,7 @@ Architecture:
 - Uses real app with dependency overrides
 - Mocks handlers, database, and authentication dependencies
 - Tests validation, status codes, and error responses
-- Verifies RFC 7807 compliance for errors
+- Verifies RFC 9457 compliance for errors
 - Verifies 401/403 for unauthenticated/unauthorized access
 """
 

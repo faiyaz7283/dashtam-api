@@ -1,12 +1,12 @@
-"""RFC 7807 error response schemas and exception handlers.
+"""RFC 9457 error response schemas and exception handlers.
 
-This package contains RFC 7807 (Problem Details for HTTP APIs) Pydantic models,
+This package contains RFC 9457 (Problem Details for HTTP APIs) Pydantic models,
 error response builders, and global exception handlers for the presentation layer.
 
 Exports:
     ErrorDetail: Individual field-specific error
-    ProblemDetails: RFC 7807 compliant error response schema
-    ErrorResponseBuilder: Utility for building RFC 7807 responses
+    ProblemDetails: RFC 9457 compliant error response schema
+    ErrorResponseBuilder: Utility for building RFC 9457 responses
     register_exception_handlers: Register global exception handlers with FastAPI
 """
 

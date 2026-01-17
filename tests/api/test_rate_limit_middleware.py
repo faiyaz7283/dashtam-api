@@ -77,7 +77,7 @@ class TestRateLimitMiddleware429Response:
         reason="Event loop issues with many consecutive requests - covered in integration tests"
     )
     def test_429_response_body_format(self, test_client, exhaust_rate_limit) -> None:
-        """429 response body should follow RFC 7807."""
+        """429 response body should follow RFC 9457."""
         pass
 
 

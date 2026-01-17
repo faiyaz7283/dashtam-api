@@ -19,7 +19,7 @@ class TestErrorResponseBuilder:
     """Unit tests for ErrorResponseBuilder utility class."""
 
     def test_from_application_error_not_found(self):
-        """Test building RFC 7807 response for NOT_FOUND error."""
+        """Test building RFC 9457 response for NOT_FOUND error."""
         # Arrange
         error = ApplicationError(
             code=ApplicationErrorCode.NOT_FOUND,
@@ -46,7 +46,7 @@ class TestErrorResponseBuilder:
         assert trace_id in content
 
     def test_from_application_error_validation_failed(self):
-        """Test building RFC 7807 response for COMMAND_VALIDATION_FAILED error."""
+        """Test building RFC 9457 response for COMMAND_VALIDATION_FAILED error."""
         # Arrange
         error = ApplicationError(
             code=ApplicationErrorCode.COMMAND_VALIDATION_FAILED,
@@ -102,7 +102,7 @@ class TestErrorResponseBuilder:
         assert "invalid_email" in content
 
     def test_from_application_error_unauthorized(self):
-        """Test building RFC 7807 response for UNAUTHORIZED error."""
+        """Test building RFC 9457 response for UNAUTHORIZED error."""
         # Arrange
         error = ApplicationError(
             code=ApplicationErrorCode.UNAUTHORIZED,
@@ -126,7 +126,7 @@ class TestErrorResponseBuilder:
         assert "Authentication Required" in content
 
     def test_from_application_error_forbidden(self):
-        """Test building RFC 7807 response for FORBIDDEN error."""
+        """Test building RFC 9457 response for FORBIDDEN error."""
         # Arrange
         error = ApplicationError(
             code=ApplicationErrorCode.FORBIDDEN,
@@ -150,7 +150,7 @@ class TestErrorResponseBuilder:
         assert "Access Denied" in content
 
     def test_from_application_error_conflict(self):
-        """Test building RFC 7807 response for CONFLICT error."""
+        """Test building RFC 9457 response for CONFLICT error."""
         # Arrange
         error = ApplicationError(
             code=ApplicationErrorCode.CONFLICT,
@@ -174,7 +174,7 @@ class TestErrorResponseBuilder:
         assert "Resource Conflict" in content
 
     def test_from_application_error_rate_limit_exceeded(self):
-        """Test building RFC 7807 response for RATE_LIMIT_EXCEEDED error."""
+        """Test building RFC 9457 response for RATE_LIMIT_EXCEEDED error."""
         # Arrange
         error = ApplicationError(
             code=ApplicationErrorCode.RATE_LIMIT_EXCEEDED,

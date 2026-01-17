@@ -68,7 +68,7 @@ app = FastAPI(
 app.add_middleware(TraceMiddleware)
 app.add_middleware(RateLimitMiddleware)
 
-# Register global exception handlers (RFC 7807 error responses)
+# Register global exception handlers (RFC 9457 error responses)
 register_exception_handlers(app)
 
 # Include API v1 routers (RESTful resource-based endpoints)

@@ -1,10 +1,10 @@
-"""Error response builder for RFC 7807 Problem Details.
+"""Error response builder for RFC 9457 Problem Details.
 
-This module provides utilities to build RFC 7807 compliant error responses
+This module provides utilities to build RFC 9457 compliant error responses
 from application layer errors.
 
 Exports:
-    ErrorResponseBuilder: Utility class for building RFC 7807 responses
+    ErrorResponseBuilder: Utility class for building RFC 9457 responses
 """
 
 from fastapi import Request, status
@@ -19,9 +19,9 @@ from src.presentation.routers.api.v1.errors.problem_details import (
 
 
 class ErrorResponseBuilder:
-    """Build RFC 7807 Problem Details error responses.
+    """Build RFC 9457 Problem Details error responses.
 
-    Converts application layer errors into standardized RFC 7807 JSON responses
+    Converts application layer errors into standardized RFC 9457 JSON responses
     with appropriate HTTP status codes and structured error information.
 
     Example:
@@ -42,7 +42,7 @@ class ErrorResponseBuilder:
         request: Request,
         trace_id: str,
     ) -> JSONResponse:
-        """Convert ApplicationError to RFC 7807 JSON response.
+        """Convert ApplicationError to RFC 9457 JSON response.
 
         Args:
             error: Application layer error to convert
@@ -50,7 +50,7 @@ class ErrorResponseBuilder:
             trace_id: Request trace ID for debugging
 
         Returns:
-            JSONResponse with RFC 7807 ProblemDetails content
+            JSONResponse with RFC 9457 ProblemDetails content
 
         Example:
             >>> error = ApplicationError(
@@ -65,7 +65,7 @@ class ErrorResponseBuilder:
         # Map application error code to HTTP status
         status_code = ErrorResponseBuilder._get_status_code(error.code)
 
-        # Build RFC 7807 Problem Details
+        # Build RFC 9457 Problem Details
         problem = ProblemDetails(
             type=f"{settings.api_base_url}/errors/{error.code.value}",
             title=ErrorResponseBuilder._get_title(error.code),

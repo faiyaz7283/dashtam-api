@@ -23,6 +23,8 @@ from datetime import UTC, datetime, timedelta
 
 import bcrypt
 
+from src.core.constants import BCRYPT_ROUNDS_DEFAULT, TOKEN_BYTES
+
 
 class RefreshTokenService:
     """Refresh token generation and validation service.
@@ -83,11 +85,13 @@ class RefreshTokenService:
         """
         # Generate cryptographically secure random token
         # 32 bytes = 256 bits of entropy
-        token = secrets.token_urlsafe(32)
+        token = secrets.token_urlsafe(TOKEN_BYTES)
 
         # Hash token with bcrypt before storage
         # Cost factor 12 = ~250ms (same as passwords)
-        token_hash = bcrypt.hashpw(token.encode("utf-8"), bcrypt.gensalt(rounds=12))
+        token_hash = bcrypt.hashpw(
+            token.encode("utf-8"), bcrypt.gensalt(rounds=BCRYPT_ROUNDS_DEFAULT)
+        )
 
         # Return as strings (bcrypt returns bytes)
         return token, token_hash.decode("utf-8")

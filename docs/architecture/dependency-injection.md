@@ -221,6 +221,12 @@ src/core/container/
 - Transaction queries (get, list, date range, security)
 - Sync handlers (accounts, transactions)
 
+**handler_factory.py** (~200 lines) - Auto-wired handler injection:
+
+- `handler_factory()` - Generic handler factory using type hints
+- `SESSION_SERVICE_TYPES` - Session-scoped services (e.g., `OwnershipVerifier`)
+- Supports all 38+ CQRS handlers without manual factory functions
+
 **providers.py** (~80 lines) - Provider factory:
 
 - `get_provider(slug)` - Returns Schwab (future: Chase, Fidelity)
@@ -647,26 +653,55 @@ class RegisterUserHandler:
         self._user_repo = user_repo
         self._event_bus = event_bus
 
-# Query handler - depends only on protocols
-class GetUserHandler:
-    def __init__(self, user_repo: UserRepository):
-        self._user_repo = user_repo
+# Query handler with ownership verification - uses OwnershipVerifier service
+class GetAccountHandler:
+    def __init__(self, ownership_verifier: OwnershipVerifier):
+        self._verifier = ownership_verifier
+    
+    async def handle(self, query: GetAccount) -> Result[AccountResult, str]:
+        result = await self._verifier.verify_account_ownership(
+            query.account_id, query.user_id
+        )
+        if isinstance(result, Failure):
+            return Failure(error=error_map[result.error.code])
+        account = result.value
+        # ... map to DTO
 
-# Container factory wires dependencies
-async def get_register_user_handler(session: AsyncSession = Depends(get_db_session)):
-    return RegisterUserHandler(
-        user_repo=UserRepository(session=session),
-        event_bus=get_event_bus(),
-    )
+# Presentation layer uses handler_factory for auto-wiring
+from src.core.container.handler_factory import handler_factory
 
-# Presentation layer injects via Depends
-@router.post("/users")
-async def create_user(
-    handler: RegisterUserHandler = Depends(get_register_user_handler)
+@router.get("/accounts/{account_id}")
+async def get_account(
+    handler: GetAccountHandler = Depends(handler_factory(GetAccountHandler))
 ):
-    result = await handler.handle(command)
+    result = await handler.handle(query)
     ...
 ```
+
+### 9.3 Session-Scoped Services
+
+Some services need database session but aren't repositories. These are registered in `handler_factory.py`:
+
+```python
+# src/core/container/handler_factory.py
+SESSION_SERVICE_TYPES: set[type] = {
+    OwnershipVerifier,  # Needs repos for ownership chain verification
+}
+
+def _get_session_service_instance(service_type: type, session: AsyncSession) -> Any:
+    """Create session-scoped service instance."""
+    if service_type is OwnershipVerifier:
+        return OwnershipVerifier(
+            transaction_repo=TransactionRepository(session=session),
+            holding_repo=HoldingRepository(session=session),
+            account_repo=AccountRepository(session=session),
+            connection_repo=ProviderConnectionRepository(session=session),
+        )
+    raise ValueError(f"Unknown session service type: {service_type}")
+```
+
+**Use `OwnershipVerifier` when**: Query handlers need to verify ownership chains
+(e.g., Account → Connection → User). This avoids DRY violations across handlers.
 
 ### 9.3 Repository Pattern
 
@@ -689,4 +724,4 @@ async def get_user(
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2026-01-10
+**Created**: 2025-11-13 | **Last Updated**: 2026-01-17

@@ -150,38 +150,62 @@ class RegisterUserHandler:
 
 **Responsibility**: Fetch and transform data.
 
-**Structure**:
+**Structure** (simple queries):
 
 ```python
 class ListSessionsHandler:
     """Handler for listing user sessions."""
     
-    def __init__(
-        self,
-        session_repo: SessionRepository,
-    ) -> None:
+    def __init__(self, session_repo: SessionRepository) -> None:
         self._session_repo = session_repo
     
     async def handle(self, query: ListUserSessions) -> Result[SessionListResult, str]:
-        """Handle list sessions query.
-        
-        Returns:
-            Success(SessionListResult) with session data
-        """
-        # Fetch from repository
         sessions = await self._session_repo.find_by_user_id(
             user_id=query.user_id,
             active_only=query.active_only,
         )
-        
-        # Transform to result DTO
-        return Success(
-            value=SessionListResult(
-                sessions=[...],
-                total_count=len(sessions),
-            )
-        )
+        return Success(value=SessionListResult(sessions=[...], total_count=len(sessions)))
 ```
+
+**Structure** (queries with ownership verification):
+
+For queries that need to verify ownership chains (e.g., Account → Connection → User),
+use `OwnershipVerifier` service to avoid DRY violations:
+
+```python
+from src.application.services.ownership_verifier import (
+    OwnershipVerifier, OwnershipErrorCode,
+)
+
+class GetAccountHandler:
+    """Handler using OwnershipVerifier for chain verification."""
+    
+    def __init__(self, ownership_verifier: OwnershipVerifier) -> None:
+        self._verifier = ownership_verifier
+    
+    async def handle(self, query: GetAccount) -> Result[AccountResult, GetAccountError]:
+        # Single call verifies: Account exists → Connection exists → User owns it
+        result = await self._verifier.verify_account_ownership(
+            query.account_id, query.user_id
+        )
+        if isinstance(result, Failure):
+            error_map = {
+                OwnershipErrorCode.ACCOUNT_NOT_FOUND: GetAccountError.ACCOUNT_NOT_FOUND,
+                OwnershipErrorCode.CONNECTION_NOT_FOUND: GetAccountError.CONNECTION_NOT_FOUND,
+                OwnershipErrorCode.NOT_OWNED_BY_USER: GetAccountError.NOT_OWNED_BY_USER,
+            }
+            return Failure(error=error_map.get(result.error.code, GetAccountError.INTERNAL_ERROR))
+        
+        account = result.value
+        return Success(value=AccountResult(id=account.id, name=account.name, ...))
+```
+
+**OwnershipVerifier Methods**:
+
+- `verify_connection_ownership(connection_id, user_id)` → Connection
+- `verify_account_ownership(account_id, user_id)` → Account
+- `verify_holding_ownership(holding_id, user_id)` → Holding
+- `verify_transaction_ownership(transaction_id, user_id)` → Transaction
 
 **Key Principles**:
 
@@ -189,6 +213,7 @@ class ListSessionsHandler:
 2. **No Domain Events**: Queries don't emit events (no state change)
 3. **Transformation**: Map domain entities to result DTOs
 4. **Caching**: Queries can leverage caching (reads are safe to cache)
+5. **DRY Ownership**: Use `OwnershipVerifier` for chain verification (not individual repos)
 
 ### Sequence Diagrams
 
@@ -667,27 +692,58 @@ async def test_connect_provider_success():
 
 ### Query Handler Tests
 
+**Simple query handler** (direct repo):
+
 ```python
 @pytest.mark.asyncio
 async def test_list_providers_returns_all():
-    """Test listing all providers for user."""
-    # Arrange
     mock_repo = AsyncMock(spec=ProviderConnectionRepository)
     mock_repo.find_by_user_id.return_value = [
         create_test_connection(provider_slug="schwab"),
-        create_test_connection(provider_slug="fidelity"),
     ]
     
     handler = ListProvidersHandler(connection_repo=mock_repo)
+    result = await handler.handle(ListProviders(user_id=uuid7()))
     
-    query = ListProviders(user_id=uuid7())
-    
-    # Act
-    result = await handler.handle(query)
-    
-    # Assert
     assert isinstance(result, Success)
-    assert len(result.value.providers) == 2
+```
+
+**Query handler with OwnershipVerifier**:
+
+Mock the `OwnershipVerifier` service instead of individual repositories:
+
+```python
+from src.application.services.ownership_verifier import (
+    OwnershipVerifier, OwnershipError, OwnershipErrorCode,
+)
+
+@pytest.fixture
+def mock_ownership_verifier() -> AsyncMock:
+    return AsyncMock(spec=OwnershipVerifier)
+
+@pytest.mark.asyncio
+async def test_get_account_success(mock_ownership_verifier: AsyncMock):
+    """Mock returns Success with account."""
+    mock_account = create_test_account()
+    mock_ownership_verifier.verify_account_ownership.return_value = Success(value=mock_account)
+    
+    handler = GetAccountHandler(ownership_verifier=mock_ownership_verifier)
+    result = await handler.handle(GetAccount(account_id=mock_account.id, user_id=uuid7()))
+    
+    assert isinstance(result, Success)
+
+@pytest.mark.asyncio
+async def test_get_account_not_found(mock_ownership_verifier: AsyncMock):
+    """Mock returns Failure with OwnershipError."""
+    mock_ownership_verifier.verify_account_ownership.return_value = Failure(
+        error=OwnershipError(code=OwnershipErrorCode.ACCOUNT_NOT_FOUND, message="Not found")
+    )
+    
+    handler = GetAccountHandler(ownership_verifier=mock_ownership_verifier)
+    result = await handler.handle(GetAccount(account_id=uuid7(), user_id=uuid7()))
+    
+    assert isinstance(result, Failure)
+    assert result.error == GetAccountError.ACCOUNT_NOT_FOUND
 ```
 
 ### Coverage Targets
@@ -772,4 +828,4 @@ async def test_list_providers_returns_all():
 
 ---
 
-**Created**: 2025-12-01 | **Last Updated**: 2026-01-10
+**Created**: 2025-12-01 | **Last Updated**: 2026-01-17

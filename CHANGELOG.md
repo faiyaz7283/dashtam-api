@@ -7,15 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-01-17
+
+### Added
+
+- **OwnershipVerifier Service** (`src/application/services/ownership_verifier.py`)
+  - DRY pattern for ownership chain verification (Entity → Account → Connection → User)
+  - 5 methods: `verify_connection_ownership`, `verify_account_ownership`, `verify_account_ownership_only`, `verify_holding_ownership`, `verify_transaction_ownership`
+  - Session-scoped via `SESSION_SERVICE_TYPES` in `handler_factory.py`
+  - 20 unit tests in `test_application_ownership_verifier.py`
+
+- **BaseProviderAPIClient** (`src/infrastructure/providers/base_api_client.py`)
+  - Shared HTTP client base class for all provider API clients
+  - Centralized HTTP status → `ProviderError` mapping
+  - Consistent timeout and error handling
+  - All 4 provider API clients (Schwab/Alpaca accounts/transactions) now extend this base
+
+- **Centralized Constants** (`src/core/constants.py`)
+  - Single source of truth for timeouts, HTTP status mappings, magic numbers
+  - `DEFAULT_HTTP_TIMEOUT`, `PROVIDER_API_TIMEOUT`, `HTTP_STATUS_ERROR_MAP`
+  - 15 unit tests in `test_core_constants.py`
+
 ### Changed
+
+- **Query Handler Refactoring**
+  - `GetAccountHandler`, `GetHoldingHandler`, `GetTransactionHandler` now use `OwnershipVerifier`
+  - Eliminates duplicated ownership verification logic across handlers
+  - Handler tests updated to mock `OwnershipVerifier` instead of individual repos
 
 - **RFC 9457 Migration**: Updated all RFC 7807 references to RFC 9457 (current standard)
   - RFC 9457 (July 2023) obsoletes RFC 7807 with backward-compatible enhancements
   - No code changes required - JSON schema and behavior identical
   - Updated 222 references across source, docs, and tests
-  - Key files: `problem_details.py`, `error_response_builder.py`, `exception_handlers.py`
-  - Removed hardcoded test count from README.md
-  - Audit report: `~/references/audit/dashtam-rfc-7807-to-9457-migration-audit-2026-01-17.md`
+
+- **Documentation Updates**
+  - `docs/architecture/dependency-injection.md`: Added OwnershipVerifier, SESSION_SERVICE_TYPES
+  - `docs/architecture/cqrs.md`: Updated query handler patterns with OwnershipVerifier
+  - `docs/architecture/provider-integration.md`: Added BaseProviderAPIClient section
+  - `docs/guides/adding-providers.md`: Updated to show extending BaseProviderAPIClient
+  - `WARP.md`: Added sections 6b (OwnershipVerifier) and 6c (Centralized Constants)
+
+- **Configuration**
+  - Added `alpaca_api_base_url` to `config.py` and all `.env.*.example` files
+  - Added `_rule()` factory helper in `derivations.py` for rate limit rule creation
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,444 tests pass, 88% coverage maintained
+- **New Test Files**: 3 (`test_core_constants.py`, `test_application_ownership_verifier.py`, `test_infrastructure_base_api_client.py`)
+- **DRY Improvements**: Eliminated ~200 lines of duplicated ownership verification code
+- Files changed: 30+ files
 
 ## [1.8.1] - 2026-01-16
 

@@ -19,12 +19,11 @@ from decimal import Decimal
 from uuid import UUID
 
 from src.application.queries.holding_queries import GetHolding
-from src.core.result import Failure, Result, Success
-from src.domain.protocols.account_repository import AccountRepository
-from src.domain.protocols.holding_repository import HoldingRepository
-from src.domain.protocols.provider_connection_repository import (
-    ProviderConnectionRepository,
+from src.application.services.ownership_verifier import (
+    OwnershipErrorCode,
+    OwnershipVerifier,
 )
+from src.core.result import Failure, Result, Success
 
 
 @dataclass
@@ -98,30 +97,22 @@ class GetHoldingHandler:
     """Handler for GetHolding query.
 
     Retrieves a single holding by ID with ownership verification.
-    Ownership checked by verifying: Holding->Account->ProviderConnection->User
+    Uses OwnershipVerifier to verify: Holding->Account->ProviderConnection->User
 
     Dependencies (injected via constructor):
-        - HoldingRepository: For holding retrieval
-        - AccountRepository: For account lookup (ownership chain)
-        - ProviderConnectionRepository: For ownership verification
+        - OwnershipVerifier: For holding retrieval with ownership verification
     """
 
     def __init__(
         self,
-        holding_repo: HoldingRepository,
-        account_repo: AccountRepository,
-        connection_repo: ProviderConnectionRepository,
+        ownership_verifier: OwnershipVerifier,
     ) -> None:
         """Initialize handler with dependencies.
 
         Args:
-            holding_repo: Holding repository.
-            account_repo: Account repository for ownership chain.
-            connection_repo: Provider connection repository for ownership check.
+            ownership_verifier: Service for ownership verification.
         """
-        self._holding_repo = holding_repo
-        self._account_repo = account_repo
-        self._connection_repo = connection_repo
+        self._verifier = ownership_verifier
 
     async def handle(self, query: GetHolding) -> Result[HoldingDetailResult, str]:
         """Handle GetHolding query.
@@ -136,28 +127,26 @@ class GetHoldingHandler:
             Success(HoldingDetailResult): Holding found and owned by user.
             Failure(error): Holding not found or not owned by user.
         """
-        # Fetch holding
-        holding = await self._holding_repo.find_by_id(query.holding_id)
+        # Verify ownership and get holding
+        result = await self._verifier.verify_holding_ownership(
+            query.holding_id, query.user_id
+        )
 
-        # Verify exists
-        if holding is None:
-            return Failure(error=GetHoldingError.HOLDING_NOT_FOUND)
+        if isinstance(result, Failure):
+            # Map OwnershipError to handler-specific error string
+            error_map = {
+                OwnershipErrorCode.HOLDING_NOT_FOUND: GetHoldingError.HOLDING_NOT_FOUND,
+                OwnershipErrorCode.ACCOUNT_NOT_FOUND: GetHoldingError.ACCOUNT_NOT_FOUND,
+                OwnershipErrorCode.CONNECTION_NOT_FOUND: GetHoldingError.CONNECTION_NOT_FOUND,
+                OwnershipErrorCode.NOT_OWNED_BY_USER: GetHoldingError.NOT_OWNED_BY_USER,
+            }
+            return Failure(
+                error=error_map.get(
+                    result.error.code, GetHoldingError.NOT_OWNED_BY_USER
+                )
+            )
 
-        # Fetch account to get connection_id
-        account = await self._account_repo.find_by_id(holding.account_id)
-
-        if account is None:
-            return Failure(error=GetHoldingError.ACCOUNT_NOT_FOUND)
-
-        # Fetch connection to verify ownership
-        connection = await self._connection_repo.find_by_id(account.connection_id)
-
-        if connection is None:
-            return Failure(error=GetHoldingError.CONNECTION_NOT_FOUND)
-
-        # Verify ownership (connection belongs to user)
-        if connection.user_id != query.user_id:
-            return Failure(error=GetHoldingError.NOT_OWNED_BY_USER)
+        holding = result.value
 
         # Map to DTO (Money -> amount+currency)
         dto = HoldingDetailResult(

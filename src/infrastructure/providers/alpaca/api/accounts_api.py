@@ -14,31 +14,19 @@ Reference:
 
 from typing import Any
 
-import httpx
-import structlog
-
-from src.core.enums import ErrorCode
-from src.core.result import Failure, Result, Success
-from src.domain.errors import (
-    ProviderAuthenticationError,
-    ProviderError,
-    ProviderInvalidResponseError,
-    ProviderRateLimitError,
-    ProviderUnavailableError,
-)
-
-logger = structlog.get_logger(__name__)
+from src.core.constants import PROVIDER_TIMEOUT_DEFAULT
+from src.core.result import Result
+from src.domain.errors import ProviderError
+from src.infrastructure.providers.base_api_client import BaseProviderAPIClient
 
 
-class AlpacaAccountsAPI:
+class AlpacaAccountsAPI(BaseProviderAPIClient):
     """HTTP client for Alpaca Trading API account and positions endpoints.
 
-    Uses API Key authentication (not OAuth Bearer tokens).
+    Extends BaseProviderAPIClient with Alpaca API Key authentication.
     Returns raw JSON responses - mapping to domain types is done by mappers.
 
-    Attributes:
-        base_url: Alpaca Trading API base URL (paper or live).
-        timeout: HTTP request timeout in seconds.
+    Thread-safe: Uses httpx.AsyncClient per-request (no shared state).
 
     Example:
         >>> api = AlpacaAccountsAPI(
@@ -52,7 +40,7 @@ class AlpacaAccountsAPI:
         self,
         *,
         base_url: str,
-        timeout: float = 30.0,
+        timeout: float = PROVIDER_TIMEOUT_DEFAULT,
     ) -> None:
         """Initialize Alpaca Accounts API client.
 
@@ -60,8 +48,11 @@ class AlpacaAccountsAPI:
             base_url: Alpaca Trading API base URL.
             timeout: HTTP request timeout in seconds.
         """
-        self._base_url = base_url.rstrip("/")
-        self._timeout = timeout
+        super().__init__(
+            base_url=base_url,
+            provider_name="alpaca",
+            timeout=timeout,
+        )
 
     async def get_account(
         self,
@@ -79,45 +70,14 @@ class AlpacaAccountsAPI:
             Failure(ProviderAuthenticationError): If credentials are invalid.
             Failure(ProviderUnavailableError): If Alpaca API is unreachable.
         """
-        logger.debug("alpaca_accounts_api_get_account_started")
+        self._logger.debug("alpaca_accounts_api_get_account_started")
 
-        try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.get(
-                    f"{self._base_url}/v2/account",
-                    headers=self._build_headers(api_key, api_secret),
-                )
-
-            return self._handle_response(response, "get_account")
-
-        except httpx.TimeoutException as e:
-            logger.warning(
-                "alpaca_accounts_api_timeout",
-                operation="get_account",
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message="Alpaca API request timed out",
-                    provider_name="alpaca",
-                    is_transient=True,
-                )
-            )
-        except httpx.RequestError as e:
-            logger.warning(
-                "alpaca_accounts_api_connection_error",
-                operation="get_account",
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message=f"Failed to connect to Alpaca API: {e}",
-                    provider_name="alpaca",
-                    is_transient=True,
-                )
-            )
+        return await self._execute_and_parse_object(
+            method="GET",
+            path="/v2/account",
+            headers=self._build_headers(api_key, api_secret),
+            operation="get_account",
+        )
 
     async def get_positions(
         self,
@@ -135,45 +95,14 @@ class AlpacaAccountsAPI:
             Failure(ProviderAuthenticationError): If credentials are invalid.
             Failure(ProviderUnavailableError): If Alpaca API is unreachable.
         """
-        logger.debug("alpaca_accounts_api_get_positions_started")
+        self._logger.debug("alpaca_accounts_api_get_positions_started")
 
-        try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.get(
-                    f"{self._base_url}/v2/positions",
-                    headers=self._build_headers(api_key, api_secret),
-                )
-
-            return self._handle_list_response(response, "get_positions")
-
-        except httpx.TimeoutException as e:
-            logger.warning(
-                "alpaca_accounts_api_timeout",
-                operation="get_positions",
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message="Alpaca API request timed out",
-                    provider_name="alpaca",
-                    is_transient=True,
-                )
-            )
-        except httpx.RequestError as e:
-            logger.warning(
-                "alpaca_accounts_api_connection_error",
-                operation="get_positions",
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message=f"Failed to connect to Alpaca API: {e}",
-                    provider_name="alpaca",
-                    is_transient=True,
-                )
-            )
+        return await self._execute_and_parse_list(
+            method="GET",
+            path="/v2/positions",
+            headers=self._build_headers(api_key, api_secret),
+            operation="get_positions",
+        )
 
     def _build_headers(self, api_key: str, api_secret: str) -> dict[str, str]:
         """Build HTTP headers for Alpaca API requests.
@@ -190,187 +119,3 @@ class AlpacaAccountsAPI:
             "APCA-API-SECRET-KEY": api_secret,
             "Accept": "application/json",
         }
-
-    def _handle_response(
-        self,
-        response: httpx.Response,
-        operation: str,
-    ) -> Result[dict[str, Any], ProviderError]:
-        """Handle Alpaca API response for single-object endpoints.
-
-        Args:
-            response: HTTP response from Alpaca.
-            operation: Operation name for logging.
-
-        Returns:
-            Success(dict) or Failure(ProviderError).
-        """
-        error_result = self._check_error_response(response, operation)
-        if error_result is not None:
-            return error_result
-
-        try:
-            data = response.json()
-        except ValueError as e:
-            logger.error(
-                "alpaca_accounts_api_invalid_json",
-                operation=operation,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderInvalidResponseError(
-                    code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                    message="Invalid JSON response from Alpaca",
-                    provider_name="alpaca",
-                    response_body=response.text[:500],
-                )
-            )
-
-        if not isinstance(data, dict):
-            return Failure(
-                error=ProviderInvalidResponseError(
-                    code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                    message="Expected object response from Alpaca",
-                    provider_name="alpaca",
-                    response_body=response.text[:500],
-                )
-            )
-
-        logger.debug("alpaca_accounts_api_succeeded", operation=operation)
-        return Success(value=data)
-
-    def _handle_list_response(
-        self,
-        response: httpx.Response,
-        operation: str,
-    ) -> Result[list[dict[str, Any]], ProviderError]:
-        """Handle Alpaca API response for list endpoints.
-
-        Args:
-            response: HTTP response from Alpaca.
-            operation: Operation name for logging.
-
-        Returns:
-            Success(list[dict]) or Failure(ProviderError).
-        """
-        error_result = self._check_error_response(response, operation)
-        if error_result is not None:
-            return error_result
-
-        try:
-            data = response.json()
-        except ValueError as e:
-            logger.error(
-                "alpaca_accounts_api_invalid_json",
-                operation=operation,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderInvalidResponseError(
-                    code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                    message="Invalid JSON response from Alpaca",
-                    provider_name="alpaca",
-                    response_body=response.text[:500],
-                )
-            )
-
-        if not isinstance(data, list):
-            data = [data] if data else []
-
-        logger.debug(
-            "alpaca_accounts_api_succeeded",
-            operation=operation,
-            count=len(data),
-        )
-        return Success(value=data)
-
-    def _check_error_response(
-        self,
-        response: httpx.Response,
-        operation: str,
-    ) -> Failure[ProviderError] | None:
-        """Check for error status codes and return appropriate error.
-
-        Args:
-            response: HTTP response to check.
-            operation: Operation name for logging.
-
-        Returns:
-            Failure result if error detected, None if response is OK.
-        """
-        # Rate limiting
-        if response.status_code == 429:
-            retry_after = response.headers.get("Retry-After")
-            retry_seconds = int(retry_after) if retry_after else None
-            logger.warning(
-                "alpaca_accounts_api_rate_limited",
-                operation=operation,
-                retry_after=retry_seconds,
-            )
-            return Failure(
-                error=ProviderRateLimitError(
-                    code=ErrorCode.PROVIDER_RATE_LIMITED,
-                    message="Alpaca API rate limit exceeded",
-                    provider_name="alpaca",
-                    retry_after=retry_seconds,
-                )
-            )
-
-        # Authentication errors
-        if response.status_code in (401, 403):
-            logger.warning("alpaca_accounts_api_auth_failed", operation=operation)
-            return Failure(
-                error=ProviderAuthenticationError(
-                    code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
-                    message="Alpaca API credentials are invalid",
-                    provider_name="alpaca",
-                    is_token_expired=False,
-                )
-            )
-
-        # Not found
-        if response.status_code == 404:
-            logger.warning("alpaca_accounts_api_not_found", operation=operation)
-            return Failure(
-                error=ProviderInvalidResponseError(
-                    code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                    message="Alpaca resource not found",
-                    provider_name="alpaca",
-                    response_body=response.text[:500],
-                )
-            )
-
-        # Server errors
-        if response.status_code >= 500:
-            logger.warning(
-                "alpaca_accounts_api_server_error",
-                operation=operation,
-                status_code=response.status_code,
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message=f"Alpaca API server error: {response.status_code}",
-                    provider_name="alpaca",
-                    is_transient=True,
-                )
-            )
-
-        # Success
-        if response.status_code == 200:
-            return None
-
-        # Unexpected status
-        logger.warning(
-            "alpaca_accounts_api_unexpected_status",
-            operation=operation,
-            status_code=response.status_code,
-        )
-        return Failure(
-            error=ProviderInvalidResponseError(
-                code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                message=f"Unexpected response from Alpaca: {response.status_code}",
-                provider_name="alpaca",
-                response_body=response.text[:500],
-            )
-        )

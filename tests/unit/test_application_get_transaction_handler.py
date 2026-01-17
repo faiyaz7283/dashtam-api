@@ -23,6 +23,7 @@ Reference:
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import cast
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
@@ -33,6 +34,11 @@ from src.application.queries.handlers.get_transaction_handler import (
     GetTransactionHandler,
 )
 from src.application.queries.transaction_queries import GetTransaction
+from src.application.services.ownership_verifier import (
+    OwnershipError,
+    OwnershipErrorCode,
+    OwnershipVerifier,
+)
 from src.core.result import Failure, Success
 from src.domain.entities.account import Account
 from src.domain.entities.provider_connection import ProviderConnection
@@ -162,6 +168,20 @@ def transfer_transaction(transaction_id: UUID, account_id: UUID) -> Transaction:
     )
 
 
+@pytest.fixture
+def mock_ownership_verifier() -> AsyncMock:
+    """Mock OwnershipVerifier."""
+    return AsyncMock(spec=OwnershipVerifier)
+
+
+@pytest.fixture
+def handler(mock_ownership_verifier: AsyncMock) -> GetTransactionHandler:
+    """GetTransactionHandler instance with mocked dependencies."""
+    return GetTransactionHandler(
+        ownership_verifier=mock_ownership_verifier,
+    )
+
+
 # ============================================================================
 # Success Tests
 # ============================================================================
@@ -173,28 +193,19 @@ class TestGetTransactionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_returns_success_with_trade_transaction(
         self,
+        handler: GetTransactionHandler,
+        mock_ownership_verifier: AsyncMock,
         user_id: UUID,
         transaction_id: UUID,
         trade_transaction: Transaction,
-        account: Account,
-        provider_connection: ProviderConnection,
     ) -> None:
         """Should return Success with DTO for trade transaction (all fields)."""
-        # Mock repositories
-        transaction_repo = MockTransactionRepository(
-            find_by_id_result=trade_transaction
-        )
-        account_repo = MockAccountRepository(find_by_id_result=account)
-        connection_repo = MockProviderConnectionRepository(
-            find_by_id_result=provider_connection
+        # Arrange
+        mock_ownership_verifier.verify_transaction_ownership.return_value = Success(
+            value=trade_transaction
         )
 
         # Execute
-        handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,  # type: ignore[arg-type]
-            account_repo=account_repo,  # type: ignore[arg-type]
-            connection_repo=connection_repo,  # type: ignore[arg-type]
-        )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
 
@@ -204,7 +215,7 @@ class TestGetTransactionHandlerSuccess:
 
         # Assert - Basic fields
         assert dto.id == transaction_id
-        assert dto.account_id == account.id
+        assert dto.account_id == trade_transaction.account_id
         assert dto.provider_transaction_id == "TXN123"
         assert dto.transaction_type == "trade"
         assert dto.subtype == "buy"
@@ -241,28 +252,19 @@ class TestGetTransactionHandlerSuccess:
     @pytest.mark.asyncio
     async def test_returns_success_with_transfer_transaction(
         self,
+        handler: GetTransactionHandler,
+        mock_ownership_verifier: AsyncMock,
         user_id: UUID,
         transaction_id: UUID,
         transfer_transaction: Transaction,
-        account: Account,
-        provider_connection: ProviderConnection,
     ) -> None:
         """Should return Success with DTO for transfer (no security fields)."""
-        # Mock repositories
-        transaction_repo = MockTransactionRepository(
-            find_by_id_result=transfer_transaction
-        )
-        account_repo = MockAccountRepository(find_by_id_result=account)
-        connection_repo = MockProviderConnectionRepository(
-            find_by_id_result=provider_connection
+        # Arrange
+        mock_ownership_verifier.verify_transaction_ownership.return_value = Success(
+            value=transfer_transaction
         )
 
         # Execute
-        handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,  # type: ignore[arg-type]
-            account_repo=account_repo,  # type: ignore[arg-type]
-            connection_repo=connection_repo,  # type: ignore[arg-type]
-        )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
 
@@ -300,20 +302,22 @@ class TestGetTransactionHandlerFailures:
 
     @pytest.mark.asyncio
     async def test_returns_failure_when_transaction_not_found(
-        self, user_id: UUID, transaction_id: UUID
+        self,
+        handler: GetTransactionHandler,
+        mock_ownership_verifier: AsyncMock,
+        user_id: UUID,
+        transaction_id: UUID,
     ) -> None:
         """Should return Failure when transaction doesn't exist."""
-        # Mock repositories
-        transaction_repo = MockTransactionRepository(find_by_id_result=None)
-        account_repo = MockAccountRepository(find_by_id_result=None)
-        connection_repo = MockProviderConnectionRepository(find_by_id_result=None)
+        # Arrange
+        mock_ownership_verifier.verify_transaction_ownership.return_value = Failure(
+            error=OwnershipError(
+                code=OwnershipErrorCode.TRANSACTION_NOT_FOUND,
+                message="Transaction not found",
+            )
+        )
 
         # Execute
-        handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,  # type: ignore[arg-type]
-            account_repo=account_repo,  # type: ignore[arg-type]
-            connection_repo=connection_repo,  # type: ignore[arg-type]
-        )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
 
@@ -324,24 +328,21 @@ class TestGetTransactionHandlerFailures:
     @pytest.mark.asyncio
     async def test_returns_failure_when_account_not_found(
         self,
+        handler: GetTransactionHandler,
+        mock_ownership_verifier: AsyncMock,
         user_id: UUID,
         transaction_id: UUID,
-        trade_transaction: Transaction,
     ) -> None:
         """Should return Failure when account doesn't exist (broken chain)."""
-        # Mock repositories
-        transaction_repo = MockTransactionRepository(
-            find_by_id_result=trade_transaction
+        # Arrange
+        mock_ownership_verifier.verify_transaction_ownership.return_value = Failure(
+            error=OwnershipError(
+                code=OwnershipErrorCode.ACCOUNT_NOT_FOUND,
+                message="Account not found",
+            )
         )
-        account_repo = MockAccountRepository(find_by_id_result=None)
-        connection_repo = MockProviderConnectionRepository(find_by_id_result=None)
 
         # Execute
-        handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,  # type: ignore[arg-type]
-            account_repo=account_repo,  # type: ignore[arg-type]
-            connection_repo=connection_repo,  # type: ignore[arg-type]
-        )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
 
@@ -352,25 +353,21 @@ class TestGetTransactionHandlerFailures:
     @pytest.mark.asyncio
     async def test_returns_failure_when_connection_not_found(
         self,
+        handler: GetTransactionHandler,
+        mock_ownership_verifier: AsyncMock,
         user_id: UUID,
         transaction_id: UUID,
-        trade_transaction: Transaction,
-        account: Account,
     ) -> None:
         """Should return Failure when connection doesn't exist (broken chain)."""
-        # Mock repositories
-        transaction_repo = MockTransactionRepository(
-            find_by_id_result=trade_transaction
+        # Arrange
+        mock_ownership_verifier.verify_transaction_ownership.return_value = Failure(
+            error=OwnershipError(
+                code=OwnershipErrorCode.CONNECTION_NOT_FOUND,
+                message="Connection not found",
+            )
         )
-        account_repo = MockAccountRepository(find_by_id_result=account)
-        connection_repo = MockProviderConnectionRepository(find_by_id_result=None)
 
         # Execute
-        handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,  # type: ignore[arg-type]
-            account_repo=account_repo,  # type: ignore[arg-type]
-            connection_repo=connection_repo,  # type: ignore[arg-type]
-        )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
 
@@ -381,87 +378,24 @@ class TestGetTransactionHandlerFailures:
     @pytest.mark.asyncio
     async def test_returns_failure_when_not_owned_by_user(
         self,
+        handler: GetTransactionHandler,
+        mock_ownership_verifier: AsyncMock,
         user_id: UUID,
         transaction_id: UUID,
-        trade_transaction: Transaction,
-        account: Account,
-        provider_connection: ProviderConnection,
     ) -> None:
         """Should return Failure when connection belongs to different user."""
-        # Modify connection to belong to different user
-        other_user_id = uuid7()
-        different_user_connection = ProviderConnection(
-            id=provider_connection.id,
-            user_id=other_user_id,
-            provider_id=provider_connection.provider_id,
-            provider_slug=provider_connection.provider_slug,
-            status=provider_connection.status,
-            credentials=provider_connection.credentials,
-            connected_at=provider_connection.connected_at,
-            last_sync_at=provider_connection.last_sync_at,
-            created_at=provider_connection.created_at,
-            updated_at=provider_connection.updated_at,
-        )
-
-        # Mock repositories
-        transaction_repo = MockTransactionRepository(
-            find_by_id_result=trade_transaction
-        )
-        account_repo = MockAccountRepository(find_by_id_result=account)
-        connection_repo = MockProviderConnectionRepository(
-            find_by_id_result=different_user_connection
+        # Arrange
+        mock_ownership_verifier.verify_transaction_ownership.return_value = Failure(
+            error=OwnershipError(
+                code=OwnershipErrorCode.NOT_OWNED_BY_USER,
+                message="Transaction not owned by user",
+            )
         )
 
         # Execute
-        handler = GetTransactionHandler(
-            transaction_repo=transaction_repo,  # type: ignore[arg-type]
-            account_repo=account_repo,  # type: ignore[arg-type]
-            connection_repo=connection_repo,  # type: ignore[arg-type]
-        )
         query = GetTransaction(transaction_id=transaction_id, user_id=user_id)
         result = await handler.handle(query)
 
         # Assert
         assert isinstance(result, Failure)
         assert result.error == GetTransactionError.NOT_OWNED_BY_USER
-
-
-# ============================================================================
-# Mock Repositories
-# ============================================================================
-
-
-class MockTransactionRepository:
-    """Mock TransactionRepository for testing."""
-
-    def __init__(self, find_by_id_result: Transaction | None = None) -> None:
-        """Initialize mock with predefined results."""
-        self._find_by_id_result = find_by_id_result
-
-    async def find_by_id(self, transaction_id: UUID) -> Transaction | None:
-        """Mock find_by_id."""
-        return self._find_by_id_result
-
-
-class MockAccountRepository:
-    """Mock AccountRepository for testing."""
-
-    def __init__(self, find_by_id_result: Account | None = None) -> None:
-        """Initialize mock with predefined results."""
-        self._find_by_id_result = find_by_id_result
-
-    async def find_by_id(self, account_id: UUID) -> Account | None:
-        """Mock find_by_id."""
-        return self._find_by_id_result
-
-
-class MockProviderConnectionRepository:
-    """Mock ProviderConnectionRepository for testing."""
-
-    def __init__(self, find_by_id_result: ProviderConnection | None = None) -> None:
-        """Initialize mock with predefined results."""
-        self._find_by_id_result = find_by_id_result
-
-    async def find_by_id(self, connection_id: UUID) -> ProviderConnection | None:
-        """Mock find_by_id."""
-        return self._find_by_id_result

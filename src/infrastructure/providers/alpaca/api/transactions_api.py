@@ -28,23 +28,13 @@ Reference:
 from datetime import date
 from typing import Any
 
-import httpx
-import structlog
-
-from src.core.enums import ErrorCode
-from src.core.result import Failure, Result, Success
-from src.domain.errors import (
-    ProviderAuthenticationError,
-    ProviderError,
-    ProviderInvalidResponseError,
-    ProviderRateLimitError,
-    ProviderUnavailableError,
-)
-
-logger = structlog.get_logger(__name__)
+from src.core.constants import PROVIDER_TIMEOUT_DEFAULT
+from src.core.result import Result
+from src.domain.errors import ProviderError
+from src.infrastructure.providers.base_api_client import BaseProviderAPIClient
 
 
-class AlpacaTransactionsAPI:
+class AlpacaTransactionsAPI(BaseProviderAPIClient):
     """HTTP client for Alpaca Trading API transactions (activities) endpoint.
 
     Uses API Key authentication (not OAuth Bearer tokens).
@@ -68,7 +58,7 @@ class AlpacaTransactionsAPI:
         self,
         *,
         base_url: str,
-        timeout: float = 30.0,
+        timeout: float = PROVIDER_TIMEOUT_DEFAULT,
     ) -> None:
         """Initialize Alpaca Activities API client.
 
@@ -76,8 +66,11 @@ class AlpacaTransactionsAPI:
             base_url: Alpaca Trading API base URL.
             timeout: HTTP request timeout in seconds.
         """
-        self._base_url = base_url.rstrip("/")
-        self._timeout = timeout
+        super().__init__(
+            base_url=base_url,
+            provider_name="alpaca",
+            timeout=timeout,
+        )
 
     async def get_transactions(
         self,
@@ -104,7 +97,7 @@ class AlpacaTransactionsAPI:
             Failure(ProviderAuthenticationError): If credentials are invalid.
             Failure(ProviderUnavailableError): If Alpaca API is unreachable.
         """
-        logger.debug(
+        self._logger.debug(
             "alpaca_transactions_api_get_transactions_started",
             activity_types=activity_types,
             start_date=str(start_date) if start_date else None,
@@ -120,46 +113,17 @@ class AlpacaTransactionsAPI:
         if end_date:
             params["until"] = end_date.isoformat()
 
-        try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.get(
-                    f"{self._base_url}/v2/account/activities",
-                    headers=self._build_headers(api_key, api_secret),
-                    params=params,
-                )
+        headers = self._build_alpaca_headers(api_key, api_secret)
 
-            return self._handle_response(response, "get_transactions")
+        return await self._execute_and_parse_list(
+            method="GET",
+            path="/v2/account/activities",
+            headers=headers,
+            params=params,
+            operation="get_transactions",
+        )
 
-        except httpx.TimeoutException as e:
-            logger.warning(
-                "alpaca_transactions_api_timeout",
-                operation="get_transactions",
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message="Alpaca API request timed out",
-                    provider_name="alpaca",
-                    is_transient=True,
-                )
-            )
-        except httpx.RequestError as e:
-            logger.warning(
-                "alpaca_transactions_api_connection_error",
-                operation="get_transactions",
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message=f"Failed to connect to Alpaca API: {e}",
-                    provider_name="alpaca",
-                    is_transient=True,
-                )
-            )
-
-    def _build_headers(self, api_key: str, api_secret: str) -> dict[str, str]:
+    def _build_alpaca_headers(self, api_key: str, api_secret: str) -> dict[str, str]:
         """Build HTTP headers for Alpaca API requests.
 
         Args:
@@ -174,127 +138,3 @@ class AlpacaTransactionsAPI:
             "APCA-API-SECRET-KEY": api_secret,
             "Accept": "application/json",
         }
-
-    def _handle_response(
-        self,
-        response: httpx.Response,
-        operation: str,
-    ) -> Result[list[dict[str, Any]], ProviderError]:
-        """Handle Alpaca API response for transactions endpoint.
-
-        Args:
-            response: HTTP response from Alpaca.
-            operation: Operation name for logging.
-
-        Returns:
-            Success(list[dict]) or Failure(ProviderError).
-        """
-        error_result = self._check_error_response(response, operation)
-        if error_result is not None:
-            return error_result
-
-        try:
-            data = response.json()
-        except ValueError as e:
-            logger.error(
-                "alpaca_transactions_api_invalid_json",
-                operation=operation,
-                error=str(e),
-            )
-            return Failure(
-                error=ProviderInvalidResponseError(
-                    code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                    message="Invalid JSON response from Alpaca",
-                    provider_name="alpaca",
-                    response_body=response.text[:500],
-                )
-            )
-
-        if not isinstance(data, list):
-            data = [data] if data else []
-
-        logger.debug(
-            "alpaca_transactions_api_succeeded",
-            operation=operation,
-            count=len(data),
-        )
-        return Success(value=data)
-
-    def _check_error_response(
-        self,
-        response: httpx.Response,
-        operation: str,
-    ) -> Failure[ProviderError] | None:
-        """Check for error status codes and return appropriate error.
-
-        Args:
-            response: HTTP response to check.
-            operation: Operation name for logging.
-
-        Returns:
-            Failure result if error detected, None if response is OK.
-        """
-        # Rate limiting
-        if response.status_code == 429:
-            retry_after = response.headers.get("Retry-After")
-            retry_seconds = int(retry_after) if retry_after else None
-            logger.warning(
-                "alpaca_transactions_api_rate_limited",
-                operation=operation,
-                retry_after=retry_seconds,
-            )
-            return Failure(
-                error=ProviderRateLimitError(
-                    code=ErrorCode.PROVIDER_RATE_LIMITED,
-                    message="Alpaca API rate limit exceeded",
-                    provider_name="alpaca",
-                    retry_after=retry_seconds,
-                )
-            )
-
-        # Authentication errors
-        if response.status_code in (401, 403):
-            logger.warning("alpaca_transactions_api_auth_failed", operation=operation)
-            return Failure(
-                error=ProviderAuthenticationError(
-                    code=ErrorCode.PROVIDER_AUTHENTICATION_FAILED,
-                    message="Alpaca API credentials are invalid",
-                    provider_name="alpaca",
-                    is_token_expired=False,
-                )
-            )
-
-        # Server errors
-        if response.status_code >= 500:
-            logger.warning(
-                "alpaca_transactions_api_server_error",
-                operation=operation,
-                status_code=response.status_code,
-            )
-            return Failure(
-                error=ProviderUnavailableError(
-                    code=ErrorCode.PROVIDER_UNAVAILABLE,
-                    message=f"Alpaca API server error: {response.status_code}",
-                    provider_name="alpaca",
-                    is_transient=True,
-                )
-            )
-
-        # Success
-        if response.status_code == 200:
-            return None
-
-        # Unexpected status
-        logger.warning(
-            "alpaca_transactions_api_unexpected_status",
-            operation=operation,
-            status_code=response.status_code,
-        )
-        return Failure(
-            error=ProviderInvalidResponseError(
-                code=ErrorCode.PROVIDER_CREDENTIAL_INVALID,
-                message=f"Unexpected response from Alpaca: {response.status_code}",
-                provider_name="alpaca",
-                response_body=response.text[:500],
-            )
-        )

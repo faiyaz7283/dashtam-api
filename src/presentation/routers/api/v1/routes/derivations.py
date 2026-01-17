@@ -35,6 +35,7 @@ Reference:
     - src/infrastructure/rate_limit/config.py (public API for rules)
 """
 
+from src.core.config import settings
 from src.domain.enums import RateLimitScope
 from src.domain.value_objects.rate_limit_rule import RateLimitRule
 from src.presentation.routers.api.v1.routes.metadata import (
@@ -70,13 +71,43 @@ def build_rate_limit_rules(
     for entry in registry:
         # Build endpoint key: "{METHOD} /api/v1{PATH}"
         # Note: Router adds /api/v1 prefix, so we must include it here
-        endpoint = f"{entry.method.value} /api/v1{entry.path}"
+        endpoint = f"{entry.method.value} {settings.api_v1_prefix}{entry.path}"
 
         # Map RateLimitPolicy to RateLimitRule
         rule = _create_rate_limit_rule(entry.rate_limit_policy)
         rules[endpoint] = rule
 
     return rules
+
+
+def _rule(
+    max_tokens: int,
+    refill_rate: float,
+    scope: RateLimitScope,
+    *,
+    enabled: bool = True,
+) -> RateLimitRule:
+    """Factory for rate limit rules with sensible defaults.
+
+    Creates RateLimitRule with cost=1 (standard) and configurable enabled flag.
+    Reduces boilerplate when defining rate limit policies.
+
+    Args:
+        max_tokens: Maximum tokens in bucket.
+        refill_rate: Token refill rate per minute.
+        scope: Rate limit scope (IP, USER, etc.).
+        enabled: Whether rule is active (default: True).
+
+    Returns:
+        RateLimitRule instance.
+    """
+    return RateLimitRule(
+        max_tokens=max_tokens,
+        refill_rate=refill_rate,
+        scope=scope,
+        cost=1,
+        enabled=enabled,
+    )
 
 
 def _create_rate_limit_rule(policy: RateLimitPolicy) -> RateLimitRule:
@@ -98,90 +129,26 @@ def _create_rate_limit_rule(policy: RateLimitPolicy) -> RateLimitRule:
         >>> rule.scope
         <RateLimitScope.IP: 'ip'>
     """
-    # Map policy to rule configuration
+    # Map policy to rule configuration using _rule() factory
     # Keep these in sync with src/infrastructure/rate_limit/config.py patterns
     mapping: dict[RateLimitPolicy, RateLimitRule] = {
         # Auth endpoints (IP-scoped, restrictive)
-        RateLimitPolicy.AUTH_LOGIN: RateLimitRule(
-            max_tokens=5,
-            refill_rate=5.0,  # 1 token every 12 seconds
-            scope=RateLimitScope.IP,
-            cost=1,
-            enabled=True,
-        ),
-        RateLimitPolicy.AUTH_REGISTER: RateLimitRule(
-            max_tokens=3,
-            refill_rate=3.0,  # 1 token every 20 seconds
-            scope=RateLimitScope.IP,
-            cost=1,
-            enabled=True,
-        ),
-        RateLimitPolicy.AUTH_PASSWORD_RESET: RateLimitRule(
-            max_tokens=3,
-            refill_rate=1.0,  # 1 token per minute
-            scope=RateLimitScope.IP,
-            cost=1,
-            enabled=True,
-        ),
-        RateLimitPolicy.AUTH_TOKEN_REFRESH: RateLimitRule(
-            max_tokens=10,
-            refill_rate=10.0,  # 1 token every 6 seconds
-            scope=RateLimitScope.USER,
-            cost=1,
-            enabled=True,
-        ),
+        RateLimitPolicy.AUTH_LOGIN: _rule(5, 5.0, RateLimitScope.IP),
+        RateLimitPolicy.AUTH_REGISTER: _rule(3, 3.0, RateLimitScope.IP),
+        RateLimitPolicy.AUTH_PASSWORD_RESET: _rule(3, 1.0, RateLimitScope.IP),
+        RateLimitPolicy.AUTH_TOKEN_REFRESH: _rule(10, 10.0, RateLimitScope.USER),
         # Provider endpoints (moderate, user-scoped)
-        RateLimitPolicy.PROVIDER_CONNECT: RateLimitRule(
-            max_tokens=5,
-            refill_rate=5.0,
-            scope=RateLimitScope.USER,
-            cost=1,
-            enabled=True,
-        ),
-        RateLimitPolicy.PROVIDER_SYNC: RateLimitRule(
-            max_tokens=10,
-            refill_rate=5.0,
-            scope=RateLimitScope.USER_PROVIDER,
-            cost=1,
-            enabled=True,
-        ),
+        RateLimitPolicy.PROVIDER_CONNECT: _rule(5, 5.0, RateLimitScope.USER),
+        RateLimitPolicy.PROVIDER_SYNC: _rule(10, 5.0, RateLimitScope.USER_PROVIDER),
         # Standard API endpoints (generous, user-scoped)
-        RateLimitPolicy.API_READ: RateLimitRule(
-            max_tokens=100,
-            refill_rate=100.0,  # ~1.67 tokens per second
-            scope=RateLimitScope.USER,
-            cost=1,
-            enabled=True,
-        ),
-        RateLimitPolicy.API_WRITE: RateLimitRule(
-            max_tokens=50,
-            refill_rate=50.0,
-            scope=RateLimitScope.USER,
-            cost=1,
-            enabled=True,
-        ),
+        RateLimitPolicy.API_READ: _rule(100, 100.0, RateLimitScope.USER),
+        RateLimitPolicy.API_WRITE: _rule(50, 50.0, RateLimitScope.USER),
         # Expensive operations (restrictive, user-scoped)
-        RateLimitPolicy.EXPENSIVE_EXPORT: RateLimitRule(
-            max_tokens=5,
-            refill_rate=1.0,  # 1 token per minute
-            scope=RateLimitScope.USER,
-            cost=1,
-            enabled=True,
-        ),
-        RateLimitPolicy.REPORT: RateLimitRule(
-            max_tokens=10,
-            refill_rate=2.0,  # 1 token every 30 seconds
-            scope=RateLimitScope.USER,
-            cost=1,
-            enabled=True,
-        ),
+        RateLimitPolicy.EXPENSIVE_EXPORT: _rule(5, 1.0, RateLimitScope.USER),
+        RateLimitPolicy.REPORT: _rule(10, 2.0, RateLimitScope.USER),
         # Global limits (emergency brake, disabled by default)
-        RateLimitPolicy.GLOBAL: RateLimitRule(
-            max_tokens=10000,
-            refill_rate=10000.0,
-            scope=RateLimitScope.GLOBAL,
-            cost=1,
-            enabled=False,  # Enable only in emergencies
+        RateLimitPolicy.GLOBAL: _rule(
+            10000, 10000.0, RateLimitScope.GLOBAL, enabled=False
         ),
     }
 

@@ -1,6 +1,6 @@
 [project]
 name = "dashtam"
-version = "1.8.1"
+version = "1.8.2"
 description = "A secure financial data aggregation platform built with hexagonal architecture, CQRS, and domain-driven design"
 requires-python = ">=3.14"
 dependencies = [

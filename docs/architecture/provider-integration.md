@@ -699,6 +699,55 @@ RATE_LIMIT_RULES = {
 
 ---
 
+## BaseProviderAPIClient (DRY Pattern)
+
+**Purpose**: Shared HTTP client base class for all provider API clients.
+
+All provider API clients (accounts, transactions, holdings) extend `BaseProviderAPIClient`
+to eliminate duplicated HTTP handling logic.
+
+**What it provides**:
+
+- Centralized HTTP status code → `ProviderError` mapping
+- Shared timeout configuration (30s default)
+- Consistent error handling for network failures
+- Common headers setup
+
+**Usage**:
+
+```python
+# src/infrastructure/providers/schwab/api/accounts_api.py
+from src.infrastructure.providers.base_api_client import BaseProviderAPIClient
+
+class SchwabAccountsAPI(BaseProviderAPIClient):
+    """Extends base client with Schwab-specific logic."""
+    
+    def __init__(self, base_url: str, timeout: float = 30.0) -> None:
+        super().__init__(base_url=base_url, timeout=timeout)
+    
+    async def get_accounts(self, access_token: str) -> Result[dict, ProviderError]:
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            try:
+                response = await client.get(
+                    f"{self._base_url}/accounts",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+            except httpx.RequestError as e:
+                return self._handle_request_error(e)  # From base class
+        
+        return self._handle_response(response)  # From base class
+```
+
+**Key methods inherited**:
+
+- `_handle_response(response)` - Maps HTTP status to appropriate `ProviderError`
+- `_handle_request_error(error)` - Converts network errors to `ProviderUnavailableError`
+- `_build_bearer_headers(token)` - Creates Authorization headers
+
+**Reference**: `src/infrastructure/providers/base_api_client.py`
+
+---
+
 ## File Structure
 
 ```text
@@ -715,6 +764,7 @@ src/
 │
 ├── infrastructure/
 │   └── providers/
+│       ├── base_api_client.py      # BaseProviderAPIClient (shared HTTP logic)
 │       ├── encryption_service.py   # AES-256-GCM encryption
 │       ├── provider_types.py       # OAuthTokens, ProviderAccountData, etc.
 │       │
@@ -803,4 +853,4 @@ The guide covers all three provider types with detailed phases:
 
 ---
 
-**Created**: 2025-12-03 | **Last Updated**: 2026-01-10
+**Created**: 2025-12-03 | **Last Updated**: 2026-01-17

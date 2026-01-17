@@ -23,21 +23,32 @@ from src.presentation.routers.api.v1.errors.problem_details import (
 )
 
 
-# HTTP status code to title mapping for RFC 9457
-_HTTP_STATUS_TITLES: dict[int, str] = {
-    400: "Bad Request",
-    401: "Authentication Required",
-    403: "Access Denied",
-    404: "Resource Not Found",
-    405: "Method Not Allowed",
-    409: "Resource Conflict",
-    415: "Unsupported Media Type",
-    422: "Validation Failed",
-    429: "Too Many Requests",
-    500: "Internal Server Error",
-    502: "Bad Gateway",
-    503: "Service Unavailable",
+# HTTP status code to (title, slug) mapping for RFC 9457
+# Consolidated to avoid maintaining two separate dicts
+_HTTP_STATUS_INFO: dict[int, tuple[str, str]] = {
+    400: ("Bad Request", "bad-request"),
+    401: ("Authentication Required", "unauthorized"),
+    403: ("Access Denied", "forbidden"),
+    404: ("Resource Not Found", "not-found"),
+    405: ("Method Not Allowed", "method-not-allowed"),
+    409: ("Resource Conflict", "conflict"),
+    415: ("Unsupported Media Type", "unsupported-media-type"),
+    422: ("Validation Failed", "validation-failed"),
+    429: ("Too Many Requests", "rate-limit-exceeded"),
+    500: ("Internal Server Error", "internal-server-error"),
+    502: ("Bad Gateway", "bad-gateway"),
+    503: ("Service Unavailable", "service-unavailable"),
 }
+
+
+def _get_status_title(status_code: int) -> str:
+    """Get human-readable title for HTTP status code."""
+    return _HTTP_STATUS_INFO.get(status_code, ("Error", "error"))[0]
+
+
+def _get_error_slug(status_code: int) -> str:
+    """Get kebab-case error slug for RFC 9457 type URL."""
+    return _HTTP_STATUS_INFO.get(status_code, ("Error", "error"))[1]
 
 
 async def http_exception_handler(
@@ -75,9 +86,9 @@ async def http_exception_handler(
     # Extract trace_id from request state (set by TraceMiddleware)
     trace_id = getattr(request.state, "trace_id", None)
 
-    # Derive error type slug from status code
+    # Derive error type slug and title from status code
     error_slug = _get_error_slug(exc.status_code)
-    title = _HTTP_STATUS_TITLES.get(exc.status_code, "Error")
+    title = _get_status_title(exc.status_code)
 
     # Build RFC 9457 Problem Details
     problem = ProblemDetails(
@@ -170,32 +181,6 @@ async def validation_exception_handler(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=problem.model_dump(exclude_none=True),
     )
-
-
-def _get_error_slug(status_code: int) -> str:
-    """Get error slug for RFC 9457 type URL from HTTP status code.
-
-    Args:
-        status_code: HTTP status code.
-
-    Returns:
-        Kebab-case error slug for URL.
-    """
-    slug_map: dict[int, str] = {
-        400: "bad-request",
-        401: "unauthorized",
-        403: "forbidden",
-        404: "not-found",
-        405: "method-not-allowed",
-        409: "conflict",
-        415: "unsupported-media-type",
-        422: "validation-failed",
-        429: "rate-limit-exceeded",
-        500: "internal-server-error",
-        502: "bad-gateway",
-        503: "service-unavailable",
-    }
-    return slug_map.get(status_code, "error")
 
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:

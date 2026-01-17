@@ -999,12 +999,20 @@ class AlpacaProvider:
 
 ### 3b.3 API Client with Header-Based Auth
 
-Alpaca uses custom headers instead of Bearer tokens:
+All API clients should extend `BaseProviderAPIClient` for consistent error handling:
 
 ```python
 # src/infrastructure/providers/alpaca/api/accounts_api.py
-class AlpacaAccountsAPI:
-    """HTTP client for Alpaca Trading API account endpoints."""
+from src.infrastructure.providers.base_api_client import BaseProviderAPIClient
+
+class AlpacaAccountsAPI(BaseProviderAPIClient):
+    """HTTP client for Alpaca Trading API account endpoints.
+    
+    Extends BaseProviderAPIClient for shared HTTP/error handling.
+    """
+    
+    def __init__(self, base_url: str, timeout: float = 30.0) -> None:
+        super().__init__(base_url=base_url, timeout=timeout)
     
     async def get_account(
         self,
@@ -1013,18 +1021,27 @@ class AlpacaAccountsAPI:
     ) -> Result[dict[str, Any], ProviderError]:
         """Fetch account data."""
         async with httpx.AsyncClient(timeout=self._timeout) as client:
-            response = await client.get(
-                f"{self._base_url}/v2/account",
-                headers={
-                    # Alpaca's custom authentication headers
-                    "APCA-API-KEY-ID": api_key,
-                    "APCA-API-SECRET-KEY": api_secret,
-                    "Accept": "application/json",
-                },
-            )
+            try:
+                response = await client.get(
+                    f"{self._base_url}/v2/account",
+                    headers={
+                        # Alpaca's custom authentication headers
+                        "APCA-API-KEY-ID": api_key,
+                        "APCA-API-SECRET-KEY": api_secret,
+                        "Accept": "application/json",
+                    },
+                )
+            except httpx.RequestError as e:
+                return self._handle_request_error(e)  # Inherited from base
         
-        return self._handle_response(response)
+        return self._handle_response(response)  # Inherited from base
 ```
+
+**BaseProviderAPIClient** provides:
+
+- `_handle_response(response)` - Maps HTTP status codes to `ProviderError` types
+- `_handle_request_error(error)` - Converts network errors to `ProviderUnavailableError`
+- `_build_bearer_headers(token)` - Creates Authorization headers
 
 ### 3b.4 Container Registration for API-Key Provider
 
@@ -2411,4 +2428,4 @@ Before submitting PR:
 
 ---
 
-**Created**: 2025-12-26 | **Last Updated**: 2026-01-10
+**Created**: 2025-12-04 | **Last Updated**: 2026-01-17

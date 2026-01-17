@@ -20,6 +20,8 @@ Reference:
 import secrets
 from datetime import UTC, datetime, timedelta
 
+from src.core.constants import TOKEN_BYTES
+
 
 class EmailVerificationTokenService:
     """Email verification token generation service.
@@ -80,7 +82,7 @@ class EmailVerificationTokenService:
         """
         # Generate 32-byte random hex string
         # Returns 64 hex characters (each byte = 2 hex chars)
-        return secrets.token_hex(32)
+        return secrets.token_hex(TOKEN_BYTES)
 
     def calculate_expiration(self) -> datetime:
         """Calculate expiration timestamp for new token.

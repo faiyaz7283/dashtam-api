@@ -20,12 +20,11 @@ from decimal import Decimal
 from uuid import UUID
 
 from src.application.queries.transaction_queries import GetTransaction
-from src.core.result import Failure, Result, Success
-from src.domain.protocols.account_repository import AccountRepository
-from src.domain.protocols.provider_connection_repository import (
-    ProviderConnectionRepository,
+from src.application.services.ownership_verifier import (
+    OwnershipErrorCode,
+    OwnershipVerifier,
 )
-from src.domain.protocols.transaction_repository import TransactionRepository
+from src.core.result import Failure, Result, Success
 
 
 @dataclass
@@ -109,30 +108,22 @@ class GetTransactionHandler:
     """Handler for GetTransaction query.
 
     Retrieves a single transaction by ID with ownership verification.
-    Ownership checked by verifying: Transaction->Account->ProviderConnection->User
+    Uses OwnershipVerifier to verify: Transaction->Account->ProviderConnection->User
 
     Dependencies (injected via constructor):
-        - TransactionRepository: For transaction retrieval
-        - AccountRepository: For account lookup (ownership chain)
-        - ProviderConnectionRepository: For ownership verification
+        - OwnershipVerifier: For transaction retrieval with ownership verification
     """
 
     def __init__(
         self,
-        transaction_repo: TransactionRepository,
-        account_repo: AccountRepository,
-        connection_repo: ProviderConnectionRepository,
+        ownership_verifier: OwnershipVerifier,
     ) -> None:
         """Initialize handler with dependencies.
 
         Args:
-            transaction_repo: Transaction repository.
-            account_repo: Account repository for ownership chain.
-            connection_repo: Provider connection repository for ownership check.
+            ownership_verifier: Service for ownership verification.
         """
-        self._transaction_repo = transaction_repo
-        self._account_repo = account_repo
-        self._connection_repo = connection_repo
+        self._verifier = ownership_verifier
 
     async def handle(self, query: GetTransaction) -> Result[TransactionResult, str]:
         """Handle GetTransaction query.
@@ -147,28 +138,26 @@ class GetTransactionHandler:
             Success(TransactionResult): Transaction found and owned by user.
             Failure(error): Transaction not found or not owned by user.
         """
-        # Fetch transaction
-        transaction = await self._transaction_repo.find_by_id(query.transaction_id)
+        # Verify ownership and get transaction
+        result = await self._verifier.verify_transaction_ownership(
+            query.transaction_id, query.user_id
+        )
 
-        # Verify exists
-        if transaction is None:
-            return Failure(error=GetTransactionError.TRANSACTION_NOT_FOUND)
+        if isinstance(result, Failure):
+            # Map OwnershipError to handler-specific error string
+            error_map = {
+                OwnershipErrorCode.TRANSACTION_NOT_FOUND: GetTransactionError.TRANSACTION_NOT_FOUND,
+                OwnershipErrorCode.ACCOUNT_NOT_FOUND: GetTransactionError.ACCOUNT_NOT_FOUND,
+                OwnershipErrorCode.CONNECTION_NOT_FOUND: GetTransactionError.CONNECTION_NOT_FOUND,
+                OwnershipErrorCode.NOT_OWNED_BY_USER: GetTransactionError.NOT_OWNED_BY_USER,
+            }
+            return Failure(
+                error=error_map.get(
+                    result.error.code, GetTransactionError.NOT_OWNED_BY_USER
+                )
+            )
 
-        # Fetch account to get connection_id
-        account = await self._account_repo.find_by_id(transaction.account_id)
-
-        if account is None:
-            return Failure(error=GetTransactionError.ACCOUNT_NOT_FOUND)
-
-        # Fetch connection to verify ownership
-        connection = await self._connection_repo.find_by_id(account.connection_id)
-
-        if connection is None:
-            return Failure(error=GetTransactionError.CONNECTION_NOT_FOUND)
-
-        # Verify ownership (connection belongs to user)
-        if connection.user_id != query.user_id:
-            return Failure(error=GetTransactionError.NOT_OWNED_BY_USER)
+        transaction = result.value
 
         # Map to DTO (Money -> amount+currency)
         dto = TransactionResult(

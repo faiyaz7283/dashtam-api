@@ -50,6 +50,11 @@ REPOSITORY_TYPES: dict[str, str] = {
     "ProviderRepository": "src.infrastructure.persistence.repositories.ProviderRepository",
 }
 
+# Service types that need session-scoped repositories
+SESSION_SERVICE_TYPES: set[str] = {
+    "OwnershipVerifier",
+}
+
 # Service/protocol types that are app-scoped singletons
 SINGLETON_TYPES: dict[str, str] = {
     # Event Bus
@@ -332,6 +337,46 @@ def _is_singleton_type(type_name: str) -> bool:
     return type_name in SINGLETON_TYPES or type_name.endswith("Protocol")
 
 
+def _is_session_service_type(type_name: str) -> bool:
+    """Check if type is a session-scoped service."""
+    return type_name in SESSION_SERVICE_TYPES
+
+
+def _get_session_service_instance(
+    type_name: str,
+    session: AsyncSession,
+) -> Any:
+    """Create session-scoped service instance with repositories.
+
+    Args:
+        type_name: Service type name.
+        session: Database session for repositories.
+
+    Returns:
+        Service instance.
+
+    Raises:
+        ValueError: If service type not found.
+    """
+    if type_name == "OwnershipVerifier":
+        from src.application.services.ownership_verifier import OwnershipVerifier
+        from src.infrastructure.persistence.repositories import (
+            AccountRepository,
+            HoldingRepository,
+            ProviderConnectionRepository,
+            TransactionRepository,
+        )
+
+        return OwnershipVerifier(
+            transaction_repo=TransactionRepository(session=session),
+            holding_repo=HoldingRepository(session=session),
+            account_repo=AccountRepository(session=session),
+            connection_repo=ProviderConnectionRepository(session=session),
+        )
+
+    raise ValueError(f"Unknown session service type: {type_name}")
+
+
 async def create_handler(
     handler_class: type[T],
     session: AsyncSession,
@@ -375,6 +420,8 @@ async def create_handler(
         try:
             if _is_repository_type(type_name):
                 resolved[param_name] = _get_repository_instance(type_name, session)
+            elif _is_session_service_type(type_name):
+                resolved[param_name] = _get_session_service_instance(type_name, session)
             elif _is_singleton_type(type_name):
                 resolved[param_name] = _get_singleton_instance(type_name)
             elif is_optional:

@@ -7,7 +7,7 @@ Architecture:
 - Uses real app with dependency overrides
 - Mocks handlers to test request/response flow
 - Tests validation, error responses, and success paths
-- Verifies RFC 7807 compliance for errors
+- Verifies RFC 9457 compliance for errors
 
 Note:
     These tests focus on request validation and error response formats.
@@ -122,7 +122,7 @@ class TestCreateEmailVerification:
             json={"token": "b" * 64},  # Valid length but invalid token
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 404
         data = response.json()
         assert data["type"].endswith("/errors/not_found")
@@ -143,7 +143,7 @@ class TestCreateEmailVerification:
             json={"token": "c" * 64},  # Valid length but expired
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 400
         data = response.json()
         assert data["type"].endswith("/errors/command_validation_failed")
@@ -164,7 +164,7 @@ class TestCreateEmailVerification:
             json={"token": "d" * 64},  # Valid length but already used
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 400
         data = response.json()
         assert data["type"].endswith("/errors/command_validation_failed")
@@ -185,7 +185,7 @@ class TestCreateEmailVerification:
             json={"token": "e" * 64},  # Valid length but orphaned
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 404
         data = response.json()
         assert data["type"].endswith("/errors/not_found")
@@ -197,7 +197,7 @@ class TestCreateEmailVerification:
         # Execute: Missing token field
         response = client.post("/api/v1/email-verifications", json={})
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -212,7 +212,7 @@ class TestCreateEmailVerification:
             json={"token": "short"},  # Less than 64 chars
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -227,7 +227,7 @@ class TestCreateEmailVerification:
             json={"token": "a" * 65},  # More than 64 chars
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -242,7 +242,7 @@ class TestCreateEmailVerification:
             json={"token": ""},
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")

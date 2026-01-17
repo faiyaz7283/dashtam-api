@@ -6,7 +6,7 @@ Tests coverage for missing lines in providers.py:
 
 Architecture:
 - Uses FastAPI TestClient with real app + dependency overrides
-- Tests validation, error paths, and RFC 7807 compliance
+- Tests validation, error paths, and RFC 9457 compliance
 - Mocks handlers and services to test HTTP layer behavior
 """
 

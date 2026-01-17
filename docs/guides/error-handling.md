@@ -1,12 +1,12 @@
 # Error Handling Guide
 
-**Purpose**: Comprehensive guide to RFC 7807 Problem Details error handling in Dashtam API.
+**Purpose**: Comprehensive guide to RFC 9457 Problem Details error handling in Dashtam API.
 
 **Audience**: Backend developers, API consumers, frontend developers.
 
 ## Overview
 
-Dashtam uses **RFC 7807 Problem Details** as the standard error format across all API endpoints. This provides consistent, machine-readable error responses with structured metadata for debugging and user-facing error messages.
+Dashtam uses **RFC 9457 Problem Details** as the standard error format across all API endpoints. This provides consistent, machine-readable error responses with structured metadata for debugging and user-facing error messages.
 
 **Key Benefits**:
 
@@ -14,11 +14,11 @@ Dashtam uses **RFC 7807 Problem Details** as the standard error format across al
 - **Machine-readable**: Clients can parse errors programmatically
 - **Debuggable**: Includes trace IDs for correlation with logs
 - **User-friendly**: Structured field-level errors for form validation
-- **Standards-compliant**: Follows IETF RFC 7807 specification
+- **Standards-compliant**: Follows IETF RFC 9457 specification
 
-## RFC 7807 Problem Details Standard
+## RFC 9457 Problem Details Standard
 
-RFC 7807 defines a standard JSON format for HTTP API errors. Every error response is a JSON object with these fields:
+RFC 9457 defines a standard JSON format for HTTP API errors. Every error response is a JSON object with these fields:
 
 ```json
 {
@@ -145,7 +145,7 @@ class FieldError(BaseModel):
     code: str | None = None
 
 class ProblemDetails(BaseModel):
-    """RFC 7807 Problem Details error response."""
+    """RFC 9457 Problem Details error response."""
     type: str
     title: str
     status: int
@@ -173,7 +173,7 @@ class ProblemDetails(BaseModel):
 
 ## ErrorResponseBuilder Usage
 
-`ErrorResponseBuilder` is the primary interface for creating RFC 7807 error responses.
+`ErrorResponseBuilder` is the primary interface for creating RFC 9457 error responses.
 
 ### Basic Usage
 
@@ -239,7 +239,7 @@ return response
 
 ## ApplicationErrorCode Reference
 
-`ApplicationErrorCode` enum maps error types to HTTP status codes and RFC 7807 metadata.
+`ApplicationErrorCode` enum maps error types to HTTP status codes and RFC 9457 metadata.
 
 Defined in `src/core/errors/application_error.py`:
 
@@ -696,7 +696,7 @@ fields @timestamp, @message
 
 ## Migration from AuthErrorResponse
 
-**Breaking Change in v1.6.3**: `AuthErrorResponse` removed, replaced with RFC 7807 `ProblemDetails`.
+**Breaking Change in v1.6.3**: `AuthErrorResponse` removed, replaced with RFC 9457 `ProblemDetails`.
 
 ### Old Format (Deprecated)
 
@@ -707,7 +707,7 @@ fields @timestamp, @message
 }
 ```
 
-### New Format (RFC 7807)
+### New Format (RFC 9457)
 
 ```json
 {
@@ -736,7 +736,7 @@ Dashtam uses **Result types** for explicit error handling across all layers. Dom
 
 - **Domain**: Returns `Result[T, DomainError]` (NO exceptions)
 - **Application**: Wraps domain errors in `ApplicationError`
-- **Presentation**: Converts to RFC 7807 `ProblemDetails` JSON
+- **Presentation**: Converts to RFC 9457 `ProblemDetails` JSON
 
 ### Domain Layer Patterns
 
@@ -969,7 +969,7 @@ async def test_command_handler_error_mapping():
 
 ```python
 def test_api_returns_rfc7807(client):
-    """Test API endpoint returns RFC 7807 response."""
+    """Test API endpoint returns RFC 9457 response."""
     response = client.post("/api/v1/users", json={"email": "invalid"})
     
     assert response.status_code == 400
@@ -986,8 +986,8 @@ def test_api_returns_rfc7807(client):
 
 1. **Always use Result types in domain layer** - No exceptions for business logic
 2. **Map domain errors to application errors** - Add application context
-3. **Use ErrorResponseBuilder for all API errors** - Consistent RFC 7807 format
-4. **Choose appropriate ApplicationErrorCode** - Maps to correct HTTP status + RFC 7807 metadata
+3. **Use ErrorResponseBuilder for all API errors** - Consistent RFC 9457 format
+4. **Choose appropriate ApplicationErrorCode** - Maps to correct HTTP status + RFC 9457 metadata
 5. **Include contextual detail** - Help users understand what went wrong
 6. **Add field errors for validation** - Use `errors` array for multi-field validation
 7. **Never expose internal errors** - Map exceptions to generic INTERNAL_ERROR with trace_id
@@ -1004,7 +1004,7 @@ def test_api_returns_rfc7807(client):
 
 ## References
 
-- **RFC 7807 Specification**: <https://tools.ietf.org/html/rfc7807>
+- **RFC 9457 Specification**: <https://tools.ietf.org/html/rfc7807>
 - **Source Code**: `src/schemas/error_schemas.py`, `src/presentation/api/error_response_builder.py`
 - **Route Metadata Registry**: `src/presentation/routers/api/v1/routes/registry.py` (error specs per endpoint)
 - **Application Errors**: `src/core/errors/application_error.py`

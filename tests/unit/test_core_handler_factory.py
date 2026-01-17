@@ -353,7 +353,7 @@ class TestRealHandlerIntegration:
         self,
         mock_session: MagicMock,
     ) -> None:
-        """Auto-resolve repository dependencies."""
+        """Auto-resolve repository and session service dependencies."""
         from src.application.queries.handlers.get_account_handler import (
             GetAccountHandler,
         )
@@ -366,15 +366,19 @@ class TestRealHandlerIntegration:
             patch(
                 "src.core.container.handler_factory._get_singleton_instance"
             ) as mock_singleton_fn,
+            patch(
+                "src.core.container.handler_factory._get_session_service_instance"
+            ) as mock_session_service_fn,
         ):
             mock_repo_fn.return_value = MagicMock()
             mock_singleton_fn.return_value = MagicMock()
+            mock_session_service_fn.return_value = MagicMock()
 
             handler = await create_handler(GetAccountHandler, mock_session)
 
             assert isinstance(handler, GetAccountHandler)
-            # Should have called repository resolver
-            assert mock_repo_fn.called
+            # GetAccountHandler now uses OwnershipVerifier (session service)
+            assert mock_session_service_fn.called
 
 
 # =============================================================================

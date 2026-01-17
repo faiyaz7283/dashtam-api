@@ -53,7 +53,7 @@ def _map_holding_error(error: str) -> ApplicationError:
     """Map handler string error to ApplicationError.
 
     Converts handler error strings to typed ApplicationError for
-    RFC 7807 compliant error responses.
+    RFC 9457 compliant error responses.
 
     Args:
         error: Error string from handler.
@@ -139,7 +139,7 @@ async def list_holdings(
 
     Returns:
         HoldingListResponse with list of holdings.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     query = ListHoldingsByUser(
         user_id=current_user.user_id,
@@ -195,7 +195,7 @@ async def list_holdings_by_account(
 
     Returns:
         HoldingListResponse with list of holdings.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     query = ListHoldingsByAccount(
         account_id=account_id,
@@ -239,7 +239,7 @@ async def sync_holdings(
 
     Returns:
         SyncHoldingsResponse with sync statistics.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     command = SyncHoldings(
         account_id=account_id,

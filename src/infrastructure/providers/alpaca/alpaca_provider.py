@@ -115,12 +115,8 @@ class AlpacaProvider:
         self._cache_keys = cache_keys
         self._cache_metrics = cache_metrics
 
-        # Get base URL from settings (defaults to paper trading)
-        self._base_url = getattr(
-            settings,
-            "alpaca_api_base_url",
-            "https://paper-api.alpaca.markets",
-        )
+        # Get base URL from settings
+        self._base_url = settings.alpaca_api_base_url
 
         # Initialize API clients and mappers
         self._accounts_api = AlpacaAccountsAPI(

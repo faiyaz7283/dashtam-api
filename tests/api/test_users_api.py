@@ -7,7 +7,7 @@ Architecture:
 - Uses real app with dependency overrides
 - Mocks handlers to test request/response flow
 - Tests validation, error responses, and success paths
-- Verifies RFC 7807 compliance for errors
+- Verifies RFC 9457 compliance for errors
 
 Note:
     These tests focus on request validation and error response formats.
@@ -129,7 +129,7 @@ class TestCreateUser:
             },
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 409
         data = response.json()
         assert data["type"].endswith("/errors/conflict")
@@ -154,7 +154,7 @@ class TestCreateUser:
             },
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 400
         data = response.json()
         assert data["type"].endswith("/errors/command_validation_failed")
@@ -177,14 +177,14 @@ class TestCreateUser:
             },
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
         assert data["title"] == "Validation Failed"
         assert data["status"] == 422
         assert "errors" in data
-        # RFC 7807 returns errors array with field-level details
+        # RFC 9457 returns errors array with field-level details
         assert isinstance(data["errors"], list)
         assert any("email" in err.get("field", "").lower() for err in data["errors"])
 
@@ -198,7 +198,7 @@ class TestCreateUser:
             },
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -215,7 +215,7 @@ class TestCreateUser:
             },
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -233,7 +233,7 @@ class TestCreateUser:
             },
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -251,7 +251,7 @@ class TestCreateUser:
             },
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -263,7 +263,7 @@ class TestCreateUser:
         # Execute: Empty JSON body
         response = client.post("/api/v1/users", json={})
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")

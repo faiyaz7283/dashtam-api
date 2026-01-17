@@ -1,11 +1,11 @@
 """Global exception handlers for FastAPI application.
 
 This module provides exception handlers that catch unhandled exceptions
-and convert them to RFC 7807 Problem Details responses.
+and convert them to RFC 9457 Problem Details responses.
 
 Handlers:
-    http_exception_handler: Converts HTTPException to RFC 7807 format
-    validation_exception_handler: Converts RequestValidationError to RFC 7807 format
+    http_exception_handler: Converts HTTPException to RFC 9457 format
+    validation_exception_handler: Converts RequestValidationError to RFC 9457 format
     generic_exception_handler: Catches all unhandled exceptions
 
 Exports:
@@ -23,43 +23,54 @@ from src.presentation.routers.api.v1.errors.problem_details import (
 )
 
 
-# HTTP status code to title mapping for RFC 7807
-_HTTP_STATUS_TITLES: dict[int, str] = {
-    400: "Bad Request",
-    401: "Authentication Required",
-    403: "Access Denied",
-    404: "Resource Not Found",
-    405: "Method Not Allowed",
-    409: "Resource Conflict",
-    415: "Unsupported Media Type",
-    422: "Validation Failed",
-    429: "Too Many Requests",
-    500: "Internal Server Error",
-    502: "Bad Gateway",
-    503: "Service Unavailable",
+# HTTP status code to (title, slug) mapping for RFC 9457
+# Consolidated to avoid maintaining two separate dicts
+_HTTP_STATUS_INFO: dict[int, tuple[str, str]] = {
+    400: ("Bad Request", "bad-request"),
+    401: ("Authentication Required", "unauthorized"),
+    403: ("Access Denied", "forbidden"),
+    404: ("Resource Not Found", "not-found"),
+    405: ("Method Not Allowed", "method-not-allowed"),
+    409: ("Resource Conflict", "conflict"),
+    415: ("Unsupported Media Type", "unsupported-media-type"),
+    422: ("Validation Failed", "validation-failed"),
+    429: ("Too Many Requests", "rate-limit-exceeded"),
+    500: ("Internal Server Error", "internal-server-error"),
+    502: ("Bad Gateway", "bad-gateway"),
+    503: ("Service Unavailable", "service-unavailable"),
 }
+
+
+def _get_status_title(status_code: int) -> str:
+    """Get human-readable title for HTTP status code."""
+    return _HTTP_STATUS_INFO.get(status_code, ("Error", "error"))[0]
+
+
+def _get_error_slug(status_code: int) -> str:
+    """Get kebab-case error slug for RFC 9457 type URL."""
+    return _HTTP_STATUS_INFO.get(status_code, ("Error", "error"))[1]
 
 
 async def http_exception_handler(
     request: Request,
     exc: Exception,
 ) -> JSONResponse:
-    """Convert HTTPException to RFC 7807 Problem Details response.
+    """Convert HTTPException to RFC 9457 Problem Details response.
 
     This handler ensures all HTTPException responses (e.g., from auth dependencies)
-    are returned in RFC 7807 format for consistency.
+    are returned in RFC 9457 format for consistency.
 
     Args:
         request: FastAPI Request object.
         exc: HTTPException raised by handler or dependency.
 
     Returns:
-        JSONResponse with RFC 7807 ProblemDetails.
+        JSONResponse with RFC 9457 ProblemDetails.
 
     Example:
         >>> # When auth dependency raises HTTPException:
         >>> raise HTTPException(status_code=401, detail="Invalid token")
-        >>> # Returns RFC 7807 response:
+        >>> # Returns RFC 9457 response:
         >>> # {
         >>> #   "type": "https://api.dashtam.com/errors/unauthorized",
         >>> #   "title": "Authentication Required",
@@ -75,11 +86,11 @@ async def http_exception_handler(
     # Extract trace_id from request state (set by TraceMiddleware)
     trace_id = getattr(request.state, "trace_id", None)
 
-    # Derive error type slug from status code
+    # Derive error type slug and title from status code
     error_slug = _get_error_slug(exc.status_code)
-    title = _HTTP_STATUS_TITLES.get(exc.status_code, "Error")
+    title = _get_status_title(exc.status_code)
 
-    # Build RFC 7807 Problem Details
+    # Build RFC 9457 Problem Details
     problem = ProblemDetails(
         type=f"{settings.api_base_url}/errors/{error_slug}",
         title=title,
@@ -104,9 +115,9 @@ async def validation_exception_handler(
     request: Request,
     exc: Exception,
 ) -> JSONResponse:
-    """Convert RequestValidationError to RFC 7807 Problem Details response.
+    """Convert RequestValidationError to RFC 9457 Problem Details response.
 
-    This handler ensures Pydantic validation errors are returned in RFC 7807
+    This handler ensures Pydantic validation errors are returned in RFC 9457
     format with structured field-level errors.
 
     Args:
@@ -114,12 +125,12 @@ async def validation_exception_handler(
         exc: RequestValidationError from Pydantic validation.
 
     Returns:
-        JSONResponse with RFC 7807 ProblemDetails including field errors.
+        JSONResponse with RFC 9457 ProblemDetails including field errors.
 
     Example:
         >>> # When Pydantic validation fails:
         >>> # POST /api/v1/users with invalid email
-        >>> # Returns RFC 7807 response:
+        >>> # Returns RFC 9457 response:
         >>> # {
         >>> #   "type": "https://api.dashtam.com/errors/validation-failed",
         >>> #   "title": "Validation Failed",
@@ -138,7 +149,7 @@ async def validation_exception_handler(
     # Extract trace_id from request state (set by TraceMiddleware)
     trace_id = getattr(request.state, "trace_id", None)
 
-    # Convert Pydantic errors to RFC 7807 field errors
+    # Convert Pydantic errors to RFC 9457 field errors
     field_errors: list[ErrorDetail] = []
     for error in exc.errors():
         # Extract field path (e.g., ["body", "email"] -> "email")
@@ -155,7 +166,7 @@ async def validation_exception_handler(
             )
         )
 
-    # Build RFC 7807 Problem Details
+    # Build RFC 9457 Problem Details
     problem = ProblemDetails(
         type=f"{settings.api_base_url}/errors/validation-failed",
         title="Validation Failed",
@@ -172,36 +183,10 @@ async def validation_exception_handler(
     )
 
 
-def _get_error_slug(status_code: int) -> str:
-    """Get error slug for RFC 7807 type URL from HTTP status code.
-
-    Args:
-        status_code: HTTP status code.
-
-    Returns:
-        Kebab-case error slug for URL.
-    """
-    slug_map: dict[int, str] = {
-        400: "bad-request",
-        401: "unauthorized",
-        403: "forbidden",
-        404: "not-found",
-        405: "method-not-allowed",
-        409: "conflict",
-        415: "unsupported-media-type",
-        422: "validation-failed",
-        429: "rate-limit-exceeded",
-        500: "internal-server-error",
-        502: "bad-gateway",
-        503: "service-unavailable",
-    }
-    return slug_map.get(status_code, "error")
-
-
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unexpected Python exceptions.
 
-    Converts any unhandled exception into RFC 7807 Problem Details response.
+    Converts any unhandled exception into RFC 9457 Problem Details response.
     Prevents leaking stack traces or internal details to API consumers.
 
     Args:
@@ -209,17 +194,17 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
         exc: Unhandled exception
 
     Returns:
-        JSONResponse with RFC 7807 ProblemDetails (500 Internal Server Error)
+        JSONResponse with RFC 9457 ProblemDetails (500 Internal Server Error)
 
     Example:
         >>> # When any unhandled exception occurs:
         >>> raise ValueError("Something went wrong")
-        >>> # Returns RFC 7807 response with trace_id for debugging
+        >>> # Returns RFC 9457 response with trace_id for debugging
     """
     # Extract trace_id from request state (set by TraceMiddleware)
     trace_id = getattr(request.state, "trace_id", None)
 
-    # Build RFC 7807 Problem Details
+    # Build RFC 9457 Problem Details
     problem = ProblemDetails(
         type=f"{settings.api_base_url}/errors/internal-server-error",
         title="Internal Server Error",
@@ -261,10 +246,10 @@ def register_exception_handlers(app: FastAPI) -> None:
         >>> app = FastAPI()
         >>> register_exception_handlers(app)
     """
-    # Handle HTTPException (auth dependencies, etc.) - convert to RFC 7807
+    # Handle HTTPException (auth dependencies, etc.) - convert to RFC 9457
     app.add_exception_handler(HTTPException, http_exception_handler)
 
-    # Handle Pydantic validation errors - convert to RFC 7807 with field errors
+    # Handle Pydantic validation errors - convert to RFC 9457 with field errors
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
     # Handle all unhandled exceptions - catch-all for 500 errors

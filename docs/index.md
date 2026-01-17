@@ -69,7 +69,7 @@ New to Dashtam? Start here:
 
 1. [Hexagonal Architecture](architecture/hexagonal.md) — Core pattern
 2. [Protocols](architecture/protocols.md) — Why Protocol over ABC
-3. [Error Handling](guides/error-handling.md) — RFC 7807, Result types
+3. [Error Handling](guides/error-handling.md) — RFC 9457, Result types
 4. [Registry Pattern](architecture/registry.md) — Auto-wiring, self-enforcing tests
 5. [Release Management](guides/releases.md) — Git flow, versioning
 

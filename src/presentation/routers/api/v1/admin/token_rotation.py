@@ -238,7 +238,7 @@ def _error_response(
         message: Error message.
 
     Returns:
-        JSONResponse with RFC 7807 error format.
+        JSONResponse with RFC 9457 error format.
     """
     app_error = ApplicationError(
         code=error_code,

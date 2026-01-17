@@ -23,14 +23,15 @@ from src.application.queries.handlers.get_account_handler import (
     GetAccountError,
     GetAccountHandler,
 )
+from src.application.services.ownership_verifier import (
+    OwnershipError,
+    OwnershipErrorCode,
+    OwnershipVerifier,
+)
 from src.core.result import Failure, Success
 from src.domain.entities.account import Account
-from src.domain.entities.provider_connection import ProviderConnection
 from src.domain.enums.account_type import AccountType
-from src.domain.enums.connection_status import ConnectionStatus
-from src.domain.enums.credential_type import CredentialType
 from src.domain.value_objects.money import Money
-from src.domain.value_objects.provider_credentials import ProviderCredentials
 
 
 # ============================================================================
@@ -63,26 +64,18 @@ def account_id() -> UUID:
 
 
 @pytest.fixture
-def mock_account_repo() -> AsyncMock:
-    """Mock AccountRepository."""
-    return AsyncMock()
-
-
-@pytest.fixture
-def mock_connection_repo() -> AsyncMock:
-    """Mock ProviderConnectionRepository."""
-    return AsyncMock()
+def mock_ownership_verifier() -> AsyncMock:
+    """Mock OwnershipVerifier."""
+    return AsyncMock(spec=OwnershipVerifier)
 
 
 @pytest.fixture
 def handler(
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
+    mock_ownership_verifier: AsyncMock,
 ) -> GetAccountHandler:
     """GetAccountHandler instance with mocked dependencies."""
     return GetAccountHandler(
-        account_repo=mock_account_repo,
-        connection_repo=mock_connection_repo,
+        ownership_verifier=mock_ownership_verifier,
     )
 
 
@@ -106,27 +99,6 @@ def mock_account(connection_id: UUID, account_id: UUID) -> Account:
     )
 
 
-@pytest.fixture
-def mock_connection(user_id: UUID, connection_id: UUID) -> ProviderConnection:
-    """Mock ProviderConnection entity owned by user_id."""
-    return ProviderConnection(
-        id=connection_id,
-        user_id=user_id,
-        provider_id=uuid7(),
-        provider_slug="schwab",
-        status=ConnectionStatus.ACTIVE,
-        credentials=ProviderCredentials(
-            encrypted_data=b"encrypted-creds",
-            credential_type=CredentialType.OAUTH2,
-            expires_at=datetime(2025, 12, 31, 23, 59, 59, tzinfo=UTC),
-        ),
-        connected_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
-        last_sync_at=None,
-        created_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
-        updated_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
-    )
-
-
 # ============================================================================
 # Success Cases
 # ============================================================================
@@ -135,18 +107,17 @@ def mock_connection(user_id: UUID, connection_id: UUID) -> ProviderConnection:
 @pytest.mark.asyncio
 async def test_get_account_success_with_available_balance(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
+    mock_ownership_verifier: AsyncMock,
     mock_account: Account,
-    mock_connection: ProviderConnection,
     user_id: UUID,
     account_id: UUID,
 ) -> None:
     """GetAccount returns Success(AccountResult) when account exists and owned by user (with available balance)."""
     # Arrange
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = mock_account
-    mock_connection_repo.find_by_id.return_value = mock_connection
+    mock_ownership_verifier.verify_account_ownership.return_value = Success(
+        value=mock_account
+    )
 
     # Act
     result = await handler.handle(query)
@@ -183,20 +154,19 @@ async def test_get_account_success_with_available_balance(
     assert dto.created_at == datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC)
     assert dto.updated_at == datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
 
-    # Verify repo calls
-    mock_account_repo.find_by_id.assert_awaited_once_with(account_id)
-    mock_connection_repo.find_by_id.assert_awaited_once_with(mock_account.connection_id)
+    # Verify verifier call
+    mock_ownership_verifier.verify_account_ownership.assert_awaited_once_with(
+        account_id, user_id
+    )
 
 
 @pytest.mark.asyncio
 async def test_get_account_success_without_available_balance(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
+    mock_ownership_verifier: AsyncMock,
     user_id: UUID,
     account_id: UUID,
     connection_id: UUID,
-    mock_connection: ProviderConnection,
 ) -> None:
     """GetAccount returns Success(AccountResult) when available_balance is None."""
     # Arrange
@@ -217,8 +187,9 @@ async def test_get_account_success_without_available_balance(
     )
 
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = account
-    mock_connection_repo.find_by_id.return_value = mock_connection
+    mock_ownership_verifier.verify_account_ownership.return_value = Success(
+        value=account
+    )
 
     # Act
     result = await handler.handle(query)
@@ -235,12 +206,10 @@ async def test_get_account_success_without_available_balance(
 @pytest.mark.asyncio
 async def test_get_account_success_retirement_account(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
+    mock_ownership_verifier: AsyncMock,
     user_id: UUID,
     account_id: UUID,
     connection_id: UUID,
-    mock_connection: ProviderConnection,
 ) -> None:
     """GetAccount returns Success(AccountResult) for IRA account with retirement flag set."""
     # Arrange
@@ -261,8 +230,9 @@ async def test_get_account_success_retirement_account(
     )
 
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = account
-    mock_connection_repo.find_by_id.return_value = mock_connection
+    mock_ownership_verifier.verify_account_ownership.return_value = Success(
+        value=account
+    )
 
     # Act
     result = await handler.handle(query)
@@ -280,12 +250,10 @@ async def test_get_account_success_retirement_account(
 @pytest.mark.asyncio
 async def test_get_account_success_bank_account(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
+    mock_ownership_verifier: AsyncMock,
     user_id: UUID,
     account_id: UUID,
     connection_id: UUID,
-    mock_connection: ProviderConnection,
 ) -> None:
     """GetAccount returns Success(AccountResult) for checking account with bank flag set."""
     # Arrange
@@ -306,8 +274,9 @@ async def test_get_account_success_bank_account(
     )
 
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = account
-    mock_connection_repo.find_by_id.return_value = mock_connection
+    mock_ownership_verifier.verify_account_ownership.return_value = Success(
+        value=account
+    )
 
     # Act
     result = await handler.handle(query)
@@ -330,14 +299,18 @@ async def test_get_account_success_bank_account(
 @pytest.mark.asyncio
 async def test_get_account_account_not_found(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
+    mock_ownership_verifier: AsyncMock,
     user_id: UUID,
     account_id: UUID,
 ) -> None:
     """GetAccount returns Failure(ACCOUNT_NOT_FOUND) when account does not exist."""
     # Arrange
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = None
+    mock_ownership_verifier.verify_account_ownership.return_value = Failure(
+        error=OwnershipError(
+            code=OwnershipErrorCode.ACCOUNT_NOT_FOUND, message="Account not found"
+        )
+    )
 
     # Act
     result = await handler.handle(query)
@@ -345,23 +318,27 @@ async def test_get_account_account_not_found(
     # Assert
     assert isinstance(result, Failure)
     assert result.error == GetAccountError.ACCOUNT_NOT_FOUND
-    mock_account_repo.find_by_id.assert_awaited_once_with(account_id)
+    mock_ownership_verifier.verify_account_ownership.assert_awaited_once_with(
+        account_id, user_id
+    )
 
 
 @pytest.mark.asyncio
 async def test_get_account_connection_not_found(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
-    mock_account: Account,
+    mock_ownership_verifier: AsyncMock,
     user_id: UUID,
     account_id: UUID,
 ) -> None:
     """GetAccount returns Failure(CONNECTION_NOT_FOUND) when connection does not exist."""
     # Arrange
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = mock_account
-    mock_connection_repo.find_by_id.return_value = None  # Connection not found
+    mock_ownership_verifier.verify_account_ownership.return_value = Failure(
+        error=OwnershipError(
+            code=OwnershipErrorCode.CONNECTION_NOT_FOUND,
+            message="Connection not found",
+        )
+    )
 
     # Act
     result = await handler.handle(query)
@@ -369,43 +346,27 @@ async def test_get_account_connection_not_found(
     # Assert
     assert isinstance(result, Failure)
     assert result.error == GetAccountError.CONNECTION_NOT_FOUND
-    mock_connection_repo.find_by_id.assert_awaited_once_with(mock_account.connection_id)
+    mock_ownership_verifier.verify_account_ownership.assert_awaited_once_with(
+        account_id, user_id
+    )
 
 
 @pytest.mark.asyncio
 async def test_get_account_not_owned_by_user(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
-    mock_account: Account,
+    mock_ownership_verifier: AsyncMock,
     user_id: UUID,
-    other_user_id: UUID,
     account_id: UUID,
-    connection_id: UUID,
 ) -> None:
     """GetAccount returns Failure(NOT_OWNED_BY_USER) when connection belongs to different user."""
     # Arrange
-    # Connection owned by other_user_id (not user_id)
-    other_connection = ProviderConnection(
-        id=connection_id,
-        user_id=other_user_id,  # Different user!
-        provider_id=uuid7(),
-        provider_slug="schwab",
-        status=ConnectionStatus.ACTIVE,
-        credentials=ProviderCredentials(
-            encrypted_data=b"encrypted-creds",
-            credential_type=CredentialType.OAUTH2,
-            expires_at=datetime(2025, 12, 31, 23, 59, 59, tzinfo=UTC),
-        ),
-        connected_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
-        last_sync_at=None,
-        created_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
-        updated_at=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
-    )
-
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = mock_account
-    mock_connection_repo.find_by_id.return_value = other_connection
+    mock_ownership_verifier.verify_account_ownership.return_value = Failure(
+        error=OwnershipError(
+            code=OwnershipErrorCode.NOT_OWNED_BY_USER,
+            message="Account not owned by user",
+        )
+    )
 
     # Act
     result = await handler.handle(query)
@@ -413,6 +374,9 @@ async def test_get_account_not_owned_by_user(
     # Assert
     assert isinstance(result, Failure)
     assert result.error == GetAccountError.NOT_OWNED_BY_USER
+    mock_ownership_verifier.verify_account_ownership.assert_awaited_once_with(
+        account_id, user_id
+    )
 
 
 # ============================================================================
@@ -423,12 +387,10 @@ async def test_get_account_not_owned_by_user(
 @pytest.mark.asyncio
 async def test_get_account_inactive_account(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
+    mock_ownership_verifier: AsyncMock,
     user_id: UUID,
     account_id: UUID,
     connection_id: UUID,
-    mock_connection: ProviderConnection,
 ) -> None:
     """GetAccount returns Success(AccountResult) for inactive account."""
     # Arrange
@@ -449,8 +411,9 @@ async def test_get_account_inactive_account(
     )
 
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = account
-    mock_connection_repo.find_by_id.return_value = mock_connection
+    mock_ownership_verifier.verify_account_ownership.return_value = Success(
+        value=account
+    )
 
     # Act
     result = await handler.handle(query)
@@ -465,12 +428,10 @@ async def test_get_account_inactive_account(
 @pytest.mark.asyncio
 async def test_get_account_never_synced(
     handler: GetAccountHandler,
-    mock_account_repo: AsyncMock,
-    mock_connection_repo: AsyncMock,
+    mock_ownership_verifier: AsyncMock,
     user_id: UUID,
     account_id: UUID,
     connection_id: UUID,
-    mock_connection: ProviderConnection,
 ) -> None:
     """GetAccount returns Success(AccountResult) for account that was never synced."""
     # Arrange
@@ -491,8 +452,9 @@ async def test_get_account_never_synced(
     )
 
     query = GetAccount(account_id=account_id, user_id=user_id)
-    mock_account_repo.find_by_id.return_value = account
-    mock_connection_repo.find_by_id.return_value = mock_connection
+    mock_ownership_verifier.verify_account_ownership.return_value = Success(
+        value=account
+    )
 
     # Act
     result = await handler.handle(query)

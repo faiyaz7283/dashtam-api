@@ -1,4 +1,4 @@
-"""Unit tests for RFC 7807 Problem Details schemas.
+"""Unit tests for RFC 9457 Problem Details schemas.
 
 Tests ProblemDetails and ErrorDetail Pydantic models following
 established testing patterns from Phase 0.
@@ -185,7 +185,7 @@ class TestProblemDetails:
         assert "status" in serialized
 
     def test_problem_details_validation_error_example(self):
-        """Test complete validation error RFC 7807 response."""
+        """Test complete validation error RFC 9457 response."""
         # Arrange
         field_errors = [
             ErrorDetail(
@@ -215,7 +215,7 @@ class TestProblemDetails:
         assert serialized["trace_id"] == "550e8400-e29b-41d4-a716-446655440000"
 
     def test_problem_details_unauthorized_example(self):
-        """Test complete unauthorized error RFC 7807 response."""
+        """Test complete unauthorized error RFC 9457 response."""
         # Arrange & Act
         problem = ProblemDetails(
             type="https://api.dashtam.com/errors/unauthorized",
@@ -250,7 +250,7 @@ class TestProblemDetails:
         assert "instance" in missing_fields
 
     def test_problem_details_conflict_example(self):
-        """Test complete conflict error RFC 7807 response."""
+        """Test complete conflict error RFC 9457 response."""
         # Arrange & Act
         problem = ProblemDetails(
             type="https://api.dashtam.com/errors/conflict",

@@ -220,9 +220,9 @@ Same structure as Balance History response.
 
 ---
 
-## Error Response Format (RFC 7807)
+## Error Response Format (RFC 9457)
 
-All errors follow RFC 7807 Problem Details format:
+All errors follow RFC 9457 Problem Details format:
 
 ```json
 {

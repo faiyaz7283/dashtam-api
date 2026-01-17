@@ -12,7 +12,7 @@ Architecture:
 - Uses real app with dependency overrides
 - Mocks handlers to test request/response flow
 - Tests validation, authorization, and error responses
-- Verifies RFC 7807 compliance for errors
+- Verifies RFC 9457 compliance for errors
 
 Note:
     These tests focus on request validation, authorization checks,
@@ -693,13 +693,13 @@ class TestSessionResponseFormats:
         assert "is_revoked" in data
 
     def test_error_response_is_rfc7807_compliant(self, client):
-        """Test error responses follow RFC 7807 format."""
+        """Test error responses follow RFC 9457 format."""
         response = client.get("/api/v1/sessions")  # No auth token
 
         assert response.status_code == 401
         data = response.json()
 
-        # RFC 7807 required fields
+        # RFC 9457 required fields
         assert "type" in data
         assert "title" in data
         assert "status" in data

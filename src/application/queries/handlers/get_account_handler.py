@@ -19,11 +19,11 @@ from decimal import Decimal
 from uuid import UUID
 
 from src.application.queries.account_queries import GetAccount
-from src.core.result import Failure, Result, Success
-from src.domain.protocols.account_repository import AccountRepository
-from src.domain.protocols.provider_connection_repository import (
-    ProviderConnectionRepository,
+from src.application.services.ownership_verifier import (
+    OwnershipErrorCode,
+    OwnershipVerifier,
 )
+from src.core.result import Failure, Result, Success
 
 
 @dataclass
@@ -88,26 +88,22 @@ class GetAccountHandler:
     """Handler for GetAccount query.
 
     Retrieves a single account by ID with ownership verification.
-    Ownership checked by verifying the connection belongs to the user.
+    Uses OwnershipVerifier to verify the user owns the account via connection.
 
     Dependencies (injected via constructor):
-        - AccountRepository: For account retrieval
-        - ProviderConnectionRepository: For ownership verification
+        - OwnershipVerifier: For account retrieval with ownership verification
     """
 
     def __init__(
         self,
-        account_repo: AccountRepository,
-        connection_repo: ProviderConnectionRepository,
+        ownership_verifier: OwnershipVerifier,
     ) -> None:
         """Initialize handler with dependencies.
 
         Args:
-            account_repo: Account repository.
-            connection_repo: Provider connection repository for ownership check.
+            ownership_verifier: Service for ownership verification.
         """
-        self._account_repo = account_repo
-        self._connection_repo = connection_repo
+        self._verifier = ownership_verifier
 
     async def handle(self, query: GetAccount) -> Result[AccountResult, str]:
         """Handle GetAccount query.
@@ -121,22 +117,25 @@ class GetAccountHandler:
             Success(AccountResult): Account found and owned by user.
             Failure(error): Account not found or not owned by user.
         """
-        # Fetch account
-        account = await self._account_repo.find_by_id(query.account_id)
+        # Verify ownership and get account
+        result = await self._verifier.verify_account_ownership(
+            query.account_id, query.user_id
+        )
 
-        # Verify exists
-        if account is None:
-            return Failure(error=GetAccountError.ACCOUNT_NOT_FOUND)
+        if isinstance(result, Failure):
+            # Map OwnershipError to handler-specific error string
+            error_map = {
+                OwnershipErrorCode.ACCOUNT_NOT_FOUND: GetAccountError.ACCOUNT_NOT_FOUND,
+                OwnershipErrorCode.CONNECTION_NOT_FOUND: GetAccountError.CONNECTION_NOT_FOUND,
+                OwnershipErrorCode.NOT_OWNED_BY_USER: GetAccountError.NOT_OWNED_BY_USER,
+            }
+            return Failure(
+                error=error_map.get(
+                    result.error.code, GetAccountError.NOT_OWNED_BY_USER
+                )
+            )
 
-        # Fetch connection to verify ownership
-        connection = await self._connection_repo.find_by_id(account.connection_id)
-
-        if connection is None:
-            return Failure(error=GetAccountError.CONNECTION_NOT_FOUND)
-
-        # Verify ownership (connection belongs to user)
-        if connection.user_id != query.user_id:
-            return Failure(error=GetAccountError.NOT_OWNED_BY_USER)
+        account = result.value
 
         # Map to DTO (Money -> amount+currency)
         dto = AccountResult(

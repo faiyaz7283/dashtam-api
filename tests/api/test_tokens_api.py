@@ -7,7 +7,7 @@ Architecture:
 - Uses real app with dependency overrides
 - Mocks handlers to test request/response flow
 - Tests validation, error responses, and success paths
-- Verifies RFC 7807 compliance for errors
+- Verifies RFC 9457 compliance for errors
 
 Note:
     These tests focus on request validation and error response formats.
@@ -145,7 +145,7 @@ class TestCreateTokens:
             json={"refresh_token": "invalid_token"},
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 400
         data = response.json()
         assert data["type"].endswith("/errors/command_validation_failed")
@@ -167,7 +167,7 @@ class TestCreateTokens:
             json={"refresh_token": "expired_token"},
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 401
         data = response.json()
         assert data["type"].endswith("/errors/unauthorized")
@@ -189,7 +189,7 @@ class TestCreateTokens:
             json={"refresh_token": "revoked_token"},
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 401
         data = response.json()
         assert data["type"].endswith("/errors/unauthorized")
@@ -211,7 +211,7 @@ class TestCreateTokens:
             json={"refresh_token": "orphaned_token"},
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 401
         data = response.json()
         assert data["type"].endswith("/errors/unauthorized")
@@ -231,7 +231,7 @@ class TestCreateTokens:
             json={"refresh_token": "inactive_user_token"},
         )
 
-        # Verify: RFC 7807 error response
+        # Verify: RFC 9457 error response
         assert response.status_code == 401
         data = response.json()
         assert data["type"].endswith("/errors/unauthorized")
@@ -243,7 +243,7 @@ class TestCreateTokens:
         # Execute: Missing refresh_token field
         response = client.post("/api/v1/tokens", json={})
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")
@@ -260,7 +260,7 @@ class TestCreateTokens:
             json={"refresh_token": ""},
         )
 
-        # Verify: RFC 7807 validation error response
+        # Verify: RFC 9457 validation error response
         assert response.status_code == 422
         data = response.json()
         assert data["type"].endswith("/errors/validation-failed")

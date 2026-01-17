@@ -16,7 +16,7 @@
 - **Protocol-Based Design** — Structural typing with Python `Protocol`; no inheritance, easy testing
 - **Registry Patterns** — Single source of truth for events, routes, rate limits with self-enforcing tests
 - **Production Security** — JWT + opaque refresh tokens, Casbin RBAC, token bucket rate limiting, PCI-DSS audit trails
-- **100% REST Compliance** — Resource-oriented URLs, RFC 7807 error responses, no controller-style endpoints
+- **100% REST Compliance** — Resource-oriented URLs, RFC 9457 error responses, no controller-style endpoints
 
 ## Architecture
 
@@ -124,7 +124,7 @@ curl -k https://dashtam.local/health
 
 ### Guides
 
-- [Error Handling](https://faiyaz7283.github.io/Dashtam/guides/error-handling/) — RFC 7807, Result types
+- [Error Handling](https://faiyaz7283.github.io/Dashtam/guides/error-handling/) — RFC 9457, Result types
 - [Adding Providers](https://faiyaz7283.github.io/Dashtam/guides/adding-providers/) — OAuth, API key, file import
 - [Release Management](https://faiyaz7283.github.io/Dashtam/guides/releases/) — Git flow, versioning
 
@@ -137,7 +137,7 @@ curl -k https://dashtam.local/health
 | Database | PostgreSQL 17.7 (async SQLAlchemy) |
 | Cache | Redis 8.4 |
 | Infrastructure | Docker Compose, Traefik, Alembic |
-| Testing | pytest (2,273 tests, 87% coverage) |
+| Testing | pytest (88%+ coverage) |
 
 ## Development
 

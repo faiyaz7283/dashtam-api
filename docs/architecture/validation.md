@@ -215,7 +215,7 @@ class RefreshTokenRequest(BaseModel):
 
 #### Validation Error Response
 
-FastAPI automatically returns RFC 7807-compliant error responses:
+FastAPI automatically returns RFC 9457-compliant error responses:
 
 ```json
 {
@@ -771,7 +771,7 @@ async def login(
     ))
     
     if isinstance(result, Failure):
-        # Convert to RFC 7807 error response
+        # Convert to RFC 9457 error response
         raise HTTPException(
             status_code=401,
             detail={"error": result.error}

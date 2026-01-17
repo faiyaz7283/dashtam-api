@@ -210,7 +210,7 @@ async def list_accounts(
 
     Returns:
         AccountListResponse with list of accounts.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     query = ListAccountsByUser(
         user_id=current_user.user_id,
@@ -261,7 +261,7 @@ async def get_account(
 
     Returns:
         AccountResponse with account details.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     query = GetAccount(
         account_id=account_id,
@@ -270,7 +270,7 @@ async def get_account(
     result = await handler.handle(query)
 
     if isinstance(result, Failure):
-        # Use error mapper for consistent RFC 7807 responses
+        # Use error mapper for consistent RFC 9457 responses
         app_error = _map_account_error(result.error)
         return ErrorResponseBuilder.from_application_error(
             error=app_error,
@@ -358,7 +358,7 @@ async def disconnect_provider(
 
     Returns:
         Response with 204 No Content on success.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     command = DisconnectProvider(
         connection_id=connection_id,
@@ -530,9 +530,9 @@ class PaginatedResponse(BaseModel):
 
 ## 5. Error Handling
 
-### 5.1 RFC 7807 Problem Details
+### 5.1 RFC 9457 Problem Details
 
-All error responses follow RFC 7807 format:
+All error responses follow RFC 9457 format:
 
 ```json
 {
@@ -547,7 +547,7 @@ All error responses follow RFC 7807 format:
 
 ### 5.2 String-to-ApplicationError Mapping Pattern
 
-**Current State**: Handlers return `Result[T, str]`. Each router file includes a mapper function to convert string errors to typed `ApplicationError` for RFC 7807 compliance.
+**Current State**: Handlers return `Result[T, str]`. Each router file includes a mapper function to convert string errors to typed `ApplicationError` for RFC 9457 compliance.
 
 **TODO (Phase 6)**: Refactor handlers to return `Result[T, ApplicationError]` directly.
 
@@ -813,7 +813,7 @@ def test_list_accounts_returns_empty_list(client):
 - Tests real router registration and middleware
 - Validates DI wiring via `Depends()`
 - Catches routing bugs before runtime
-- Full RFC 7807 error response testing
+- Full RFC 9457 error response testing
 
 ### 8.3 Authentication Override Pattern (CRITICAL)
 
@@ -919,7 +919,7 @@ Each endpoint should have tests for:
 1. **Happy Path**: Successful operation with valid inputs
 2. **Empty Results**: List endpoints return empty lists (not errors)
 3. **Not Found**: 404 when resource doesn't exist
-4. **RFC 7807 Errors**: Verify error response format
+4. **RFC 9457 Errors**: Verify error response format
 
 **Note**: Authentication tests (401) require NOT setting the auth override, which can be complex with `autouse=True`. Consider dedicated auth test files.
 

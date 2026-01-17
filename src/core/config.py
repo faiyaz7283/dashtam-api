@@ -29,6 +29,7 @@ from pathlib import Path
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.core.constants import BCRYPT_ROUNDS_DEFAULT
 from src.core.enums import Environment
 
 
@@ -186,7 +187,7 @@ class Settings(BaseSettings):
         description="Refresh token expiration time in days",
     )
     bcrypt_rounds: int = Field(
-        default=12,
+        default=BCRYPT_ROUNDS_DEFAULT,
         description="Number of bcrypt hashing rounds (10-14 recommended, 12 = ~300ms)",
     )
 
@@ -240,6 +241,10 @@ class Settings(BaseSettings):
     alpaca_client_secret: str | None = Field(
         default=None,
         description="Alpaca OAuth client secret",
+    )
+    alpaca_api_base_url: str = Field(
+        default="https://paper-api.alpaca.markets",
+        description="Alpaca Trading API base URL (paper or live)",
     )
     alpaca_redirect_uri: str | None = Field(
         default=None,

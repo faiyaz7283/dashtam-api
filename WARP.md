@@ -15,7 +15,7 @@
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-17
 
 ## 1. Project Overview
 
@@ -503,6 +503,78 @@ app.dependency_overrides[factory_key] = lambda: mock_handler
 
 ---
 
+### 6b. Application Services (OwnershipVerifier Pattern)
+
+**Purpose**: Session-scoped services that need database access but aren't repositories.
+
+**Location**: `src/application/services/`
+
+**Key Service**: `OwnershipVerifier` - verifies ownership chains (Entity → Connection → User)
+
+**Methods**:
+
+- `verify_connection_ownership(connection_id, user_id)` → Connection
+- `verify_account_ownership(account_id, user_id)` → Account
+- `verify_account_ownership_only(account_id, user_id)` → None (for existence checks)
+- `verify_holding_ownership(holding_id, user_id)` → Holding
+- `verify_transaction_ownership(transaction_id, user_id)` → Transaction
+
+**Usage in Query Handlers**:
+
+```python
+class GetAccountHandler:
+    def __init__(self, ownership_verifier: OwnershipVerifier) -> None:
+        self._verifier = ownership_verifier
+    
+    async def handle(self, query: GetAccount) -> Result[AccountResult, GetAccountError]:
+        result = await self._verifier.verify_account_ownership(
+            query.account_id, query.user_id
+        )
+        if isinstance(result, Failure):
+            error_map = {
+                OwnershipErrorCode.ACCOUNT_NOT_FOUND: GetAccountError.ACCOUNT_NOT_FOUND,
+                OwnershipErrorCode.CONNECTION_NOT_FOUND: GetAccountError.CONNECTION_NOT_FOUND,
+                OwnershipErrorCode.NOT_OWNED_BY_USER: GetAccountError.NOT_OWNED_BY_USER,
+            }
+            return Failure(error=error_map.get(result.error.code, GetAccountError.INTERNAL_ERROR))
+        account = result.value
+        # ... map to DTO
+```
+
+**Container Wiring** (in `handler_factory.py`):
+
+```python
+SESSION_SERVICE_TYPES: set[type] = {OwnershipVerifier}
+
+def _get_session_service_instance(service_type: type, session: AsyncSession) -> Any:
+    if service_type is OwnershipVerifier:
+        return OwnershipVerifier(
+            transaction_repo=TransactionRepository(session=session),
+            holding_repo=HoldingRepository(session=session),
+            account_repo=AccountRepository(session=session),
+            connection_repo=ProviderConnectionRepository(session=session),
+        )
+```
+
+**Benefits**:
+
+- ✅ DRY: Single implementation for ownership verification across all handlers
+- ✅ Consistent error handling and mapping
+- ✅ Easy to test (mock single service instead of multiple repos)
+- ✅ Clear ownership chain semantics
+
+**Reference**: `src/application/services/ownership_verifier.py`
+
+---
+
+### 6c. Centralized Constants
+
+**Location**: `src/core/constants.py`
+
+**Rule**: All timeouts, HTTP status mappings, and magic numbers go in `src/core/constants.py`. Never hardcode values in infrastructure code.
+
+---
+
 ### 7. File and Directory Structure
 
 **Core Principle**: Hexagonal layers with protocol consolidation and flat test/docs structure.
@@ -511,7 +583,7 @@ app.dependency_overrides[factory_key] = lambda: mock_handler
 
 ```text
 src/
-├── core/               # Shared kernel (Result, errors, config, container)
+├── core/               # Shared kernel (Result, errors, config, container, constants)
 ├── domain/             # Business logic (DEPENDS ON NOTHING)
 │   ├── entities/
 │   ├── value_objects/
@@ -522,10 +594,12 @@ src/
 │   ├── types.py        # Annotated types
 │   └── validators.py   # Validation functions
 ├── application/        # Use cases (commands, queries, event handlers)
+│   └── services/       # Session-scoped services (e.g., OwnershipVerifier)
 ├── infrastructure/     # Adapters (implements domain protocols)
 │   ├── persistence/
 │   ├── external/
 │   └── providers/
+│       └── base_api_client.py  # Shared HTTP client base class
 ├── presentation/       # API endpoints (FastAPI routers)
 └── schemas/            # Request/response schemas
 
@@ -704,9 +778,9 @@ async def create_user(data: dict):  # No!
     ...
 ```
 
-#### Error Handling (RFC 7807 Problem Details)
+#### Error Handling (RFC 9457 Problem Details)
 
-**CRITICAL**: All API errors use RFC 7807 Problem Details format. **AuthErrorResponse removed in v1.6.3**.
+**CRITICAL**: All API errors use RFC 9457 Problem Details format. **AuthErrorResponse removed in v1.6.3**.
 
 **Error Response Format**:
 
@@ -730,7 +804,7 @@ async def create_user(data: dict):  # No!
 from src.core.errors import ApplicationError, ApplicationErrorCode
 from src.presentation.api.error_response_builder import ErrorResponseBuilder
 
-# Return RFC 7807 error
+# Return RFC 9457 error
 error = ApplicationError(
     code=ApplicationErrorCode.NOT_FOUND,
     message="User not found"

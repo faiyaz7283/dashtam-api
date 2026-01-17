@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **RFC 9457 Migration**: Updated all RFC 7807 references to RFC 9457 (current standard)
+  - RFC 9457 (July 2023) obsoletes RFC 7807 with backward-compatible enhancements
+  - No code changes required - JSON schema and behavior identical
+  - Updated 222 references across source, docs, and tests
+  - Key files: `problem_details.py`, `error_response_builder.py`, `exception_handlers.py`
+  - Removed hardcoded test count from README.md
+  - Audit report: `~/references/audit/dashtam-rfc-7807-to-9457-migration-audit-2026-01-17.md`
+
 ## [1.8.1] - 2026-01-16
 
 ### Security

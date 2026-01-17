@@ -159,7 +159,7 @@ def _create_auth_error_response(request: Request, error: str) -> JSONResponse:
         error: Error code from handler.
 
     Returns:
-        JSONResponse with RFC 7807 ProblemDetails error.
+        JSONResponse with RFC 9457 ProblemDetails error.
     """
     # Map string error codes to ApplicationError
     error_mapping = {

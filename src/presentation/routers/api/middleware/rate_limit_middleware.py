@@ -331,7 +331,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     ) -> JSONResponse:
         """Build HTTP 429 rate limit response.
 
-        Returns RFC 7807 compliant problem details response.
+        Returns RFC 9457 compliant problem details response.
 
         Args:
             request: Original request.
@@ -346,7 +346,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Round retry_after for cleaner display
         retry_after_int = max(1, int(retry_after + 0.5))
 
-        # RFC 7807 Problem Details
+        # RFC 9457 Problem Details
         content = {
             "type": f"{settings.api_base_url}/errors/rate-limit-exceeded",
             "title": "Rate Limit Exceeded",

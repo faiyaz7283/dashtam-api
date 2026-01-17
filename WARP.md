@@ -704,9 +704,9 @@ async def create_user(data: dict):  # No!
     ...
 ```
 
-#### Error Handling (RFC 7807 Problem Details)
+#### Error Handling (RFC 9457 Problem Details)
 
-**CRITICAL**: All API errors use RFC 7807 Problem Details format. **AuthErrorResponse removed in v1.6.3**.
+**CRITICAL**: All API errors use RFC 9457 Problem Details format. **AuthErrorResponse removed in v1.6.3**.
 
 **Error Response Format**:
 
@@ -730,7 +730,7 @@ async def create_user(data: dict):  # No!
 from src.core.errors import ApplicationError, ApplicationErrorCode
 from src.presentation.api.error_response_builder import ErrorResponseBuilder
 
-# Return RFC 7807 error
+# Return RFC 9457 error
 error = ApplicationError(
     code=ApplicationErrorCode.NOT_FOUND,
     message="User not found"

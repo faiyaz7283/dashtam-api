@@ -403,7 +403,7 @@ class TestRequireAllPermissions:
 
 @pytest.mark.api
 class TestErrorResponseFormat:
-    """Test that error responses follow RFC 7807 format."""
+    """Test that error responses follow RFC 9457 format."""
 
     def test_403_response_has_correct_structure(self, mock_authorization):
         """Test that 403 response has proper error structure."""

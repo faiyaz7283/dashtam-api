@@ -199,7 +199,7 @@ class RouteMetadata:
     response_model: type[BaseModel] | None = None
     status_code: int = 200
     
-    # Error handling (RFC 7807)
+    # Error handling (RFC 9457)
     errors: list[ErrorSpec] = field(default_factory=list)
     
     # Policies
@@ -581,7 +581,7 @@ def test_registry_statistics():
 
 ## Integration with Existing Systems
 
-### RFC 7807 Error Handling
+### RFC 9457 Error Handling
 
 Route registry includes error specs for OpenAPI docs:
 
@@ -596,14 +596,14 @@ RouteMetadata(
 )
 ```
 
-Handlers return RFC 7807 Problem Details:
+Handlers return RFC 9457 Problem Details:
 
 ```python
 async def create_user(...) -> UserCreateResponse:
     result = await handler.handle(...)
     
     if isinstance(result, Failure):
-        # RFC 7807 error response
+        # RFC 9457 error response
         return ErrorResponseBuilder.from_application_error(
             error=result.error,
             request_path="/api/v1/users"

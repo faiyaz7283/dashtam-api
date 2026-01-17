@@ -7,7 +7,7 @@ Tests the complete HTTP request/response cycle for balance tracking:
 
 Architecture:
 - Uses FastAPI TestClient with real app + dependency overrides
-- Tests validation, authorization, and RFC 7807 error responses
+- Tests validation, authorization, and RFC 9457 error responses
 - Mocks handlers to test HTTP layer behavior
 """
 

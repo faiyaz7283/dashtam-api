@@ -6,7 +6,7 @@ Tests the complete HTTP request/response cycle for file imports:
 
 Architecture:
 - Uses FastAPI TestClient with real app + dependency overrides
-- Tests validation, authorization, and RFC 7807 error responses
+- Tests validation, authorization, and RFC 9457 error responses
 - Mocks handlers to test HTTP layer behavior
 """
 
@@ -507,7 +507,7 @@ class TestImportResponseSchema:
             app.dependency_overrides.pop(factory_key, None)
 
     def test_error_response_is_rfc7807_compliant(self, client):
-        """Test error responses follow RFC 7807 Problem Details format."""
+        """Test error responses follow RFC 9457 Problem Details format."""
         # Act - trigger 415 error
         response = client.post(
             "/api/v1/imports",
@@ -518,7 +518,7 @@ class TestImportResponseSchema:
         assert response.status_code == 415
         data = response.json()
 
-        # RFC 7807 required fields
+        # RFC 9457 required fields
         assert "type" in data
         assert "title" in data
         assert "status" in data

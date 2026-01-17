@@ -53,7 +53,7 @@ from src.schemas.account_schemas import (
 # Error Mapping (String → ApplicationError)
 # =============================================================================
 # Note: Handlers currently return Result[T, str]. This mapping converts
-# string errors to ApplicationError for RFC 7807 compliance.
+# string errors to ApplicationError for RFC 9457 compliance.
 # TODO (Phase 6): Refactor handlers to return Result[T, ApplicationError]
 # =============================================================================
 
@@ -62,7 +62,7 @@ def _map_account_error(error: str) -> ApplicationError:
     """Map handler string error to ApplicationError.
 
     Converts handler error strings to typed ApplicationError for
-    RFC 7807 compliant error responses.
+    RFC 9457 compliant error responses.
 
     Args:
         error: Error string from handler.
@@ -133,7 +133,7 @@ async def list_accounts(
 
     Returns:
         AccountListResponse with list of accounts.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     # Convert string to AccountType enum if provided
     account_type_enum: AccountType | None = None
@@ -180,7 +180,7 @@ async def get_account(
 
     Returns:
         AccountResponse with account details.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     query = GetAccount(
         account_id=account_id,
@@ -220,7 +220,7 @@ async def sync_accounts(
 
     Returns:
         SyncAccountsResponse with sync statistics.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     command = SyncAccounts(
         user_id=current_user.user_id,
@@ -283,7 +283,7 @@ async def list_accounts_by_connection(
 
     Returns:
         AccountListResponse with list of accounts.
-        JSONResponse with RFC 7807 error on failure.
+        JSONResponse with RFC 9457 error on failure.
     """
     query = ListAccountsByConnection(
         connection_id=connection_id,

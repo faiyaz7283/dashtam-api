@@ -1128,8 +1128,9 @@ git push origin development
 8. [ ] Merge PR to `main`
 9. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
 10. [ ] Push tag: `git push origin vX.Y.Z`
-11. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
-12. [ ] Close the milestone on GitHub (if all issues complete)
+11. [ ] Create GitHub Release: `gh release create vX.Y.Z --title "vX.Y.Z - Title" --notes "..."`
+12. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
+13. [ ] Close the milestone on GitHub (if all issues complete)
 
 #### Version Bumping & Tagging Strategy
 

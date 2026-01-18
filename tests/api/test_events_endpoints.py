@@ -333,6 +333,85 @@ class TestEventsQueryParams:
 
 
 # =============================================================================
+# Last-Event-ID Replay Tests
+# =============================================================================
+
+
+@pytest.mark.api
+class TestEventsLastEventIdReplay:
+    """Tests for Last-Event-ID based event replay."""
+
+    def test_events_replays_missed_events_with_valid_last_event_id(
+        self, authenticated_client, mock_user_id
+    ):
+        """GET /api/v1/events replays missed events when Last-Event-ID provided."""
+        missed_event = create_test_event(
+            event_type=SSEEventType.PROVIDER_DISCONNECTED,
+            user_id=mock_user_id,
+            data={"missed": True},
+        )
+        live_event = create_test_event(
+            event_type=SSEEventType.SYNC_ACCOUNTS_COMPLETED,
+            user_id=mock_user_id,
+            data={"live": True},
+        )
+        mock_subscriber = MockSSESubscriber(
+            events=[live_event],
+            missed_events=[missed_event],
+            enable_retention=True,
+        )
+        app.dependency_overrides[get_sse_subscriber] = lambda: mock_subscriber
+
+        last_id = str(uuid7())
+        response = authenticated_client.get(f"/api/v1/events?Last-Event-ID={last_id}")
+        content = response.text
+
+        # Should include both missed and live events
+        assert '"missed": true' in content or '"missed":true' in content
+        assert '"live": true' in content or '"live":true' in content
+
+        app.dependency_overrides.pop(get_sse_subscriber, None)
+
+    def test_events_skips_replay_with_invalid_uuid(
+        self, authenticated_client, mock_user_id
+    ):
+        """GET /api/v1/events skips replay if Last-Event-ID is invalid UUID."""
+        mock_subscriber = MockSSESubscriber(events=[])
+        app.dependency_overrides[get_sse_subscriber] = lambda: mock_subscriber
+
+        # Invalid UUID - should not crash
+        response = authenticated_client.get(
+            "/api/v1/events?Last-Event-ID=not-a-valid-uuid"
+        )
+
+        assert response.status_code == 200
+
+        app.dependency_overrides.pop(get_sse_subscriber, None)
+
+    def test_events_skips_replay_when_retention_disabled(
+        self, authenticated_client, mock_user_id
+    ):
+        """GET /api/v1/events returns empty missed events when retention disabled."""
+        mock_subscriber = MockSSESubscriber(
+            events=[],
+            missed_events=[create_test_event()],  # Would be returned if enabled
+            enable_retention=False,
+        )
+        app.dependency_overrides[get_sse_subscriber] = lambda: mock_subscriber
+
+        last_id = str(uuid7())
+        response = authenticated_client.get(f"/api/v1/events?Last-Event-ID={last_id}")
+        content = response.text
+
+        # Should only have retry, no events
+        assert "retry:" in content
+        # No event data should be present
+        assert "event:" not in content
+
+        app.dependency_overrides.pop(get_sse_subscriber, None)
+
+
+# =============================================================================
 # Route Registry Compliance Tests
 # =============================================================================
 

@@ -128,8 +128,18 @@ class TestEventRegistryCompleteness:
         expected_audit = sum(1 for m in EVENT_REGISTRY if m.requires_audit)
         expected_email = sum(1 for m in EVENT_REGISTRY if m.requires_email)
         expected_session = sum(1 for m in EVENT_REGISTRY if m.requires_session)
+
+        # Count SSE handler subscriptions (from DOMAIN_TO_SSE_MAPPING)
+        from src.domain.events.sse_registry import get_domain_event_to_sse_mapping
+
+        expected_sse = len(get_domain_event_to_sse_mapping())
+
         expected_subscriptions = (
-            expected_logging + expected_audit + expected_email + expected_session
+            expected_logging
+            + expected_audit
+            + expected_email
+            + expected_session
+            + expected_sse
         )
 
         # Count actual subscriptions (sum of all handlers across all events)
@@ -145,9 +155,10 @@ class TestEventRegistryCompleteness:
             f"  - Audit: {expected_audit}\n"
             f"  - Email: {expected_email}\n"
             f"  - Session: {expected_session}\n"
+            f"  - SSE: {expected_sse}\n"
             f"Actual: {actual_subscriptions} subscriptions\n\n"
             f"If actual < expected: Container wiring bug (missing subscriptions)\n"
-            f"If actual > expected: Update EVENT_REGISTRY metadata for new events"
+            f"If actual > expected: Update EVENT_REGISTRY or SSE_EVENT_REGISTRY metadata"
         )
 
     def test_critical_events_have_audit_and_logging(self, event_bus) -> None:

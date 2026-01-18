@@ -22,9 +22,21 @@ Reference:
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Type
+from typing import Any, Callable, cast, Type
+from uuid import UUID
 
 from src.domain.events.base_event import DomainEvent
+from src.domain.events.data_events import (
+    AccountSyncAttempted,
+    AccountSyncFailed,
+    AccountSyncSucceeded,
+    HoldingsSyncAttempted,
+    HoldingsSyncFailed,
+    HoldingsSyncSucceeded,
+    TransactionSyncAttempted,
+    TransactionSyncFailed,
+    TransactionSyncSucceeded,
+)
 from src.domain.events.sse_event import SSEEventCategory, SSEEventType
 
 
@@ -73,25 +85,26 @@ class DomainToSSEMapping:
 
 SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
     # ═══════════════════════════════════════════════════════════
-    # Data Sync Events
+    # Data Sync Events (Issue #156)
+    # Payload fields aligned with domain event fields
     # ═══════════════════════════════════════════════════════════
     SSEEventMetadata(
         event_type=SSEEventType.SYNC_ACCOUNTS_STARTED,
         category=SSEEventCategory.DATA_SYNC,
         description="Account sync operation started",
-        payload_fields=["connection_id", "provider_slug"],
+        payload_fields=["connection_id"],
     ),
     SSEEventMetadata(
         event_type=SSEEventType.SYNC_ACCOUNTS_COMPLETED,
         category=SSEEventCategory.DATA_SYNC,
         description="Account sync operation completed successfully",
-        payload_fields=["connection_id", "provider_slug", "account_count"],
+        payload_fields=["connection_id", "account_count"],
     ),
     SSEEventMetadata(
         event_type=SSEEventType.SYNC_ACCOUNTS_FAILED,
         category=SSEEventCategory.DATA_SYNC,
         description="Account sync operation failed",
-        payload_fields=["connection_id", "provider_slug", "error"],
+        payload_fields=["connection_id", "error"],
     ),
     SSEEventMetadata(
         event_type=SSEEventType.SYNC_TRANSACTIONS_STARTED,
@@ -115,19 +128,19 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
         event_type=SSEEventType.SYNC_HOLDINGS_STARTED,
         category=SSEEventCategory.DATA_SYNC,
         description="Holdings sync operation started",
-        payload_fields=["connection_id", "account_id"],
+        payload_fields=["account_id"],
     ),
     SSEEventMetadata(
         event_type=SSEEventType.SYNC_HOLDINGS_COMPLETED,
         category=SSEEventCategory.DATA_SYNC,
         description="Holdings sync operation completed successfully",
-        payload_fields=["connection_id", "account_id", "holdings_count"],
+        payload_fields=["account_id", "holding_count"],
     ),
     SSEEventMetadata(
         event_type=SSEEventType.SYNC_HOLDINGS_FAILED,
         category=SSEEventCategory.DATA_SYNC,
         description="Holdings sync operation failed",
-        payload_fields=["connection_id", "account_id", "error"],
+        payload_fields=["account_id", "error"],
     ),
     # ═══════════════════════════════════════════════════════════
     # Provider Events
@@ -263,14 +276,179 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
 #     user_id_extractor=lambda e: e.user_id,
 # ),
 
+# ═══════════════════════════════════════════════════════════════
+# Payload Extractor Functions (Issue #156: Data Sync Progress)
+# ═══════════════════════════════════════════════════════════════
+
+
+def _uuid_to_str(value: UUID | None) -> str | None:
+    """Convert UUID to string, handling None."""
+    return str(value) if value is not None else None
+
+
+# Account Sync extractors
+def _extract_account_sync_attempted_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from AccountSyncAttempted."""
+    e = cast(AccountSyncAttempted, event)
+    return {"connection_id": str(e.connection_id)}
+
+
+def _extract_account_sync_succeeded_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from AccountSyncSucceeded."""
+    e = cast(AccountSyncSucceeded, event)
+    return {
+        "connection_id": str(e.connection_id),
+        "account_count": e.account_count,
+    }
+
+
+def _extract_account_sync_failed_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from AccountSyncFailed."""
+    e = cast(AccountSyncFailed, event)
+    return {
+        "connection_id": str(e.connection_id),
+        "error": e.reason,
+    }
+
+
+# Transaction Sync extractors
+def _extract_transaction_sync_attempted_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from TransactionSyncAttempted."""
+    e = cast(TransactionSyncAttempted, event)
+    return {
+        "connection_id": str(e.connection_id),
+        "account_id": _uuid_to_str(e.account_id),
+    }
+
+
+def _extract_transaction_sync_succeeded_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from TransactionSyncSucceeded."""
+    e = cast(TransactionSyncSucceeded, event)
+    return {
+        "connection_id": str(e.connection_id),
+        "account_id": _uuid_to_str(e.account_id),
+        "transaction_count": e.transaction_count,
+    }
+
+
+def _extract_transaction_sync_failed_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from TransactionSyncFailed."""
+    e = cast(TransactionSyncFailed, event)
+    return {
+        "connection_id": str(e.connection_id),
+        "account_id": _uuid_to_str(e.account_id),
+        "error": e.reason,
+    }
+
+
+# Holdings Sync extractors
+def _extract_holdings_sync_attempted_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from HoldingsSyncAttempted."""
+    e = cast(HoldingsSyncAttempted, event)
+    return {"account_id": str(e.account_id)}
+
+
+def _extract_holdings_sync_succeeded_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from HoldingsSyncSucceeded."""
+    e = cast(HoldingsSyncSucceeded, event)
+    return {
+        "account_id": str(e.account_id),
+        "holding_count": e.holding_count,
+    }
+
+
+def _extract_holdings_sync_failed_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from HoldingsSyncFailed."""
+    e = cast(HoldingsSyncFailed, event)
+    return {
+        "account_id": str(e.account_id),
+        "error": e.reason,
+    }
+
+
+# User ID extractor (common pattern - all data sync events have user_id)
+def _extract_user_id(event: DomainEvent) -> UUID:
+    """Extract user_id from any data sync domain event.
+
+    All data sync events (AccountSync*, TransactionSync*, HoldingsSync*)
+    have a user_id field. This extractor uses getattr for type safety.
+    """
+    return cast(UUID, getattr(event, "user_id"))
+
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN TO SSE MAPPINGS
+# ═══════════════════════════════════════════════════════════════
+
 DOMAIN_TO_SSE_MAPPING: list[DomainToSSEMapping] = [
-    # Mappings to be added by:
-    # - Issue #1: SSE Data Sync Progress (AccountSync*, TransactionSync*, HoldingsSync*)
-    # - Issue #2: SSE Provider Health (ProviderTokenRefresh*, ProviderDisconnection*)
-    # - Issue #3: SSE AI Response Streaming (direct publish, no domain event mapping)
-    # - Issue #4: SSE File Import Progress (FileImport*)
-    # - Issue #5: SSE Balance/Portfolio Updates (after sync handlers)
-    # - Issue #6: SSE Security Notifications (Session events)
+    # ═══════════════════════════════════════════════════════════
+    # Issue #156: Data Sync Progress (9 mappings)
+    # ═══════════════════════════════════════════════════════════
+    # Account Sync
+    DomainToSSEMapping(
+        domain_event_class=AccountSyncAttempted,
+        sse_event_type=SSEEventType.SYNC_ACCOUNTS_STARTED,
+        payload_extractor=_extract_account_sync_attempted_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=AccountSyncSucceeded,
+        sse_event_type=SSEEventType.SYNC_ACCOUNTS_COMPLETED,
+        payload_extractor=_extract_account_sync_succeeded_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=AccountSyncFailed,
+        sse_event_type=SSEEventType.SYNC_ACCOUNTS_FAILED,
+        payload_extractor=_extract_account_sync_failed_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    # Transaction Sync
+    DomainToSSEMapping(
+        domain_event_class=TransactionSyncAttempted,
+        sse_event_type=SSEEventType.SYNC_TRANSACTIONS_STARTED,
+        payload_extractor=_extract_transaction_sync_attempted_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=TransactionSyncSucceeded,
+        sse_event_type=SSEEventType.SYNC_TRANSACTIONS_COMPLETED,
+        payload_extractor=_extract_transaction_sync_succeeded_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=TransactionSyncFailed,
+        sse_event_type=SSEEventType.SYNC_TRANSACTIONS_FAILED,
+        payload_extractor=_extract_transaction_sync_failed_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    # Holdings Sync
+    DomainToSSEMapping(
+        domain_event_class=HoldingsSyncAttempted,
+        sse_event_type=SSEEventType.SYNC_HOLDINGS_STARTED,
+        payload_extractor=_extract_holdings_sync_attempted_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=HoldingsSyncSucceeded,
+        sse_event_type=SSEEventType.SYNC_HOLDINGS_COMPLETED,
+        payload_extractor=_extract_holdings_sync_succeeded_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=HoldingsSyncFailed,
+        sse_event_type=SSEEventType.SYNC_HOLDINGS_FAILED,
+        payload_extractor=_extract_holdings_sync_failed_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    # ═══════════════════════════════════════════════════════════
+    # Future mappings to be added by:
+    # - Issue #157: Provider Health (ProviderTokenRefresh*, ProviderDisconnection*)
+    # - Issue #158: AI Response Streaming (direct publish, no domain event mapping)
+    # - Issue #159: File Import Progress (FileImport*)
+    # - Issue #160: Balance/Portfolio Updates (after sync handlers)
+    # - Issue #161: Security Notifications (Session events)
+    # ═══════════════════════════════════════════════════════════
 ]
 
 

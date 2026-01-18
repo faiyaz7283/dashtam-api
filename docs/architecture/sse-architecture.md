@@ -1,8 +1,5 @@
 # Server-Sent Events (SSE) Architecture
 
-**Status**: Planning
-**Priority**: High (required for dashtam-terminal real-time features)
-
 ## 1. Overview
 
 This document defines the **foundational architecture** for Server-Sent Events (SSE) in Dashtam API. SSE enables real-time push notifications from server to connected clients (dashtam-terminal, future web dashboard).
@@ -1376,31 +1373,30 @@ SSE_ENABLE_RETENTION=false
 
 **Note**: Retention max_len and TTL use constants (not env vars) because they're implementation details, not deployment configuration.
 
-## 12. Implementation Phases
+## 12. Implementation Components
 
-### Phase 1: Foundation (This Document)
+### Foundation Components
 
-- [ ] SSE Protocol definitions (`domain/protocols/`)
-- [ ] SSE Event dataclass (`domain/events/sse_event.py`)
-- [ ] SSE Event Registry (`domain/events/sse_registry.py`)
-- [ ] Redis Publisher adapter
-- [ ] Redis Subscriber adapter
-- [ ] SSE stream endpoint
-- [ ] Container wiring
-- [ ] Foundation tests
+- SSE Protocol definitions (`domain/protocols/`)
+- SSE Event dataclass (`domain/events/sse_event.py`)
+- SSE Event Registry (`domain/events/sse_registry.py`)
+- Redis Publisher adapter
+- Redis Subscriber adapter
+- SSE stream endpoint
+- Container wiring
 
-### Phase 2+: Use Cases (GitHub Issues)
+### Use Cases
 
-Each use case is tracked as a separate GitHub issue:
+SSE supports the following use cases:
 
-| Issue | Use Case | Priority |
-|-------|----------|----------|
-| #1 | Data Sync Progress | High |
-| #2 | Provider Connection Health | High |
-| #3 | AI Response Streaming | High |
-| #4 | File Import Progress | Medium |
-| #5 | Balance/Portfolio Updates | Medium |
-| #6 | Security Notifications | Lower |
+| Use Case | Priority | Description |
+|----------|----------|-------------|
+| Data Sync Progress | High | Real-time sync status updates |
+| Provider Connection Health | High | Token expiry/refresh notifications |
+| AI Response Streaming | High | Streaming AI assistant responses |
+| File Import Progress | Medium | Import progress updates |
+| Balance/Portfolio Updates | Medium | Account balance changes |
+| Security Notifications | Lower | Session/security alerts |
 
 ## 13. Related Documentation
 
@@ -1410,16 +1406,4 @@ Each use case is tracked as a separate GitHub issue:
 
 ---
 
-**Created**: 2026-01-18
-**Last Updated**: 2026-01-18
-
-## Appendix: Key Decisions Summary
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Protocol | SSE over WebSocket | Unidirectional fits use cases, simpler |
-| Endpoint | `GET /api/v1/events` | REST compliant (noun, not verb) |
-| Authentication | Existing Bearer token | No separate auth, DRY |
-| Handler pattern | Event bus subscription | Same as LoggingEventHandler, not handler_factory |
-| Constants | `src/core/constants.py` | Implementation details, not env config |
-| Channel prefix | `SSE_CHANNEL_PREFIX` constant | DRY, centralized |
+**Created**: 2026-01-18 | **Last Updated**: 2026-01-18

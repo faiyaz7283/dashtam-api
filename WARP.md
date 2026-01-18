@@ -1144,6 +1144,19 @@ git push origin development
 3. **Sync main → development** only after releasing to main
 4. **CHANGELOG.md** updated with each version bump
 
+#### GitHub Issues Integration
+
+**All feature development is tracked via GitHub Issues**. See `~/dashtam/WARP.md` Section 10 for the full workflow.
+
+**Quick Reference**:
+
+- **Branch naming**: `feature/issue-{N}-{slug}` (e.g., `feature/issue-156-sse-data-sync`)
+- **Commit format**: `type(scope): description (#N)` (e.g., `feat(sse): add mappings (#156)`)
+- **PR body**: Include `Closes #N` for auto-linking and auto-close
+- **Labels**: Add `status:in-progress` when starting, feature labels (`sse`, `sync`, etc.)
+
+**Issue Templates**: `.github/ISSUE_TEMPLATE/` (`feature_request.yml`, `bug_report.yml`)
+
 ---
 
 ### 12. Testing Strategy

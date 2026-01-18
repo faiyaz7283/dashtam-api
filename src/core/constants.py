@@ -59,3 +59,23 @@ BEARER_PREFIX: str = "Bearer "
 
 RESPONSE_BODY_MAX_LENGTH: int = 500
 """Maximum length for response body in error messages (truncation limit)."""
+
+
+# =============================================================================
+# SSE (Server-Sent Events)
+# =============================================================================
+
+SSE_HEARTBEAT_INTERVAL_SECONDS: int = 30
+"""Interval between SSE heartbeat comments to detect stale connections."""
+
+SSE_RETRY_INTERVAL_MS: int = 3000
+"""Client reconnection interval hint (milliseconds)."""
+
+SSE_CHANNEL_PREFIX: str = "sse"
+"""Redis channel prefix for SSE pub/sub."""
+
+SSE_RETENTION_MAX_LEN_DEFAULT: int = 1000
+"""Default max events per user in Redis Stream retention."""
+
+SSE_RETENTION_TTL_DEFAULT: int = 3600
+"""Default TTL for retained events (seconds)."""

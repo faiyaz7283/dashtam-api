@@ -108,6 +108,23 @@ from src.domain.events.session_events import (
     SessionRevokedEvent,
     SuspiciousSessionActivityEvent,
 )
+from src.domain.events.sse_event import (
+    SSEEvent,
+    SSEEventCategory,
+    SSEEventType,
+    get_category_for_event_type,
+)
+from src.domain.events.sse_registry import (
+    DOMAIN_TO_SSE_MAPPING,
+    SSE_EVENT_REGISTRY,
+    DomainToSSEMapping,
+    SSEEventMetadata,
+    get_all_sse_event_types,
+    get_domain_event_to_sse_mapping,
+    get_events_by_category,
+    get_registry_statistics,
+    get_sse_event_metadata,
+)
 
 __all__ = [
     # Base event
@@ -187,4 +204,19 @@ __all__ = [
     "SessionProviderAccessEvent",
     "SessionRevokedEvent",
     "SuspiciousSessionActivityEvent",
+    # SSE Events (wire format for real-time notifications)
+    "SSEEvent",
+    "SSEEventCategory",
+    "SSEEventType",
+    "get_category_for_event_type",
+    # SSE Registry (SSOT for event mappings)
+    "DOMAIN_TO_SSE_MAPPING",
+    "SSE_EVENT_REGISTRY",
+    "DomainToSSEMapping",
+    "SSEEventMetadata",
+    "get_all_sse_event_types",
+    "get_domain_event_to_sse_mapping",
+    "get_events_by_category",
+    "get_registry_statistics",
+    "get_sse_event_metadata",
 ]

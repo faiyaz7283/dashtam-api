@@ -77,6 +77,8 @@ from src.domain.protocols.provider_protocol import (
     ProviderTransactionData,
 )
 from src.domain.protocols.rate_limit_protocol import RateLimitProtocol
+from src.domain.protocols.sse_publisher_protocol import SSEPublisherProtocol
+from src.domain.protocols.sse_subscriber_protocol import SSESubscriberProtocol
 from src.domain.protocols.transaction_repository import TransactionRepository
 from src.domain.protocols.user_repository import UserRepository
 
@@ -132,4 +134,7 @@ __all__ = [
     "ProviderTransactionData",
     # Transaction Repository
     "TransactionRepository",
+    # SSE protocols
+    "SSEPublisherProtocol",
+    "SSESubscriberProtocol",
 ]

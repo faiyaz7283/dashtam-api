@@ -2,6 +2,8 @@
 
 **Purpose**: Single source of truth for AI agents - architectural standards, development workflow, and project context.
 
+**Global Standards**: See `~/dashtam/WARP.md` for shared patterns (Python, Git, Docker, Testing).
+
 **External Reference**:
 
 - `~/references/starter/dashtam-feature-roadmap.md` - Feature roadmap with Phase 2-6 implementation details

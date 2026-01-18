@@ -14,7 +14,7 @@ If these tests fail, it means the registry has drifted from actual implementatio
 from src.infrastructure.rate_limit.config import RATE_LIMIT_RULES
 from src.presentation.routers.api.v1 import v1_router
 from src.presentation.routers.api.v1.routes.derivations import build_rate_limit_rules
-from src.presentation.routers.api.v1.routes.metadata import AuthLevel
+from src.presentation.routers.api.v1.routes.metadata import AuthLevel, RateLimitPolicy
 from src.presentation.routers.api.v1.routes.registry import ROUTE_REGISTRY
 
 
@@ -329,6 +329,9 @@ class TestMetadataConsistency:
         """All non-204 routes should have response_model defined.
 
         Fails if: Route returns data but has no response schema.
+
+        Note: SSE streaming endpoints (RateLimitPolicy.SSE_STREAM) are exempt
+        because they return StreamingResponse, not Pydantic models.
         """
         for entry in ROUTE_REGISTRY:
             # 204 No Content doesn't need response model
@@ -337,6 +340,13 @@ class TestMetadataConsistency:
                     f"Route '{entry.method.value} {entry.path}' "
                     f"has 204 status but defines response_model. "
                     f"204 No Content should have response_model=None."
+                )
+            # SSE streaming endpoints return StreamingResponse, not Pydantic model
+            elif entry.rate_limit_policy == RateLimitPolicy.SSE_STREAM:
+                assert entry.response_model is None, (
+                    f"Route '{entry.method.value} {entry.path}' "
+                    f"is SSE streaming but defines response_model. "
+                    f"SSE endpoints use StreamingResponse and should have response_model=None."
                 )
             else:
                 # Other status codes should have response model

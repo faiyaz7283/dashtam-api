@@ -173,6 +173,9 @@ class RateLimitPolicy(str, Enum):
     # Global limits (emergency brake)
     GLOBAL = "global"
 
+    # SSE (Server-Sent Events)
+    SSE_STREAM = "sse_stream"
+
 
 # =============================================================================
 # Idempotency Level

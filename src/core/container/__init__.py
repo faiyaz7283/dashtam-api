@@ -61,6 +61,9 @@ from src.core.container.infrastructure import (
 # Event bus
 from src.core.container.events import get_event_bus
 
+# SSE (Server-Sent Events)
+from src.core.container.sse import get_sse_publisher, get_sse_subscriber
+
 # Repositories
 from src.core.container.repositories import (
     get_account_repository,
@@ -113,6 +116,9 @@ __all__ = [
     "get_provider_factory",
     # Events
     "get_event_bus",
+    # SSE
+    "get_sse_publisher",
+    "get_sse_subscriber",
     # Repositories
     "get_user_repository",
     "get_provider_connection_repository",

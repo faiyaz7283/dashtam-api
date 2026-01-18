@@ -160,6 +160,14 @@ class Settings(BaseSettings):
         description="Security config (token versions) cache TTL in seconds (default: 1 minute)",
     )
 
+    # SSE (Server-Sent Events) configuration
+    sse_enable_retention: bool = Field(
+        default=False,
+        description="Enable SSE event retention in Redis Streams for Last-Event-ID replay. "
+        "When True, events are stored in Redis Streams for reconnection replay. "
+        "When False, only live pub/sub is used (no replay capability).",
+    )
+
     # Geolocation configuration
     geoip_db_path: str | None = Field(
         default="/app/data/geoip/GeoLite2-City.mmdb",

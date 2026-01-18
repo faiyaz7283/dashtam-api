@@ -1118,16 +1118,18 @@ git push origin development
 
 **Complete Release Checklist**:
 
-1. [ ] Update version in `pyproject.toml`
-2. [ ] Run `uv lock` (inside **dev** container: `docker exec dashtam-dev-app uv lock`)
-3. [ ] Update `CHANGELOG.md` with release notes
-4. [ ] Commit, push, create PR to `development`
-5. [ ] Wait for CI, merge PR to `development`
-6. [ ] Create PR from `development` → `main`
-7. [ ] Merge PR to `main`
-8. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
-9. [ ] Push tag: `git push origin vX.Y.Z`
-10. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
+1. [ ] Verify all milestone issues are closed (or moved to next milestone)
+2. [ ] Update version in `pyproject.toml`
+3. [ ] Run `uv lock` (inside **dev** container: `docker exec dashtam-dev-app uv lock`)
+4. [ ] Update `CHANGELOG.md` with release notes (reference closed issues)
+5. [ ] Commit, push, create PR to `development`
+6. [ ] Wait for CI, merge PR to `development`
+7. [ ] Create PR from `development` → `main`
+8. [ ] Merge PR to `main`
+9. [ ] Tag release: `git tag -a vX.Y.Z -m "message"`
+10. [ ] Push tag: `git push origin vX.Y.Z`
+11. [ ] **SYNC BACK**: Merge `main` into `development` (see commands above)
+12. [ ] Close the milestone on GitHub (if all issues complete)
 
 #### Version Bumping & Tagging Strategy
 
@@ -1143,6 +1145,19 @@ git push origin development
 2. **Tags only on main** after release merge
 3. **Sync main → development** only after releasing to main
 4. **CHANGELOG.md** updated with each version bump
+
+#### GitHub Issues Integration
+
+**All feature development is tracked via GitHub Issues**. See `~/dashtam/WARP.md` Section 10 for the full workflow.
+
+**Quick Reference**:
+
+- **Branch naming**: `feature/issue-{N}-{slug}` (e.g., `feature/issue-156-sse-data-sync`)
+- **Commit format**: `type(scope): description (#N)` (e.g., `feat(sse): add mappings (#156)`)
+- **PR body**: Include `Closes #N` for auto-linking and auto-close
+- **Labels**: Add `status:in-progress` when starting, feature labels (`sse`, `sync`, etc.)
+
+**Issue Templates**: `.github/ISSUE_TEMPLATE/` (`feature_request.yml`, `bug_report.yml`)
 
 ---
 

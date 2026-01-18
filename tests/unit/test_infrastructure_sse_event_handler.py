@@ -93,8 +93,14 @@ def handler_with_mapping(mock_publisher):
 
 @pytest.fixture
 def handler_empty_mapping(mock_publisher):
-    """Create handler with empty mapping (default state)."""
-    return SSEEventHandler(publisher=mock_publisher)
+    """Create handler with empty mapping for testing.
+
+    Note: SSEEventHandler loads mappings from registry on init.
+    We explicitly clear it to test empty-mapping behavior.
+    """
+    handler = SSEEventHandler(publisher=mock_publisher)
+    handler._mapping = {}  # Clear to test empty-mapping behavior
+    return handler
 
 
 # =============================================================================

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Documentation
+    url: https://faiyaz7283.github.io/Dashtam/
+    about: Check the documentation for guides and API reference
+  - name: 💬 Discussions
+    url: https://github.com/faiyaz7283/Dashtam/discussions
+    about: Ask questions and discuss ideas

@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-01-18
+
+### Added
+
+- **SSE Foundation Infrastructure** - Real-time server-to-client event streaming
+  - **Domain Layer**
+    - `SSEEvent` dataclass with wire format serialization (`to_sse_format()`, `to_dict()`, `from_dict()`)
+    - `SSEEventType` enum (25 event types across 6 categories)
+    - `SSEEventCategory` enum (data_sync, provider, ai, import, portfolio, security)
+    - `SSEEventMetadata` and `SSE_EVENT_REGISTRY` (registry pattern, 25 entries)
+    - `SSEPublisherProtocol` and `SSESubscriberProtocol` (hexagonal ports)
+  - **Infrastructure Layer**
+    - `RedisSSEPublisher` - Publishes events via Redis pub/sub, optional Streams retention
+    - `RedisSSESubscriber` - Async generator subscription with category filtering
+    - `SSEChannelKeys` - Centralized channel/stream key generation
+    - `SSEEventHandler` - Subscribes to domain events, transforms to SSE events
+  - **Presentation Layer**
+    - `GET /api/v1/events` endpoint with StreamingResponse
+    - Route registry entry with `RateLimitPolicy.SSE_STREAM`
+    - Authentication via existing Bearer token
+  - **Container Wiring**
+    - `get_sse_publisher()` - App-scoped singleton
+    - `get_sse_subscriber()` - Request-scoped factory
+  - **Configuration**
+    - 6 constants in `src/core/constants.py` (heartbeat, retry, channel prefix, retention)
+    - `sse_enable_retention` setting in `config.py`
+
+- **SSE Registry Documentation** (`docs/architecture/sse-registry.md`)
+  - Follows existing registry pattern (like route-registry, validation-registry)
+  - Covers architecture, usage, compliance tests, and adding new events
+
+### Changed
+
+- **Rate Limit Policy**: Added `RateLimitPolicy.SSE_STREAM` for SSE endpoints
+- **Route Registry Test**: Updated `test_response_models_are_defined` to exempt SSE streaming endpoints
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,550 tests pass, 88% coverage maintained
+- **New Test Files**: 4 (`test_domain_sse_event.py`, `test_domain_sse_registry_compliance.py`, `test_events_endpoints.py`, `test_sse_redis_pubsub.py`)
+- **New Tests**: 106 unit tests, 25 integration tests, 12 API tests (143 total)
+- **Documentation**: `docs/architecture/sse-architecture.md` (1400+ lines), `docs/architecture/sse-registry.md` (300+ lines)
+- Files changed: 25+ files
+
 ## [1.8.2] - 2026-01-17
 
 ### Added

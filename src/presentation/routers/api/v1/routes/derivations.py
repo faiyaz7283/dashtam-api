@@ -150,6 +150,9 @@ def _create_rate_limit_rule(policy: RateLimitPolicy) -> RateLimitRule:
         RateLimitPolicy.GLOBAL: _rule(
             10000, 10000.0, RateLimitScope.GLOBAL, enabled=False
         ),
+        # SSE (Server-Sent Events) - user-scoped, generous for long-lived connections
+        # 10 connections/min per user (reconnection tolerance)
+        RateLimitPolicy.SSE_STREAM: _rule(10, 5.0, RateLimitScope.USER),
     }
 
     return mapping[policy]

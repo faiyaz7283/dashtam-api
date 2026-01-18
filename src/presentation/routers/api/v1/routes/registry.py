@@ -5,7 +5,7 @@ The registry is used to generate FastAPI routes, rate limit rules, auth dependen
 and OpenAPI metadata at application startup.
 
 Registry structure:
-    - 36 total endpoints across 12 resource categories
+    - 37 total endpoints across 13 resource categories
     - Each entry is a RouteMetadata instance with complete specification
     - Handlers reference actual functions from router modules
     - Auth policies explicitly declared (PUBLIC, AUTHENTICATED, ADMIN, MANUAL_AUTH)
@@ -88,6 +88,7 @@ from src.presentation.routers.api.v1.transactions import (
     list_transactions_by_account,
     sync_transactions,
 )
+from src.presentation.routers.api.v1.events import get_events
 from src.presentation.routers.api.v1.users import create_user
 from src.schemas.account_schemas import (
     AccountListResponse,
@@ -880,5 +881,26 @@ ROUTE_REGISTRY: list[RouteMetadata] = [
         idempotency=IdempotencyLevel.SAFE,
         auth_policy=AuthPolicy(level=AuthLevel.AUTHENTICATED),
         rate_limit_policy=RateLimitPolicy.API_READ,
+    ),
+    # =========================================================================
+    # Events Resource (1 endpoint - SSE)
+    # =========================================================================
+    RouteMetadata(
+        method=HTTPMethod.GET,
+        path="/events",
+        handler=get_events,
+        resource="events",
+        tags=["Events"],
+        summary="Subscribe to events (SSE)",
+        description="Server-Sent Events stream for real-time updates. Requires authenticated user.",
+        operation_id="get_events",
+        response_model=None,  # StreamingResponse
+        status_code=200,
+        errors=[
+            ErrorSpec(status=401, description="Not authenticated"),
+        ],
+        idempotency=IdempotencyLevel.SAFE,
+        auth_policy=AuthPolicy(level=AuthLevel.AUTHENTICATED),
+        rate_limit_policy=RateLimitPolicy.SSE_STREAM,
     ),
 ]

@@ -245,4 +245,31 @@ def get_event_bus() -> "EventBusProtocol":
             else:
                 event_bus.subscribe(event_class, handler_method)
 
+    # =========================================================================
+    # SSE EVENT HANDLER WIRING (Registry-driven)
+    # =========================================================================
+    # SSE handler subscribes to domain events that have SSE mappings.
+    # Same pattern as LoggingEventHandler and AuditEventHandler above.
+    # SSE handler bridges domain events → Redis pub/sub → client streams.
+    #
+    # NOTE: DOMAIN_TO_SSE_MAPPING is initially empty (foundation only).
+    # Mappings will be added by use case issues (Issue #1-6).
+    # =========================================================================
+    from src.core.container.sse import get_sse_publisher
+    from src.domain.events.sse_registry import get_domain_event_to_sse_mapping
+    from src.infrastructure.sse.sse_event_handler import SSEEventHandler
+
+    sse_publisher = get_sse_publisher()
+    sse_handler = SSEEventHandler(publisher=sse_publisher, logger=logger)
+
+    # Subscribe SSE handler to all domain events that have SSE mappings
+    domain_to_sse = get_domain_event_to_sse_mapping()
+    for domain_event_class in domain_to_sse.keys():
+        event_bus.subscribe(domain_event_class, sse_handler.handle)
+
+    logger.debug(
+        "SSE event handler wiring complete",
+        mapped_events=len(domain_to_sse),
+    )
+
     return event_bus

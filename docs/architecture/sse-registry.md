@@ -299,7 +299,7 @@ def get_registry_statistics() -> dict[str, int]:
         >>> print(stats)
         {
             "total_event_types": 25,
-            "total_mappings": 0,
+            "total_mappings": 9,
             "by_category": {
                 "data_sync": 9,
                 "provider": 4,

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-01-18
+
+### Added
+
+- **SSE Data Sync Progress Mappings** (Closes #156)
+  - 9 domain-to-SSE mappings for real-time sync progress streaming
+  - Account sync: `AccountSyncAttempted/Succeeded/Failed` → `sync.accounts.*`
+  - Transaction sync: `TransactionSyncAttempted/Succeeded/Failed` → `sync.transactions.*`
+  - Holdings sync: `HoldingsSyncAttempted/Succeeded/Failed` → `sync.holdings.*`
+  - Type-safe payload extractors with `cast()` for each event type
+  - Common `_extract_user_id()` helper for user routing
+
+- **GitHub Issue Templates** (`.github/ISSUE_TEMPLATE/`)
+  - `feature_request.yml` - YAML-based feature request form
+  - `bug_report.yml` - YAML-based bug report form
+  - `config.yml` - Template chooser configuration
+
+### Changed
+
+- **Release Checklist**: Added GitHub Issues workflow integration
+  - Milestone verification before release
+  - Milestone closure after release
+  - Issue references in CHANGELOG entries
+
+- **Container Wiring Test**: Updated subscription count to include SSE handler subscriptions
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All 2,598 tests pass, 88% coverage maintained
+- **New Test File**: `tests/unit/test_domain_sse_data_sync_mappings.py` (24 tests)
+- Files changed: 10 files
+
 ## [1.9.0] - 2026-01-18
 
 ### Added

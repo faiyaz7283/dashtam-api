@@ -132,16 +132,15 @@ def get_type_name(annotation: Any) -> str:
 def analyze_handler_dependencies(handler_class: type) -> dict[str, dict[str, Any]]:
     """Analyze handler __init__ to discover dependencies.
 
+    Introspects the handler's ``__init__`` method to discover required
+    dependencies and their types.
+
     Args:
         handler_class: Handler class to analyze.
 
     Returns:
-        Dict mapping param name -> {type_name, annotation, is_optional}.
-
-    Example:
-        >>> deps = analyze_handler_dependencies(RegisterUserHandler)
-        >>> deps['user_repo']['type_name']
-        'UserRepository'
+        Dict mapping parameter names to dependency info dicts.
+        Each info dict contains keys: type_name (str), annotation, is_optional (bool).
     """
     try:
         # Use getattr to avoid mypy's unsound __init__ access warning

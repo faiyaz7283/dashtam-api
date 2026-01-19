@@ -7,10 +7,17 @@ These endpoints are intentionally lightweight and side-effect free to
 support health checks and basic diagnostics.
 """
 
-from fastapi import APIRouter
+from typing import TYPE_CHECKING
+
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from src.core.config import settings
+from src.core.container import get_jobs_monitor
+from src.core.result import Failure
+
+if TYPE_CHECKING:
+    from src.infrastructure.jobs.monitor import JobsMonitor
 
 
 system_router = APIRouter(tags=["System"])
@@ -37,6 +44,32 @@ async def health() -> dict[str, str]:
     Returns:
         dict[str, str]: Health status indicator.
     """
+    return {"status": "healthy"}
+
+
+@system_router.get("/health/jobs")
+async def health_jobs(
+    monitor: "JobsMonitor" = Depends(get_jobs_monitor),
+) -> dict[str, str]:
+    """Health check for background jobs service (load balancer use).
+
+    Simple health check endpoint for load balancers and infrastructure monitoring.
+    Returns only status without sensitive details like queue length or error messages.
+
+    For detailed job status, use the authenticated admin endpoint:
+    GET /api/v1/admin/jobs
+
+    Args:
+        monitor: JobsMonitor instance for querying job queue status.
+
+    Returns:
+        dict[str, str]: Simple status indicator (healthy/unhealthy).
+    """
+    result = await monitor.check_health()
+
+    if isinstance(result, Failure) or not result.value.healthy:
+        return {"status": "unhealthy"}
+
     return {"status": "healthy"}
 
 

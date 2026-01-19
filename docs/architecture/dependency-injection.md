@@ -187,6 +187,7 @@ src/core/container/
 - `get_email_service()` - Email adapter
 - `get_rate_limit()` - Token bucket rate limiter
 - `get_logger()` - Console/CloudWatch logger
+- `get_jobs_monitor()` - Background jobs queue monitor (dashtam-jobs)
 
 **events.py** (~230 lines) - Domain event infrastructure:
 
@@ -724,4 +725,105 @@ async def get_user(
 
 ---
 
-**Created**: 2025-11-13 | **Last Updated**: 2026-01-17
+## 10. Background Jobs Integration
+
+### 10.1 Overview
+
+The API integrates with the `dashtam-jobs` background worker service via shared Redis.
+This is a **monitoring-only** integration - no code dependency between services.
+
+### 10.2 Configuration
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `JOBS_REDIS_URL` | Falls back to `REDIS_URL` | Redis URL for jobs queue |
+| `JOBS_QUEUE_NAME` | `dashtam:jobs` | Queue name (must match dashtam-jobs) |
+
+### 10.3 Architecture
+
+```text
+┌───────────────┐                     ┌───────────────┐
+│      API      │                     │  dashtam-jobs │
+│  JobsMonitor  │───── same Redis ────│    TaskIQ     │
+│               │      queue name     │               │
+└───────────────┘                     └───────────────┘
+        │                                     │
+        │  LLEN dashtam:jobs                 │ LPUSH/BRPOP dashtam:jobs
+        │  PING                              │ Store results
+        └─────────────┬───────────────────────┘
+                      ▼
+              ┌───────────────┐
+              │     Redis     │
+              │  (shared)     │
+              └───────────────┘
+```
+
+### 10.4 Deployment Options
+
+#### Option 1: Shared Redis (Development)
+
+Both API cache and jobs queue use the same Redis instance:
+
+```bash
+# .env.dev
+REDIS_URL=redis://redis:6379/0
+# JOBS_REDIS_URL not set - falls back to REDIS_URL
+JOBS_QUEUE_NAME=dashtam:jobs
+```
+
+#### Option 2: Separate Redis (Production)
+
+Dedicated Redis instance for job queue isolation:
+
+```yaml
+# docker-compose.yml - add second Redis service
+redis-jobs:
+  image: redis:8.4-alpine
+  container_name: dashtam-redis-jobs
+  volumes:
+    - redis_jobs_data:/data
+  command: redis-server --appendonly yes
+  networks:
+    - dashtam-network
+```
+
+```bash
+# .env.prod
+REDIS_URL=redis://redis:6379/0           # Cache
+JOBS_REDIS_URL=redis://redis-jobs:6379/0  # Jobs queue
+JOBS_QUEUE_NAME=dashtam:jobs
+```
+
+### 10.5 JobsMonitor Usage
+
+```python
+# Application layer - direct use
+from src.core.container import get_jobs_monitor
+
+monitor = get_jobs_monitor()
+health = await monitor.check_health()
+if health.value.healthy:
+    print(f"Queue length: {health.value.queue_length}")
+
+# Presentation layer - FastAPI Depends
+from fastapi import Depends
+from src.core.container import get_jobs_monitor
+
+@router.get("/admin/jobs")
+async def get_jobs_status(
+    monitor: JobsMonitor = Depends(get_jobs_monitor)
+):
+    result = await monitor.check_health()
+    ...
+```
+
+### 10.6 Endpoints
+
+| Endpoint | Auth | Purpose |
+|----------|------|---------||
+| `GET /health/jobs` | None | Load balancer health check (returns `healthy`/`unhealthy`) |
+| `GET /api/v1/admin/jobs` | Admin | Detailed status (queue length, Redis connectivity, errors) |
+
+---
+
+**Created**: 2025-11-13 | **Last Updated**: 2026-01-19

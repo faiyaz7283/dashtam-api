@@ -45,6 +45,7 @@ from src.core.container.infrastructure import (
     get_device_enricher,
     get_email_service,
     get_encryption_service,
+    get_jobs_monitor,
     get_location_enricher,
     get_logger,
     get_password_reset_token_service,
@@ -114,6 +115,7 @@ __all__ = [
     "get_refresh_token_service",
     "get_password_reset_token_service",
     "get_provider_factory",
+    "get_jobs_monitor",
     # Events
     "get_event_bus",
     # SSE

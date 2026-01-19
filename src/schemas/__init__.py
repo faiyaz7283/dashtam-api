@@ -27,6 +27,7 @@ from src.schemas.auth_schemas import (
     PasswordResetCreateRequest,
     PasswordResetCreateResponse,
 )
+from src.schemas.jobs_schemas import JobsStatusResponse
 from src.schemas.session_schemas import (
     SessionListResponse,
     SessionResponse,
@@ -60,4 +61,6 @@ __all__ = [
     "PasswordResetTokenCreateResponse",
     "PasswordResetCreateRequest",
     "PasswordResetCreateResponse",
+    # Admin - Jobs
+    "JobsStatusResponse",
 ]

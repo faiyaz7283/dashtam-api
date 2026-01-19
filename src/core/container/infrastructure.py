@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     )
     from src.infrastructure.cache.cache_keys import CacheKeys
     from src.infrastructure.cache.cache_metrics import CacheMetrics
+    from src.infrastructure.jobs.monitor import JobsMonitor
     from src.infrastructure.providers.encryption_service import EncryptionService
 
 
@@ -659,3 +660,53 @@ def get_provider_factory() -> "ProviderFactoryProtocol":
     from src.infrastructure.providers.provider_factory import ProviderFactory
 
     return ProviderFactory()
+
+
+# ============================================================================
+# Background Jobs Monitor (Application-Scoped)
+# ============================================================================
+
+
+@lru_cache()
+def get_jobs_monitor() -> "JobsMonitor":
+    """Get background jobs monitor singleton (app-scoped).
+
+    Returns JobsMonitor for querying the dashtam-jobs background worker service.
+    Uses JOBS_REDIS_URL if configured, otherwise falls back to main REDIS_URL.
+
+    The jobs monitor allows the API to check job queue health and status
+    without depending on dashtam-jobs code.
+
+    Returns:
+        JobsMonitor instance for job queue monitoring.
+
+    Usage:
+        # Application Layer (direct use)
+        monitor = get_jobs_monitor()
+        health = await monitor.check_health()
+
+        # Presentation Layer (FastAPI Depends)
+        from fastapi import Depends
+        monitor: JobsMonitor = Depends(get_jobs_monitor)
+    """
+    from redis.asyncio import ConnectionPool, Redis
+
+    from src.infrastructure.jobs.monitor import JobsMonitor
+
+    # Use dedicated jobs Redis URL if configured, otherwise fall back to main Redis
+    redis_url = settings.jobs_redis_url or settings.redis_url
+
+    pool = ConnectionPool.from_url(
+        redis_url,
+        max_connections=10,  # Fewer connections needed for monitoring
+        decode_responses=False,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        retry_on_timeout=True,
+    )
+    redis_client = Redis(connection_pool=pool)
+
+    return JobsMonitor(
+        redis_client=redis_client,
+        queue_name=settings.jobs_queue_name,
+    )

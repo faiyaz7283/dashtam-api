@@ -39,6 +39,7 @@ from src.presentation.routers.api.v1.accounts import (
     list_accounts_by_connection,
     sync_accounts,
 )
+from src.presentation.routers.api.v1.admin.jobs import get_jobs_status
 from src.presentation.routers.api.v1.admin.token_rotation import (
     create_global_rotation,
     create_user_rotation,
@@ -115,6 +116,7 @@ from src.schemas.provider_schemas import (
     ProviderConnectionResponse,
     TokenRefreshResponse,
 )
+from src.schemas.jobs_schemas import JobsStatusResponse
 from src.schemas.rotation_schemas import (
     GlobalRotationResponse,
     SecurityConfigResponse,
@@ -758,7 +760,7 @@ ROUTE_REGISTRY: list[RouteMetadata] = [
         rate_limit_policy=RateLimitPolicy.API_READ,
     ),
     # =========================================================================
-    # Admin Resource (3 endpoints)
+    # Admin Resource (4 endpoints)
     # =========================================================================
     RouteMetadata(
         method=HTTPMethod.POST,
@@ -815,6 +817,26 @@ ROUTE_REGISTRY: list[RouteMetadata] = [
         errors=[
             ErrorSpec(status=401, description="Not authenticated"),
             ErrorSpec(status=403, description="Not authorized (admin only)"),
+        ],
+        idempotency=IdempotencyLevel.SAFE,
+        auth_policy=AuthPolicy(level=AuthLevel.ADMIN, role="admin"),
+        rate_limit_policy=RateLimitPolicy.API_READ,
+    ),
+    RouteMetadata(
+        method=HTTPMethod.GET,
+        path="/admin/jobs",
+        handler=get_jobs_status,
+        resource="admin",
+        tags=["Admin"],
+        summary="Get background jobs status",
+        description="Admin-only. Returns status of the dashtam-jobs background worker service including queue length and health.",
+        operation_id="get_jobs_status",
+        response_model=JobsStatusResponse,
+        status_code=200,
+        errors=[
+            ErrorSpec(status=401, description="Not authenticated"),
+            ErrorSpec(status=403, description="Not authorized (admin only)"),
+            ErrorSpec(status=500, description="Failed to check jobs status"),
         ],
         idempotency=IdempotencyLevel.SAFE,
         auth_policy=AuthPolicy(level=AuthLevel.ADMIN, role="admin"),

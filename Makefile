@@ -41,10 +41,18 @@ help:
 	@echo "  make test-logs       - View test logs"
 	@echo "  make test-shell      - Shell into test container"
 	@echo ""
-	@echo "  💡 All test commands support ARGS parameter:"
-	@echo "     make test-unit ARGS=\"-k test_encryption\" - Run specific tests"
-	@echo "     make test ARGS=\"--lf\"                     - Last failed only"
-	@echo "     make test-api ARGS=\"-x\"                   - Stop on first failure"
+	@echo "  💡 TEST_PATH - Run specific test file/directory:"
+	@echo "     make test TEST_PATH=tests/unit/test_foo.py      - Single file"
+	@echo "     make test TEST_PATH=tests/unit/                 - Directory"
+	@echo "     make test-unit TEST_PATH=tests/unit/test_foo.py - Override default"
+	@echo ""
+	@echo "  💡 ARGS - Additional pytest arguments:"
+	@echo "     make test ARGS=\"-k test_encryption\"  - Filter by name pattern"
+	@echo "     make test ARGS=\"--lf\"                - Last failed only"
+	@echo "     make test ARGS=\"-x\"                  - Stop on first failure"
+	@echo ""
+	@echo "  💡 Combine both:"
+	@echo "     make test TEST_PATH=tests/unit/ ARGS=\"-k test_foo -v\""
 	@echo ""
 	@echo "🤖 CI/CD:"
 	@echo "  make ci-test-local   - Full CI suite (tests + lint + type-check)"
@@ -266,41 +274,54 @@ test-restart: test-down test-up
 # TESTING
 # ==============================================================================
 # 
-# All test commands support optional ARGS parameter for pytest arguments.
+# All test commands support two optional parameters:
 # 
-# Examples:
-#   make test                                    # All tests with coverage
-#   make test ARGS="-v --tb=short"               # Custom verbosity
-#   make test-unit ARGS="-k test_encryption"     # Specific test pattern
-#   make test-integration ARGS="-x"              # Stop on first failure
-#   make test-api ARGS="--lf"                    # Last failed tests only
+# TEST_PATH - Override the default test path:
+#   make test TEST_PATH=tests/unit/test_foo.py        # Run single file
+#   make test TEST_PATH=tests/unit/                   # Run directory
+#   make test-unit TEST_PATH=tests/unit/test_bar.py   # Override unit default
+# 
+# ARGS - Additional pytest arguments:
+#   make test ARGS="-k test_encryption"    # Filter by name pattern
+#   make test ARGS="--lf"                  # Last failed only
+#   make test ARGS="-x"                    # Stop on first failure
+# 
+# Combine both:
+#   make test TEST_PATH=tests/unit/ ARGS="-k test_foo -v"
 # 
 # ==============================================================================
 
+# Default test paths for each command (can be overridden with TEST_PATH)
+TEST_PATH_ALL ?= tests/
+TEST_PATH_UNIT ?= tests/unit/
+TEST_PATH_INTEGRATION ?= tests/integration/
+TEST_PATH_API ?= tests/api/
+TEST_PATH_SMOKE ?= tests/smoke/
+
 test:
-	@echo "🧪 Running all tests with coverage..."
+	@echo "🧪 Running tests with coverage..."
 	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html $(ARGS)
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest $(if $(TEST_PATH),$(TEST_PATH),$(TEST_PATH_ALL)) -v --cov=src --cov-report=term-missing --cov-report=html $(ARGS)
 
 test-unit:
 	@echo "🧪 Running unit tests..."
 	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/unit/ -v $(ARGS)
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest $(if $(TEST_PATH),$(TEST_PATH),$(TEST_PATH_UNIT)) -v $(ARGS)
 
 test-integration:
 	@echo "🧪 Running integration tests..."
 	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/integration/ -v $(ARGS)
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest $(if $(TEST_PATH),$(TEST_PATH),$(TEST_PATH_INTEGRATION)) -v $(ARGS)
 
 test-api:
 	@echo "🧪 Running API tests..."
 	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/api/ -v $(ARGS)
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest $(if $(TEST_PATH),$(TEST_PATH),$(TEST_PATH_API)) -v $(ARGS)
 
 test-smoke:
 	@echo "🔥 Running smoke tests (E2E)..."
 	@[ "$$(docker compose -f compose/docker-compose.test.yml ps --status running -q app)" ] || make test-up
-	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest tests/smoke/ -v $(ARGS)
+	@docker compose -f compose/docker-compose.test.yml exec -T app uv run pytest $(if $(TEST_PATH),$(TEST_PATH),$(TEST_PATH_SMOKE)) -v $(ARGS)
 
 # ==============================================================================
 # CI/CD

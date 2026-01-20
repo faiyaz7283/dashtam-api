@@ -45,3 +45,7 @@ class InfrastructureErrorCode(Enum):
     PROVIDER_CONNECTION_FAILED = "provider_connection_failed"
     PROVIDER_AUTH_REQUIRED = "provider_auth_required"
     PROVIDER_RATE_LIMITED = "provider_rate_limited"
+
+    # General infrastructure errors
+    UNEXPECTED_ERROR = "unexpected_error"
+    CONNECTION_ERROR = "connection_error"

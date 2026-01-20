@@ -160,6 +160,18 @@ class Settings(BaseSettings):
         description="Security config (token versions) cache TTL in seconds (default: 1 minute)",
     )
 
+    # Background Jobs configuration (dashtam-jobs)
+    jobs_redis_url: str | None = Field(
+        default=None,
+        description="Redis URL for background jobs service. "
+        "If not set, falls back to redis_url. "
+        "Jobs use separate queue (dashtam:jobs) for task scheduling.",
+    )
+    jobs_queue_name: str = Field(
+        default="dashtam:jobs",
+        description="Redis queue name for background jobs (must match dashtam-jobs config)",
+    )
+
     # SSE (Server-Sent Events) configuration
     sse_enable_retention: bool = Field(
         default=False,

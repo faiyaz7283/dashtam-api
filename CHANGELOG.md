@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-01-20
+
+### Added
+
+- **SSE Provider Health Mappings** (Closes #157)
+  - 3 domain-to-SSE mappings for provider connection health notifications
+  - `ProviderTokenRefreshSucceeded` → `provider.token.refreshed`
+  - `ProviderTokenRefreshFailed` → `provider.token.failed`
+  - `ProviderDisconnectionSucceeded` → `provider.disconnected`
+  - Type-safe payload extractors for each event type
+
+- **Jobs Service Monitor** (`src/infrastructure/jobs/monitor.py`)
+  - `JobsMonitor` class for monitoring dashtam-jobs service health
+  - Admin endpoint: `GET /api/v1/admin/jobs/health`
+  - System endpoint: `GET /system/jobs/status`
+  - Configurable via `JOBS_SERVICE_URL` environment variable
+
+### Changed
+
+- **README Badge URLs**: Fixed GitHub badge URLs from `Dashtam` → `dashtam-api`
+
+### Technical Notes
+
+- **Zero Breaking Changes**: All tests pass, 88% coverage maintained
+- **New Test Files**: `test_domain_sse_provider_mappings.py`, `test_infrastructure_jobs_monitor.py`, `test_admin_jobs_api.py`
+- Cross-service: Works with dashtam-jobs v0.2.0 SSE publisher
+
 ## [1.9.1] - 2026-01-18
 
 ### Added
@@ -1076,7 +1103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated container docstring with final event counts and workflow breakdown
 - Updated WARP.md with F6.15 completion summary
 - Removed temporary event-handler-inventory.md file (working document)
-- All 1,597 tests passing (17 skipped), coverage maintained at 81%
+- All tests passing, coverage maintained
 
 ## [1.0.0] - 2025-12-12
 
@@ -1142,7 +1169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **F6.3**: MkDocs local preview with Traefik routing on `docs.dashtam.local`
 - **F6.4**: Architecture compliance audit verifying hexagonal architecture and CQRS patterns
 - **F6.5**: Security audit achieving Grade A (Excellent) with 100% vulnerability remediation
-- **F6.6**: Test cleanup and coverage analysis (1,589 tests, 81% coverage, 17 skipped)
+- **F6.6**: Test cleanup and coverage analysis
 - **F6.7**: Documentation updates with comprehensive README and zero-to-working Quick Start
 - **F6.9**: Migration of API tests to real app pattern (no mock app instances)
 - **F6.10**: Adoption of freezegun for reliable time-dependent test execution
@@ -1171,7 +1198,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Testing
 
-- **Coverage**: 81% overall (1,589 tests passing, 17 skipped)
 - **Test Types**: Unit tests (domain, application), integration tests (database, Redis), API tests
 - **Test Strategy**: Pyramid approach with majority unit tests, comprehensive critical path coverage
 - **CI/CD**: GitHub Actions with automated testing, linting, type checking on every commit

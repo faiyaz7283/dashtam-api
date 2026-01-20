@@ -1,10 +1,10 @@
-# Dashtam
+# dashtam-api
 
 > Secure financial data aggregation API with hexagonal architecture, CQRS, and domain-driven design
 
-[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://faiyaz7283.github.io/Dashtam/)
-[![Test Suite](https://github.com/faiyaz7283/Dashtam/workflows/Test%20Suite/badge.svg)](https://github.com/faiyaz7283/Dashtam/actions)
-[![codecov](https://codecov.io/gh/faiyaz7283/Dashtam/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/Dashtam)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://faiyaz7283.github.io/dashtam-api/)
+[![Test Suite](https://github.com/faiyaz7283/dashtam-api/workflows/Test%20Suite/badge.svg)](https://github.com/faiyaz7283/dashtam-api/actions)
+[![codecov](https://codecov.io/gh/faiyaz7283/dashtam-api/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/dashtam-api)
 [![Python 3.14](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.128+-green.svg)](https://fastapi.tiangolo.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

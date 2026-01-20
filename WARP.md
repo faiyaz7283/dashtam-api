@@ -1154,7 +1154,7 @@ git push origin development
 **Quick Reference**:
 
 - **Branch naming**: `feature/issue-{N}-{slug}` (e.g., `feature/issue-156-sse-data-sync`)
-- **Commit format**: `type(scope): description (#N)` (e.g., `feat(sse): add mappings (#156)`)
+- **Commit format**: `type(scope): description (#N)` (e.g., `feat(sse): add mappings (#253)`)
 - **PR body**: Include `Closes #N` for auto-linking and auto-close
 - **Labels**: Add `status:in-progress` when starting, feature labels (`sse`, `sync`, etc.)
 

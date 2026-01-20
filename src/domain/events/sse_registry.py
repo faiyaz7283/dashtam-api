@@ -90,7 +90,7 @@ class DomainToSSEMapping:
 
 SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
     # ═══════════════════════════════════════════════════════════
-    # Data Sync Events (Issue #156)
+    # Data Sync Events (Issue #253)
     # Payload fields aligned with domain event fields
     # ═══════════════════════════════════════════════════════════
     SSEEventMetadata(
@@ -282,7 +282,7 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
 # ),
 
 # ═══════════════════════════════════════════════════════════════
-# Payload Extractor Functions (Issue #156: Data Sync Progress)
+# Payload Extractor Functions (Issue #253: Data Sync Progress)
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -383,7 +383,7 @@ def _extract_user_id(event: DomainEvent) -> UUID:
 
 
 # ═══════════════════════════════════════════════════════════════
-# Payload Extractor Functions (Issue #157: Provider Health)
+# Payload Extractor Functions (Issue #254: Provider Health)
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -421,7 +421,7 @@ def _extract_disconnection_succeeded_payload(event: DomainEvent) -> dict[str, An
 
 DOMAIN_TO_SSE_MAPPING: list[DomainToSSEMapping] = [
     # ═══════════════════════════════════════════════════════════
-    # Issue #156: Data Sync Progress (9 mappings)
+    # Issue #253: Data Sync Progress (9 mappings)
     # ═══════════════════════════════════════════════════════════
     # Account Sync
     DomainToSSEMapping(
@@ -481,7 +481,7 @@ DOMAIN_TO_SSE_MAPPING: list[DomainToSSEMapping] = [
         user_id_extractor=_extract_user_id,
     ),
     # ═══════════════════════════════════════════════════════════
-    # Issue #157: Provider Health (3 mappings)
+    # Issue #254: Provider Health (3 mappings)
     # ═══════════════════════════════════════════════════════════
     DomainToSSEMapping(
         domain_event_class=ProviderTokenRefreshSucceeded,
@@ -503,10 +503,10 @@ DOMAIN_TO_SSE_MAPPING: list[DomainToSSEMapping] = [
     ),
     # ═══════════════════════════════════════════════════════════
     # Future mappings to be added by:
-    # - Issue #158: AI Response Streaming (direct publish, no domain event mapping)
-    # - Issue #159: File Import Progress (FileImport*)
-    # - Issue #160: Balance/Portfolio Updates (after sync handlers)
-    # - Issue #161: Security Notifications (Session events)
+    # - Issue #255: AI Response Streaming (direct publish, no domain event mapping)
+    # - Issue #256: File Import Progress (FileImport*)
+    # - Issue #257: Balance/Portfolio Updates (after sync handlers)
+    # - Issue #258: Security Notifications (Session events)
     # ═══════════════════════════════════════════════════════════
 ]
 

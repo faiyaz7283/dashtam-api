@@ -1,4 +1,4 @@
-"""Unit tests for SSE Data Sync Mappings (Issue #156).
+"""Unit tests for SSE Data Sync Mappings (Issue #253).
 
 Tests cover:
 - All 9 domain-to-SSE mappings for data sync events
@@ -8,7 +8,7 @@ Tests cover:
 
 Reference:
     - src/domain/events/sse_registry.py
-    - GitHub Issue #156
+    - GitHub Issue #253
 """
 
 from typing import cast

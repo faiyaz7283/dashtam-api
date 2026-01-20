@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **SSE Provider Health Mappings** (Closes #157)
+- **SSE Provider Health Mappings** (Closes #254)
   - 3 domain-to-SSE mappings for provider connection health notifications
   - `ProviderTokenRefreshSucceeded` → `provider.token.refreshed`
   - `ProviderTokenRefreshFailed` → `provider.token.failed`
@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **SSE Data Sync Progress Mappings** (Closes #156)
+- **SSE Data Sync Progress Mappings** (Closes #253)
   - 9 domain-to-SSE mappings for real-time sync progress streaming
   - Account sync: `AccountSyncAttempted/Succeeded/Failed` → `sync.accounts.*`
   - Transaction sync: `TransactionSyncAttempted/Succeeded/Failed` → `sync.transactions.*`

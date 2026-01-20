@@ -37,6 +37,11 @@ from src.domain.events.data_events import (
     TransactionSyncFailed,
     TransactionSyncSucceeded,
 )
+from src.domain.events.provider_events import (
+    ProviderDisconnectionSucceeded,
+    ProviderTokenRefreshFailed,
+    ProviderTokenRefreshSucceeded,
+)
 from src.domain.events.sse_event import SSEEventCategory, SSEEventType
 
 
@@ -368,12 +373,46 @@ def _extract_holdings_sync_failed_payload(event: DomainEvent) -> dict[str, Any]:
 
 # User ID extractor (common pattern - all data sync events have user_id)
 def _extract_user_id(event: DomainEvent) -> UUID:
-    """Extract user_id from any data sync domain event.
+    """Extract user_id from any domain event with user_id field.
 
     All data sync events (AccountSync*, TransactionSync*, HoldingsSync*)
-    have a user_id field. This extractor uses getattr for type safety.
+    and provider events have a user_id field. This extractor uses getattr
+    for type safety.
     """
     return cast(UUID, getattr(event, "user_id"))
+
+
+# ═══════════════════════════════════════════════════════════════
+# Payload Extractor Functions (Issue #157: Provider Health)
+# ═══════════════════════════════════════════════════════════════
+
+
+def _extract_token_refresh_succeeded_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from ProviderTokenRefreshSucceeded."""
+    e = cast(ProviderTokenRefreshSucceeded, event)
+    return {
+        "connection_id": str(e.connection_id),
+        "provider_slug": e.provider_slug,
+    }
+
+
+def _extract_token_refresh_failed_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from ProviderTokenRefreshFailed."""
+    e = cast(ProviderTokenRefreshFailed, event)
+    return {
+        "connection_id": str(e.connection_id),
+        "provider_slug": e.provider_slug,
+        "needs_reauth": e.needs_user_action,
+    }
+
+
+def _extract_disconnection_succeeded_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from ProviderDisconnectionSucceeded."""
+    e = cast(ProviderDisconnectionSucceeded, event)
+    return {
+        "connection_id": str(e.connection_id),
+        "provider_slug": e.provider_slug,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -442,8 +481,28 @@ DOMAIN_TO_SSE_MAPPING: list[DomainToSSEMapping] = [
         user_id_extractor=_extract_user_id,
     ),
     # ═══════════════════════════════════════════════════════════
+    # Issue #157: Provider Health (3 mappings)
+    # ═══════════════════════════════════════════════════════════
+    DomainToSSEMapping(
+        domain_event_class=ProviderTokenRefreshSucceeded,
+        sse_event_type=SSEEventType.PROVIDER_TOKEN_REFRESHED,
+        payload_extractor=_extract_token_refresh_succeeded_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=ProviderTokenRefreshFailed,
+        sse_event_type=SSEEventType.PROVIDER_TOKEN_FAILED,
+        payload_extractor=_extract_token_refresh_failed_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=ProviderDisconnectionSucceeded,
+        sse_event_type=SSEEventType.PROVIDER_DISCONNECTED,
+        payload_extractor=_extract_disconnection_succeeded_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    # ═══════════════════════════════════════════════════════════
     # Future mappings to be added by:
-    # - Issue #157: Provider Health (ProviderTokenRefresh*, ProviderDisconnection*)
     # - Issue #158: AI Response Streaming (direct publish, no domain event mapping)
     # - Issue #159: File Import Progress (FileImport*)
     # - Issue #160: Balance/Portfolio Updates (after sync handlers)

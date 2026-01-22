@@ -30,6 +30,10 @@ from src.domain.events.data_events import (
     AccountSyncAttempted,
     AccountSyncFailed,
     AccountSyncSucceeded,
+    FileImportAttempted,
+    FileImportFailed,
+    FileImportProgress,
+    FileImportSucceeded,
     HoldingsSyncAttempted,
     HoldingsSyncFailed,
     HoldingsSyncSucceeded,
@@ -416,6 +420,48 @@ def _extract_disconnection_succeeded_payload(event: DomainEvent) -> dict[str, An
 
 
 # ═══════════════════════════════════════════════════════════════
+# Payload Extractor Functions (Issue #256: File Import Progress)
+# ═══════════════════════════════════════════════════════════════
+
+
+def _extract_file_import_attempted_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from FileImportAttempted."""
+    e = cast(FileImportAttempted, event)
+    return {
+        "file_name": e.file_name,
+        "file_format": e.file_format,
+    }
+
+
+def _extract_file_import_progress_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from FileImportProgress."""
+    e = cast(FileImportProgress, event)
+    return {
+        "file_name": e.file_name,
+        "progress_percent": e.progress_percent,
+        "records_processed": e.records_processed,
+    }
+
+
+def _extract_file_import_succeeded_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from FileImportSucceeded."""
+    e = cast(FileImportSucceeded, event)
+    return {
+        "file_name": e.file_name,
+        "records_imported": e.transaction_count,
+    }
+
+
+def _extract_file_import_failed_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from FileImportFailed."""
+    e = cast(FileImportFailed, event)
+    return {
+        "file_name": e.file_name,
+        "error": e.reason,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
 # DOMAIN TO SSE MAPPINGS
 # ═══════════════════════════════════════════════════════════════
 
@@ -502,9 +548,35 @@ DOMAIN_TO_SSE_MAPPING: list[DomainToSSEMapping] = [
         user_id_extractor=_extract_user_id,
     ),
     # ═══════════════════════════════════════════════════════════
+    # Issue #256: File Import Progress (4 mappings)
+    # ═══════════════════════════════════════════════════════════
+    DomainToSSEMapping(
+        domain_event_class=FileImportAttempted,
+        sse_event_type=SSEEventType.IMPORT_STARTED,
+        payload_extractor=_extract_file_import_attempted_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=FileImportProgress,
+        sse_event_type=SSEEventType.IMPORT_PROGRESS,
+        payload_extractor=_extract_file_import_progress_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=FileImportSucceeded,
+        sse_event_type=SSEEventType.IMPORT_COMPLETED,
+        payload_extractor=_extract_file_import_succeeded_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=FileImportFailed,
+        sse_event_type=SSEEventType.IMPORT_FAILED,
+        payload_extractor=_extract_file_import_failed_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    # ═══════════════════════════════════════════════════════════
     # Future mappings to be added by:
     # - Issue #255: AI Response Streaming (direct publish, no domain event mapping)
-    # - Issue #256: File Import Progress (FileImport*)
     # - Issue #257: Balance/Portfolio Updates (after sync handlers)
     # - Issue #258: Security Notifications (Session events)
     # ═══════════════════════════════════════════════════════════

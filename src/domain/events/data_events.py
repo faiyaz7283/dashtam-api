@@ -284,3 +284,33 @@ class FileImportFailed(DomainEvent):
     file_name: str
     file_format: str
     reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class FileImportProgress(DomainEvent):
+    """File import progress update (emitted periodically during import).
+
+    This is an OPERATIONAL event, not part of the 3-state workflow.
+    Used for real-time progress updates via SSE.
+
+    Triggers:
+    - LoggingEventHandler: Log progress (DEBUG level)
+    - SSEEventHandler: Broadcast via SSE
+
+    Attributes:
+        user_id: User importing file.
+        provider_slug: Provider identifier.
+        file_name: Original filename.
+        file_format: File format.
+        progress_percent: Progress percentage (0-100).
+        records_processed: Number of records processed so far.
+        total_records: Total records to process (may be estimate).
+    """
+
+    user_id: UUID
+    provider_slug: str
+    file_name: str
+    file_format: str
+    progress_percent: int
+    records_processed: int
+    total_records: int

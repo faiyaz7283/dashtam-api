@@ -7,17 +7,22 @@ Architecture:
     - Application layer handler
     - Orchestrates: parse file → create/find connection → upsert accounts → upsert transactions
     - Uses file-based provider (ChaseFileProvider) that parses file content
+    - Emits domain events for SSE progress streaming (Issue #256)
 
 Flow:
-    1. Get or create provider connection for user
-    2. Parse file via provider.fetch_accounts() (credentials = file content)
-    3. Upsert accounts to repository
-    4. Fetch transactions via provider.fetch_transactions()
-    5. Upsert transactions to repository (with duplicate detection by FITID)
-    6. Return import results
+    1. Emit FileImportAttempted event
+    2. Get or create provider connection for user
+    3. Parse file via provider.fetch_accounts() (credentials = file content)
+    4. Upsert accounts to repository
+    5. Fetch transactions via provider.fetch_transactions()
+    6. Upsert transactions to repository (with duplicate detection by FITID)
+    7. Emit FileImportProgress events during transaction processing
+    8. Emit FileImportSucceeded or FileImportFailed event
+    9. Return import results
 
 Reference:
     - docs/architecture/cqrs-pattern.md
+    - docs/architecture/sse-architecture.md (Section 3.2, Import Events)
 """
 
 from datetime import UTC, datetime
@@ -52,6 +57,12 @@ from src.domain.protocols.provider_repository import ProviderRepository
 from src.domain.protocols.transaction_repository import TransactionRepository
 from src.domain.value_objects.money import Money
 from src.domain.value_objects.provider_credentials import ProviderCredentials
+from src.domain.events.data_events import (
+    FileImportAttempted,
+    FileImportFailed,
+    FileImportProgress,
+    FileImportSucceeded,
+)
 
 
 class ImportFromFileError:
@@ -61,6 +72,11 @@ class ImportFromFileError:
     INVALID_FILE = "Invalid or unparseable file"
     NO_ACCOUNTS = "File contains no account data"
     IMPORT_FAILED = "Import failed"
+
+
+# Progress emission interval: emit every N records or N% progress
+_PROGRESS_RECORD_INTERVAL = 100  # Emit every 100 records
+_PROGRESS_PERCENT_INTERVAL = 5  # Or every 5% progress
 
 
 class ImportFromFileHandler:
@@ -114,7 +130,17 @@ class ImportFromFileHandler:
             Success(ImportResult): Import completed with counts.
             Failure(error): Invalid file or import failed.
         """
-        # 1. Resolve provider from command slug
+        # 1. Emit FileImportAttempted event
+        await self._event_bus.publish(
+            FileImportAttempted(
+                user_id=command.user_id,
+                provider_slug=command.provider_slug,
+                file_name=command.file_name,
+                file_format=command.file_format,
+            )
+        )
+
+        # 2. Resolve provider from command slug
         provider = self._provider_factory.get_provider(command.provider_slug)
 
         # Build credentials dict with file data
@@ -124,37 +150,42 @@ class ImportFromFileHandler:
             "file_name": command.file_name,
         }
 
-        # 2. Parse file via provider.fetch_accounts()
+        # 3. Parse file via provider.fetch_accounts()
         accounts_result = await provider.fetch_accounts(credentials_data)
 
         if isinstance(accounts_result, Failure):
-            return Failure(
-                error=f"{ImportFromFileError.INVALID_FILE}: {accounts_result.error.message}"
+            error_msg = (
+                f"{ImportFromFileError.INVALID_FILE}: {accounts_result.error.message}"
             )
+            await self._emit_failed_event(command, error_msg)
+            return Failure(error=error_msg)
 
         provider_accounts = accounts_result.value
 
         if not provider_accounts:
+            await self._emit_failed_event(command, ImportFromFileError.NO_ACCOUNTS)
             return cast(
                 Result[ImportResult, str],
                 Failure(error=ImportFromFileError.NO_ACCOUNTS),
             )
 
-        # 3. Look up provider to get provider_id
+        # 4. Look up provider to get provider_id
         provider_entity = await self._provider_repo.find_by_slug(command.provider_slug)
         if provider_entity is None:
-            return Failure(
-                error=f"{ImportFromFileError.PROVIDER_NOT_FOUND}: {command.provider_slug}"
+            error_msg = (
+                f"{ImportFromFileError.PROVIDER_NOT_FOUND}: {command.provider_slug}"
             )
+            await self._emit_failed_event(command, error_msg)
+            return Failure(error=error_msg)
 
-        # 4. Get or create provider connection
+        # 5. Get or create provider connection
         connection = await self._get_or_create_connection(
             user_id=command.user_id,
             provider_slug=command.provider_slug,
             provider_id=provider_entity.id,
         )
 
-        # 5. Import accounts
+        # 6. Import accounts
         accounts_created = 0
         accounts_updated = 0
         account_map: dict[str, UUID] = {}  # provider_account_id -> account.id
@@ -171,37 +202,77 @@ class ImportFromFileHandler:
             else:
                 accounts_updated += 1
 
-        # 6. Import transactions for each account
-        transactions_created = 0
-        transactions_skipped = 0
-
+        # 7. Collect all transactions to get total count for progress
+        all_transactions: list[tuple[UUID, ProviderTransactionData]] = []
         for provider_account in provider_accounts:
             account_id = account_map[provider_account.provider_account_id]
-
-            # Fetch transactions from same file
             txn_result = await provider.fetch_transactions(
                 credentials_data,
                 provider_account_id=provider_account.provider_account_id,
             )
+            if isinstance(txn_result, Success):
+                for txn in txn_result.value:
+                    all_transactions.append((account_id, txn))
 
-            if isinstance(txn_result, Failure):
-                # Skip this account's transactions but continue with others
-                continue
+        total_records = len(all_transactions)
 
-            # Import transactions
-            for provider_txn in txn_result.value:
-                was_created = await self._upsert_transaction(
-                    account_id=account_id,
-                    data=provider_txn,
+        # 8. Import transactions with progress events
+        transactions_created = 0
+        transactions_skipped = 0
+        last_progress_percent = 0
+
+        for i, (account_id, provider_txn) in enumerate(all_transactions):
+            was_created = await self._upsert_transaction(
+                account_id=account_id,
+                data=provider_txn,
+            )
+            if was_created:
+                transactions_created += 1
+            else:
+                transactions_skipped += 1
+
+            # Emit progress event at intervals
+            records_processed = i + 1
+            progress_percent = (
+                (records_processed * 100) // total_records if total_records > 0 else 100
+            )
+
+            # Emit if: every N records OR crossed a percent threshold
+            should_emit = (
+                records_processed % _PROGRESS_RECORD_INTERVAL == 0
+                or progress_percent
+                >= last_progress_percent + _PROGRESS_PERCENT_INTERVAL
+            )
+
+            if should_emit and records_processed < total_records:
+                await self._event_bus.publish(
+                    FileImportProgress(
+                        user_id=command.user_id,
+                        provider_slug=command.provider_slug,
+                        file_name=command.file_name,
+                        file_format=command.file_format,
+                        progress_percent=progress_percent,
+                        records_processed=records_processed,
+                        total_records=total_records,
+                    )
                 )
-                if was_created:
-                    transactions_created += 1
-                else:
-                    transactions_skipped += 1
+                last_progress_percent = progress_percent
 
-        # 7. Update connection last_sync_at
+        # 9. Update connection last_sync_at
         connection.record_sync()
         await self._connection_repo.save(connection)
+
+        # 10. Emit FileImportSucceeded event
+        await self._event_bus.publish(
+            FileImportSucceeded(
+                user_id=command.user_id,
+                provider_slug=command.provider_slug,
+                file_name=command.file_name,
+                file_format=command.file_format,
+                account_count=accounts_created + accounts_updated,
+                transaction_count=transactions_created,
+            )
+        )
 
         # Build result
         message = (
@@ -220,6 +291,27 @@ class ImportFromFileHandler:
         )
 
         return Success(value=result)
+
+    async def _emit_failed_event(
+        self,
+        command: ImportFromFile,
+        reason: str,
+    ) -> None:
+        """Emit FileImportFailed event.
+
+        Args:
+            command: Original import command.
+            reason: Failure reason.
+        """
+        await self._event_bus.publish(
+            FileImportFailed(
+                user_id=command.user_id,
+                provider_slug=command.provider_slug,
+                file_name=command.file_name,
+                file_format=command.file_format,
+                reason=reason,
+            )
+        )
 
     async def _get_or_create_connection(
         self,

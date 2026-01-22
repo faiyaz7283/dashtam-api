@@ -1059,9 +1059,9 @@ pytest tests/unit/core/test_config.py::TestSettings::test_from_env -v
 
 **Tests run in isolated Docker environment**:
 
-- **Test database**: `dashtam-test-postgres` (port 5433)
-- **Test Redis**: `dashtam-test-redis` (port 6380)
-- **Test app**: `dashtam-test-app`
+- **Test database**: `dashtam-api-test-postgres` (port 5433)
+- **Test Redis**: `dashtam-api-test-redis` (port 6380)
+- **Test app**: `dashtam-api-test-app`
 
 **Ephemeral storage** (tmpfs) ensures clean state for each test run.
 

@@ -459,8 +459,9 @@ async def create_user(
 - Test: `https://test.dashtam.local`
 
 **Container Names**:
-- Dev: `dashtam-dev-app`, `dashtam-dev-db`, `dashtam-dev-cache`
-- Test: `dashtam-test-app`, `dashtam-test-db`, `dashtam-test-cache`
+- Dev: `dashtam-api-dev-app`, `dashtam-api-dev-postgres`, `dashtam-api-dev-redis`
+- Test: `dashtam-api-test-app`, `dashtam-api-test-postgres`, `dashtam-api-test-redis`
+- CI: `dashtam-api-ci-app`, `dashtam-api-ci-postgres`, `dashtam-api-ci-redis`
 
 **Container Usage Guidelines**:
 - **Dev container**: Use for `uv lock`, `uv add`, package management
@@ -476,10 +477,10 @@ services:
   app:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashtam-dev.rule=Host(`dashtam.local`)"
-      - "traefik.http.routers.dashtam-dev.entrypoints=websecure"
-      - "traefik.http.routers.dashtam-dev.tls=true"
-      - "traefik.http.services.dashtam-dev.loadbalancer.server.port=8000"
+      - "traefik.http.routers.dashtam-api-dev.rule=Host(`dashtam.local`)"
+      - "traefik.http.routers.dashtam-api-dev.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-api-dev.tls=true"
+      - "traefik.http.services.dashtam-api-dev.loadbalancer.server.port=8000"
 ```
 
 ### 14. Secrets Management

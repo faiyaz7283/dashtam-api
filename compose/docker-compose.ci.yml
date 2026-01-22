@@ -12,13 +12,13 @@
 #
 # Usage:
 #   docker compose -f docker-compose.ci.yml up --abort-on-container-exit --exit-code-from app
-name: dashtam-ci
+name: dashtam-api-ci
 
 services:
   # PostgreSQL Database (CI) - Speed optimized
   postgres:
     image: postgres:17.7-alpine
-    container_name: dashtam-ci-postgres
+    container_name: dashtam-api-ci-postgres
     env_file:
       - ../env/.env.ci
     # No port mapping - internal only
@@ -39,7 +39,7 @@ services:
       retries: 10
       start_period: 5s
     networks:
-      - dashtam-ci-network
+      - dashtam-api-ci-network
     # CI-specific PostgreSQL configuration for maximum speed
     # ARCHITECTURE: Each CI job (test-main, test-smoke) runs in completely isolated session
     # - Each job starts fresh PostgreSQL instance (tmpfs, ephemeral)
@@ -63,7 +63,7 @@ services:
   # Redis Cache (CI) - Ephemeral, no persistence
   redis:
     image: redis:8.4-alpine
-    container_name: dashtam-ci-redis
+    container_name: dashtam-api-ci-redis
     env_file:
       - ../env/.env.ci
     # No port mapping - internal only
@@ -84,7 +84,7 @@ services:
       retries: 10
       start_period: 3s
     networks:
-      - dashtam-ci-network
+      - dashtam-api-ci-network
 
   # Main Application (CI) - Runs tests and exits
   app:
@@ -92,7 +92,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       target: development
-    container_name: dashtam-ci-app
+    container_name: dashtam-api-ci-app
     env_file:
       - ../env/.env.ci
     # No port mapping - not needed in CI
@@ -117,7 +117,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - dashtam-ci-network
+      - dashtam-api-ci-network
     # Run migrations and keep container alive for GitHub Actions to exec tests
     command: >
       sh -c "
@@ -136,7 +136,7 @@ services:
       "
 
 networks:
-  dashtam-ci-network:
+  dashtam-api-ci-network:
     driver: bridge
 
 # No named volumes - everything is ephemeral for CI

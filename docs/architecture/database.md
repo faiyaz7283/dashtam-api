@@ -908,7 +908,7 @@ Required in `.env` files:
 
 ```bash
 # Database configuration
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@dashtam-dev-postgres:5432/dashtam
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@dashtam-api-dev-postgres:5432/dashtam
 DB_ECHO=false  # Set to true for SQL logging in development
 ```
 

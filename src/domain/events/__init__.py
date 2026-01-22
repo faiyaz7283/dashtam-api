@@ -108,6 +108,25 @@ from src.domain.events.session_events import (
     SessionRevokedEvent,
     SuspiciousSessionActivityEvent,
 )
+from src.domain.events.data_events import (
+    # Account Sync Events (3-state)
+    AccountSyncAttempted,
+    AccountSyncFailed,
+    AccountSyncSucceeded,
+    # File Import Events (3-state + operational)
+    FileImportAttempted,
+    FileImportFailed,
+    FileImportProgress,
+    FileImportSucceeded,
+    # Holdings Sync Events (3-state)
+    HoldingsSyncAttempted,
+    HoldingsSyncFailed,
+    HoldingsSyncSucceeded,
+    # Transaction Sync Events (3-state)
+    TransactionSyncAttempted,
+    TransactionSyncFailed,
+    TransactionSyncSucceeded,
+)
 from src.domain.events.sse_event import (
     SSEEvent,
     SSEEventCategory,
@@ -204,6 +223,21 @@ __all__ = [
     "SessionProviderAccessEvent",
     "SessionRevokedEvent",
     "SuspiciousSessionActivityEvent",
+    # Data Sync Events (3-state)
+    "AccountSyncAttempted",
+    "AccountSyncSucceeded",
+    "AccountSyncFailed",
+    "TransactionSyncAttempted",
+    "TransactionSyncSucceeded",
+    "TransactionSyncFailed",
+    "HoldingsSyncAttempted",
+    "HoldingsSyncSucceeded",
+    "HoldingsSyncFailed",
+    # File Import Events (3-state + operational)
+    "FileImportAttempted",
+    "FileImportSucceeded",
+    "FileImportFailed",
+    "FileImportProgress",
     # SSE Events (wire format for real-time notifications)
     "SSEEvent",
     "SSEEventCategory",

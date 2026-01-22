@@ -5,6 +5,7 @@ All notable changes to Dashtam will be documented in this file.
 ## [1.9.3] - 2026-01-22
 
 ### Features
+
 - feat(api): Account Endpoints - 4 Endpoints with Sync Support (#208)
 - feat(api): Provider Endpoints - OAuth Flow & Connection Management (#207)
 - feat(api): Transaction Endpoints - Date Range Queries (#209)
@@ -30,6 +31,7 @@ All notable changes to Dashtam will be documented in this file.
 - feat(sse): SSE Foundation Infrastructure - Real-Time Event Streaming (143 tests, 25 event types) (#242)
 
 ### Documentation
+
 - chore(deps): Comprehensive Package Upgrades - 66+ Packages, MkDocs Strict Mode Fixes (#234)
 - docs: Architecture Compliance Audit - 23 Docs Reviewed (#213)
 - docs: Auto-Generated API Reference - mkdocs-gen-files Plugin (#226)
@@ -39,7 +41,6 @@ All notable changes to Dashtam will be documented in this file.
 - docs: MkDocs Local Preview - HTTPS via Traefik (#212)
 - docs: Rate Limit Registry Pattern Documentation (#229)
 - security: Comprehensive Security Audit - Grade A (2 Fixes) (#214)
-
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

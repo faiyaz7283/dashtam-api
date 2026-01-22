@@ -45,7 +45,7 @@
 
 **Layer Responsibilities**:
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │ Presentation Layer (API)                            │
 │ - FastAPI routers                                   │
@@ -79,6 +79,7 @@
 ```
 
 **Dependency Rule** (CRITICAL):
+
 - ✅ Domain depends on NOTHING
 - ✅ Infrastructure depends on Domain (implements ports)
 - ✅ Application depends on Domain (uses entities, protocols)
@@ -136,11 +137,13 @@ class GetUserHandler:
 **CRITICAL**: All critical workflows use 3-state pattern for audit semantic accuracy.
 
 **Pattern**:
+
 1. `*Attempted` - Before business logic (audit: ATTEMPTED)
 2. `*Succeeded` - After successful commit (audit: outcome)
 3. `*Failed` - After failure (audit: FAILED)
 
 **Example Events**:
+
 ```python
 UserRegistrationAttempted, UserRegistrationSucceeded, UserRegistrationFailed
 UserLoginAttempted, UserLoginSucceeded, UserLoginFailed
@@ -158,12 +161,14 @@ class UserRegistrationSucceeded(DomainEvent):
 ```
 
 **Event Handlers** (multiple per event):
+
 - `LoggingEventHandler` - Logs all events
 - `AuditEventHandler` - Creates audit records
 - `EmailEventHandler` - Sends notifications (SUCCEEDED only)
 - `SessionEventHandler` - Manages sessions
 
 **When to Use Events**:
+
 - ✅ Critical workflows: 3+ side effects OR requires ATTEMPT → OUTCOME audit
 - ✅ Operational events: Single-state observability/monitoring
 - ❌ NOT for simple reads or single-step operations
@@ -173,6 +178,7 @@ class UserRegistrationSucceeded(DomainEvent):
 **Location**: `src/domain/events/registry.py`
 
 **Purpose**:
+
 - Single source of truth for all events
 - Self-enforcing (tests fail if handlers missing)
 - Auto-wiring (container uses registry)
@@ -194,6 +200,7 @@ EventMetadata(
 ```
 
 **Process for Adding New Events**:
+
 1. Define event dataclass in `*_events.py`
 2. Add entry to `EVENT_REGISTRY`
 3. Run tests → they tell you what's missing
@@ -206,6 +213,7 @@ EventMetadata(
 **Location**: `src/application/cqrs/registry.py`
 
 **Purpose**:
+
 - Single source of truth for all CQRS operations
 - Auto-wiring with `handler_factory()`
 
@@ -241,19 +249,21 @@ async def create_user(
 **Key Service**: `OwnershipVerifier` - verifies ownership chains (Entity → Connection → User)
 
 **Methods**:
+
 - `verify_connection_ownership(connection_id, user_id)` → Connection
 - `verify_account_ownership(account_id, user_id)` → Account
 - `verify_holding_ownership(holding_id, user_id)` → Holding
 - `verify_transaction_ownership(transaction_id, user_id)` → Transaction
 
 **Benefits**:
+
 - ✅ DRY: Single implementation for ownership verification
 - ✅ Consistent error handling across all handlers
 - ✅ Easy to test
 
 ### 8. File and Directory Structure
 
-```
+```text
 src/
 ├── core/               # Shared kernel (Result, errors, config, container, constants)
 ├── domain/             # Business logic (DEPENDS ON NOTHING)
@@ -288,6 +298,7 @@ docs/               # Flat structure with naming patterns
 ```
 
 **Naming Conventions** (PEP 8):
+
 - **Python files**: `snake_case.py` matching class name
 - **Python classes**: `PascalCase`
 - **Python directories**: `snake_case/`
@@ -301,12 +312,14 @@ docs/               # Flat structure with naming patterns
 **Two-Tier Pattern**:
 
 **Application-Scoped** (singletons with `@lru_cache()`):
+
 - `get_cache()` → `CacheProtocol`
 - `get_secrets()` → `SecretsProtocol`
 - `get_database()` → `Database`
 - `get_event_bus()` → `EventBusProtocol`
 
 **Request-Scoped** (per-request with `yield`):
+
 - `get_db_session()` → `AsyncSession`
 - Handler factories (create new instances per request)
 
@@ -332,7 +345,7 @@ class RegisterUserHandler:
 
 **Resource-Oriented URLs** (Mandatory):
 
-```
+```text
 ✅ CORRECT (nouns):
 /users
 /users/{id}
@@ -352,6 +365,7 @@ class RegisterUserHandler:
 **HTTP Methods & Status Codes**:
 
 **Methods**:
+
 - **GET**: Retrieve (safe, idempotent)
 - **POST**: Create new resources (returns 201 Created)
 - **PATCH**: Partial update (returns 200 OK)
@@ -359,6 +373,7 @@ class RegisterUserHandler:
 - **DELETE**: Remove resources (returns 204 No Content)
 
 **Status Codes**:
+
 - **200**: Success (GET, PATCH, PUT)
 - **201**: Created (POST)
 - **204**: No Content (DELETE)
@@ -412,6 +427,7 @@ return ErrorResponseBuilder.from_application_error(
 **Location**: `src/presentation/routers/api/v1/routes/registry.py`
 
 **Purpose**:
+
 - Single source of truth for all endpoints
 - Auto-generated routes, auth, rate limits, OpenAPI docs
 
@@ -455,15 +471,18 @@ async def create_user(
 ### 12. Docker & Environments
 
 **Environment Domains**:
+
 - Development: `https://dashtam.local`
 - Test: `https://test.dashtam.local`
 
 **Container Names**:
+
 - Dev: `dashtam-api-dev-app`, `dashtam-api-dev-postgres`, `dashtam-api-dev-redis`
 - Test: `dashtam-api-test-app`, `dashtam-api-test-postgres`, `dashtam-api-test-redis`
 - CI: `dashtam-api-ci-app`, `dashtam-api-ci-postgres`, `dashtam-api-ci-redis`
 
 **Container Usage Guidelines**:
+
 - **Dev container**: Use for `uv lock`, `uv add`, package management
 - **Test container**: Use for running tests via `make test`, `make verify`
 - **CRITICAL**: Always use dev container for `uv lock` to ensure lockfile updates
@@ -500,7 +519,7 @@ class AWSAdapter:        # Production: AWS Secrets Manager
 **Environment-Specific**:
 
 | Environment | Backend | Source |
-|-------------|---------|--------|
+| ------------- | --------- | -------- |
 | Development | `env` | `.env.dev` file |
 | Test | `env` | `.env.test` file |
 | Production | `aws` | AWS Secrets Manager |
@@ -537,11 +556,13 @@ await audit.record(action=AuditAction.USER_REGISTERED, ...)
 ### 16. Authentication & Security
 
 **JWT + Opaque Refresh Tokens**:
+
 - **Access Token**: JWT (short-lived, 15 min)
 - **Refresh Token**: Opaque (long-lived, 30 days, bcrypt hashed)
 
 **Token Flow**:
-```
+
+```text
 1. Login → POST /sessions → Returns access_token + refresh_token
 2. API Call → Authorization: Bearer {access_token}
 3. Token Refresh → POST /tokens → Returns new access_token + refresh_token
@@ -549,6 +570,7 @@ await audit.record(action=AuditAction.USER_REGISTERED, ...)
 ```
 
 **Security Features**:
+
 - Email verification required before login
 - Account lockout after 5 failed attempts
 - Bcrypt password hashing (12 rounds)
@@ -569,7 +591,8 @@ async def list_users(
 Algorithm: Token bucket with Redis Lua scripts (atomic, no race conditions)
 
 **Response Headers** (RFC 6585):
-```
+
+```text
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1699488000
@@ -581,6 +604,7 @@ Retry-After: 60  (only on 429)
 **CRITICAL**: ALWAYS use Context7 MCP for library/framework documentation queries.
 
 **When to use**:
+
 - Writing code that uses FastAPI, SQLAlchemy, Redis, etc.
 - Explaining APIs, setup steps, configuration
 - User asks "how to" questions about any framework
@@ -588,32 +612,38 @@ Retry-After: 60  (only on 429)
 **Why**: Ensures up-to-date, version-specific documentation.
 
 **Tools Available**:
+
 - `resolve-library-id` - Find Context7-compatible library ID
 - `query-docs` - Fetch latest documentation and code examples
 
 ### 18. Key Technical Decisions
 
 **Why Hexagonal Architecture?**
+
 - Testability: Domain testable without database/APIs
 - Flexibility: Swap implementations without touching business logic
 - Maintainability: Clear boundaries, explicit dependencies
 
 **Why CQRS?**
+
 - Performance: Optimize reads separately from writes
 - Clarity: Explicit user intent (commands) vs data needs (queries)
 - Caching: Aggressive query caching without invalidation complexity
 
 **Why Protocol Over ABC?**
+
 - Pythonic: Structural typing (duck typing with safety)
 - Flexible: No inheritance required, easier testing
 - Modern: Standard Python feature, type checkers understand
 
 **Why Result Types?**
+
 - Explicit: Errors are part of return type (no hidden exceptions)
 - Safe: Force error handling at compile time
 - Railway: Clear success/failure paths
 
 **Why Event Registry Pattern?**
+
 - Single Source of Truth: All events cataloged in one place
 - Self-Enforcing: Tests fail if handlers missing
 - Auto-Wiring: Container uses registry, no manual subscription

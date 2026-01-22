@@ -1,0 +1,133 @@
+name: "Release Phase 2: Create PR to Main"
+
+# Trigger: When PR to development is merged
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - development
+
+jobs:
+  create-main-pr:
+    # Only run if:
+    # 1. PR was actually merged (not just closed)
+    # 2. PR has the 'automated-release' label
+    if: |
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'automated-release')
+    
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: development
+      
+      - name: Extract version from branch name
+        id: version
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          echo "Branch name: $BRANCH_NAME"
+          
+          # Extract version (e.g., release/v1.9.3 -> 1.9.3)
+          if [[ "$BRANCH_NAME" =~ ^release/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "✅ Extracted version: $VERSION"
+          else
+            echo "❌ Invalid release branch format: $BRANCH_NAME"
+            exit 1
+          fi
+      
+      - name: Extract CHANGELOG entry
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Extract CHANGELOG section for this version
+          CHANGELOG_ENTRY=$(awk '/^## \['"$VERSION"'\]/,/^## \[/{if(/^## \[/ && !/^## \['"$VERSION"'\]/) exit; print}' CHANGELOG.md)
+          
+          if [[ -z "$CHANGELOG_ENTRY" ]]; then
+            echo "⚠️  No CHANGELOG entry found for v$VERSION"
+            CHANGELOG_ENTRY="See CHANGELOG.md for details"
+          fi
+          
+          # Save to file for multi-line output
+          echo "$CHANGELOG_ENTRY" > /tmp/changelog.md
+          echo "changelog_file=/tmp/changelog.md" >> $GITHUB_OUTPUT
+      
+      - name: Create PR from development to main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ORIGINAL_PR="${{ github.event.pull_request.html_url }}"
+          CHANGELOG_FILE="${{ steps.changelog.outputs.changelog_file }}"
+          
+          # Build PR body
+          PR_BODY=$(cat <<EOF
+          ## Release v$VERSION
+          
+          Automated release PR created by Phase 2 GitHub Actions workflow.
+          
+          ### Changes
+          $(cat "$CHANGELOG_FILE")
+          
+          ---
+          
+          **Previous PR**: $ORIGINAL_PR
+          
+          **Next Steps**:
+          1. ✅ CI will run automatically
+          2. ⏳ Review and merge this PR to \`main\`
+          3. ⏳ Phase 3 will auto-tag release and sync branches
+          
+          **Note**: This PR is labeled with \`automated-release\` for automation.
+          EOF
+          )
+          
+          # Create PR
+          PR_URL=$(gh pr create \
+            --repo "${{ github.repository }}" \
+            --base main \
+            --head development \
+            --title "chore(release): v$VERSION" \
+            --body "$PR_BODY" \
+            --label "automated-release")
+          
+          echo "✅ Created PR from development → main for v$VERSION"
+          echo "PR URL: $PR_URL"
+          
+          # Enable auto-merge (will merge when CI passes)
+          PR_NUMBER=$(basename "$PR_URL")
+          gh pr merge "$PR_NUMBER" \
+            --repo "${{ github.repository }}" \
+            --auto \
+            --merge
+          
+          echo "✅ Enabled auto-merge for PR #$PR_NUMBER"
+      
+      - name: Delete release branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          
+          # Delete remote release branch (commits already merged to development)
+          git push origin --delete "$RELEASE_BRANCH" || echo "⚠️  Branch already deleted"
+          
+          echo "✅ Deleted release branch: $RELEASE_BRANCH"
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Failed to create PR to main"
+          echo "Manual intervention required"
+          exit 1

@@ -14,7 +14,7 @@
 - **Rule 2**: Development Philosophy (clean architecture, type safety, latest stable)
 - **Rule 3**: Modern Python Patterns (Protocol over ABC, type hints, Result types)
 - **Rule 4**: Docker Containerization (Makefile commands, code quality)
-- **Rule 5**: Git Workflow (branches, conventional commits, releases)
+- **Rule 5**: Git Workflow (branches, conventional commits, **releases**)
 - **Rule 6**: Code Quality Standards (Ruff, mypy, docstrings)
 - **Rule 7**: Testing Philosophy (coverage targets, test types)
 - **Rule 8**: Environment Configuration (.env files, idempotent setup)
@@ -22,6 +22,18 @@
 - **Rule 10**: AI Agent Instructions (mandatory pre-development process)
 - **Rule 11**: GitHub Project (unified platform tracking)
 - **Rule 12**: GitHub Issues Workflow (issue lifecycle, labels, milestones)
+
+### Release Process (API Project)
+
+**Use meta repo automation (preferred)**:
+
+```bash
+cd ~/dashtam
+make release PROJECT=api VERSION=1.9.4         # Create release
+make rollback PROJECT=api VERSION=1.9.4        # Rollback if needed
+```
+
+**See**: `~/dashtam/WARP.md` Rule 5 for complete workflow and `~/dashtam/docs/guides/release-automation.md` for full documentation.
 
 ---
 

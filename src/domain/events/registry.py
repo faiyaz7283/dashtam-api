@@ -116,6 +116,7 @@ from src.domain.events.data_events import (
     FileImportAttempted,
     FileImportSucceeded,
     FileImportFailed,
+    FileImportProgress,
 )
 
 
@@ -651,7 +652,7 @@ EVENT_REGISTRY: list[EventMetadata] = [
         audit_action_name="SESSION_LIMIT_EXCEEDED",
     ),
     # ═══════════════════════════════════════════════════════════
-    # Data Sync Events (12 events - F7.7 Phase 2)
+    # Data Sync Events (13 events - F7.7 Phase 2)
     # ═══════════════════════════════════════════════════════════
     # Account Sync (3 events)
     EventMetadata(
@@ -719,7 +720,7 @@ EVENT_REGISTRY: list[EventMetadata] = [
         phase=WorkflowPhase.FAILED,
         audit_action_name="HOLDINGS_SYNC_FAILED",
     ),
-    # File Import (3 events)
+    # File Import (4 events: 3-state + operational progress)
     EventMetadata(
         event_class=FileImportAttempted,
         category=EventCategory.DATA_SYNC,
@@ -740,6 +741,15 @@ EVENT_REGISTRY: list[EventMetadata] = [
         workflow_name="file_import",
         phase=WorkflowPhase.FAILED,
         audit_action_name="FILE_IMPORT_FAILED",
+    ),
+    EventMetadata(
+        event_class=FileImportProgress,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="file_import",
+        phase=WorkflowPhase.OPERATIONAL,
+        requires_logging=True,
+        requires_audit=False,  # Progress events don't need audit records
+        audit_action_name="FILE_IMPORT_PROGRESS",  # For registry consistency
     ),
 ]
 

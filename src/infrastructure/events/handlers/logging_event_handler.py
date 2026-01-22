@@ -134,10 +134,11 @@ from src.domain.events.data_events import (
     HoldingsSyncAttempted,
     HoldingsSyncSucceeded,
     HoldingsSyncFailed,
-    # File Import Events
+    # File Import Events (3-state + operational)
     FileImportAttempted,
     FileImportSucceeded,
     FileImportFailed,
+    FileImportProgress,
 )
 from src.domain.protocols.logger_protocol import LoggerProtocol
 
@@ -1335,4 +1336,29 @@ class LoggingEventHandler:
             file_name=event.file_name,
             file_format=event.file_format,
             reason=event.reason,
+        )
+
+    async def handle_file_import_operational(
+        self,
+        event: FileImportProgress,
+    ) -> None:
+        """Log file import progress (DEBUG level).
+
+        Method name follows auto-wiring pattern: handle_{workflow_name}_{phase}
+        FileImportProgress uses workflow_name='file_import' + phase=OPERATIONAL.
+
+        Uses DEBUG level since progress events are high-frequency during
+        large imports and primarily used for real-time SSE updates.
+        """
+        self._logger.debug(
+            "file_import_progress",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            provider_slug=event.provider_slug,
+            file_name=event.file_name,
+            file_format=event.file_format,
+            progress_percent=event.progress_percent,
+            records_processed=event.records_processed,
+            total_records=event.total_records,
         )

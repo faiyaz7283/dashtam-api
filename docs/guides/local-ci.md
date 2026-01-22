@@ -385,7 +385,7 @@ open -a Docker
 
 ```bash
 docker network ls | grep dashtam-ci
-docker network rm dashtam-ci-network
+docker network rm dashtam-api-ci-network
 ```
 
 ---

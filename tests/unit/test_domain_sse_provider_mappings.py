@@ -1,4 +1,4 @@
-"""Unit tests for SSE Provider Health Mappings (Issue #157).
+"""Unit tests for SSE Provider Health Mappings (Issue #254).
 
 Tests cover:
 - All 3 domain-to-SSE mappings for provider events
@@ -14,7 +14,7 @@ Note:
 
 Reference:
     - src/domain/events/sse_registry.py
-    - GitHub Issue #157
+    - GitHub Issue #254
 """
 
 from typing import cast

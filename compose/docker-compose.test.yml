@@ -1,6 +1,6 @@
 # Docker Compose for Testing Environment (Standalone)
 # This is a completely isolated test environment that runs in parallel with development
-name: dashtam-test
+name: dashtam-api-test
 # 
 # Key differences from development:
 # - Different container names with -test suffix
@@ -18,7 +18,7 @@ services:
   # PostgreSQL Database (Testing) - Ephemeral storage
   postgres:
     image: postgres:17.7-alpine
-    container_name: dashtam-test-postgres
+    container_name: dashtam-api-test-postgres
     env_file:
       - ../env/.env.test
     ports:
@@ -32,12 +32,12 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - dashtam-test-network
+      - dashtam-api-test-network
 
   # Redis Cache (Testing) - Ephemeral storage
   redis:
     image: redis:8.4-alpine
-    container_name: dashtam-test-redis
+    container_name: dashtam-api-test-redis
     env_file:
       - ../env/.env.test
     ports:
@@ -52,7 +52,7 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - dashtam-test-network
+      - dashtam-api-test-network
 
   # Main Application (Testing)
   app:
@@ -60,7 +60,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       target: development
-    container_name: dashtam-test-app
+    container_name: dashtam-api-test-app
     env_file:
       - ../env/.env.test
     expose:
@@ -79,16 +79,16 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - dashtam-test-network
+      - dashtam-api-test-network
       - traefik-public
     labels:
       - "traefik.enable=true"
       # Test app router (HTTPS)
-      - "traefik.http.routers.dashtam-test.rule=Host(`test.dashtam.local`)"
-      - "traefik.http.routers.dashtam-test.entrypoints=websecure"
-      - "traefik.http.routers.dashtam-test.tls=true"
-      - "traefik.http.routers.dashtam-test.service=dashtam-test"
-      - "traefik.http.services.dashtam-test.loadbalancer.server.port=8000"
+      - "traefik.http.routers.dashtam-api-test.rule=Host(`test.dashtam.local`)"
+      - "traefik.http.routers.dashtam-api-test.entrypoints=websecure"
+      - "traefik.http.routers.dashtam-api-test.tls=true"
+      - "traefik.http.routers.dashtam-api-test.service=dashtam-api-test"
+      - "traefik.http.services.dashtam-api-test.loadbalancer.server.port=8000"
     # Keep container running for on-demand test execution
     # Run Alembic migrations before starting
     command: >
@@ -101,7 +101,7 @@ services:
       "
 
 networks:
-  dashtam-test-network:
+  dashtam-api-test-network:
     driver: bridge
   traefik-public:
     external: true

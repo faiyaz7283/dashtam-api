@@ -1,6 +1,6 @@
 """JWT token service (adapter).
 
-This service implements the TokenGenerationProtocol using python-jose with HMAC-SHA256.
+This service implements the TokenGenerationProtocol using PyJWT with HMAC-SHA256.
 
 Architecture:
     - Implements TokenGenerationProtocol (no inheritance required)
@@ -26,7 +26,8 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 from uuid_extensions import uuid7
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 
 from src.core.result import Failure, Result, Success
 from src.domain.errors import AuthenticationError
@@ -167,7 +168,7 @@ class JWTService:
         """
         try:
             # Decode and validate JWT
-            # python-jose automatically validates:
+            # PyJWT automatically validates:
             # - Signature (using secret_key)
             # - Expiration (exp claim)
             payload: dict[str, str | int | list[str]] = jwt.decode(
@@ -176,7 +177,7 @@ class JWTService:
 
             return Success(value=payload)
 
-        except JWTError:
+        except InvalidTokenError:
             # Token is invalid, expired, or malformed
             # Return error constant (no exceptions in domain)
             return Failure(error=AuthenticationError.INVALID_TOKEN)

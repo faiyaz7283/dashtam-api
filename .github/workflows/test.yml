@@ -46,8 +46,8 @@ jobs:
       - name: Copy coverage reports from container
         if: always()
         run: |
-          docker cp dashtam-ci-app:/app/coverage.xml ./coverage-main.xml || true
-          docker cp dashtam-ci-app:/app/test-results.xml ./test-results-main.xml || true
+          docker cp dashtam-api-ci-app:/app/coverage.xml ./coverage-main.xml || true
+          docker cp dashtam-api-ci-app:/app/test-results.xml ./test-results-main.xml || true
 
       - name: Upload coverage to Codecov
         if: always()
@@ -111,7 +111,7 @@ jobs:
   #     - name: Copy smoke test results from container
   #       if: always()
   #       run: |
-  #         docker cp dashtam-ci-app:/app/smoke-results.xml ./smoke-results.xml || true
+  #         docker cp dashtam-api-ci-app:/app/smoke-results.xml ./smoke-results.xml || true
   #
   #     - name: Upload smoke test results
   #       if: always()

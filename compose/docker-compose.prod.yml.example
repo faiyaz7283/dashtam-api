@@ -2,7 +2,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:17.6-alpine3.22
-    container_name: dashtam-postgres
+    container_name: dashtam-api-prod-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dashtam}
       POSTGRES_USER: ${POSTGRES_USER:-dashtam_user}
@@ -17,12 +17,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - dashtam-network
+      - dashtam-api-prod-network
 
   # Redis Cache
   redis:
     image: redis:8.2.1-alpine3.22
-    container_name: dashtam-redis
+    container_name: dashtam-api-prod-redis
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -34,15 +34,15 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - dashtam-network
+      - dashtam-api-prod-network
 
-  # Main Application (Development)
+  # Main Application (Production)
   app:
     build:
       context: .
       dockerfile: docker/Dockerfile
       target: development
-    container_name: dashtam-app
+    container_name: dashtam-api-prod-app
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dashtam_user}:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/${POSTGRES_DB:-dashtam}
       REDIS_URL: redis://redis:6379/0
@@ -66,11 +66,11 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - dashtam-network
+      - dashtam-api-prod-network
     restart: unless-stopped
 
 networks:
-  dashtam-network:
+  dashtam-api-prod-network:
     driver: bridge
 
 volumes:

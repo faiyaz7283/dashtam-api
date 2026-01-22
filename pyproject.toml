@@ -1,6 +1,6 @@
 [project]
 name = "dashtam"
-version = "1.9.2"
+version = "1.9.3"
 description = "A secure financial data aggregation platform built with hexagonal architecture, CQRS, and domain-driven design"
 requires-python = ">=3.14"
 dependencies = [
@@ -21,7 +21,6 @@ dependencies = [
     "pyjwt>=2.10.1",
     "python-dateutil>=2.9.0.post0",
     "python-dotenv>=1.1.1",
-    "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.20",
     "pytz>=2025.2",
     "redis>=7.0.0",

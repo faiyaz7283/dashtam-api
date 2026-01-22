@@ -2,6 +2,45 @@
 
 All notable changes to Dashtam will be documented in this file.
 
+## [1.9.3] - 2026-01-22
+
+### Features
+- feat(api): Account Endpoints - 4 Endpoints with Sync Support (#208)
+- feat(api): Provider Endpoints - OAuth Flow & Connection Management (#207)
+- feat(api): Transaction Endpoints - Date Range Queries (#209)
+- feat(cache): Cache Optimization - 4 Layers, >20% Performance (#217)
+- feat(domain): Balance Tracking - Point-in-Time Snapshots (#223)
+- feat(domain): Holdings Support - Positions Entity & 120+ Tests (#222)
+- feat(events): Event Handler Wiring Completion - 100 Subscriptions (#220)
+- feat(infra): CQRS Registry Pattern - Handler Factory Auto-Wiring (23 commands, 18 queries, ~1321 lines deleted) (#239)
+- feat(infra): Event Registry Pattern - Single Source of Truth (69 events, 143 subscriptions) (#225)
+- feat(infra): IP Geolocation Integration - MaxMind GeoIP2 (#219)
+- feat(infra): Jobs Service Monitor - Health API for dashtam-jobs (#245)
+- feat(infra): Provider Integration Registry - Metadata-Driven (3 providers, 19 tests) (#228)
+- feat(infra): Route Metadata Registry - Auto-Generated Routes (36 endpoints) (#231)
+- feat(infra): Validation Rules Registry - 4 Rules, 18 Tests (#230)
+- feat(providers): Alpaca Provider - API Key Authentication (101 tests) (#221)
+- feat(providers): Chase File Import - QFX/OFX/CSV Parser (80+ tests) (#224)
+- feat(providers): Schwab Account API - Client + Mapper (#205)
+- feat(providers): Schwab Transaction API - Date Range Filtering (#206)
+- feat(sse): Data Sync Progress Mappings - 9 SSE Events for Real-Time Sync (#243)
+- feat(sse): Data Sync Progress Streaming (#253)
+- feat(sse): Provider Connection Health Notifications (#254)
+- feat(sse): Provider Health SSE Mappings - 3 Domain-to-SSE Events (#244)
+- feat(sse): SSE Foundation Infrastructure - Real-Time Event Streaming (143 tests, 25 event types) (#242)
+
+### Documentation
+- chore(deps): Comprehensive Package Upgrades - 66+ Packages, MkDocs Strict Mode Fixes (#234)
+- docs: Architecture Compliance Audit - 23 Docs Reviewed (#213)
+- docs: Auto-Generated API Reference - mkdocs-gen-files Plugin (#226)
+- docs: Core Architecture Documentation - Hexagonal/Protocol/DDD (4,059 lines) (#227)
+- docs: Documentation Audit - 63 Files Renamed, Logging & RFC 9457 Migration (#236)
+- docs: Documentation Updates - README Rewrite & Quick Start (#215)
+- docs: MkDocs Local Preview - HTTPS via Traefik (#212)
+- docs: Rate Limit Registry Pattern Documentation (#229)
+- security: Comprehensive Security Audit - Grade A (2 Fixes) (#214)
+
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

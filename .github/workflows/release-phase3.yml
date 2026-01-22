@@ -1,0 +1,200 @@
+name: "Release Phase 3: Tag, Release, and Sync"
+
+# Trigger: When PR to main is merged
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  finalize-release:
+    # Only run if:
+    # 1. PR was actually merged (not just closed)
+    # 2. PR has the 'automated-release' label
+    if: |
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'automated-release')
+    
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Extract version from PR title
+        id: version
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR title: $PR_TITLE"
+          
+          # Extract version (e.g., "chore(release): v1.9.3" -> "1.9.3")
+          if [[ "$PR_TITLE" =~ chore\(release\):\ v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "✅ Extracted version: $VERSION"
+          else
+            echo "❌ Could not extract version from PR title: $PR_TITLE"
+            exit 1
+          fi
+      
+      - name: Verify version exists in CHANGELOG
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "❌ Version $VERSION not found in CHANGELOG.md"
+            exit 1
+          fi
+          
+          echo "✅ Version $VERSION exists in CHANGELOG.md"
+      
+      - name: Extract CHANGELOG entry for release notes
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Extract CHANGELOG section for this version
+          CHANGELOG_ENTRY=$(awk '/^## \['"$VERSION"'\]/,/^## \[/{if(/^## \[/ && !/^## \['"$VERSION"'\]/) exit; print}' CHANGELOG.md)
+          
+          if [[ -z "$CHANGELOG_ENTRY" ]]; then
+            echo "❌ No CHANGELOG entry found for v$VERSION"
+            exit 1
+          fi
+          
+          # Save to file for GitHub Release
+          echo "$CHANGELOG_ENTRY" > /tmp/release-notes.md
+          echo "release_notes_file=/tmp/release-notes.md" >> $GITHUB_OUTPUT
+          echo "✅ Extracted CHANGELOG entry"
+      
+      - name: Create and push git tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v$VERSION"
+          
+          # Check if tag already exists
+          if git tag -l | grep -q "^$TAG$"; then
+            echo "⚠️  Tag $TAG already exists, skipping tag creation"
+          else
+            # Create annotated tag
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "✅ Created and pushed tag: $TAG"
+          fi
+      
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v$VERSION"
+          RELEASE_NOTES="${{ steps.changelog.outputs.release_notes_file }}"
+          
+          # Check if release already exists
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "⚠️  Release $TAG already exists, skipping release creation"
+          else
+            # Create GitHub Release
+            gh release create "$TAG" \
+              --repo "${{ github.repository }}" \
+              --title "$TAG" \
+              --notes-file "$RELEASE_NOTES"
+            
+            echo "✅ Created GitHub Release: $TAG"
+          fi
+      
+      - name: Sync main → development
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Fetch latest
+          git fetch origin main
+          git fetch origin development
+          
+          # Checkout development
+          git checkout development
+          git pull origin development
+          
+          # Merge main into development (no fast-forward to preserve merge commit)
+          git merge origin/main --no-edit --no-ff -m "chore: sync main → development after v$VERSION release"
+          
+          # Push to development
+          git push origin development
+          
+          echo "✅ Synced main → development"
+      
+      - name: Remove automated-release label from PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          
+          # Remove label from the merged PR (main PR)
+          gh pr edit "$PR_NUMBER" \
+            --repo "${{ github.repository }}" \
+            --remove-label "automated-release" || true
+          
+          echo "✅ Removed automated-release label from PR #$PR_NUMBER"
+          
+          # Find and remove label from the original development PR
+          # Search for the most recent closed PR to development with the label
+          DEV_PR=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --base development \
+            --state closed \
+            --label "automated-release" \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number')
+          
+          if [[ -n "$DEV_PR" && "$DEV_PR" != "null" ]]; then
+            gh pr edit "$DEV_PR" \
+              --repo "${{ github.repository }}" \
+              --remove-label "automated-release" || true
+            echo "✅ Removed automated-release label from development PR #$DEV_PR"
+          fi
+      
+      - name: Post-release summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v$VERSION"
+          
+          echo ""
+          echo "════════════════════════════════════════════════════════"
+          echo "  🎉 Release v$VERSION Complete!"
+          echo "════════════════════════════════════════════════════════"
+          echo ""
+          echo "✅ Tagged: $TAG"
+          echo "✅ GitHub Release created"
+          echo "✅ Synced main → development"
+          echo "✅ Cleaned up labels"
+          echo "✅ Deleted release branch"
+          echo ""
+          echo "View release: https://github.com/${{ github.repository }}/releases/tag/$TAG"
+          echo ""
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Release finalization failed"
+          echo "Manual intervention required"
+          echo ""
+          echo "Check the following:"
+          echo "  1. Tag creation"
+          echo "  2. GitHub Release creation"
+          echo "  3. Branch sync (main → development)"
+          echo ""
+          exit 1

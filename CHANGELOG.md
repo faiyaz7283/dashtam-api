@@ -30,6 +30,15 @@ All notable changes to Dashtam will be documented in this file.
 - feat(sse): Provider Health SSE Mappings - 3 Domain-to-SSE Events (#244)
 - feat(sse): SSE Foundation Infrastructure - Real-Time Event Streaming (143 tests, 25 event types) (#242)
 
+### Security
+
+- **Migrate from python-jose to PyJWT** (CVE-2024-23342 mitigation)
+  - Removed `python-jose` and vulnerable `ecdsa` dependency
+  - Migrated JWT service to use `PyJWT` (already present in dependencies)
+  - Zero breaking changes - same HS256 algorithm, compatible token format
+  - Eliminates Minerva timing attack vulnerability (CVSS 7.4)
+  - All 2,648 tests pass with 89% coverage
+
 ### Documentation
 
 - chore(deps): Comprehensive Package Upgrades - 66+ Packages, MkDocs Strict Mode Fixes (#234)

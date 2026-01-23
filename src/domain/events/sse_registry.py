@@ -46,6 +46,15 @@ from src.domain.events.provider_events import (
     ProviderTokenRefreshFailed,
     ProviderTokenRefreshSucceeded,
 )
+from src.domain.events.session_events import (
+    SessionCreatedEvent,
+    SessionRevokedEvent,
+    SuspiciousSessionActivityEvent,
+)
+from src.domain.events.auth_events import (
+    UserLoginFailed,
+    UserPasswordChangeSucceeded,
+)
 from src.domain.events.sse_event import SSEEventCategory, SSEEventType
 
 
@@ -248,7 +257,7 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
         event_type=SSEEventType.SECURITY_SESSION_NEW,
         category=SSEEventCategory.SECURITY,
         description="New session created (login from new device/location)",
-        payload_fields=["session_id", "device_info", "location"],
+        payload_fields=["session_id", "device_info", "ip_address", "location"],
     ),
     SSEEventMetadata(
         event_type=SSEEventType.SECURITY_SESSION_SUSPICIOUS,
@@ -261,6 +270,24 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
         category=SSEEventCategory.SECURITY,
         description="Session expiring soon (warning)",
         payload_fields=["session_id", "expires_in_seconds"],
+    ),
+    SSEEventMetadata(
+        event_type=SSEEventType.SECURITY_SESSION_REVOKED,
+        category=SSEEventCategory.SECURITY,
+        description="Session revoked (logout or security action)",
+        payload_fields=["session_id", "device_info", "reason"],
+    ),
+    SSEEventMetadata(
+        event_type=SSEEventType.SECURITY_PASSWORD_CHANGED,
+        category=SSEEventCategory.SECURITY,
+        description="Password changed (security notification)",
+        payload_fields=["initiated_by"],
+    ),
+    SSEEventMetadata(
+        event_type=SSEEventType.SECURITY_LOGIN_FAILED,
+        category=SSEEventCategory.SECURITY,
+        description="Failed login attempt on account",
+        payload_fields=["reason"],
     ),
 ]
 
@@ -462,6 +489,66 @@ def _extract_file_import_failed_payload(event: DomainEvent) -> dict[str, Any]:
 
 
 # ═══════════════════════════════════════════════════════════════
+# Payload Extractor Functions (Issue #258: Security Notifications)
+# ═══════════════════════════════════════════════════════════════
+
+
+def _extract_session_created_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from SessionCreatedEvent."""
+    e = cast(SessionCreatedEvent, event)
+    return {
+        "session_id": str(e.session_id),
+        "device_info": e.device_info,
+        "ip_address": e.ip_address,
+        "location": e.location,
+    }
+
+
+def _extract_session_revoked_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from SessionRevokedEvent."""
+    e = cast(SessionRevokedEvent, event)
+    return {
+        "session_id": str(e.session_id),
+        "device_info": e.device_info,
+        "reason": e.reason,
+    }
+
+
+def _extract_suspicious_activity_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from SuspiciousSessionActivityEvent."""
+    e = cast(SuspiciousSessionActivityEvent, event)
+    return {
+        "session_id": str(e.session_id),
+        "reason": e.activity_type,
+    }
+
+
+def _extract_password_changed_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from UserPasswordChangeSucceeded."""
+    e = cast(UserPasswordChangeSucceeded, event)
+    return {
+        "initiated_by": e.initiated_by,
+    }
+
+
+def _extract_login_failed_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from UserLoginFailed."""
+    e = cast(UserLoginFailed, event)
+    return {
+        "reason": e.reason,
+    }
+
+
+def _extract_user_id_or_none(event: DomainEvent) -> UUID | None:
+    """Extract user_id from domain event, returning None if not present.
+
+    Used for events like UserLoginFailed where user_id may be None
+    (user doesn't exist). SSE cannot be published without a target user.
+    """
+    return cast(UUID | None, getattr(event, "user_id", None))
+
+
+# ═══════════════════════════════════════════════════════════════
 # DOMAIN TO SSE MAPPINGS
 # ═══════════════════════════════════════════════════════════════
 
@@ -575,10 +662,42 @@ DOMAIN_TO_SSE_MAPPING: list[DomainToSSEMapping] = [
         user_id_extractor=_extract_user_id,
     ),
     # ═══════════════════════════════════════════════════════════
+    # Issue #258: Security Notifications (5 mappings)
+    # ═══════════════════════════════════════════════════════════
+    DomainToSSEMapping(
+        domain_event_class=SessionCreatedEvent,
+        sse_event_type=SSEEventType.SECURITY_SESSION_NEW,
+        payload_extractor=_extract_session_created_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=SessionRevokedEvent,
+        sse_event_type=SSEEventType.SECURITY_SESSION_REVOKED,
+        payload_extractor=_extract_session_revoked_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=SuspiciousSessionActivityEvent,
+        sse_event_type=SSEEventType.SECURITY_SESSION_SUSPICIOUS,
+        payload_extractor=_extract_suspicious_activity_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=UserPasswordChangeSucceeded,
+        sse_event_type=SSEEventType.SECURITY_PASSWORD_CHANGED,
+        payload_extractor=_extract_password_changed_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=UserLoginFailed,
+        sse_event_type=SSEEventType.SECURITY_LOGIN_FAILED,
+        payload_extractor=_extract_login_failed_payload,
+        user_id_extractor=_extract_user_id_or_none,  # user_id may be None
+    ),
+    # ═══════════════════════════════════════════════════════════
     # Future mappings to be added by:
     # - Issue #255: AI Response Streaming (direct publish, no domain event mapping)
     # - Issue #257: Balance/Portfolio Updates (after sync handlers)
-    # - Issue #258: Security Notifications (Session events)
     # ═══════════════════════════════════════════════════════════
 ]
 

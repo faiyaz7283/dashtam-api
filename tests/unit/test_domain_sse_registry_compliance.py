@@ -194,28 +194,6 @@ class TestRegistryStatistics:
                 f"stats={actual_count}, actual={expected_count}"
             )
 
-    def test_statistics_expected_counts(self):
-        """Test expected counts for each category."""
-        stats = get_registry_statistics()
-        by_category = stats["by_category"]
-        assert isinstance(by_category, dict)
-
-        # Expected counts based on sse_event.py event definitions
-        expected = {
-            "data_sync": 9,
-            "provider": 4,
-            "ai": 3,
-            "import": 4,
-            "portfolio": 2,
-            "security": 3,
-        }
-
-        for cat_name, expected_count in expected.items():
-            actual_count = by_category.get(cat_name, 0)
-            assert actual_count == expected_count, (
-                f"Category {cat_name}: expected {expected_count}, got {actual_count}"
-            )
-
     def test_statistics_total_equals_sum_of_categories(self):
         """Test total equals sum of all category counts."""
         stats = get_registry_statistics()

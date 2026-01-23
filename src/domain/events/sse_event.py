@@ -125,6 +125,9 @@ class SSEEventType(StrEnum):
     SECURITY_SESSION_NEW = "security.session.new"
     SECURITY_SESSION_SUSPICIOUS = "security.session.suspicious"
     SECURITY_SESSION_EXPIRING = "security.session.expiring"
+    SECURITY_SESSION_REVOKED = "security.session.revoked"
+    SECURITY_PASSWORD_CHANGED = "security.password.changed"
+    SECURITY_LOGIN_FAILED = "security.login.failed"
 
 
 # Mapping from event type to category for filtering
@@ -160,6 +163,9 @@ _EVENT_TYPE_TO_CATEGORY: dict[SSEEventType, SSEEventCategory] = {
     SSEEventType.SECURITY_SESSION_NEW: SSEEventCategory.SECURITY,
     SSEEventType.SECURITY_SESSION_SUSPICIOUS: SSEEventCategory.SECURITY,
     SSEEventType.SECURITY_SESSION_EXPIRING: SSEEventCategory.SECURITY,
+    SSEEventType.SECURITY_SESSION_REVOKED: SSEEventCategory.SECURITY,
+    SSEEventType.SECURITY_PASSWORD_CHANGED: SSEEventCategory.SECURITY,
+    SSEEventType.SECURITY_LOGIN_FAILED: SSEEventCategory.SECURITY,
 }
 
 

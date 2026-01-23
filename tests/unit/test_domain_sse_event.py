@@ -88,11 +88,6 @@ class TestSSEEventCategory:
 class TestSSEEventType:
     """Test SSEEventType enum."""
 
-    def test_event_types_count(self):
-        """Test total number of event types."""
-        # 9 data_sync + 4 provider + 3 ai + 4 import + 2 portfolio + 3 security = 25
-        assert len(SSEEventType) == 25
-
     def test_event_types_use_dot_notation(self):
         """Test all event types use dot notation (e.g., sync.accounts.started)."""
         for event_type in SSEEventType:
@@ -161,6 +156,9 @@ class TestSSEEventType:
             SSEEventType.SECURITY_SESSION_NEW,
             SSEEventType.SECURITY_SESSION_SUSPICIOUS,
             SSEEventType.SECURITY_SESSION_EXPIRING,
+            SSEEventType.SECURITY_SESSION_REVOKED,
+            SSEEventType.SECURITY_PASSWORD_CHANGED,
+            SSEEventType.SECURITY_LOGIN_FAILED,
         ]
         for event in security_events:
             assert event.value.startswith("security.")

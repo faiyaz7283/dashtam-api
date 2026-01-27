@@ -16,6 +16,11 @@ on:
     branches:
       - development
 
+# Permissions required by the reusable workflow
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   release-phase2:
     uses: faiyaz7283/dashtam/.github/workflows/release-phase2-reusable.yml@main

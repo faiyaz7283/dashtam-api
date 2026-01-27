@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.7] - 2026-01-27
+
+### Added
+
+- Portfolio notification events for balance and net worth changes (#257)
+  - `AccountBalanceUpdated` - Emitted when account balance changes
+  - `AccountHoldingsUpdated` - Emitted when holdings change
+  - `PortfolioNetWorthRecalculated` - Emitted when user net worth changes
+- SSE events for real-time portfolio updates
+  - `portfolio.account.balance.updated`
+  - `portfolio.account.holdings.updated`
+  - `portfolio.networth.updated`
+- PortfolioEventHandler for reactive aggregation pattern
+- GetUserNetWorth query for net worth calculations
+- Documentation for manual event handler wiring pattern
+
+### Documentation
+
+- Updated domain-events.md with manual wiring pattern documentation
+- Updated sse-registry.md with correct event counts (29 total, 24 mappings)
+- Updated sse-architecture.md with portfolio.networth.updated event
+
 ## [1.9.6] - 2026-01-23
 
 ### Added

@@ -118,6 +118,7 @@ class SSEEventType(StrEnum):
     # =========================================================================
     PORTFOLIO_BALANCE_UPDATED = "portfolio.balance.updated"
     PORTFOLIO_HOLDINGS_UPDATED = "portfolio.holdings.updated"
+    PORTFOLIO_NETWORTH_UPDATED = "portfolio.networth.updated"
 
     # =========================================================================
     # SECURITY EVENTS
@@ -159,6 +160,7 @@ _EVENT_TYPE_TO_CATEGORY: dict[SSEEventType, SSEEventCategory] = {
     # Portfolio
     SSEEventType.PORTFOLIO_BALANCE_UPDATED: SSEEventCategory.PORTFOLIO,
     SSEEventType.PORTFOLIO_HOLDINGS_UPDATED: SSEEventCategory.PORTFOLIO,
+    SSEEventType.PORTFOLIO_NETWORTH_UPDATED: SSEEventCategory.PORTFOLIO,
     # Security
     SSEEventType.SECURITY_SESSION_NEW: SSEEventCategory.SECURITY,
     SSEEventType.SECURITY_SESSION_SUSPICIOUS: SSEEventCategory.SECURITY,

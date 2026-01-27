@@ -29,6 +29,7 @@ from src.application.dtos.auth_dtos import (
 )
 from src.application.dtos.import_dtos import ImportResult
 from src.application.dtos.sync_dtos import (
+    BalanceChange,
     SyncAccountsResult,
     SyncHoldingsResult,
     SyncTransactionsResult,
@@ -41,6 +42,7 @@ __all__ = [
     "GlobalRotationResult",
     "UserRotationResult",
     # Sync DTOs
+    "BalanceChange",
     "SyncAccountsResult",
     "SyncTransactionsResult",
     "SyncHoldingsResult",

@@ -55,6 +55,11 @@ from src.domain.events.auth_events import (
     UserLoginFailed,
     UserPasswordChangeSucceeded,
 )
+from src.domain.events.portfolio_events import (
+    AccountBalanceUpdated,
+    AccountHoldingsUpdated,
+    PortfolioNetWorthRecalculated,
+)
 from src.domain.events.sse_event import SSEEventCategory, SSEEventType
 
 
@@ -249,6 +254,18 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
         category=SSEEventCategory.PORTFOLIO,
         description="Portfolio holdings updated after sync",
         payload_fields=["account_id", "holdings_count"],
+    ),
+    SSEEventMetadata(
+        event_type=SSEEventType.PORTFOLIO_NETWORTH_UPDATED,
+        category=SSEEventCategory.PORTFOLIO,
+        description="Portfolio net worth recalculated after sync",
+        payload_fields=[
+            "previous_net_worth",
+            "new_net_worth",
+            "delta",
+            "currency",
+            "account_count",
+        ],
     ),
     # ═══════════════════════════════════════════════════════════
     # Security Events
@@ -549,6 +566,47 @@ def _extract_user_id_or_none(event: DomainEvent) -> UUID | None:
 
 
 # ═══════════════════════════════════════════════════════════════
+# Payload Extractor Functions (Issue #257: Portfolio Updates)
+# ═══════════════════════════════════════════════════════════════
+
+
+def _extract_balance_updated_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from AccountBalanceUpdated."""
+    e = cast(AccountBalanceUpdated, event)
+    return {
+        "account_id": str(e.account_id),
+        "previous_balance": str(e.previous_balance),
+        "new_balance": str(e.new_balance),
+        "delta": str(e.delta),
+        "currency": e.currency,
+    }
+
+
+def _extract_holdings_updated_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from AccountHoldingsUpdated."""
+    e = cast(AccountHoldingsUpdated, event)
+    return {
+        "account_id": str(e.account_id),
+        "holdings_count": e.holdings_count,
+        "created_count": e.created_count,
+        "updated_count": e.updated_count,
+        "deactivated_count": e.deactivated_count,
+    }
+
+
+def _extract_networth_recalculated_payload(event: DomainEvent) -> dict[str, Any]:
+    """Extract payload from PortfolioNetWorthRecalculated."""
+    e = cast(PortfolioNetWorthRecalculated, event)
+    return {
+        "previous_net_worth": str(e.previous_net_worth),
+        "new_net_worth": str(e.new_net_worth),
+        "delta": str(e.delta),
+        "currency": e.currency,
+        "account_count": e.account_count,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
 # DOMAIN TO SSE MAPPINGS
 # ═══════════════════════════════════════════════════════════════
 
@@ -695,9 +753,29 @@ DOMAIN_TO_SSE_MAPPING: list[DomainToSSEMapping] = [
         user_id_extractor=_extract_user_id_or_none,  # user_id may be None
     ),
     # ═══════════════════════════════════════════════════════════
+    # Issue #257: Portfolio Updates (3 mappings)
+    # ═══════════════════════════════════════════════════════════
+    DomainToSSEMapping(
+        domain_event_class=AccountBalanceUpdated,
+        sse_event_type=SSEEventType.PORTFOLIO_BALANCE_UPDATED,
+        payload_extractor=_extract_balance_updated_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=AccountHoldingsUpdated,
+        sse_event_type=SSEEventType.PORTFOLIO_HOLDINGS_UPDATED,
+        payload_extractor=_extract_holdings_updated_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    DomainToSSEMapping(
+        domain_event_class=PortfolioNetWorthRecalculated,
+        sse_event_type=SSEEventType.PORTFOLIO_NETWORTH_UPDATED,
+        payload_extractor=_extract_networth_recalculated_payload,
+        user_id_extractor=_extract_user_id,
+    ),
+    # ═══════════════════════════════════════════════════════════
     # Future mappings to be added by:
     # - Issue #255: AI Response Streaming (direct publish, no domain event mapping)
-    # - Issue #257: Balance/Portfolio Updates (after sync handlers)
     # ═══════════════════════════════════════════════════════════
 ]
 

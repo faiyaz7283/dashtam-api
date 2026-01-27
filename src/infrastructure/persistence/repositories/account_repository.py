@@ -9,9 +9,10 @@ Reference:
 """
 
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.entities.account import Account
@@ -344,3 +345,54 @@ class AccountRepository:
         model.last_synced_at = entity.last_synced_at
         model.provider_metadata = entity.provider_metadata
         model.updated_at = datetime.now(UTC)
+
+    # =========================================================================
+    # Aggregate Methods (for Portfolio Calculations)
+    # =========================================================================
+
+    async def sum_balances_for_user(self, user_id: UUID) -> Decimal:
+        """Sum all active account balances for a user.
+
+        Uses SQL SUM with COALESCE to handle NULL (no accounts).
+        Joins through provider_connections to get user's accounts.
+
+        Args:
+            user_id: User's unique identifier.
+
+        Returns:
+            Total balance across all active accounts (Decimal).
+            Returns 0 if user has no active accounts.
+        """
+        stmt = (
+            select(func.coalesce(func.sum(AccountModel.balance), 0))
+            .join(ProviderConnectionModel)
+            .where(
+                ProviderConnectionModel.user_id == user_id,
+                AccountModel.is_active == True,  # noqa: E712
+            )
+        )
+        result = await self.session.execute(stmt)
+        return Decimal(str(result.scalar_one()))
+
+    async def count_for_user(self, user_id: UUID) -> int:
+        """Count active accounts for a user.
+
+        Uses SQL COUNT with join through provider_connections.
+
+        Args:
+            user_id: User's unique identifier.
+
+        Returns:
+            Number of active accounts.
+            Returns 0 if user has no active accounts.
+        """
+        stmt = (
+            select(func.count(AccountModel.id))
+            .join(ProviderConnectionModel)
+            .where(
+                ProviderConnectionModel.user_id == user_id,
+                AccountModel.is_active == True,  # noqa: E712
+            )
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())

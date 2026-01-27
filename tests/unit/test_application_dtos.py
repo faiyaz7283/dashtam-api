@@ -323,6 +323,7 @@ class TestDTOModuleExports:
             "AuthTokens",
             "GlobalRotationResult",
             "UserRotationResult",
+            "BalanceChange",
             "SyncAccountsResult",
             "SyncTransactionsResult",
             "SyncHoldingsResult",
@@ -338,6 +339,7 @@ class TestDTOModuleExports:
         from src.application.dtos import (
             AuthenticatedUser,
             AuthTokens,
+            BalanceChange,
             GlobalRotationResult,
             ImportResult,
             SyncAccountsResult,
@@ -349,6 +351,7 @@ class TestDTOModuleExports:
         # All imports should work
         assert AuthenticatedUser is not None
         assert AuthTokens is not None
+        assert BalanceChange is not None
         assert GlobalRotationResult is not None
         assert UserRotationResult is not None
         assert SyncAccountsResult is not None

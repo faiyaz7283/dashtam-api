@@ -8,6 +8,7 @@ Reference:
 """
 
 from datetime import timedelta
+from decimal import Decimal
 from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 
@@ -207,5 +208,43 @@ class AccountRepository(Protocol):
 
         Example:
             >>> await repo.delete(account_id)
+        """
+        ...
+
+    async def sum_balances_for_user(self, user_id: UUID) -> Decimal:
+        """Sum all active account balances for a user.
+
+        Used for portfolio net worth calculation.
+        Only includes active accounts (is_active=True).
+
+        Args:
+            user_id: User's unique identifier.
+
+        Returns:
+            Total balance across all active accounts (Decimal).
+            Returns 0 if user has no active accounts.
+
+        Example:
+            >>> total = await repo.sum_balances_for_user(user_id)
+            >>> print(f"Net worth: {total}")
+        """
+        ...
+
+    async def count_for_user(self, user_id: UUID) -> int:
+        """Count active accounts for a user.
+
+        Used for portfolio statistics.
+        Only includes active accounts (is_active=True).
+
+        Args:
+            user_id: User's unique identifier.
+
+        Returns:
+            Number of active accounts.
+            Returns 0 if user has no active accounts.
+
+        Example:
+            >>> count = await repo.count_for_user(user_id)
+            >>> print(f"Active accounts: {count}")
         """
         ...

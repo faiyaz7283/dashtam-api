@@ -134,12 +134,19 @@ class TestEventRegistryCompleteness:
 
         expected_sse = len(get_domain_event_to_sse_mapping())
 
+        # Count manual PortfolioEventHandler subscriptions (Issue #257)
+        # These are REACTIVE AGGREGATION handlers that don't fit the registry-driven pattern
+        # AccountBalanceUpdated -> handle_balance_updated
+        # AccountHoldingsUpdated -> handle_holdings_updated
+        expected_portfolio = 2
+
         expected_subscriptions = (
             expected_logging
             + expected_audit
             + expected_email
             + expected_session
             + expected_sse
+            + expected_portfolio
         )
 
         # Count actual subscriptions (sum of all handlers across all events)
@@ -156,9 +163,10 @@ class TestEventRegistryCompleteness:
             f"  - Email: {expected_email}\n"
             f"  - Session: {expected_session}\n"
             f"  - SSE: {expected_sse}\n"
+            f"  - Portfolio: {expected_portfolio}\n"
             f"Actual: {actual_subscriptions} subscriptions\n\n"
             f"If actual < expected: Container wiring bug (missing subscriptions)\n"
-            f"If actual > expected: Update EVENT_REGISTRY or SSE_EVENT_REGISTRY metadata"
+            f"If actual > expected: Update EVENT_REGISTRY, SSE_EVENT_REGISTRY, or manual handler counts"
         )
 
     def test_critical_events_have_audit_and_logging(self, event_bus) -> None:

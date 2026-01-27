@@ -30,6 +30,7 @@ from src.domain.events.data_events import (
     HoldingsSyncFailed,
     HoldingsSyncSucceeded,
 )
+from src.domain.events.portfolio_events import AccountHoldingsUpdated
 from src.domain.protocols.account_repository import AccountRepository
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.holding_repository import HoldingRepository
@@ -302,6 +303,26 @@ class SyncHoldingsHandler:
                 holding_count=total_holdings,
             )
         )
+
+        # 13. Emit holdings updated event for portfolio notifications
+        # Only emit if there were actual changes
+        if (
+            sync_result.created > 0
+            or sync_result.updated > 0
+            or sync_result.deactivated > 0
+        ):
+            await self._event_bus.publish(
+                AccountHoldingsUpdated(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    user_id=command.user_id,
+                    account_id=command.account_id,
+                    holdings_count=total_holdings,
+                    created_count=sync_result.created,
+                    updated_count=sync_result.updated,
+                    deactivated_count=sync_result.deactivated,
+                )
+            )
 
         return Success(value=sync_result)
 

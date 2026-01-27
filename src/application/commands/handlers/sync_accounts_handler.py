@@ -21,7 +21,7 @@ from uuid import UUID
 from uuid_extensions import uuid7
 
 from src.application.commands.sync_commands import SyncAccounts
-from src.application.dtos import SyncAccountsResult
+from src.application.dtos import BalanceChange, SyncAccountsResult
 from src.core.result import Failure, Result, Success
 from src.domain.entities.account import Account
 from src.domain.enums.account_type import AccountType
@@ -30,6 +30,7 @@ from src.domain.events.data_events import (
     AccountSyncFailed,
     AccountSyncSucceeded,
 )
+from src.domain.events.portfolio_events import AccountBalanceUpdated
 from src.domain.protocols.account_repository import AccountRepository
 from src.domain.protocols.event_bus_protocol import EventBusProtocol
 from src.domain.protocols.provider_connection_repository import (
@@ -274,6 +275,21 @@ class SyncAccountsHandler:
             )
         )
 
+        # 12. Emit balance change events for portfolio notifications
+        for balance_change in sync_result.balance_changes:
+            await self._event_bus.publish(
+                AccountBalanceUpdated(
+                    event_id=uuid7(),
+                    occurred_at=datetime.now(UTC),
+                    user_id=command.user_id,
+                    account_id=balance_change.account_id,
+                    previous_balance=balance_change.previous,
+                    new_balance=balance_change.current,
+                    delta=balance_change.current - balance_change.previous,
+                    currency=balance_change.currency,
+                )
+            )
+
         return Success(value=sync_result)
 
     async def _sync_accounts_to_repository(
@@ -283,17 +299,20 @@ class SyncAccountsHandler:
     ) -> SyncAccountsResult:
         """Sync provider accounts to repository using upsert logic.
 
+        Tracks balance changes for portfolio notifications.
+
         Args:
             connection_id: Provider connection ID.
             provider_accounts: Accounts fetched from provider.
 
         Returns:
-            SyncAccountsResult with counts.
+            SyncAccountsResult with counts and balance changes.
         """
         created = 0
         updated = 0
         unchanged = 0
         errors = 0
+        balance_changes: list[BalanceChange] = []
 
         for provider_account in provider_accounts:
             try:
@@ -311,7 +330,20 @@ class SyncAccountsHandler:
                     )
                     await self._account_repo.save(account)
                     created += 1
+                    # New account - balance went from 0 to new_balance
+                    if provider_account.balance != 0:
+                        balance_changes.append(
+                            BalanceChange(
+                                account_id=account.id,
+                                previous=provider_account.balance.__class__(0),
+                                current=provider_account.balance,
+                                currency=provider_account.currency,
+                            )
+                        )
                 else:
+                    # Track previous balance before update
+                    previous_balance = existing.balance.amount
+
                     # Update existing account
                     was_updated = self._update_account_from_provider_data(
                         account=existing,
@@ -320,6 +352,16 @@ class SyncAccountsHandler:
                     if was_updated:
                         await self._account_repo.save(existing)
                         updated += 1
+                        # Check if balance changed
+                        if previous_balance != provider_account.balance:
+                            balance_changes.append(
+                                BalanceChange(
+                                    account_id=existing.id,
+                                    previous=previous_balance,
+                                    current=provider_account.balance,
+                                    currency=provider_account.currency,
+                                )
+                            )
                     else:
                         unchanged += 1
 
@@ -341,6 +383,7 @@ class SyncAccountsHandler:
             unchanged=unchanged,
             errors=errors,
             message=message,
+            balance_changes=balance_changes,
         )
 
     def _create_account_from_provider_data(

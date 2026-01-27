@@ -140,6 +140,7 @@ from src.application.queries.holding_queries import (
     ListHoldingsByAccount,
     ListHoldingsByUser,
 )
+from src.application.queries.portfolio_queries import GetUserNetWorth
 from src.application.queries.provider_queries import (
     GetProviderConnection,
     ListProviderConnections,
@@ -189,6 +190,9 @@ from src.application.queries.handlers.get_holding_handler import GetHoldingHandl
 from src.application.queries.handlers.list_holdings_handler import (
     ListHoldingsByAccountHandler,
     ListHoldingsByUserHandler,
+)
+from src.application.queries.handlers.get_user_networth_handler import (
+    GetUserNetWorthHandler,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -616,5 +620,16 @@ QUERY_REGISTRY: list[QueryMetadata] = [
         is_paginated=False,  # Moderate number of holdings per user
         cache_policy=CachePolicy.SHORT,
         description="List all holdings for a user across all accounts",
+    ),
+    # ═══════════════════════════════════════════════════════════════════════
+    # Portfolio Queries (1 query - Issue #257)
+    # ═══════════════════════════════════════════════════════════════════════
+    QueryMetadata(
+        query_class=GetUserNetWorth,
+        handler_class=GetUserNetWorthHandler,
+        category=CQRSCategory.DATA_SYNC,
+        is_paginated=False,
+        cache_policy=CachePolicy.SHORT,  # Real-time updates via SSE
+        description="Get aggregated net worth for a user",
     ),
 ]

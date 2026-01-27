@@ -272,4 +272,44 @@ def get_event_bus() -> "EventBusProtocol":
         mapped_events=len(domain_to_sse),
     )
 
+    # =========================================================================
+    # PORTFOLIO EVENT HANDLER WIRING (Manual subscription)
+    # =========================================================================
+    # Portfolio handler listens to AccountBalanceUpdated and AccountHoldingsUpdated,
+    # recalculates net worth, and emits PortfolioNetWorthRecalculated.
+    #
+    # This is a REACTIVE AGGREGATION handler - it coordinates between multiple
+    # events to emit a derived event. Manual subscription is used instead of
+    # registry-driven auto-wiring because:
+    # 1. Custom method names (handle_balance_updated, not handle_{workflow}_{phase})
+    # 2. Queries repository + cache (stateful aggregation logic)
+    # 3. Emits new derived event (coordination, not just logging/auditing)
+    #
+    # Pattern: Same as AuditEventHandler - takes database + event_bus, creates
+    # sessions on-demand when handling events.
+    # =========================================================================
+    from src.application.event_handlers.portfolio_event_handler import (
+        PortfolioEventHandler,
+    )
+    from src.core.container.infrastructure import get_cache
+    from src.domain.events.portfolio_events import (
+        AccountBalanceUpdated,
+        AccountHoldingsUpdated,
+    )
+
+    portfolio_handler = PortfolioEventHandler(
+        database=get_database(),
+        cache=get_cache(),
+        event_bus=event_bus,
+        logger=logger,
+    )
+
+    # Subscribe to portfolio trigger events
+    event_bus.subscribe(AccountBalanceUpdated, portfolio_handler.handle_balance_updated)
+    event_bus.subscribe(
+        AccountHoldingsUpdated, portfolio_handler.handle_holdings_updated
+    )
+
+    logger.debug("Portfolio event handler wiring complete")
+
     return event_bus

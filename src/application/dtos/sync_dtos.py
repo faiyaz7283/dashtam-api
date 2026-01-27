@@ -7,12 +7,34 @@ DTOs:
     - SyncAccountsResult: Result from SyncAccounts command
     - SyncTransactionsResult: Result from SyncTransactions command
     - SyncHoldingsResult: Result from SyncHoldings command
+    - BalanceChange: Tracks balance changes for portfolio events
 
 Reference:
     - docs/architecture/cqrs.md (DTOs section)
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from decimal import Decimal
+from uuid import UUID
+
+
+@dataclass
+class BalanceChange:
+    """Tracks balance change for a single account during sync.
+
+    Used to emit AccountBalanceUpdated events after sync completes.
+
+    Attributes:
+        account_id: Account whose balance changed.
+        previous: Balance before sync.
+        current: Balance after sync.
+        currency: Currency code.
+    """
+
+    account_id: UUID
+    previous: Decimal
+    current: Decimal
+    currency: str
 
 
 @dataclass
@@ -25,6 +47,7 @@ class SyncAccountsResult:
         unchanged: Number of accounts unchanged.
         errors: Number of accounts that failed to sync.
         message: Human-readable summary.
+        balance_changes: List of balance changes for portfolio events.
     """
 
     created: int
@@ -32,6 +55,7 @@ class SyncAccountsResult:
     unchanged: int
     errors: int
     message: str
+    balance_changes: list[BalanceChange] = field(default_factory=list)
 
 
 @dataclass

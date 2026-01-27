@@ -1789,6 +1789,101 @@ EventMetadata(
 
 **Reference**: See `docs/architecture/registry.md` for complete pattern documentation.
 
+### 5.2 Manual Wiring for Reactive Aggregation Handlers
+
+**Problem**: Some event handlers don't fit the registry-driven auto-wiring pattern:
+
+1. **Reactive aggregation**: Handler listens to multiple events and emits derived events
+2. **Custom method names**: Handler methods don't follow `handle_{workflow}_{phase}` naming
+3. **Stateful coordination**: Handler queries repositories and caches to compute results
+
+**Example**: `PortfolioEventHandler` (Issue #257)
+
+- Listens to `AccountBalanceUpdated` and `AccountHoldingsUpdated`
+- Queries repository to calculate total net worth
+- Compares with cached previous value
+- Emits `PortfolioNetWorthRecalculated` if changed
+
+**Why Not Auto-Wiring?**
+
+```text
+Registry Pattern (Auto-Wiring):
+- Method: handle_{workflow_name}_{phase}()
+- Purpose: Logging, audit, email, session (side effects)
+- Data flow: Event → Handler (one-way, no return)
+- Example: handle_user_registration_succeeded(event)
+
+Manual Wiring Pattern:
+- Method: Custom names (handle_balance_updated, handle_holdings_updated)
+- Purpose: Reactive aggregation (compute derived events)
+- Data flow: Event → Handler → New Event (coordination)
+- Example: PortfolioEventHandler.handle_balance_updated(event)
+```
+
+**Implementation**: `src/core/container/events.py`
+
+```python
+# ════════════════════════════════════════════════════════════════
+# MANUAL WIRING: Reactive Aggregation Handlers
+# ════════════════════════════════════════════════════════════════
+# These handlers don't fit registry-driven auto-wiring because:
+# 1. Custom method names (not handle_{workflow}_{phase})
+# 2. Stateful coordination (queries repo + cache)
+# 3. Emits derived events (not just side effects)
+
+from src.application.event_handlers.portfolio_event_handler import (
+    PortfolioEventHandler,
+)
+from src.domain.events.portfolio_events import (
+    AccountBalanceUpdated,
+    AccountHoldingsUpdated,
+)
+
+portfolio_handler = PortfolioEventHandler(
+    database=get_database(),
+    cache=get_cache(),
+    event_bus=event_bus,
+    logger=logger,
+)
+
+# Manual subscriptions (not registry-driven)
+event_bus.subscribe(AccountBalanceUpdated, portfolio_handler.handle_balance_updated)
+event_bus.subscribe(AccountHoldingsUpdated, portfolio_handler.handle_holdings_updated)
+```
+
+**Test Accounting**: Manual subscriptions must be tracked in `test_core_container_events.py`:
+
+```python
+def test_registry_count_matches_actual_wiring(self, event_bus):
+    # Registry-driven subscriptions
+    expected_logging = sum(1 for m in EVENT_REGISTRY if m.requires_logging)
+    expected_audit = sum(1 for m in EVENT_REGISTRY if m.requires_audit)
+    expected_email = sum(1 for m in EVENT_REGISTRY if m.requires_email)
+    expected_session = sum(1 for m in EVENT_REGISTRY if m.requires_session)
+    expected_sse = len(get_domain_event_to_sse_mapping())
+    
+    # Manual subscriptions (not registry-driven)
+    expected_portfolio = 2  # AccountBalanceUpdated, AccountHoldingsUpdated
+    
+    expected_total = (
+        expected_logging + expected_audit + expected_email
+        + expected_session + expected_sse + expected_portfolio
+    )
+```
+
+**When to Use Manual Wiring**:
+
+| Pattern | Use Case | Method Naming | Emits Events? |
+|---------|----------|---------------|---------------|
+| Auto-wiring | Side effects (logging, audit, email) | `handle_{workflow}_{phase}` | No |
+| Manual | Reactive aggregation | Custom names | Yes (derived) |
+
+**Current Manual Handlers**:
+
+| Handler | Events | Purpose |
+|---------|--------|----------|
+| PortfolioEventHandler | AccountBalanceUpdated, AccountHoldingsUpdated | Net worth calculation |
+
 ---
 
 ## Application Layer (Usage Example)

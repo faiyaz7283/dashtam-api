@@ -118,6 +118,11 @@ from src.domain.events.data_events import (
     FileImportFailed,
     FileImportProgress,
 )
+from src.domain.events.portfolio_events import (
+    AccountBalanceUpdated,
+    AccountHoldingsUpdated,
+    PortfolioNetWorthRecalculated,
+)
 
 
 class EventCategory(Enum):
@@ -750,6 +755,37 @@ EVENT_REGISTRY: list[EventMetadata] = [
         requires_logging=True,
         requires_audit=False,  # Progress events don't need audit records
         audit_action_name="FILE_IMPORT_PROGRESS",  # For registry consistency
+    ),
+    # ═══════════════════════════════════════════════════════════
+    # Portfolio Events (3 events - Issue #257)
+    # OPERATIONAL events for SSE notifications (no audit needed)
+    # ═══════════════════════════════════════════════════════════
+    EventMetadata(
+        event_class=AccountBalanceUpdated,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="account_balance_updated",
+        phase=WorkflowPhase.OPERATIONAL,
+        requires_logging=True,
+        requires_audit=False,  # Underlying sync already audited
+        audit_action_name="ACCOUNT_BALANCE_UPDATED",  # For registry consistency
+    ),
+    EventMetadata(
+        event_class=AccountHoldingsUpdated,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="account_holdings_updated",
+        phase=WorkflowPhase.OPERATIONAL,
+        requires_logging=True,
+        requires_audit=False,  # Underlying sync already audited
+        audit_action_name="ACCOUNT_HOLDINGS_UPDATED",  # For registry consistency
+    ),
+    EventMetadata(
+        event_class=PortfolioNetWorthRecalculated,
+        category=EventCategory.DATA_SYNC,
+        workflow_name="portfolio_networth_recalculated",
+        phase=WorkflowPhase.OPERATIONAL,
+        requires_logging=True,
+        requires_audit=False,  # Underlying sync already audited
+        audit_action_name="PORTFOLIO_NETWORTH_RECALCULATED",  # For registry consistency
     ),
 ]
 

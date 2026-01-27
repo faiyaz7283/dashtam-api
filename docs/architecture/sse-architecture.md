@@ -326,22 +326,29 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
     ),
     
     # ═══════════════════════════════════════════════════════════════════════
-    # Portfolio Events (2 event types)
-    # Implementation: GitHub Issue #5 - SSE: Balance/Portfolio Updates
+    # Portfolio Events (3 event types)
+    # Implementation: GitHub Issue #257 - SSE: Balance/Portfolio Updates
     # ═══════════════════════════════════════════════════════════════════════
     SSEEventMetadata(
         event_type="portfolio.balance.updated",
         category=SSECategory.PORTFOLIO,
-        source_domain_events=(),  # Triggered after sync, not direct event
+        source_domain_events=(AccountBalanceUpdated,),
         description="Account balance updated after sync",
-        payload_fields=("account_id", "previous_balance", "new_balance", "currency"),
+        payload_fields=("account_id", "previous_balance", "new_balance", "delta", "currency"),
     ),
     SSEEventMetadata(
         event_type="portfolio.holdings.updated",
         category=SSECategory.PORTFOLIO,
-        source_domain_events=(),  # Triggered after sync
+        source_domain_events=(AccountHoldingsUpdated,),
         description="Holdings updated after sync",
-        payload_fields=("account_id", "holdings_count"),
+        payload_fields=("account_id", "holdings_count", "created_count", "updated_count", "deactivated_count"),
+    ),
+    SSEEventMetadata(
+        event_type="portfolio.networth.updated",
+        category=SSECategory.PORTFOLIO,
+        source_domain_events=(PortfolioNetWorthRecalculated,),
+        description="Portfolio net worth recalculated after sync",
+        payload_fields=("previous_net_worth", "new_net_worth", "delta", "currency", "account_count"),
     ),
     
     # ═══════════════════════════════════════════════════════════════════════

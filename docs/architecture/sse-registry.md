@@ -40,13 +40,13 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
         description="Account sync operation completed successfully",
         payload_fields=["connection_id", "provider_slug", "account_count"],
     ),
-    # ... 24 more event types
+    # ... 28 more event types
 ]
 ```
 
 **Benefits**:
 
-- ✅ All 25 SSE event types cataloged with complete metadata
+- ✅ All 29 SSE event types cataloged with complete metadata
 - ✅ 6 categories for client-side filtering
 - ✅ Self-enforcing compliance tests
 - ✅ Helper functions for easy access
@@ -84,7 +84,7 @@ class SSEEventType(StrEnum):
     PROVIDER_TOKEN_REFRESHED = "provider.token.refreshed"
     # ... more
 
-    # AI (3 types), Import (4 types), Portfolio (2 types), Security (3 types)
+    # AI (3 types), Import (4 types), Portfolio (3 types), Security (6 types)
 ```
 
 **Naming Convention**:
@@ -173,20 +173,20 @@ SSE_EVENT_REGISTRY: list[SSEEventMetadata] = [
         description="Account sync operation completed successfully",
         payload_fields=["connection_id", "provider_slug", "account_count"],
     ),
-    # ... 23 more entries
+    # ... 27 more entries
 ]
 ```
 
 **Event Type Distribution**:
 
 | Category | Count | Event Types |
-|----------|-------|-------------|
+|----------|-------|--------------|
 | DATA_SYNC | 9 | Accounts, Transactions, Holdings (started/completed/failed) |
 | PROVIDER | 4 | Token expiring/refreshed/failed, Disconnected |
 | AI | 3 | Response chunk, Tool executing, Response complete |
 | IMPORT | 4 | Started, Progress, Completed, Failed |
-| PORTFOLIO | 2 | Balance updated, Holdings updated |
-| SECURITY | 3 | Session new/suspicious/expiring |
+| PORTFOLIO | 3 | Balance updated, Holdings updated, Net worth updated |
+| SECURITY | 6 | Session new/revoked/suspicious, Password changed, Login failed |
 
 ### 5. DomainToSSEMapping (Dataclass)
 
@@ -298,8 +298,8 @@ def get_registry_statistics() -> dict[str, int]:
         >>> stats = get_registry_statistics()
         >>> print(stats)
         {
-            "total_event_types": 25,
-            "total_mappings": 9,
+            "total_event_types": 29,
+            "total_mappings": 24,
             "by_category": {
                 "data_sync": 9,
                 "provider": 4,
@@ -336,7 +336,7 @@ _EVENT_TYPE_TO_CATEGORY: dict[SSEEventType, SSEEventCategory] = {
     # Data Sync
     SSEEventType.SYNC_ACCOUNTS_STARTED: SSEEventCategory.DATA_SYNC,
     SSEEventType.SYNC_ACCOUNTS_COMPLETED: SSEEventCategory.DATA_SYNC,
-    # ... all 25 mappings
+    # ... all 29 mappings
 }
 
 def get_category_for_event_type(event_type: SSEEventType) -> SSEEventCategory:
@@ -386,8 +386,8 @@ def test_statistics_expected_counts():
         "provider": 4,
         "ai": 3,
         "import": 4,
-        "portfolio": 2,
-        "security": 3,
+        "portfolio": 3,
+        "security": 6,
     }
     for cat_name, count in expected.items():
         assert stats["by_category"][cat_name] == count

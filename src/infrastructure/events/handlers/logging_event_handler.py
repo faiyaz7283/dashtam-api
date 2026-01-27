@@ -140,6 +140,12 @@ from src.domain.events.data_events import (
     FileImportFailed,
     FileImportProgress,
 )
+from src.domain.events.portfolio_events import (
+    # Portfolio Events (operational)
+    AccountBalanceUpdated,
+    AccountHoldingsUpdated,
+    PortfolioNetWorthRecalculated,
+)
 from src.domain.protocols.logger_protocol import LoggerProtocol
 
 
@@ -1361,4 +1367,81 @@ class LoggingEventHandler:
             progress_percent=event.progress_percent,
             records_processed=event.records_processed,
             total_records=event.total_records,
+        )
+
+    # =========================================================================
+    # Portfolio Event Handlers (Issue #257)
+    # OPERATIONAL events for SSE notifications - logged at DEBUG level
+    # =========================================================================
+
+    async def handle_account_balance_updated_operational(
+        self,
+        event: AccountBalanceUpdated,
+    ) -> None:
+        """Log account balance update (DEBUG level).
+
+        Method name follows auto-wiring pattern: handle_{workflow_name}_{phase}
+        AccountBalanceUpdated uses workflow_name='account_balance_updated' + phase=OPERATIONAL.
+
+        Uses DEBUG level since these events are operational (SSE notifications)
+        and the underlying sync operation is already logged at INFO level.
+        """
+        self._logger.debug(
+            "account_balance_updated",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            account_id=str(event.account_id),
+            previous_balance=str(event.previous_balance),
+            new_balance=str(event.new_balance),
+            delta=str(event.delta),
+            currency=event.currency,
+        )
+
+    async def handle_account_holdings_updated_operational(
+        self,
+        event: AccountHoldingsUpdated,
+    ) -> None:
+        """Log account holdings update (DEBUG level).
+
+        Method name follows auto-wiring pattern: handle_{workflow_name}_{phase}
+        AccountHoldingsUpdated uses workflow_name='account_holdings_updated' + phase=OPERATIONAL.
+
+        Uses DEBUG level since these events are operational (SSE notifications)
+        and the underlying sync operation is already logged at INFO level.
+        """
+        self._logger.debug(
+            "account_holdings_updated",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            account_id=str(event.account_id),
+            holdings_count=event.holdings_count,
+            created_count=event.created_count,
+            updated_count=event.updated_count,
+            deactivated_count=event.deactivated_count,
+        )
+
+    async def handle_portfolio_networth_recalculated_operational(
+        self,
+        event: PortfolioNetWorthRecalculated,
+    ) -> None:
+        """Log portfolio net worth recalculation (INFO level).
+
+        Method name follows auto-wiring pattern: handle_{workflow_name}_{phase}
+        PortfolioNetWorthRecalculated uses workflow_name='portfolio_networth_recalculated' + phase=OPERATIONAL.
+
+        Uses INFO level since net worth changes are significant portfolio events
+        that users/ops teams care about monitoring.
+        """
+        self._logger.info(
+            "portfolio_networth_recalculated",
+            event_id=str(event.event_id),
+            occurred_at=event.occurred_at.isoformat(),
+            user_id=str(event.user_id),
+            previous_net_worth=str(event.previous_net_worth),
+            new_net_worth=str(event.new_net_worth),
+            delta=str(event.delta),
+            currency=event.currency,
+            account_count=event.account_count,
         )
